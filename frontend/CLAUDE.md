@@ -9,10 +9,27 @@ Docs de referencia: https://docs.expo.dev/versions/v57.0.0/
 Gestor de paquetes: **npm** (hay `package-lock.json`). Dependencias nuevas con `npx expo install`, previa aprobación.
 
 ## Estado actual
-Plantilla de create-expo-app. `src/app/index.tsx`, `explore.tsx` y `src/components/*` son de ejemplo
-y se sustituirán. Aún NO instalados: supabase-js, TanStack Query, i18n, ESLint config
-(`npx expo lint` la crea e instala en su primera ejecución: pedir permiso antes).
-`app.json` sigue con `name`/`slug`/`scheme` = `frontend`; el `scheme` afectará a los redirects de Auth.
+Vertical base implementada: cliente Supabase, Auth (email/contraseña), sesión, rutas protegidas y
+TanStack Query. Sin funcionalidades de producto todavía; `(app)/index.tsx` es una pantalla temporal.
+- `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`).
+- `src/lib/query-client.ts` — QueryClient único; AuthProvider lo vacía al cerrar sesión o cambiar de usuario.
+- `src/features/auth/` — `AuthProvider`/`useAuth`, mapeo de errores (`auth-errors.ts`), validación.
+- `src/app/_layout.tsx` — único punto de protección de rutas (`Stack.Protected`); nunca comprobar la
+  sesión pantalla a pantalla.
+- `src/i18n/` — `t(key)` tipado; idioma `es`. Ningún texto visible fuera de `src/i18n/locales/`.
+- `src/components/ui/` — Screen, TextField, Button, FormMessage (mínimos, no es el design system final).
+- ESLint configurado (`eslint.config.js`, `eslint-config-expo`).
+Pendiente: deep links de Auth (reset de contraseña dentro de la app, confirmación de email),
+`app.json` sigue con `name`/`slug`/`scheme` = `frontend` (el `scheme` afectará a esos redirects).
+
+## Tipos de Supabase
+`src/types/database.types.ts` es generado: no editarlo a mano. Regenerar desde la raíz del repo
+(lee el remoto `kitom-dev`, requiere aprobación):
+`npx supabase gen types typescript --linked --schema public > frontend/src/types/database.types.ts`
+
+## Rutas tipadas
+`typedRoutes` genera `.expo/types/router.d.ts` (ignorado por git) al arrancar `npx expo start`.
+Si `tsc` falla con rutas nuevas, arrancar el dev server una vez para regenerarlo.
 
 ## Arquitectura objetivo (fuente: docs/FRONTEND_ARCHITECTURE.md)
 - Navegación: **Expo Router** (no react-navigation directo). Grupos de rutas `(auth)`, `(onboarding)`,
