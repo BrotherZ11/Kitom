@@ -5,6 +5,12 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-07
 
+- Corrección: crear una mascota fallaba con `42501` (RLS) por el `RETURNING` del insert. Nueva
+  migración `20261007172110_pets_select_policy_owner.sql`; pendiente de aplicar en `kitom-dev`.
+- Pets usa el catálogo de razas: selección de estado (con raza / mestizo / desconocida), buscador por
+  especie con alias y opción de raza no catalogada; la raza es opcional y puede quedar sin contestar.
+  Tipos regenerados desde `kitom-dev`, mensajes de error de raza propios e idioma `en` añadido al
+  i18n (activo sigue siendo `es`). Contrato en `FRONTEND_ARCHITECTURE.md` §4 «Pets».
 - Nueva migración de razas (`breeds`, `breed_status`, `pets.breed_id`/`breed_status`, FK compuesta
   especie↔raza) y seed `supabase/seeds/breeds.sql` con 198 razas (155 de perro, 43 de gato) en es/en.
   Validados en local; pendientes de aplicar en `kitom-dev`. Decisión en `DECISIONS.md`, catálogo en

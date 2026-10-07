@@ -12,8 +12,14 @@
     (pendiente: declararlos en `config.toml`).
 - Migración `20261007152630_breeds.sql`: catálogo `breeds` (por especie), enum `breed_status` y
   `pets.breed_id`/`pets.breed_status` con FK compuesta `(breed_id, species_id) → breeds (id, species_id)`
-  y CHECK `pets_breed_status_check`. Validada en local (integridad, RLS y grants); **pendiente de
-  aplicar en `kitom-dev`**. Con ella son 23 tablas. Modelo: `docs/DECISIONS.md`.
+  y CHECK `pets_breed_status_check`. Aplicada en `kitom-dev`. Con ella son 23 tablas. Modelo:
+  `docs/DECISIONS.md`.
+- Migración `20261007172110_pets_select_policy_owner.sql`: la política SELECT de `pets` comprueba
+  `owner_id = auth.uid()` antes de `is_pet_member(id)` para que `INSERT … RETURNING` funcione.
+  Validada en local; **pendiente de aplicar en `kitom-dev`**.
+- Lección RLS: en `INSERT … RETURNING` la política SELECT se evalúa sobre la fila nueva **antes** de que
+  exista en la tabla; una función que la busque por id (p. ej. `is_pet_member(id)`) no la encuentra.
+  Probar siempre los inserts con `RETURNING` (es lo que hace `insert().select()`).
 - Edge Functions: **pendientes**. No existe `supabase/functions/` y la carpeta `edge-functions/` que
   citan los docs no está en el repo.
 - Esquema v2.2.1 **congelado**: solo cambia por bugs reales detectados construyendo el frontend.

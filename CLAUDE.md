@@ -28,8 +28,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   **no desplegados** en el remoto. Fuera del MVP; no crear migración salvo petición expresa.
 - Edge Functions (`ai-analysis-process`, `generate-pet-report`, `delete-account`, `revenuecat-webhook`):
   **pendientes**. La carpeta `edge-functions/` que citan los docs no está en el repo.
-- Migración de razas `20261007152630_breeds.sql`: validada en local; **pendiente de aplicar en
-  `kitom-dev`**. Hasta entonces, `database.types.ts` (generado de `kitom-dev`) no incluye razas.
+- Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
+- Migración `20261007172110_pets_select_policy_owner.sql` (corrige crear mascotas): validada en local;
+  **pendiente de aplicar en `kitom-dev`**.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): validados en local; **pendientes de ejecutar en `kitom-dev`**
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 

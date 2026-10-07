@@ -25,7 +25,8 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   `update-password.tsx` solo es accesible con una sesión de recuperación.
 - `src/app/_layout.tsx` — único punto de protección de rutas (`Stack.Protected`); nunca comprobar la
   sesión pantalla a pantalla.
-- `src/i18n/` — `t(key)` tipado; idioma `es`. Ningún texto visible fuera de `src/i18n/locales/`.
+- `src/i18n/` — `t(key)` tipado; `es` y `en` con las mismas claves (`Translations`), idioma activo `es`
+  (detección del dispositivo pendiente). Ningún texto visible fuera de `src/i18n/locales/`.
 - `src/components/ui/` — Screen, TextField, Button, FormMessage, OptionGroup y estados
   Loading/Error/Empty (`query-state.tsx`) (mínimos, no es el design system final).
 - ESLint configurado (`eslint.config.js`, `eslint-config-expo`).

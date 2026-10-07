@@ -3,6 +3,20 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-07 — Razas en el frontend: pregunta progresiva y payload siempre coherente
+
+**Decisión.**
+- La raza se pregunta en dos pasos: estado (*Con raza* / *Mestizo* / *Sin raza*) y, solo con raza,
+  buscador del catálogo (nombre y alias, sin tildes) u «Otra / no aparece» (texto libre). Sin elegir
+  nada queda `breed_status = NULL`; «Prefiero no indicarlo ahora» vuelve a ese estado. Nunca se
+  convierte «sin contestar» en `unknown`.
+- `toPetFields` genera siempre una de las cinco combinaciones válidas del CHECK, aunque el estado del
+  formulario conserve restos (id o texto) de una opción anterior.
+- Al cambiar de especie se descarta la raza concreta (catálogo o texto) y vuelve a «sin contestar»;
+  mestizo y desconocida se conservan porque siguen siendo válidos para cualquier especie.
+- El buscador pinta como máximo 25 resultados y pide afinar la búsqueda; sin texto muestra el
+  catálogo en orden alfabético.
+
 ## 2026-10-07 — Razas: catálogo por especie, raza opcional y estado explícito
 
 **Contexto.** `pets.breed` era texto libre: no permitía distinguir «sin contestar», «no sé» y
@@ -34,6 +48,10 @@ en tres capas de BD: GRANT por columna (sin UPDATE de `owner_id`), RLS (`is_pet_
 
 **Decisión.**
 - Las lecturas no filtran por `owner_id`: RLS devuelve propias y compartidas.
+- Corrección (migración `20261007172110`): la política SELECT pasa a ser
+  `owner_id = auth.uid() OR is_pet_member(id)`. Con solo `is_pet_member(id)`, `INSERT … RETURNING`
+  fallaba (42501) porque la política SELECT se evalúa sobre la fila nueva antes de que exista en la
+  tabla. Las filas visibles no cambian.
 - `owner_id` lo fija la capa de datos con el usuario de la sesión al crear; nunca sale del formulario
   y nunca se envía en un update. Las escrituras construyen el payload con una lista explícita de
   columnas editables (`pets-api.ts`), así que propiedades extra no llegan a Supabase.

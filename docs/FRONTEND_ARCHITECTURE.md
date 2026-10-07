@@ -92,17 +92,29 @@ Rutas: `(app)/pets/index`, `pets/new`, `pets/[id]/index`, `pets/[id]/edit`. Cód
   poder mostrar una ya desactivada) + `catalog_translations` (`entity_type='species'`, `field='name'`,
   `locale` activo), combinadas en el cliente porque la tabla de traducciones es polimórfica (sin FK).
 - **WRITE (insert):** columnas editables + `owner_id = auth user id` tomado de la sesión, nunca del
-  formulario (`pets: insert own`). `id`, `is_active`, `photo_path` y timestamps no se envían.
+  formulario (`pets: insert own`). `id`, `is_active`, `photo_path` y timestamps no se envían. Se pide
+  la fila creada (`RETURNING`), lo que requiere que la política SELECT acepte al propietario
+  directamente (migración `20261007172110`).
 - **WRITE (update):** solo columnas editables: `name`, `species_id`, `sex`, `breed`, `birth_date`,
   `weight_kg`, `sterilized`, `known_conditions`, `allergies`, `temperament_notes`. `owner_id` no tiene
   GRANT de UPDATE (transferencia solo por `transfer_pet_ownership`). Si RLS filtra la fila
   (`can_edit_pet` falso), el update no devuelve fila y se trata como `not_allowed`.
-- **Raza (pendiente de implementar en el frontend; requiere la migración `*_breeds.sql` en el
-  entorno):** `breeds` (por especie) + `catalog_translations` (`entity_type='breed'`, `field='name'` y
-  `field='aliases'` con valores separados por `|`). En `pets`: `breed_status` `NULL` (no preguntado) ·
-  `known` con `breed_id` **o** `breed` (texto libre, raza no catalogada) · `mixed` · `unknown`
-  (estos dos sin raza). Al cambiar `species_id` hay que vaciar `breed_id`/`breed`/`breed_status`: la FK
-  compuesta rechaza una raza de otra especie (`23503`); combinaciones incoherentes → `23514`.
+- **Raza:** `breeds` activas filtradas por `species_id` + `catalog_translations` (`entity_type='breed'`,
+  `field='name'` y `field='aliases'` con valores separados por `|`), combinadas en
+  `features/pets/api/breeds-api.ts`. Para mostrar la raza guardada se pide por id (aunque esté
+  desactivada). En `pets`, combinaciones que envía la app (CHECK `pets_breed_status_check`):
+
+  | Estado en la UI | `breed_status` | `breed_id` | `breed` |
+  |---|---|---|---|
+  | Sin contestar (por defecto) | `NULL` | `NULL` | `NULL` |
+  | Con raza → del catálogo | `known` | id | `NULL` |
+  | Con raza → «Otra / no aparece» | `known` | `NULL` | texto |
+  | Mestizo / mezcla | `mixed` | `NULL` | `NULL` |
+  | Sin raza / desconocida | `unknown` | `NULL` | `NULL` |
+
+  Al cambiar la especie en el formulario se descarta una raza concreta (catálogo o texto) y vuelve a
+  «sin contestar»; mestizo y desconocida se conservan (`pet-form.ts` → `withSpecies`). La FK compuesta
+  rechaza igualmente una raza de otra especie (`23503`).
 - **DELETE:** solo el propietario (`pets: delete owner`); 0 filas borradas = `not_allowed`. Borra en
   cascada `daily_logs`, `reminders`, `ai_analysis_requests`, `pet_achievements`, `pet_streaks`,
   `pet_co_owners` y `pet_shared_reports`; la UI pide confirmación explícita. El objeto de Storage de la
@@ -111,11 +123,13 @@ Rutas: `(app)/pets/index`, `pets/new`, `pets/[id]/index`, `pets/[id]/edit`. Cód
   `owner_id` es el usuario (UX). La autorización real es RLS.
 - **Storage:** `pet-photos` solo lectura vía `createSignedUrl` (1 h) si `photo_path` existe; subida pendiente.
 - **Query keys:** `['pets','list']`, `['pets','detail',id]`, `['pets','detail',id,'can-edit']`,
-  `['pets','photo',path]`, `['species',locale]`. Crear/editar/borrar invalidan `['pets','list']` y
+  `['pets','photo',path]`, `['species',locale]`, `['breeds','list',speciesId,locale]`,
+  `['breeds','detail',breedId,locale]`. Crear/editar/borrar invalidan `['pets','list']` y
   actualizan o eliminan el detalle. La caché se vacía al cambiar de usuario (AuthProvider).
-- **Errores:** `42501` → `not_allowed`, `PGRST116` → `not_found`, `23503` → `invalid_species`,
-  `23514` → `invalid_weight`, `P0001` de `validate_pet_birth_date` → `birth_date_future`, fallo de red →
-  `network` (`features/pets/pet-errors.ts`).
+- **Errores** (`features/pets/pet-errors.ts`, por código y nombre de constraint): `42501` → `not_allowed`,
+  `PGRST116` → `not_found`, `23503` → `invalid_breed` (`pets_breed_species_fkey`) o `invalid_species`,
+  `23514` → `invalid_breed` (`pets_breed_status_check`), `invalid_weight` (`pets_weight_kg_check`) o
+  `invalid_value`, `P0001` de `validate_pet_birth_date` → `birth_date_future`, fallo de red → `network`.
 
 ### Home / PetOverview
 - **READ:** `pets` (mascotas del usuario), `pet_streaks`, `daily_logs` (último registro), `reminders` (próximos)
