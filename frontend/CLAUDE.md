@@ -68,3 +68,9 @@ Si `tsc` falla con rutas nuevas, arrancar el dev server una vez para regenerarlo
 - Accesibilidad: `accessibilityLabel`, tipografía escalable, nunca solo color para indicar estado.
 - Copy médico: nunca "diagnóstico". Disclaimer en cada resultado de IA.
 - Registro diario completable en <45 s y offline (cola de sincronización).
+
+## Documentación
+- Seguir las reglas generales de documentación de `../CLAUDE.md`.
+- Para cambios de frontend, mantener alineados `docs/FRONTEND_ARCHITECTURE.md`, `docs/AUTH.md` y
+  cualquier guía afectada con el comportamiento real. Registrar allí los cambios de contrato y
+  actualizar `docs/CHANGELOG.md` cuando el cambio sea relevante.

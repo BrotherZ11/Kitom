@@ -10,7 +10,7 @@ Stack: Expo (React Native) + TypeScript + Supabase. Documentación en español; 
 - `database/v2.2.1/` — SQL de diseño original. **Histórico, solo lectura.**
 - `docs/` — `PRD.md` (producto), `README.md` (arquitectura SQL v2.2.1), `FRONTEND_ARCHITECTURE.md`
   (contrato pantalla ↔ datos/RPC/Storage), `AUTH.md` (Auth, deep links, Google y configuración
-  necesaria en Supabase), `CHANGELOG_v2.2.1.md`.
+  necesaria en Supabase), `CHANGELOG_v2.2.1.md` (histórico) y `CHANGELOG.md` (cambios actuales).
 
 ## Jerarquía de fuentes de verdad
 1. `supabase/migrations/` — lo que existe de verdad en la base de datos.
@@ -52,6 +52,20 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 ## Definición de "terminado"
 `npx expo lint` y `npx tsc --noEmit` sin errores · sin secretos en el diff · docs actualizados si
 cambia un contrato (RPC, tabla, código de error, ruta de Storage).
+
+## Estructura y documentación
+- Mantener el repositorio limpio, coherente y documentado como parte de cada tarea; colocar los
+  archivos nuevos en la ubicación arquitectónicamente correcta y reutilizar documentación existente
+  en vez de duplicar contenido.
+- Actualizar la documentación relacionada cuando cambien arquitectura, contratos, configuración,
+  decisiones o flujos. Registrar las decisiones técnicas importantes en `docs/DECISIONS.md` y los
+  cambios relevantes en `docs/CHANGELOG.md`.
+- Mantener estas instrucciones y las guías específicas actualizadas cuando cambien las reglas del
+  proyecto. Corregir o retirar documentación obsoleta cuando corresponda, sin alterar fuentes
+  históricas de solo lectura.
+- Antes de terminar, comprobar la coherencia de la estructura y la documentación. No crear
+  documentación para cambios triviales; al finalizar, resumir qué documentación se actualizó y por
+  qué.
 
 ## Git
 - `main` siempre estable; no se trabaja directamente sobre ella.
