@@ -3,6 +3,28 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-07 — Razas: catálogo por especie, raza opcional y estado explícito
+
+**Contexto.** `pets.breed` era texto libre: no permitía distinguir «sin contestar», «no sé» y
+«mestizo», ni relacionar la raza con conocimiento clínico, ni impedir una raza de otra especie.
+
+**Decisión** (migración `20261007152630_breeds.sql`).
+- Tabla `breeds` ligada a `species` (`UNIQUE (species_id, code)`); nombres y alias en
+  `catalog_translations` (`entity_type = 'breed'`), sin sistema de traducciones paralelo.
+- `pets.breed_id` nullable y `pets.breed_status` (`known | mixed | unknown`, `NULL` = no preguntado).
+  «Mestizo» y «No sé» son estados, no razas ficticias. Se descartó resolverlos solo en la UI porque
+  todos acabarían en `NULL` y se perdería información útil para el perfilado progresivo y la IA.
+- CHECK `pets_breed_status_check`: `known` exige exactamente uno de `breed_id` (catálogo) o `breed`
+  (texto libre para razas no catalogadas); el resto de estados exige ambos `NULL`.
+- Integridad especie ↔ raza con **FK compuesta** `pets (breed_id, species_id) → breeds (id, species_id)`,
+  sin trigger: imposible asociar una raza de otra especie y cambiar la especie falla mientras haya
+  una raza incompatible.
+- `breeds` es de solo lectura para `authenticated` (RLS + `revoke all`/`grant select`); las razas no se
+  borran, se desactivan con `is_active`.
+
+**Consecuencias.** El frontend debe vaciar la raza al cambiar de especie y añadir `breed_id`/
+`breed_status` a sus columnas de lectura y escritura (siguiente tarea). Catálogo y criterios: `SEED.md`.
+
 ## 2026-10-07 — Pets: RLS decide la visibilidad y las escrituras envían solo columnas editables
 
 **Contexto.** `pets` se comparte entre propietario y co-tutores (`pet_co_owners`). La seguridad está

@@ -97,6 +97,12 @@ Rutas: `(app)/pets/index`, `pets/new`, `pets/[id]/index`, `pets/[id]/edit`. Cód
   `weight_kg`, `sterilized`, `known_conditions`, `allergies`, `temperament_notes`. `owner_id` no tiene
   GRANT de UPDATE (transferencia solo por `transfer_pet_ownership`). Si RLS filtra la fila
   (`can_edit_pet` falso), el update no devuelve fila y se trata como `not_allowed`.
+- **Raza (pendiente de implementar en el frontend; requiere la migración `*_breeds.sql` en el
+  entorno):** `breeds` (por especie) + `catalog_translations` (`entity_type='breed'`, `field='name'` y
+  `field='aliases'` con valores separados por `|`). En `pets`: `breed_status` `NULL` (no preguntado) ·
+  `known` con `breed_id` **o** `breed` (texto libre, raza no catalogada) · `mixed` · `unknown`
+  (estos dos sin raza). Al cambiar `species_id` hay que vaciar `breed_id`/`breed`/`breed_status`: la FK
+  compuesta rechaza una raza de otra especie (`23503`); combinaciones incoherentes → `23514`.
 - **DELETE:** solo el propietario (`pets: delete owner`); 0 filas borradas = `not_allowed`. Borra en
   cascada `daily_logs`, `reminders`, `ai_analysis_requests`, `pet_achievements`, `pet_streaks`,
   `pet_co_owners` y `pet_shared_reports`; la UI pide confirmación explícita. El objeto de Storage de la

@@ -6,8 +6,14 @@
   00–26 (más las funciones), con estas diferencias conocidas:
   - **No desplegado** `27_organizations_prep` (`organizations`, `organization_members`, `is_org_member`).
     Fuera del MVP; no crear migración salvo petición expresa. Hay 22 tablas, no las 24 que citan los docs.
-  - No incluye datos: ni filas de `storage.buckets` ni catálogos semilla. `config.toml` apunta a
-    `./seed.sql`, que aún no existe. Buckets y seed: **pendientes**, en tareas separadas con aprobación.
+  - No incluye datos. Los catálogos están en `supabase/seed.sql` y `supabase/seeds/breeds.sql` (ver
+    `docs/SEED.md`): validados en local, **pendientes de ejecutar en `kitom-dev`** (los ejecuta el
+    usuario, nunca con `db push`). Los buckets de Storage existen en `kitom-dev` pero no en local
+    (pendiente: declararlos en `config.toml`).
+- Migración `20261007152630_breeds.sql`: catálogo `breeds` (por especie), enum `breed_status` y
+  `pets.breed_id`/`pets.breed_status` con FK compuesta `(breed_id, species_id) → breeds (id, species_id)`
+  y CHECK `pets_breed_status_check`. Validada en local (integridad, RLS y grants); **pendiente de
+  aplicar en `kitom-dev`**. Con ella son 23 tablas. Modelo: `docs/DECISIONS.md`.
 - Edge Functions: **pendientes**. No existe `supabase/functions/` y la carpeta `edge-functions/` que
   citan los docs no está en el repo.
 - Esquema v2.2.1 **congelado**: solo cambia por bugs reales detectados construyendo el frontend.
@@ -22,7 +28,9 @@ de `requested_by` · cuota IA por usuario y mes · `pet_streaks` es caché de `d
 ## Qué requiere migración
 Cualquier DDL, política, grant, función, trigger, enum, índice, extensión, política de Storage, y los
 datos que deben existir en todos los entornos (p. ej. buckets).
-Datos de desarrollo/catálogo para local → `supabase/seed.sql` (solo se aplica en local).
+Datos de referencia/catálogo → `supabase/seed.sql`: solo `INSERT … ON CONFLICT DO NOTHING` sobre
+constraints reales, sin `DELETE/TRUNCATE/DROP/UPDATE`, sin UUIDs fijos ni datos de usuario. Se aplica
+solo en local (`supabase start`/`db reset` local); en `kitom-dev` lo ejecuta el usuario. Ver `docs/SEED.md`.
 
 ## Operaciones con el CLI
 - **Remoto**: ninguna operación sin aprobación explícita del usuario (incluye las de lectura como

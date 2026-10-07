@@ -31,7 +31,8 @@ revisada en un PR propio. Nunca editar migraciones ya aplicadas. Ver `supabase/C
 
 Estado conocido:
 - `organizations` / `organization_members` no están desplegados (fuera del MVP).
-- Edge Functions, buckets de Storage y `supabase/seed.sql`: pendientes.
+- Datos de referencia (especies, síntomas, logros): `supabase/seed.sql`, ver [docs/SEED.md](docs/SEED.md).
+- Edge Functions y buckets de Storage en local: pendientes.
 
 ## Flujo Git
 Ramas `feat/…`, `fix/…`, `chore/…`, `docs/…`, `db/…` · Conventional Commits · PR hacia `main`.

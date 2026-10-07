@@ -10,7 +10,7 @@ Stack: Expo (React Native) + TypeScript + Supabase. Documentación en español; 
 - `database/v2.2.1/` — SQL de diseño original. **Histórico, solo lectura.**
 - `docs/` — `PRD.md` (producto), `README.md` (arquitectura SQL v2.2.1), `FRONTEND_ARCHITECTURE.md`
   (contrato pantalla ↔ datos/RPC/Storage), `AUTH.md` (Auth, deep links, Google y configuración
-  necesaria en Supabase), `DECISIONS.md` (decisiones técnicas), `CHANGELOG_v2.2.1.md` (histórico) y
+  necesaria en Supabase), `SEED.md` (datos de referencia), `DECISIONS.md` (decisiones técnicas), `CHANGELOG_v2.2.1.md` (histórico) y
   `CHANGELOG.md` (cambios actuales).
 
 ## Jerarquía de fuentes de verdad
@@ -28,7 +28,10 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   **no desplegados** en el remoto. Fuera del MVP; no crear migración salvo petición expresa.
 - Edge Functions (`ai-analysis-process`, `generate-pet-report`, `delete-account`, `revenuecat-webhook`):
   **pendientes**. La carpeta `edge-functions/` que citan los docs no está en el repo.
-- Buckets de Storage y `supabase/seed.sql`: pendientes, se resolverán en tareas separadas con aprobación.
+- Migración de razas `20261007152630_breeds.sql`: validada en local; **pendiente de aplicar en
+  `kitom-dev`**. Hasta entonces, `database.types.ts` (generado de `kitom-dev`) no incluye razas.
+- `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): validados en local; **pendientes de ejecutar en `kitom-dev`**
+  (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 
 ## Reglas absolutas
 - **Remoto (`kitom-dev`)**: ninguna operación contra el proyecto remoto sin aprobación explícita del
