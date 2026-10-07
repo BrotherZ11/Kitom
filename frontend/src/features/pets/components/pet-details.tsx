@@ -16,6 +16,8 @@ import { t } from '@/i18n';
 type PetDetailsProps = {
   pet: Pet;
   speciesName: string | null;
+  /** Raza ya formateada (`formatBreed`); `null` = sin contestar. */
+  breedLabel: string | null;
   isShared: boolean;
 };
 
@@ -30,7 +32,7 @@ function DetailRow({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-export function PetDetails({ pet, speciesName, isShared }: PetDetailsProps) {
+export function PetDetails({ pet, speciesName, breedLabel, isShared }: PetDetailsProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -47,7 +49,7 @@ export function PetDetails({ pet, speciesName, isShared }: PetDetailsProps) {
 
       <DetailRow label={t('pets.fields.species')} value={speciesName} />
       <DetailRow label={t('pets.fields.sex')} value={formatSex(pet)} />
-      <DetailRow label={t('pets.fields.breed')} value={pet.breed} />
+      <DetailRow label={t('pets.fields.breed')} value={breedLabel} />
       <DetailRow label={t('pets.fields.birthDate')} value={formatBirthDate(pet.birth_date)} />
       <DetailRow label={t('pets.fields.weightKg')} value={formatWeight(pet.weight_kg)} />
       <DetailRow label={t('pets.fields.sterilized')} value={formatSterilized(pet.sterilized)} />

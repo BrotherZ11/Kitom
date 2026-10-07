@@ -6,10 +6,12 @@ import { FormMessage } from '@/components/ui/form-message';
 import { OptionGroup, type Option } from '@/components/ui/option-group';
 import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
+import { PetBreedField, type BreedValues } from '@/features/pets/components/pet-breed-field';
 import {
   hasPetFormErrors,
   toPetFields,
   validatePetForm,
+  withSpecies,
   type PetFieldError,
   type PetFormErrors,
   type PetFormValues,
@@ -51,6 +53,17 @@ export function PetForm({
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
+  // La raza depende de la especie: al cambiarla se descarta una raza concreta incompatible.
+  const setSpecies = (speciesId: string) => {
+    setValues((current) => withSpecies(current, speciesId));
+    setErrors((current) => ({ ...current, speciesId: undefined, breedId: undefined, breedText: undefined }));
+  };
+
+  const setBreed = (breed: BreedValues) => {
+    setValues((current) => ({ ...current, ...breed }));
+    setErrors((current) => ({ ...current, breedId: undefined, breedText: undefined }));
+  };
+
   // Solo especies activas, más la actual si se edita una mascota de una especie ya desactivada.
   const speciesOptions: Option<string>[] = species
     .filter((item) => item.isActive || item.id === initialValues.speciesId)
@@ -87,25 +100,30 @@ export function PetForm({
           label={t('pets.fields.species')}
           options={speciesOptions}
           value={values.speciesId || null}
-          onChange={(value) => setField('speciesId', value)}
+          onChange={setSpecies}
           error={fieldError(errors.speciesId)}
         />
       ) : (
         <FormMessage message={t('pets.noSpecies')} />
       )}
 
+      <PetBreedField
+        speciesId={values.speciesId}
+        value={{
+          breedStatus: values.breedStatus,
+          breedSource: values.breedSource,
+          breedId: values.breedId,
+          breedText: values.breedText,
+        }}
+        onChange={setBreed}
+        errors={{ breedId: fieldError(errors.breedId), breedText: fieldError(errors.breedText) }}
+      />
+
       <OptionGroup
         label={t('pets.fields.sex')}
         options={sexOptions}
         value={values.sex}
         onChange={(value) => setField('sex', value)}
-      />
-
-      <TextField
-        label={t('pets.fields.breed')}
-        value={values.breed}
-        onChangeText={(text) => setField('breed', text)}
-        autoCapitalize="words"
       />
 
       <TextField

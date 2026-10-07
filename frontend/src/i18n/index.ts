@@ -1,14 +1,15 @@
+import { en } from '@/i18n/locales/en';
 import { es, type Translations } from '@/i18n/locales/es';
 
 /**
- * i18n mínimo y tipado. Para añadir `en`: crear `locales/en.ts` con `export const en: Translations`,
- * añadirlo a `translations` y detectar el idioma del dispositivo (fallback a inglés, según PRD).
+ * i18n mínimo y tipado. `es` y `en` deben tener las mismas claves (`Translations`). El idioma activo
+ * es fijo (`es`) hasta implementar la detección del idioma del dispositivo (fallback a inglés, PRD).
  * Si se necesita interpolación/plurales o cambio de idioma en caliente, sustituir por una librería
  * (p. ej. i18next) manteniendo la API `t(key)`.
  */
-export type Locale = 'es';
+export type Locale = 'es' | 'en';
 
-const translations: Record<Locale, Translations> = { es };
+const translations: Record<Locale, Translations> = { es, en };
 
 const currentLocale: Locale = 'es';
 

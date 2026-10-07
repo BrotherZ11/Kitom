@@ -26,6 +26,26 @@ export function formatList(values: string[] | null): string | null {
   return values && values.length > 0 ? values.join(', ') : null;
 }
 
+/**
+ * Raza para mostrar. `catalogName` es el nombre traducido de `breed_id` (ya resuelto por quien llama).
+ * `null` = sin contestar (la UI muestra el estado neutro «Sin indicar»).
+ */
+export function formatBreed(
+  pet: Pick<Pet, 'breed_status' | 'breed_id' | 'breed'>,
+  catalogName: string | null
+): string | null {
+  switch (pet.breed_status) {
+    case 'known':
+      return pet.breed_id ? catalogName : pet.breed;
+    case 'mixed':
+      return t('pets.breedDisplay.mixed');
+    case 'unknown':
+      return t('pets.breedDisplay.unknown');
+    default:
+      return null;
+  }
+}
+
 export function formatSex(pet: Pick<Pet, 'sex'>): string {
   return t(`pets.sex.${pet.sex ?? 'unknown'}`);
 }

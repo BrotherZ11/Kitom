@@ -17,3 +17,11 @@ export const speciesKeys = {
   all: ['species'] as const,
   list: (locale: Locale) => [...speciesKeys.all, locale] as const,
 };
+
+export const breedKeys = {
+  all: ['breeds'] as const,
+  /** Razas activas de una especie. */
+  list: (speciesId: string, locale: Locale) => [...breedKeys.all, 'list', speciesId, locale] as const,
+  /** Una raza concreta (activa o no), para mostrar la de una mascota existente. */
+  detail: (breedId: string, locale: Locale) => [...breedKeys.all, 'detail', breedId, locale] as const,
+};

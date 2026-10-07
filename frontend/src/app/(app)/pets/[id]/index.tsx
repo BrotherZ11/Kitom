@@ -10,9 +10,11 @@ import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/auth-context';
 import { PetDetails } from '@/features/pets/components/pet-details';
+import { useBreed } from '@/features/pets/hooks/use-breeds';
 import { useCanEditPet, useDeletePet, usePet } from '@/features/pets/hooks/use-pets';
 import { useSpecies } from '@/features/pets/hooks/use-species';
 import { petErrorMessage } from '@/features/pets/pet-errors';
+import { formatBreed } from '@/features/pets/pet-format';
 import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
 
@@ -24,6 +26,7 @@ export default function PetDetailScreen() {
   const pet = usePet(id);
   const canEdit = useCanEditPet(id);
   const species = useSpecies();
+  const breed = useBreed(pet.data?.breed_id ?? null);
   const deletePet = useDeletePet(id);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
@@ -62,6 +65,9 @@ export default function PetDetailScreen() {
   const currentPet = pet.data;
   const speciesName =
     species.data?.find((item) => item.id === currentPet.species_id)?.name ?? null;
+  // `isLoading` solo es true si la consulta está activa (la mascota tiene breed_id).
+  const breedName = breed.isLoading ? t('common.loading') : (breed.data?.name ?? null);
+  const breedLabel = formatBreed(currentPet, breedName);
   // Solo UX: ocultar acciones que RLS rechazaría (editar: `can_edit_pet`; borrar: propietario).
   const isOwner = currentPet.owner_id === user?.id;
 
@@ -69,7 +75,12 @@ export default function PetDetailScreen() {
     <Screen align="top" edges={['bottom', 'left', 'right']}>
       <Stack.Screen options={{ title: currentPet.name }} />
 
-      <PetDetails pet={currentPet} speciesName={speciesName} isShared={!isOwner} />
+      <PetDetails
+        pet={currentPet}
+        speciesName={speciesName}
+        breedLabel={breedLabel}
+        isShared={!isOwner}
+      />
 
       {canEdit.data ? (
         <Button

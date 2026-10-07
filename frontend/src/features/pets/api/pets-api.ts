@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
  */
 
 const PET_COLUMNS =
-  'id, owner_id, name, species_id, sex, breed, birth_date, weight_kg, sterilized, known_conditions, allergies, temperament_notes, photo_path, is_active, created_at, updated_at';
+  'id, owner_id, name, species_id, sex, breed, breed_id, breed_status, birth_date, weight_kg, sterilized, known_conditions, allergies, temperament_notes, photo_path, is_active, created_at, updated_at';
 
 const PET_PHOTOS_BUCKET = 'pet-photos';
 
@@ -22,6 +22,8 @@ function pickEditableFields(fields: PetFields): PetFields {
     species_id: fields.species_id,
     sex: fields.sex,
     breed: fields.breed,
+    breed_id: fields.breed_id,
+    breed_status: fields.breed_status,
     birth_date: fields.birth_date,
     weight_kg: fields.weight_kg,
     sterilized: fields.sterilized,

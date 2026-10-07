@@ -6,6 +6,7 @@ export type PetErrorCode =
   | 'not_found'
   | 'not_allowed'
   | 'invalid_species'
+  | 'invalid_breed'
   | 'invalid_weight'
   | 'birth_date_future'
   | 'invalid_value'
@@ -42,10 +43,15 @@ export function toPetError(error: unknown): PetError {
       return new PetError('not_allowed', error);
     case 'PGRST116': // .single() sin filas
       return new PetError('not_found', error);
-    case '23503': // species_id inexistente
+    // Postgres incluye el nombre de la constraint en el mensaje; distingue raza, especie y peso.
+    case '23503':
+      // pets_breed_species_fkey: raza de otra especie o inexistente; pets_species_id_fkey: especie.
+      if (message.includes('pets_breed_species_fkey')) return new PetError('invalid_breed', error);
       return new PetError('invalid_species', error);
-    case '23514': // pets_weight_kg_check
-      return new PetError('invalid_weight', error);
+    case '23514':
+      if (message.includes('pets_breed_status_check')) return new PetError('invalid_breed', error);
+      if (message.includes('pets_weight_kg_check')) return new PetError('invalid_weight', error);
+      return new PetError('invalid_value', error);
     case '22P02':
     case '22007':
     case '22008':

@@ -181,6 +181,41 @@ export type Database = {
           },
         ]
       }
+      breeds: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          species_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          species_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          species_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breeds_species_id_fkey"
+            columns: ["species_id"]
+            isOneToOne: false
+            referencedRelation: "species"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_translations: {
         Row: {
           entity_id: string
@@ -543,6 +578,8 @@ export type Database = {
           allergies: string[] | null
           birth_date: string | null
           breed: string | null
+          breed_id: string | null
+          breed_status: Database["public"]["Enums"]["breed_status"] | null
           created_at: string
           id: string
           is_active: boolean
@@ -561,6 +598,8 @@ export type Database = {
           allergies?: string[] | null
           birth_date?: string | null
           breed?: string | null
+          breed_id?: string | null
+          breed_status?: Database["public"]["Enums"]["breed_status"] | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -579,6 +618,8 @@ export type Database = {
           allergies?: string[] | null
           birth_date?: string | null
           breed?: string | null
+          breed_id?: string | null
+          breed_status?: Database["public"]["Enums"]["breed_status"] | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -594,6 +635,13 @@ export type Database = {
           weight_kg?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pets_breed_species_fkey"
+            columns: ["breed_id", "species_id"]
+            isOneToOne: false
+            referencedRelation: "breeds"
+            referencedColumns: ["id", "species_id"]
+          },
           {
             foreignKeyName: "pets_owner_id_fkey"
             columns: ["owner_id"]
@@ -1130,6 +1178,7 @@ export type Database = {
     }
     Enums: {
       ai_request_status: "pending" | "processing" | "completed" | "failed"
+      breed_status: "known" | "mixed" | "unknown"
       co_owner_role: "editor" | "viewer"
       co_owner_status: "pending" | "accepted" | "declined" | "revoked"
       feedback_value: "useful" | "not_useful"
@@ -1286,6 +1335,7 @@ export const Constants = {
   public: {
     Enums: {
       ai_request_status: ["pending", "processing", "completed", "failed"],
+      breed_status: ["known", "mixed", "unknown"],
       co_owner_role: ["editor", "viewer"],
       co_owner_status: ["pending", "accepted", "declined", "revoked"],
       feedback_value: ["useful", "not_useful"],
