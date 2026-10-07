@@ -1,5 +1,6 @@
 import {
   isAuthError,
+  isAuthPKCECodeVerifierMissingError,
   isAuthRetryableFetchError,
   isAuthWeakPasswordError,
 } from '@supabase/supabase-js';
@@ -13,7 +14,10 @@ export type AuthErrorCode =
   | 'invalid_credentials'
   | 'email_already_registered'
   | 'weak_password'
+  | 'same_password'
   | 'email_not_confirmed'
+  | 'link_invalid'
+  | 'oauth_failed'
   | 'rate_limited'
   | 'signup_disabled'
   | 'network'
@@ -22,6 +26,8 @@ export type AuthErrorCode =
 export function toAuthErrorCode(error: unknown): AuthErrorCode {
   if (isAuthRetryableFetchError(error)) return 'network';
   if (isAuthWeakPasswordError(error)) return 'weak_password';
+  // Enlace abierto en otro dispositivo o flujo ya consumido: no hay verifier PKCE local.
+  if (isAuthPKCECodeVerifierMissingError(error)) return 'link_invalid';
 
   if (isAuthError(error)) {
     switch (error.code) {
@@ -32,6 +38,17 @@ export function toAuthErrorCode(error: unknown): AuthErrorCode {
         return 'email_already_registered';
       case 'weak_password':
         return 'weak_password';
+      case 'same_password':
+        return 'same_password';
+      case 'otp_expired':
+      case 'flow_state_expired':
+      case 'flow_state_not_found':
+      case 'bad_code_verifier':
+        return 'link_invalid';
+      case 'bad_oauth_callback':
+      case 'bad_oauth_state':
+      case 'provider_disabled':
+        return 'oauth_failed';
       case 'email_address_invalid':
         return 'invalid_email';
       case 'email_not_confirmed':

@@ -12,12 +12,23 @@ import { t } from '@/i18n';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<AuthErrorCode | null>(null);
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+
+  // Con Google no hay registro aparte: la primera vez crea la cuenta.
+  const handleGoogle = async () => {
+    setError(null);
+    setNeedsEmailConfirmation(false);
+    setIsGoogleSubmitting(true);
+    const result = await signInWithGoogle();
+    setIsGoogleSubmitting(false);
+    setError(result.error);
+  };
 
   const handleSubmit = async () => {
     const validationError = validateCredentials(email, password);
@@ -64,7 +75,19 @@ export default function RegisterScreen() {
         message={needsEmailConfirmation ? t('auth.register.checkEmail') : null}
       />
 
-      <Button label={t('auth.register.submit')} loading={isSubmitting} onPress={handleSubmit} />
+      <Button
+        label={t('auth.register.submit')}
+        loading={isSubmitting}
+        disabled={isGoogleSubmitting}
+        onPress={handleSubmit}
+      />
+      <Button
+        variant="secondary"
+        label={t('auth.google.continue')}
+        loading={isGoogleSubmitting}
+        disabled={isSubmitting}
+        onPress={handleGoogle}
+      />
       <Button
         variant="link"
         label={t('auth.register.goToLogin')}

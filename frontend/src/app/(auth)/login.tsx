@@ -13,11 +13,20 @@ import { t } from '@/i18n';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<AuthErrorCode | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+
+  const handleGoogle = async () => {
+    setError(null);
+    setIsGoogleSubmitting(true);
+    const result = await signInWithGoogle();
+    setIsGoogleSubmitting(false);
+    setError(result.error);
+  };
 
   const handleSubmit = async () => {
     const validationError = validateCredentials(email, password);
@@ -61,7 +70,19 @@ export default function LoginScreen() {
 
       <FormMessage message={error ? authErrorMessage(error) : null} />
 
-      <Button label={t('auth.login.submit')} loading={isSubmitting} onPress={handleSubmit} />
+      <Button
+        label={t('auth.login.submit')}
+        loading={isSubmitting}
+        disabled={isGoogleSubmitting}
+        onPress={handleSubmit}
+      />
+      <Button
+        variant="secondary"
+        label={t('auth.google.continue')}
+        loading={isGoogleSubmitting}
+        disabled={isSubmitting}
+        onPress={handleGoogle}
+      />
       <Button
         variant="link"
         label={t('auth.login.goToForgotPassword')}

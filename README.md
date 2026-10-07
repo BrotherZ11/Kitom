@@ -40,4 +40,5 @@ Ramas `feat/…`, `fix/…`, `chore/…`, `docs/…`, `db/…` · Conventional C
 - [PRD](docs/PRD.md)
 - [Arquitectura SQL](docs/README.md)
 - [Arquitectura frontend](docs/FRONTEND_ARCHITECTURE.md)
+- [Autenticación (Supabase Auth, deep links, Google)](docs/AUTH.md)
 - [Changelog v2.2.1](docs/CHANGELOG_v2.2.1.md)

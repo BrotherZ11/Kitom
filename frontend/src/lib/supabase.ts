@@ -25,7 +25,10 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     storage: secureSessionStorage,
     persistSession: !isServer,
     autoRefreshToken: !isServer,
-    // Móvil no recibe la sesión por URL; los deep links de Auth se gestionarán explícitamente.
+    // PKCE: los enlaces de email y el retorno de OAuth traen un `code` de un solo uso, inútil sin
+    // el verifier guardado en este dispositivo (no viajan tokens en la URL).
+    flowType: 'pkce',
+    // Los deep links de Auth se procesan explícitamente en la ruta /auth-callback.
     detectSessionInUrl: false,
   },
 });

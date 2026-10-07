@@ -30,7 +30,7 @@ export default function RootLayout() {
  * inicial se evalúa ya con la sesión correcta). En móvil el splash nativo sigue visible.
  */
 function RootNavigator() {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, isRecoveringPassword } = useAuth();
   const isSignedIn = session !== null;
 
   useEffect(() => {
@@ -46,9 +46,14 @@ function RootNavigator() {
   }
 
   return (
+    // Si un guard deja de cumplirse, Expo Router redirige a la primera pantalla disponible en este
+    // orden: (app) → update-password (sesión de recuperación) → (auth) (incluye /auth-callback).
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={isSignedIn}>
+      <Stack.Protected guard={isSignedIn && !isRecoveringPassword}>
         <Stack.Screen name="(app)" />
+      </Stack.Protected>
+      <Stack.Protected guard={isSignedIn && isRecoveringPassword}>
+        <Stack.Screen name="update-password" />
       </Stack.Protected>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="(auth)" />

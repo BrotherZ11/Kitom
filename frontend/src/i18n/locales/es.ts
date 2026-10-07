@@ -6,6 +6,21 @@ export const es = {
     fields: {
       email: 'Email',
       password: 'Contraseña',
+      newPassword: 'Nueva contraseña',
+    },
+    google: {
+      continue: 'Continuar con Google',
+    },
+    callback: {
+      processing: 'Verificando el enlace…',
+      emailConfirmed: 'Tu email está confirmado. Ya puedes iniciar sesión.',
+      goToLogin: 'Ir a iniciar sesión',
+    },
+    updatePassword: {
+      title: 'Nueva contraseña',
+      description: 'Elige una contraseña nueva para tu cuenta.',
+      submit: 'Guardar contraseña',
+      cancel: 'Cancelar y cerrar sesión',
     },
     login: {
       title: 'Iniciar sesión',
@@ -32,7 +47,11 @@ export const es = {
       invalid_credentials: 'Email o contraseña incorrectos.',
       email_already_registered: 'Ya existe una cuenta con este email.',
       weak_password: 'La contraseña no es suficientemente segura. Prueba con una más larga.',
+      same_password: 'La nueva contraseña debe ser distinta de la anterior.',
       email_not_confirmed: 'Confirma tu email antes de iniciar sesión.',
+      link_invalid:
+        'El enlace ha caducado o ya se ha usado. Ábrelo en el mismo dispositivo donde lo pediste o solicita uno nuevo.',
+      oauth_failed: 'No se ha podido iniciar sesión con Google. Inténtalo de nuevo.',
       rate_limited: 'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.',
       signup_disabled: 'El registro no está disponible en este momento.',
       network: 'No hay conexión. Comprueba tu red e inténtalo de nuevo.',

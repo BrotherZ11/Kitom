@@ -13,14 +13,18 @@ Vertical base implementada: cliente Supabase, Auth (email/contraseña), sesión,
 TanStack Query. Sin funcionalidades de producto todavía; `(app)/index.tsx` es una pantalla temporal.
 - `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`).
 - `src/lib/query-client.ts` — QueryClient único; AuthProvider lo vacía al cerrar sesión o cambiar de usuario.
-- `src/features/auth/` — `AuthProvider`/`useAuth`, mapeo de errores (`auth-errors.ts`), validación.
+- `src/features/auth/` — `AuthProvider`/`useAuth`, mapeo de errores (`auth-errors.ts`), validación,
+  deep links de Auth (`auth-redirect.ts`, flujo PKCE). Guía y configuración de Supabase/Google: `docs/AUTH.md`.
+- Rutas de Auth: `(auth)/auth-callback.tsx` recibe los enlaces de email y el retorno de Google;
+  `update-password.tsx` solo es accesible con una sesión de recuperación.
 - `src/app/_layout.tsx` — único punto de protección de rutas (`Stack.Protected`); nunca comprobar la
   sesión pantalla a pantalla.
 - `src/i18n/` — `t(key)` tipado; idioma `es`. Ningún texto visible fuera de `src/i18n/locales/`.
 - `src/components/ui/` — Screen, TextField, Button, FormMessage (mínimos, no es el design system final).
 - ESLint configurado (`eslint.config.js`, `eslint-config-expo`).
-Pendiente: deep links de Auth (reset de contraseña dentro de la app, confirmación de email),
-`app.json` sigue con `name`/`slug`/`scheme` = `frontend` (el `scheme` afectará a esos redirects).
+Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
+Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
+Pendiente: login por teléfono (OTP), cambio de contraseña desde ajustes.
 
 ## Tipos de Supabase
 `src/types/database.types.ts` es generado: no editarlo a mano. Regenerar desde la raíz del repo
