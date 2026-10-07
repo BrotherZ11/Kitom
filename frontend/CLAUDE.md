@@ -9,8 +9,14 @@ Docs de referencia: https://docs.expo.dev/versions/v57.0.0/
 Gestor de paquetes: **npm** (hay `package-lock.json`). Dependencias nuevas con `npx expo install`, previa aprobación.
 
 ## Estado actual
-Vertical base implementada: cliente Supabase, Auth (email/contraseña), sesión, rutas protegidas y
-TanStack Query. Sin funcionalidades de producto todavía; `(app)/index.tsx` es una pantalla temporal.
+Vertical base implementada: cliente Supabase, Auth (email/contraseña y Google), sesión, rutas
+protegidas y TanStack Query. Primera funcionalidad de producto: **Pets** (lista, alta, detalle,
+edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acceso a «Mis mascotas».
+- `src/features/pets/` — `api/` (acceso a Supabase: `pets-api.ts`, `species-api.ts`), `hooks/`
+  (TanStack Query), `components/`, `pet-form.ts` (valores, validación y conversión a columnas),
+  `pet-errors.ts`, `query-keys.ts`, `types.ts`. Contrato de datos: `docs/FRONTEND_ARCHITECTURE.md` §4 «Pets».
+  Patrón a seguir en nuevas features: el acceso a datos solo en `api/`, los componentes nunca llaman a
+  `supabase` directamente, y las escrituras envían únicamente columnas editables explícitas.
 - `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`).
 - `src/lib/query-client.ts` — QueryClient único; AuthProvider lo vacía al cerrar sesión o cambiar de usuario.
 - `src/features/auth/` — `AuthProvider`/`useAuth`, mapeo de errores (`auth-errors.ts`), validación,
@@ -20,11 +26,13 @@ TanStack Query. Sin funcionalidades de producto todavía; `(app)/index.tsx` es u
 - `src/app/_layout.tsx` — único punto de protección de rutas (`Stack.Protected`); nunca comprobar la
   sesión pantalla a pantalla.
 - `src/i18n/` — `t(key)` tipado; idioma `es`. Ningún texto visible fuera de `src/i18n/locales/`.
-- `src/components/ui/` — Screen, TextField, Button, FormMessage (mínimos, no es el design system final).
+- `src/components/ui/` — Screen, TextField, Button, FormMessage, OptionGroup y estados
+  Loading/Error/Empty (`query-state.tsx`) (mínimos, no es el design system final).
 - ESLint configurado (`eslint.config.js`, `eslint-config-expo`).
 Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
 Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
-Pendiente: login por teléfono (OTP), cambio de contraseña desde ajustes.
+Pendiente: login por teléfono (OTP), cambio de contraseña desde ajustes; en Pets: subida de fotos,
+archivar (`is_active`), selector de fecha nativo, gestión de co-tutores y límite de mascotas del plan free.
 
 ## Tipos de Supabase
 `src/types/database.types.ts` es generado: no editarlo a mano. Regenerar desde la raíz del repo

@@ -85,6 +85,32 @@ No se introduce Redux ni una capa de estado global adicional — con React Query
 - **RPC:** ninguno
 - **Storage:** `pet-photos` (insert, path `{pet_id}/{uuid}`)
 
+### Pets: lista, alta, detalle, edición y borrado (implementado)
+Rutas: `(app)/pets/index`, `pets/new`, `pets/[id]/index`, `pets/[id]/edit`. Código: `frontend/src/features/pets/`.
+- **READ:** `pets` con columnas explícitas y **sin filtrar por `owner_id`**: RLS (`is_pet_member`) devuelve
+  las propias y las compartidas con `pet_co_owners.status = 'accepted'`. Especies: `species` (todas, para
+  poder mostrar una ya desactivada) + `catalog_translations` (`entity_type='species'`, `field='name'`,
+  `locale` activo), combinadas en el cliente porque la tabla de traducciones es polimórfica (sin FK).
+- **WRITE (insert):** columnas editables + `owner_id = auth user id` tomado de la sesión, nunca del
+  formulario (`pets: insert own`). `id`, `is_active`, `photo_path` y timestamps no se envían.
+- **WRITE (update):** solo columnas editables: `name`, `species_id`, `sex`, `breed`, `birth_date`,
+  `weight_kg`, `sterilized`, `known_conditions`, `allergies`, `temperament_notes`. `owner_id` no tiene
+  GRANT de UPDATE (transferencia solo por `transfer_pet_ownership`). Si RLS filtra la fila
+  (`can_edit_pet` falso), el update no devuelve fila y se trata como `not_allowed`.
+- **DELETE:** solo el propietario (`pets: delete owner`); 0 filas borradas = `not_allowed`. Borra en
+  cascada `daily_logs`, `reminders`, `ai_analysis_requests`, `pet_achievements`, `pet_streaks`,
+  `pet_co_owners` y `pet_shared_reports`; la UI pide confirmación explícita. El objeto de Storage de la
+  foto no se borra (no hay subida implementada todavía).
+- **RPC:** `can_edit_pet(pet_id)` solo para decidir si mostrar «Editar» (UX); «Eliminar» se muestra si
+  `owner_id` es el usuario (UX). La autorización real es RLS.
+- **Storage:** `pet-photos` solo lectura vía `createSignedUrl` (1 h) si `photo_path` existe; subida pendiente.
+- **Query keys:** `['pets','list']`, `['pets','detail',id]`, `['pets','detail',id,'can-edit']`,
+  `['pets','photo',path]`, `['species',locale]`. Crear/editar/borrar invalidan `['pets','list']` y
+  actualizan o eliminan el detalle. La caché se vacía al cambiar de usuario (AuthProvider).
+- **Errores:** `42501` → `not_allowed`, `PGRST116` → `not_found`, `23503` → `invalid_species`,
+  `23514` → `invalid_weight`, `P0001` de `validate_pet_birth_date` → `birth_date_future`, fallo de red →
+  `network` (`features/pets/pet-errors.ts`).
+
 ### Home / PetOverview
 - **READ:** `pets` (mascotas del usuario), `pet_streaks`, `daily_logs` (último registro), `reminders` (próximos)
 - **WRITE:** —

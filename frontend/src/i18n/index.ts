@@ -18,6 +18,11 @@ type Leaves<T> = {
 
 export type TranslationKey = Leaves<Translations>;
 
+/** Idioma activo; también selecciona las traducciones de catálogos (`catalog_translations.locale`). */
+export function getLocale(): Locale {
+  return currentLocale;
+}
+
 export function t(key: TranslationKey): string {
   let node: unknown = translations[currentLocale];
   for (const part of key.split('.')) {

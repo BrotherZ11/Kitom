@@ -1,6 +1,13 @@
 export const es = {
   common: {
     loading: 'Cargando…',
+    retry: 'Reintentar',
+    cancel: 'Cancelar',
+    save: 'Guardar',
+    yes: 'Sí',
+    no: 'No',
+    unknown: 'No lo sé',
+    notSpecified: 'Sin indicar',
   },
   auth: {
     fields: {
@@ -62,7 +69,73 @@ export const es = {
     title: 'Sesión activa',
     signedInAs: 'Has iniciado sesión como',
     placeholder: 'Aquí irá la pantalla de inicio de KITOM.',
+    goToPets: 'Mis mascotas',
     signOut: 'Cerrar sesión',
+  },
+  pets: {
+    list: {
+      title: 'Mis mascotas',
+      add: 'Añadir mascota',
+      emptyTitle: 'Todavía no tienes mascotas',
+      emptyDescription: 'Añade a tu mascota para empezar a registrar cómo está cada día.',
+      shared: 'Compartida contigo',
+    },
+    new: {
+      title: 'Nueva mascota',
+      submit: 'Crear mascota',
+    },
+    edit: {
+      title: 'Editar mascota',
+      submit: 'Guardar cambios',
+    },
+    detail: {
+      title: 'Mascota',
+      edit: 'Editar',
+      delete: 'Eliminar mascota',
+      deleteConfirmTitle: '¿Eliminar esta mascota?',
+      deleteConfirmDescription:
+        'Se borrarán también sus registros diarios, recordatorios, análisis, logros e informes. Esta acción no se puede deshacer.',
+      deleteConfirm: 'Sí, eliminar',
+      notFound: 'No hemos encontrado esta mascota o ya no tienes acceso a ella.',
+      backToList: 'Volver a mis mascotas',
+    },
+    fields: {
+      photo: 'Foto',
+      name: 'Nombre',
+      species: 'Especie',
+      sex: 'Sexo',
+      breed: 'Raza',
+      birthDate: 'Fecha de nacimiento',
+      birthDateHint: 'Formato AAAA-MM-DD, por ejemplo 2024-03-15.',
+      weightKg: 'Peso (kg)',
+      sterilized: 'Esterilizada',
+      knownConditions: 'Enfermedades conocidas',
+      allergies: 'Alergias',
+      listHint: 'Separa cada elemento con una coma.',
+      temperamentNotes: 'Notas sobre su carácter',
+    },
+    sex: {
+      male: 'Macho',
+      female: 'Hembra',
+      unknown: 'Sin indicar',
+    },
+    noSpecies: 'No hay especies disponibles en este momento. Inténtalo más tarde.',
+    validation: {
+      required: 'Este campo es obligatorio.',
+      invalid_date: 'Introduce una fecha válida con el formato AAAA-MM-DD.',
+      future_date: 'La fecha de nacimiento no puede ser futura.',
+      invalid_weight: 'Introduce un peso mayor que 0, con hasta 3 decimales.',
+    },
+    errors: {
+      network: 'No hay conexión. Comprueba tu red e inténtalo de nuevo.',
+      not_found: 'No hemos encontrado esta mascota.',
+      not_allowed: 'No tienes permiso para realizar esta acción.',
+      invalid_species: 'La especie seleccionada no es válida.',
+      invalid_weight: 'El peso debe ser mayor que 0.',
+      birth_date_future: 'La fecha de nacimiento no puede ser futura.',
+      invalid_value: 'Alguno de los datos no tiene un formato válido.',
+      unknown: 'Algo ha salido mal. Inténtalo de nuevo.',
+    },
   },
 };
 

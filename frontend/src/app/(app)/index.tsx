@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
@@ -10,6 +11,7 @@ import { t } from '@/i18n';
 
 /** Pantalla temporal: confirma que la sesión está activa. Se sustituirá por la Home real. */
 export default function HomeScreen() {
+  const router = useRouter();
   const { user, signOut } = useAuth();
   const [error, setError] = useState<AuthErrorCode | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -31,7 +33,13 @@ export default function HomeScreen() {
 
       <FormMessage message={error ? authErrorMessage(error) : null} />
 
-      <Button label={t('home.signOut')} loading={isSigningOut} onPress={handleSignOut} />
+      <Button label={t('home.goToPets')} onPress={() => router.push('/pets')} />
+      <Button
+        variant="secondary"
+        label={t('home.signOut')}
+        loading={isSigningOut}
+        onPress={handleSignOut}
+      />
     </Screen>
   );
 }

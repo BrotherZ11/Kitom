@@ -10,7 +10,8 @@ Stack: Expo (React Native) + TypeScript + Supabase. Documentación en español; 
 - `database/v2.2.1/` — SQL de diseño original. **Histórico, solo lectura.**
 - `docs/` — `PRD.md` (producto), `README.md` (arquitectura SQL v2.2.1), `FRONTEND_ARCHITECTURE.md`
   (contrato pantalla ↔ datos/RPC/Storage), `AUTH.md` (Auth, deep links, Google y configuración
-  necesaria en Supabase), `CHANGELOG_v2.2.1.md` (histórico) y `CHANGELOG.md` (cambios actuales).
+  necesaria en Supabase), `DECISIONS.md` (decisiones técnicas), `CHANGELOG_v2.2.1.md` (histórico) y
+  `CHANGELOG.md` (cambios actuales).
 
 ## Jerarquía de fuentes de verdad
 1. `supabase/migrations/` — lo que existe de verdad en la base de datos.

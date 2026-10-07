@@ -1,21 +1,28 @@
 import type { PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Contenedor de pantalla: safe area, teclado y scroll, con el contenido centrado. */
-export function Screen({ children }: PropsWithChildren) {
+type ScreenProps = PropsWithChildren<{
+  /** `center` (por defecto) para formularios cortos; `top` para listas y fichas. */
+  align?: 'center' | 'top';
+  /** Bordes de safe area a respetar; con cabecera de navegación, el superior ya lo cubre ella. */
+  edges?: Edge[];
+}>;
+
+/** Contenedor de pantalla: safe area, teclado y scroll. */
+export function Screen({ children, align = 'center', edges }: ScreenProps) {
   const theme = useTheme();
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={edges}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, align === 'top' && styles.top]}
           keyboardShouldPersistTaps="handled">
           {children}
         </ScrollView>
@@ -39,5 +46,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: MaxContentWidth / 2,
     alignSelf: 'center',
+  },
+  top: {
+    justifyContent: 'flex-start',
   },
 });
