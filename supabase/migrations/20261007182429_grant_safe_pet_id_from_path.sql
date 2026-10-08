@@ -1,0 +1,23 @@
+-- =====================================================================
+-- KITOM · Storage: authenticated puede ejecutar safe_pet_id_from_path
+-- =====================================================================
+-- Problema: las políticas de storage.objects de los buckets de mascota
+-- (pet-photos, reminder-attachments, shared-reports) llaman a
+-- public.safe_pet_id_from_path(name) para extraer el pet_id del path.
+-- Las expresiones de una política se evalúan con el rol que hace la
+-- consulta (authenticated vía Storage API), y ese rol necesita EXECUTE
+-- sobre cada función que la política invoca. La baseline (igual que
+-- database/v2.2.1/02) revoca ese EXECUTE a authenticated, así que
+-- cualquier subida, lectura (createSignedUrl) o borrado en esos buckets
+-- falla con "permission denied for function safe_pet_id_from_path".
+-- can_edit_pet() e is_pet_member(), que las mismas políticas usan
+-- después, ya tienen GRANT EXECUTE a authenticated.
+--
+-- Solución mínima: conceder EXECUTE a authenticated. La función solo
+-- interpreta un texto (primer segmento del path → uuid o NULL); no lee
+-- tablas ni devuelve datos de otros usuarios, así que exponerla no da
+-- acceso a nada. La autorización sigue en can_edit_pet / is_pet_member.
+-- anon sigue sin EXECUTE. Sin cambios de políticas, buckets ni datos.
+-- =====================================================================
+
+grant execute on function public.safe_pet_id_from_path(text) to authenticated;
