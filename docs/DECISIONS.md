@@ -3,6 +3,32 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-08 — Zona horaria del perfil: NULL = sin configurar e inicialización desde el dispositivo
+
+**Contexto.** `profiles.timezone` ya existía (`text NOT NULL DEFAULT 'UTC'`) y su trigger convertía
+`NULL` en `'UTC'`: no se podía distinguir "nunca configurada" de "el usuario está en UTC", así que la
+app no podía inicializarla sin pisar una elección real. Además `pg_timezone_names` acepta abreviaturas
+y alias (`CET`, `GMT+0`, `EST5EDT`, `posix/…`), en contra del contrato documentado.
+
+**Decisión** (migración `20261008155257_profile_timezone.sql`; sin columna nueva).
+- `timezone` admite `NULL` y no tiene default. `NULL` = sin configurar; el servidor sigue usando `UTC`
+  donde necesita un "hoy" (`coalesce`, sin cambios en `daily_logs`).
+- Los `'UTC'` existentes pasan a `NULL`: siempre eran el default (no hay pantalla para elegirla).
+- Validación sin catálogo propio: el trigger exige `UTC` o Área/Ubicación existente en
+  `pg_timezone_names`, y solo valida cuando el valor cambia (guardar lo mismo es un no-op y un valor
+  heredado no bloquea editar el resto del perfil). La app aplica la misma regla, más `Intl`.
+- Inicialización en la app: una vez por usuario y arranque, `update … where id = $user and timezone
+  is null`. La condición en la propia consulta hace el guardado atómico e idempotente y garantiza que
+  nunca se sobrescribe un valor existente (sin leer antes). Si no hay zona válida o falla, no se hace
+  nada y la app sigue.
+- Detección con `Intl.DateTimeFormat().resolvedOptions().timeZone`, sin dependencias nuevas
+  (`expo-localization` no está instalado y no aporta nada para esto).
+- RLS y grants sin cambios: `authenticated` ya tenía `UPDATE (timezone)` y `profiles: update own`.
+
+**Consecuencias.** Si el usuario viaja, el perfil conserva la zona inicial hasta que exista un ajuste
+manual (Settings, pendiente). Pruebas: `supabase/tests/database/profile_timezone.test.sql` y
+`frontend/src/features/profile/timezone.test.mjs` (`npm test`, runner de Node sin dependencias).
+
 ## 2026-10-08 — Daily logs: un registro por día, guardado por RPC y reglas de contenido en la BD
 
 **Contexto.** `daily_logs` existía desde la baseline (columnas = PRD §8.3), pero ninguna escritura

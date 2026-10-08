@@ -323,12 +323,22 @@ No intentar hacer `insert`/`update` directo sobre `push_tokens` para este caso �
 
 ## 9. Timezone — formato exacto que espera el backend
 
-`profiles.timezone` se valida contra `pg_timezone_names` en el servidor (ver README, sección 14). El frontend debe enviar siempre un **nombre IANA completo**:
+`profiles.timezone` lo valida en el servidor el trigger `validate_profile_timezone` (ver README, sección 14; migración `20261008155257_profile_timezone.sql`). El frontend debe enviar siempre un **identificador IANA de zona**: `UTC` o Área/Ubicación existente en `pg_timezone_names`.
 
-- ✅ `Europe/Madrid`, `America/New_York`, `Asia/Tokyo`, `UTC`
-- ❌ `CET`, `PST`, `GMT+1` — abreviaturas/offsets ambiguos, la validación los rechaza
+- ✅ `Europe/Madrid`, `America/New_York`, `America/Argentina/Buenos_Aires`, `UTC`
+- ❌ `+01:00`, `GMT+1`, `CET`, `PST`, `GMT+0`, `posix/Europe/Madrid`: offsets, abreviaturas y alias. La validación los rechaza (`P0001`, `hint` `invalid_timezone`), aunque algunos estén en `pg_timezone_names`.
 
-En React Native/Expo, obtener el nombre IANA del dispositivo con `Intl.DateTimeFormat().resolvedOptions().timeZone` (ya devuelve el formato correcto nativamente) — no construirlo a mano a partir del offset UTC del dispositivo.
+**`NULL` = sin configurar.** Es el valor de un perfil nuevo; el servidor usa `UTC` donde necesita un "hoy" (`daily_logs`).
+
+En React Native/Expo, obtener el nombre IANA del dispositivo con `Intl.DateTimeFormat().resolvedOptions().timeZone` — no construirlo a mano a partir del offset UTC del dispositivo.
+
+### Inicialización (implementado)
+Código: `frontend/src/features/profile/` — `timezone.ts` (detección, validación e inicialización; módulo puro probado con `npm test`), `api/profile-api.ts`, `hooks/use-profile-timezone-sync.ts`.
+- `useProfileTimeZoneSync()` se monta una vez en `(app)/_layout.tsx` (solo con sesión). Una vez por usuario y arranque de la app.
+- Detecta la zona del dispositivo y la valida igual que el servidor. Si no hay una válida, no hace nada.
+- **WRITE:** `profiles.update({ timezone }).eq('id', userId).is('timezone', null)`: guarda solo si el perfil no tiene zona, en la propia consulta (atómico y idempotente; sin leer antes). Nunca sobrescribe un valor existente: cambiarlo será una acción explícita de Settings (pendiente).
+- Un fallo (red, servidor, zona rechazada) no rompe la sesión ni la app: se ignora (aviso en dev) y se reintenta en el siguiente arranque.
+- Limitación conocida: si el usuario viaja, el perfil conserva la zona inicial hasta que la cambie a mano.
 
 ## 10. TypeScript
 

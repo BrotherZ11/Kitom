@@ -152,6 +152,8 @@ Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza
 
 **Validación de `profiles.timezone` (nueva en v2.2.1):** un trigger (`validate_profile_timezone`) rechaza en `INSERT`/`UPDATE` cualquier valor que no exista en `pg_timezone_names` — no podía ser un `CHECK` porque Postgres no permite que un `CHECK` consulte otra tabla/vista, así que un trigger es la única vía correcta, no una preferencia de estilo. **El frontend debe enviar siempre nombres IANA** (`Europe/Madrid`, `America/New_York`, `Asia/Tokyo`), nunca abreviaturas ambiguas como `CET` o `PST` — esas fallarían la validación.
 
+> Cambio posterior (migración `20261008155257_profile_timezone.sql`): `profiles.timezone` admite `NULL` = sin configurar, sin default; el trigger ya no convierte `NULL` en `'UTC'` y los `'UTC'` existentes (siempre el default, no había forma de elegirlo) pasaron a `NULL`. El servidor sigue usando `UTC` donde necesita un "hoy" (`coalesce`). El trigger solo valida cuando el valor cambia y exige `UTC` o Área/Ubicación: `pg_timezone_names` incluye `CET`, `GMT+0`, `EST5EDT` o `posix/…`, que antes pasaban y ahora se rechazan. La app inicializa la zona con la del dispositivo sin sobrescribir nunca un valor existente (`FRONTEND_ARCHITECTURE.md` §9).
+
 ## 15. Daily logs
 
 `UNIQUE(pet_id, log_date)`: un registro por mascota y día (el cliente hace upsert, no insert repetido). `pet_id`, `logged_by` y `created_at` son inmutables tras la creación (GRANT por columna + trigger). `last_edited_by` y `updated_at` se gestionan solos vía trigger. No se permiten fechas futuras respecto al "hoy" del propietario (sección 14), pero un registro de un día pasado que llega tarde por estar offline se acepta sin problema.

@@ -24,9 +24,13 @@
   ninguna escritura en `daily_logs` funcionaba) y `trg_recompute_pet_streak_fn` (borrar una mascota con
   registros violaba la FK de `pet_streaks`); RPC `save_daily_log` (SECURITY INVOKER); ventana de
   creación de 7 días; `log_date` inmutable; CHECKs de contenido; grants endurecidos. Validada en local
-  con `db reset`; **pendiente de aplicar en `kitom-dev`**. Decisión: `docs/DECISIONS.md`.
-- Pruebas de BD: `supabase/tests/database/*.test.sql` (pgTAP, en transacción con `ROLLBACK`; solo
-  local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
+  con `db reset`; aplicada en `kitom-dev`. Decisión: `docs/DECISIONS.md`.
+- Migración `20261008155257_profile_timezone.sql`: `profiles.timezone` admite `NULL` (= sin configurar)
+  y no tiene default; `validate_profile_timezone` deja pasar `NULL`, valida solo si el valor cambia y
+  exige `UTC` o Área/Ubicación; los `'UTC'` existentes (siempre el default) pasan a `NULL`. RLS y grants
+  sin cambios. Validada en local con `db reset`; **pendiente de aplicar en `kitom-dev`**.
+- Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`; pgTAP, en
+  transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
   -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.
 - Tipos: `gen types --local` (CLI 2.120) usa otro generador que `--linked` (sin
   `__InternalSupabase.PostgrestVersion`, con `ComputedFields`): regenerar siempre con `--linked`.

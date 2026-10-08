@@ -1,8 +1,12 @@
 import { Stack } from 'expo-router';
 
+import { useProfileTimeZoneSync } from '@/features/profile/hooks/use-profile-timezone-sync';
 import { t } from '@/i18n';
 
 export default function AppLayout() {
+  // Solo se monta con sesión activa (Stack.Protected en el layout raíz).
+  useProfileTimeZoneSync();
+
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />

@@ -31,7 +31,14 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   (detección del dispositivo pendiente). Ningún texto visible fuera de `src/i18n/locales/`.
 - `src/components/ui/` — Screen, TextField, Button, FormMessage, OptionGroup y estados
   Loading/Error/Empty (`query-state.tsx`) (mínimos, no es el design system final).
+- `src/features/profile/` — zona horaria del perfil: `timezone.ts` (detección con `Intl`, validación
+  IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
+  `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`
+  solo si es `NULL` y nunca la sobrescribe. Contrato: `docs/FRONTEND_ARCHITECTURE.md` §9.
 - ESLint configurado (`eslint.config.js`, `eslint-config-expo`).
+- Tests unitarios: `npm test` (runner de Node 24, sin dependencias). Archivos `*.test.mjs` junto al
+  módulo; importan el `.ts` directamente (type stripping de Node), así que el módulo probado debe ser
+  puro (sin `@/`, React Native ni `__DEV__`). Son `.mjs` porque TypeScript 6 no incluye `@types/node`.
 Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
 Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
 Pendiente: login por teléfono (OTP), cambio de contraseña desde ajustes; en Pets: limpieza de fotos huérfanas,
@@ -41,6 +48,10 @@ archivar (`is_active`), selector de fecha nativo, gestión de co-tutores y lími
 `src/types/database.types.ts` es generado: no editarlo a mano. Regenerar desde la raíz del repo
 (lee el remoto `kitom-dev`, requiere aprobación):
 `npx supabase gen types typescript --linked --schema public > frontend/src/types/database.types.ts`
+**Ejecutarlo desde Bash (Git Bash), no desde Windows PowerShell 5.1:** allí `>` escribe UTF-16 LE con
+BOM; git lo trata como binario y ESLint falla ("File appears to be binary"). Comprobar con
+`file frontend/src/types/database.types.ts` (debe ser texto ASCII/UTF-8). `--local` usa otro generador
+(otro formato): solo para comprobar, no para sustituir el archivo.
 
 ## Rutas tipadas
 `typedRoutes` genera `.expo/types/router.d.ts` (ignorado por git) al arrancar `npx expo start`.

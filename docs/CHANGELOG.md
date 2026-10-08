@@ -5,6 +5,15 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-08
 
+- Zona horaria del perfil: `profiles.timezone` admite `NULL` (= sin configurar) y la app la inicializa
+  con la del dispositivo sin sobrescribir nunca un valor existente. Nueva migración
+  `20261008155257_profile_timezone.sql` (validada en local; **pendiente de aplicar en `kitom-dev`**) y
+  nueva feature `frontend/src/features/profile/`. Primeros tests unitarios del frontend (`npm test`,
+  runner de Node sin dependencias). Contrato en `FRONTEND_ARCHITECTURE.md` §9; decisión en `DECISIONS.md`.
+- Corrección: `frontend/src/types/database.types.ts` se había guardado en UTF-16 (ESLint fallaba con
+  "File appears to be binary"); vuelve a UTF-8 con el mismo contenido.
+- La migración `20261008150202_daily_logs_fixes.sql` consta aplicada en `kitom-dev`.
+
 - Backend de registros diarios: nueva migración `20261008150202_daily_logs_fixes.sql`. Corrige dos
   bugs del diseño original: ninguna escritura en `daily_logs` funcionaba (`recompute_pet_streak`) y
   borrar una mascota con 2+ registros fallaba (FK de `pet_streaks`). Añade la RPC `save_daily_log`, la
