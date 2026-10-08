@@ -15,6 +15,8 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
 - `src/features/pets/` — `api/` (acceso a Supabase: `pets-api.ts`, `species-api.ts`), `hooks/`
   (TanStack Query), `components/`, `pet-form.ts` (valores, validación y conversión a columnas),
   `pet-errors.ts`, `query-keys.ts`, `types.ts`. Contrato de datos: `docs/FRONTEND_ARCHITECTURE.md` §4 «Pets».
+  Fotos: `pet-photo.ts` (límites/path), `pet-photo-picker.ts` (expo-image-picker + expo-image-manipulator),
+  `api/pet-photos-api.ts`, `hooks/use-pet-photo.ts`, `components/pet-photo-editor.tsx` (§4 «Pets: fotos»).
   Patrón a seguir en nuevas features: el acceso a datos solo en `api/`, los componentes nunca llaman a
   `supabase` directamente, y las escrituras envían únicamente columnas editables explícitas.
 - `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`).
@@ -32,7 +34,7 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
 - ESLint configurado (`eslint.config.js`, `eslint-config-expo`).
 Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
 Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
-Pendiente: login por teléfono (OTP), cambio de contraseña desde ajustes; en Pets: subida de fotos,
+Pendiente: login por teléfono (OTP), cambio de contraseña desde ajustes; en Pets: limpieza de fotos huérfanas,
 archivar (`is_active`), selector de fecha nativo, gestión de co-tutores y límite de mascotas del plan free.
 
 ## Tipos de Supabase
@@ -63,7 +65,7 @@ Si `tsc` falla con rutas nuevas, arrancar el dev server una vez para regenerarlo
 - Sin escritura directa en `pet_co_owners`, `pet_achievements`, `pet_streaks`, `subscriptions`,
   `ai_analysis_requests` → RPCs o backend.
 - Push tokens: siempre `rpc('register_push_token', …)` en login, arranque y refresh del token.
-- Storage: guardar paths, nunca URLs; `createSignedUrl` bajo demanda. Paths `{pet_id}/{uuid}.{ext}`
+- Storage: guardar paths, nunca URLs; `createSignedUrl` bajo demanda (nunca `getPublicUrl`). Paths `{pet_id}/{uuid}.{ext}`
   (`avatars`: `{user_id}/{uuid}.{ext}`). Sin update: borrar y volver a subir.
 - Timezone: nombre IANA vía `Intl.DateTimeFormat().resolvedOptions().timeZone`, nunca abreviaturas.
 - Las Edge Functions (`ai-analysis-process`, `generate-pet-report`, `delete-account`) pueden devolver

@@ -167,6 +167,8 @@ Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza
 
 Los 4 buckets (`pet-photos`, `reminder-attachments`, `shared-reports`, `avatars`) son **privados**. Nunca se persisten URLs, solo `*_path` — las URLs firmadas se generan bajo demanda (`createSignedUrl`). Convención de rutas: `{pet_id}/{object_uuid}` para los 3 buckets de mascota, `{user_id}/{object_uuid}` para avatars. Las policies validan el formato del path con `safe_pet_id_from_path()` antes de castear a UUID, en vez de castear directamente y arriesgarse a un error de tipo. Ningún bucket concede `UPDATE` (se borra y se vuelve a subir si hace falta reemplazar un archivo).
 
+> Corrección posterior (migración `20261007182429_grant_safe_pet_id_from_path.sql`): las policies se evalúan con el rol `authenticated`, que necesita `EXECUTE` sobre `safe_pet_id_from_path()`; el diseño original se lo revocaba y ninguna operación en los buckets de mascota podía funcionar. La función solo interpreta el texto del path.
+
 ## 19. RevenueCat
 
 `subscription_events.provider_event_id UNIQUE` + `process_revenuecat_event()` (una sola función = una sola transacción: comprobar idempotencia, registrar el evento y actualizar `subscriptions`, todo o nada). Un mismo evento recibido dos veces es un no-op la segunda vez. `subscriptions.provider_subscription_id` tiene un índice único parcial (ignorando `NULL`): una misma suscripción de RevenueCat no puede quedar asociada a dos usuarios. No se ha añadido una columna `received_at` separada de `occurred_at` — decisión explícita, no necesaria para el MVP (ver `CHANGELOG_v2.2.md`).

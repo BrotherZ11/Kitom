@@ -17,6 +17,11 @@
 - Migración `20261007172110_pets_select_policy_owner.sql`: la política SELECT de `pets` comprueba
   `owner_id = auth.uid()` antes de `is_pet_member(id)` para que `INSERT … RETURNING` funcione.
   Validada en local; **pendiente de aplicar en `kitom-dev`**.
+- Migración `20261007182429_grant_safe_pet_id_from_path.sql`: `grant execute` de
+  `safe_pet_id_from_path(text)` a `authenticated`, necesario para que las políticas de los buckets de
+  mascota se puedan evaluar. **Pendiente de aplicar en `kitom-dev`**.
+- Lección Storage: las políticas se evalúan con el rol que consulta; necesita EXECUTE sobre toda
+  función que la política invoque (aunque sea `security definer`).
 - Lección RLS: en `INSERT … RETURNING` la política SELECT se evalúa sobre la fila nueva **antes** de que
   exista en la tabla; una función que la busque por id (p. ej. `is_pet_member(id)`) no la encuentra.
   Probar siempre los inserts con `RETURNING` (es lo que hace `insert().select()`).

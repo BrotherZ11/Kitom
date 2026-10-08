@@ -83,7 +83,7 @@ No se introduce Redux ni una capa de estado global adicional — con React Query
 - **READ:** `species` (`is_active = true`) + `catalog_translations` (`entity_type='species'`) para el selector
 - **WRITE:** `pets` (insert; columnas físicas se pueden completar después, perfilado progresivo)
 - **RPC:** ninguno
-- **Storage:** `pet-photos` (insert, path `{pet_id}/{uuid}`)
+- **Storage:** `pet-photos` (insert, path `{pet_id}/{uuid}.jpg`; ver «Pets: fotos»)
 
 ### Pets: lista, alta, detalle, edición y borrado (implementado)
 Rutas: `(app)/pets/index`, `pets/new`, `pets/[id]/index`, `pets/[id]/edit`. Código: `frontend/src/features/pets/`.
@@ -117,11 +117,12 @@ Rutas: `(app)/pets/index`, `pets/new`, `pets/[id]/index`, `pets/[id]/edit`. Cód
   rechaza igualmente una raza de otra especie (`23503`).
 - **DELETE:** solo el propietario (`pets: delete owner`); 0 filas borradas = `not_allowed`. Borra en
   cascada `daily_logs`, `reminders`, `ai_analysis_requests`, `pet_achievements`, `pet_streaks`,
-  `pet_co_owners` y `pet_shared_reports`; la UI pide confirmación explícita. El objeto de Storage de la
-  foto no se borra (no hay subida implementada todavía).
+  `pet_co_owners` y `pet_shared_reports`; la UI pide confirmación explícita. Los objetos de Storage
+  de la mascota (`{pet_id}/…`) **no** se borran: tras el borrado `can_edit_pet` ya es falso y el
+  cliente no puede hacerlo. Pendiente: limpieza en backend (trigger o Edge Function).
 - **RPC:** `can_edit_pet(pet_id)` solo para decidir si mostrar «Editar» (UX); «Eliminar» se muestra si
   `owner_id` es el usuario (UX). La autorización real es RLS.
-- **Storage:** `pet-photos` solo lectura vía `createSignedUrl` (1 h) si `photo_path` existe; subida pendiente.
+- **Storage:** `pet-photos`, ver «Pets: fotos».
 - **Query keys:** `['pets','list']`, `['pets','detail',id]`, `['pets','detail',id,'can-edit']`,
   `['pets','photo',path]`, `['species',locale]`, `['breeds','list',speciesId,locale]`,
   `['breeds','detail',breedId,locale]`. Crear/editar/borrar invalidan `['pets','list']` y
@@ -130,6 +131,37 @@ Rutas: `(app)/pets/index`, `pets/new`, `pets/[id]/index`, `pets/[id]/edit`. Cód
   `PGRST116` → `not_found`, `23503` → `invalid_breed` (`pets_breed_species_fkey`) o `invalid_species`,
   `23514` → `invalid_breed` (`pets_breed_status_check`), `invalid_weight` (`pets_weight_kg_check`) o
   `invalid_value`, `P0001` de `validate_pet_birth_date` → `birth_date_future`, fallo de red → `network`.
+
+### Pets: fotos (implementado)
+En la ficha (`pets/[id]/index`), componente `PetPhotoEditor`, independiente del formulario de datos.
+Código: `features/pets/pet-photo.ts` (límites y path), `pet-photo-picker.ts` (permisos, galería/cámara,
+validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use-pet-photo.ts`.
+- **Bucket:** `pet-photos` (privado). Políticas existentes: SELECT `is_pet_member`, INSERT/DELETE
+  `can_edit_pet`, ambas sobre `safe_pet_id_from_path(name)`; sin UPDATE. Requiere la migración
+  `20261007182429_grant_safe_pet_id_from_path.sql` (EXECUTE de `safe_pet_id_from_path` a `authenticated`).
+- **Path:** `{pet_id}/{uuid}.jpg` (primer segmento = mascota, lo que leen las políticas; uuid nuevo en
+  cada subida, sin `upsert`). Se guarda en `pets.photo_path` (path, nunca URL), que solo escribe
+  `updatePetPhotoPath` (update de una columna, separado de `updatePet`).
+- **Imagen:** entrada JPEG/PNG/WebP/HEIC/HEIF (≤ 25 MB); salida siempre JPEG, lado mayor ≤ 1600 px,
+  calidad 0.8, ≤ 5 MB. Sin recorte. Decisión: `DECISIONS.md`.
+- **Subir / cambiar:** subir objeto nuevo → `photo_path` = nuevo → borrar el anterior. Si falla la
+  subida no se toca `photo_path`; si falla el update se borra el objeto recién subido; si falla el
+  borrado del anterior queda huérfano (best-effort, aviso en dev).
+- **Quitar:** `photo_path = NULL` primero (RLS `can_edit_pet`) → borrar el objeto. Nunca queda una
+  referencia a un archivo inexistente; en un fallo parcial queda, como mucho, un objeto huérfano.
+- **Mostrar:** `createSignedUrl` (1 h) con query `['pets','photo',path]`: se firma una vez por path y
+  se renueva a los 50 min; `expo-image` cachea por path (`cacheKey`), no por URL. Nunca `getPublicUrl`.
+- **Permisos:** se piden al pulsar la acción. Denegado → mensaje y reintento; si no se puede volver a
+  preguntar, botón «Abrir ajustes». Cancelar la selección no es un error.
+- **Web:** solo «galería», con un `<input type="file">` propio (`pickFileOnWeb`) y no
+  `launchImageLibraryAsync`: la librería solo resuelve en `change`, así que cancelar el diálogo dejaba
+  la UI bloqueada para siempre. No hay permisos que pedir; en móvil web el navegador puede ofrecer la cámara.
+- **Errores:** `camera_permission`, `gallery_permission`, `camera_unavailable`, `invalid_image_type`,
+  `image_too_large`, `image_processing_failed`, `photo_upload_failed`, `photo_update_failed`,
+  `photo_delete_failed`, `photo_url_failed`, `photo_storage` (5xx), además de `not_allowed` (401/403,
+  RLS) y `network`. Mapeo de Storage en `toPetPhotoError`.
+- **IA (futuro):** `request_ai_analysis` exige un `photo_path` del mismo bucket con el `pet_id` de la
+  mascota; el flujo de análisis puede reutilizar `pickPetPhoto` y subir con la misma convención.
 
 ### Home / PetOverview
 - **READ:** `pets` (mascotas del usuario), `pet_streaks`, `daily_logs` (último registro), `reminders` (próximos)
@@ -238,7 +270,7 @@ Casos a manejar explícitamente en la UI:
 | `ai_unavailable` (Edge Function caída/timeout) | mostrar estado `failed`, permitir reintentar (no consume cupo) |
 | `already_processing_or_done` (respuesta de `ai-analysis-process`) | no es un error: tratar como éxito silencioso, seguir el poll/Realtime normal sobre la fila |
 | `network_offline` | banner persistente, cola de sincronización visible |
-| `storage_upload_failed` | reintentar la subida antes de llamar al RPC que depende de ese path |
+| `storage_upload_failed` | reintentar la subida antes de llamar al RPC que depende de ese path (Pets: `photo_upload_failed`) |
 | `invitation_expired` (estado ya no es `pending`) | refrescar la lista de invitaciones, mensaje claro |
 | `ownership_transfer_failed` | mostrar el motivo exacto que da la excepción de `transfer_pet_ownership` (usuario no es co-tutor aceptado, etc.) |
 | `invalid_log_date` | mismo tratamiento que "fecha inválida / futura" arriba |

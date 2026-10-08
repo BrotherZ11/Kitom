@@ -31,6 +31,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
 - Migración `20261007172110_pets_select_policy_owner.sql` (corrige crear mascotas): validada en local;
   **pendiente de aplicar en `kitom-dev`**.
+- Migración `20261007182429_grant_safe_pet_id_from_path.sql` (sin ella falla todo Storage de mascotas;
+  necesaria para fotos): **pendiente de aplicar en `kitom-dev`**.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): validados en local; **pendientes de ejecutar en `kitom-dev`**
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 

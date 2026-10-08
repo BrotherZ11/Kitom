@@ -5,6 +5,12 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-07
 
+- Fotos de mascota: añadir desde galería o cámara, previsualizar, cambiar y eliminar desde la ficha,
+  en el bucket privado `pet-photos` con URLs firmadas. Nuevas dependencias `expo-image-picker` y
+  `expo-image-manipulator` (requieren nuevo development build). Nueva migración
+  `20261007182429_grant_safe_pet_id_from_path.sql` (sin ella Storage rechaza todas las operaciones);
+  **pendiente de aplicar en `kitom-dev`**. Contrato en `FRONTEND_ARCHITECTURE.md` §4 «Pets: fotos»;
+  decisión en `DECISIONS.md`.
 - Corrección: crear una mascota fallaba con `42501` (RLS) por el `RETURNING` del insert. Nueva
   migración `20261007172110_pets_select_policy_owner.sql`; pendiente de aplicar en `kitom-dev`.
 - Pets usa el catálogo de razas: selección de estado (con raza / mestizo / desconocida), buscador por

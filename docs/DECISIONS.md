@@ -3,6 +3,33 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-07 — Fotos de mascota: JPEG ≤ 1600 px, path único por subida y referencia antes que archivo
+
+**Contexto.** `pets.photo_path` y el bucket privado `pet-photos` (con políticas por `pet_id`) ya
+existían. Las políticas llaman a `safe_pet_id_from_path`, cuyo EXECUTE estaba revocado a
+`authenticated`, así que ninguna operación de Storage podía funcionar.
+
+**Decisión.**
+- Migración mínima `20261007182429_grant_safe_pet_id_from_path.sql`: solo `grant execute` a
+  `authenticated`. Sin cambiar políticas ni buckets; la autorización sigue en `can_edit_pet` /
+  `is_pet_member`.
+- Formato de salida único **JPEG** (`image/jpeg`, `.jpg`): lo decodifican Android, iOS, web y los
+  proveedores de IA; HEIC no se ve en web y WebP con pérdida no es universal en los modelos. Entrada
+  aceptada: JPEG, PNG, WebP, HEIC/HEIF; el resto (GIF, archivos no imagen) se rechaza.
+- Lado mayor ≤ **1600 px**, calidad **0.8**, sin recorte: ~200–800 KB, nitidez suficiente para un
+  perfil y para reutilizar la foto en un análisis de imagen (los modelos de visión suelen reducir a
+  ~1500 px). Límites duros: 25 MB de entrada, 5 MB de salida.
+- Path `{pet_id}/{uuid}.jpg`: compatible con las políticas, sin datos personales y sin colisiones.
+  Como no hay política UPDATE, cambiar la foto sube un objeto nuevo y borra el anterior **después** de
+  actualizar `photo_path`.
+- Al quitar la foto se limpia primero `photo_path` y luego se borra el objeto: un fallo parcial deja
+  como mucho un objeto huérfano, nunca una referencia rota.
+- Se descartó subir la foto dentro del formulario de datos: un fallo de Storage no debe bloquear la
+  edición de la mascota.
+
+**Consecuencias.** Pueden quedar objetos huérfanos (fallos parciales y mascotas borradas); pendiente
+una limpieza en backend. En web solo se ofrece la galería. Contrato: `FRONTEND_ARCHITECTURE.md` §4.
+
 ## 2026-10-07 — Razas en el frontend: pregunta progresiva y payload siempre coherente
 
 **Decisión.**
