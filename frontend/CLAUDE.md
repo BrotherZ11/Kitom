@@ -60,7 +60,9 @@ Si `tsc` falla con rutas nuevas, arrancar el dev server una vez para regenerarlo
   `.env` de la raíz). Todo `EXPO_PUBLIC_*` se embebe en el bundle: nunca secretos.
 - Tipos generados desde el esquema; nunca interfaces manuales para tablas/RPC.
 - `ai_analysis_requests`: seleccionar columnas explícitas (`select('*')` falla a propósito).
-- `daily_logs`: `upsert` con `onConflict: 'pet_id,log_date'`; `log_date` se calcula al crear el registro.
+- `daily_logs`: guardar siempre con `rpc('save_daily_log', …)` (nunca `upsert`: falla por los GRANT por
+  columna); `log_date` se calcula al crear el registro y no se puede cambiar. Contrato:
+  `docs/FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen».
 - `pets.owner_id` nunca por update → RPC `transfer_pet_ownership`.
 - Sin escritura directa en `pet_co_owners`, `pet_achievements`, `pet_streaks`, `subscriptions`,
   `ai_analysis_requests` → RPCs o backend.

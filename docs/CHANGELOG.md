@@ -3,6 +3,17 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-08
+
+- Backend de registros diarios: nueva migración `20261008150202_daily_logs_fixes.sql`. Corrige dos
+  bugs del diseño original: ninguna escritura en `daily_logs` funcionaba (`recompute_pet_streak`) y
+  borrar una mascota con 2+ registros fallaba (FK de `pet_streaks`). Añade la RPC `save_daily_log`, la
+  ventana de creación de 7 días, `log_date` inmutable, los CHECK de tags, notas y registro vacío, y
+  endurece los grants. Validada en local desde `db reset` con 134 pruebas pgTAP
+  (`supabase/tests/database/daily_logs.test.sql`); **pendiente de aplicar en `kitom-dev`**. Frontend
+  pendiente. Contrato en `FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen»; decisión en `DECISIONS.md`.
+- Documentación: las migraciones `20261007172110` y `20261007182429` constan aplicadas en `kitom-dev`.
+
 ## 2026-10-07
 
 - Fotos de mascota: añadir desde galería o cámara, previsualizar, cambiar y eliminar desde la ficha,

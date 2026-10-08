@@ -117,7 +117,8 @@ Rutas: `(app)/pets/index`, `pets/new`, `pets/[id]/index`, `pets/[id]/edit`. Cód
   rechaza igualmente una raza de otra especie (`23503`).
 - **DELETE:** solo el propietario (`pets: delete owner`); 0 filas borradas = `not_allowed`. Borra en
   cascada `daily_logs`, `reminders`, `ai_analysis_requests`, `pet_achievements`, `pet_streaks`,
-  `pet_co_owners` y `pet_shared_reports`; la UI pide confirmación explícita. Los objetos de Storage
+  `pet_co_owners` y `pet_shared_reports`; la UI pide confirmación explícita. Con registros diarios,
+  el borrado requiere la migración `20261008150202` (antes violaba la FK de `pet_streaks`). Los objetos de Storage
   de la mascota (`{pet_id}/…`) **no** se borran: tras el borrado `can_edit_pet` ya es falso y el
   cliente no puede hacerlo. Pendiente: limpieza en backend (trigger o Edge Function).
 - **RPC:** `can_edit_pet(pet_id)` solo para decidir si mostrar «Editar» (UX); «Eliminar» se muestra si
@@ -169,9 +170,32 @@ validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use
 - **RPC:** ninguno
 
 ### DailyLogScreen
-- **READ:** `pets`, `daily_logs` (del día, si existe, para precargar el formulario)
-- **WRITE:** `daily_logs` — **upsert** con `onConflict: 'pet_id,log_date'`, nunca insert repetido
-- **RPC:** ninguno
+Backend listo (migración `20261008150202_daily_logs_fixes.sql`); frontend pendiente. Decisión: `DECISIONS.md`.
+- **READ:** `pets`, `daily_logs` (del día, si existe, para precargar el formulario). `SELECT`: miembros
+  (`is_pet_member`, incluye `viewer`).
+- **WRITE (crear y editar):** solo `rpc('save_daily_log', { p_pet_id, p_log_date, p_energy_level,
+  p_appetite_level, p_mood_level, p_activity_level, p_sleep_quality, p_vocalization_level,
+  p_social_interaction_level, p_unusual_behavior, p_unusual_behavior_notes, p_notes, p_tags })`. Todos los
+  parámetros son obligatorios: guarda el **registro completo** del día (`NULL` = dato no indicado) y
+  devuelve la fila. Identidad `(pet_id, log_date)`: si existe lo actualiza, si no lo crea; es
+  idempotente. `logged_by` lo pone el servidor al crear y se conserva al editar; `last_edited_by` y
+  `updated_at` los ponen triggers. **No usar `upsert`** de supabase-js: hace `SET` de `pet_id`/`logged_by`,
+  que no tienen GRANT de UPDATE (`42501`). Solo owner y editores (`can_edit_pet`).
+- **DELETE:** `delete().eq('pet_id', …).eq('log_date', …)`; owner y editores, también registros que
+  creó otra persona. 0 filas = `not_allowed`. Recalcula la racha.
+- **Campos:** niveles `smallint` 1–5, empiezan en `NULL` (nunca 3 por defecto). Energía, apetito,
+  actividad, vocalización e interacción social son **relativos a lo habitual** (1 mucho menos · 2 menos ·
+  3 como siempre · 4 más · 5 mucho más); ánimo y sueño son **calidad** (1 muy malo … 5 muy bueno).
+  `unusual_behavior` (bool) + `unusual_behavior_notes` (≤ 1000 caracteres), `notes` (≤ 2000), `tags`
+  de la lista cerrada `vet_visit`, `home_change`, `new_pet` (la RPC quita duplicados y espacios
+  sobrantes; solo espacios = sin nota). Prohibido el registro vacío (CHECK `daily_logs_not_empty_check`).
+- **Fechas:** al crear, `log_date` entre hoy y hoy − 7 en la zona horaria del **propietario**
+  (`profiles.timezone`; `UTC` si no se ha sincronizado). Editar: sin límite de antigüedad. `log_date`
+  no se puede cambiar (para "mover" un registro: borrar y crear).
+- **Errores:** `42501` → `not_allowed` (viewer, ajeno, mascota inexistente o sin sesión); `P0001` con
+  `hint` `log_date_future` / `log_date_too_old` → `invalid_log_date`; `23514` → valor inválido (nombre de
+  la constraint en el mensaje: `daily_logs_*_check`, incluido `daily_logs_not_empty_check` y
+  `daily_logs_tags_check`); fallo de red → `network`.
 - **Storage:** ninguno
 
 ### HistoryScreen
@@ -235,26 +259,25 @@ validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use
 Usuario completa el formulario
   ↓
 Persistencia local inmediata (SQLite/MMKV/AsyncStorage — cualquiera vale,
-no hace falta una solución compleja) con un id local temporal
+no hace falta una solución compleja), con clave (user_id, pet_id, log_date):
+varias ediciones sin red del mismo día se combinan en una sola entrada
   ↓
-Si hay red: intenta upsert directo a Supabase
+Si hay red: rpc('save_daily_log', …) con el registro completo
 Si no hay red: se queda en cola de sincronización
   ↓
 Al recuperar conexión: procesa la cola en orden
   ↓
-success  -> marca como sincronizado, sustituye el id local por el real
-conflict -> el UNIQUE(pet_id, log_date) puede rechazar si ya existe un
-            registro de ese día hecho desde otro dispositivo mientras
-            este estaba offline: en ese caso, hacer upsert (no insert)
-            para que gane el último guardado, o mostrar un diff simple
-            si se quiere ser más cuidadoso — no es necesario para el MVP
+success  -> marca como sincronizado (no hay id local que sustituir: la
+            identidad es (pet_id, log_date) y el cliente no envía `id`)
+conflict -> no existe: si otro dispositivo ya creó el registro de ese día,
+            save_daily_log lo actualiza (gana el último guardado)
 retry    -> reintento con backoff simple; no bloquea la cola completa
             si un solo item falla
 ```
 
 Casos a manejar explícitamente en la UI:
-- **Fecha inválida / futura:** `validate_daily_log_date` la rechazará; mostrar el error tal cual lo da la excepción, no reintentar automáticamente.
-- **Permisos perdidos mientras estaba offline** (p. ej. el owner revocó el acceso del co-tutor): el upsert fallará por RLS al reconectar; mostrar "ya no tienes acceso a esta mascota", no reintentar indefinidamente.
+- **Fecha inválida / futura / fuera de la ventana:** `validate_daily_log_date` la rechazará (`hint` `log_date_future` o `log_date_too_old`); no reintentar automáticamente. Consecuencia de la ventana de creación de 7 días: un registro **nuevo** creado sin conexión que tarde más de 7 días en sincronizarse será rechazado (editar uno que ya existe en el servidor no tiene límite).
+- **Permisos perdidos mientras estaba offline** (p. ej. el owner revocó el acceso del co-tutor): `save_daily_log` fallará con `42501` al reconectar; mostrar "ya no tienes acceso a esta mascota", no reintentar indefinidamente.
 - **Timezone:** el `log_date` se calcula en el momento de crear el registro (sección 14 del README), no al sincronizar — así un registro offline no cambia de día solo por tardar en subir.
 
 ## 6. Errores — comportamiento esperado

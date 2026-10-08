@@ -35,7 +35,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 | `profiles` | propia fila | vía trigger de alta | propia fila (columnas concretas, nunca id/created_at/updated_at) | — |
 | `pets` | miembros (owner o co-tutor) | owner (columnas concretas) | editores (columnas concretas, **nunca owner_id**) | owner |
 | `pet_co_owners` | miembros o el propio invitado | — (solo RPC) | — (solo RPC) | — (solo RPC) |
-| `daily_logs` | miembros | editores, `logged_by=auth.uid()` (columnas concretas) | editores (columnas concretas, nunca pet_id/logged_by/created_at) | editores |
+| `daily_logs` | miembros | editores, `logged_by=auth.uid()` (columnas concretas; en la práctica vía RPC `save_daily_log`) | editores (solo columnas de datos, nunca pet_id/logged_by/log_date/created_at) | editores |
 | `symptoms_catalog` / `symptom_species` | autenticados | — | — | — |
 | `ai_analysis_requests` | miembros (columnas concretas) | — (solo RPC `request_ai_analysis`) | — (solo RPC `submit_ai_feedback`, y solo si `requested_by = auth.uid()` — ver sección 9.1) | — |
 | `ai_analysis_symptoms` | miembros | — (solo vía RPC) | — | — |
@@ -69,6 +69,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 | `request_generate_report(pet_id, start, end)` | solo validación, no escribe nada |
 | `is_org_member(org_id)` | lectura, `organization_members` |
 | `register_push_token(token, platform, device_id, app_version, os_version)` | `push_tokens` — reasigna el token al `auth.uid()` actual, ver sección 17.1 |
+| `save_daily_log(pet_id, log_date, <7 niveles>, unusual_behavior, unusual_behavior_notes, notes, tags)` | `daily_logs` — crea o sustituye el registro del día; **SECURITY INVOKER** (aplica RLS y grants de quien llama). Añadida en la migración `20261008150202`, ver sección 15 |
 
 **Nota de taxonomía (v2.2.1):** dentro de esta tabla hay dos tipos distintos, aunque ambos tengan `EXECUTE` para `authenticated`:
 - **RPC de producto** (la mayoría): representan una acción real de negocio que el frontend invoca — `request_ai_analysis`, `invite_pet_member`, `transfer_pet_ownership`...
@@ -155,9 +156,17 @@ Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza
 
 `UNIQUE(pet_id, log_date)`: un registro por mascota y día (el cliente hace upsert, no insert repetido). `pet_id`, `logged_by` y `created_at` son inmutables tras la creación (GRANT por columna + trigger). `last_edited_by` y `updated_at` se gestionan solos vía trigger. No se permiten fechas futuras respecto al "hoy" del propietario (sección 14), pero un registro de un día pasado que llega tarde por estar offline se acepta sin problema.
 
+> Cambios posteriores (migración `20261008150202_daily_logs_fixes.sql`, decisión en `DECISIONS.md`):
+> - El cliente guarda con la RPC `save_daily_log` (SECURITY INVOKER), no con upsert: el `ON CONFLICT DO UPDATE` de PostgREST incluye `pet_id`/`logged_by`, que no tienen GRANT de UPDATE. La RPC hace UPDATE y, si no existe, INSERT, porque los triggers BEFORE INSERT se ejecutan antes de detectar el conflicto.
+> - Al **crear**, `log_date` debe estar entre hoy y hoy − 7 en la zona del propietario; un registro offline más antiguo se rechaza (`hint` `log_date_too_old`). Al **editar** no hay límite. `log_date` es inmutable (sin GRANT de UPDATE + trigger `protect_daily_log_audit_fields`).
+> - CHECKs: `tags` ⊆ {`vet_visit`, `home_change`, `new_pet`}; `notes` ≤ 2000 y `unusual_behavior_notes` ≤ 1000 caracteres; `daily_logs_not_empty_check` (al menos un nivel, comportamiento inusual, una nota con texto o una etiqueta).
+> - Grants: `anon` sin privilegios; `authenticated` sin TRUNCATE/REFERENCES/TRIGGER/MAINTAIN.
+
 ## 16. Streaks
 
 `daily_logs` es la fuente de verdad; `pet_streaks` es una caché reconstruible en cualquier momento desde `daily_logs` (nunca al revés). `longest_streak` nunca decrece aunque se borren registros (`greatest()` sobre el valor ya guardado). `recompute_pet_streak()` recalcula la racha COMPLETA cada vez (no incrementa sobre el valor anterior), lo que la hace correcta ante registros retroactivos y ante sincronización offline sin importar el orden de llegada; un advisory lock por mascota serializa recálculos concurrentes de dos dispositivos. El cliente no puede escribir en `pet_streaks` bajo ningún concepto.
+
+> Correcciones posteriores (migración `20261008150202_daily_logs_fixes.sql`): `recompute_pet_streak()` sumaba `date + bigint` (operador inexistente), así que ninguna escritura en `daily_logs` funcionaba; ahora usa `rn::integer`, misma lógica. Y `trg_recompute_pet_streak_fn()` ya no recalcula al borrar un registro si la mascota ya no existe (borrado en cascada): reinsertaba `pet_streaks` de una mascota borrada y violaba su FK, así que borrar una mascota con 2+ registros fallaba.
 
 ## 17. Reminders
 

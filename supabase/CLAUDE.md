@@ -7,8 +7,8 @@
   - **No desplegado** `27_organizations_prep` (`organizations`, `organization_members`, `is_org_member`).
     Fuera del MVP; no crear migración salvo petición expresa. Hay 22 tablas, no las 24 que citan los docs.
   - No incluye datos. Los catálogos están en `supabase/seed.sql` y `supabase/seeds/breeds.sql` (ver
-    `docs/SEED.md`): validados en local, **pendientes de ejecutar en `kitom-dev`** (los ejecuta el
-    usuario, nunca con `db push`). Los buckets de Storage existen en `kitom-dev` pero no en local
+    `docs/SEED.md`): ejecutados en `kitom-dev` por el usuario (especies y razas probadas desde la
+    app; nunca con `db push`). Los buckets de Storage existen en `kitom-dev` pero no en local
     (pendiente: declararlos en `config.toml`).
 - Migración `20261007152630_breeds.sql`: catálogo `breeds` (por especie), enum `breed_status` y
   `pets.breed_id`/`pets.breed_status` con FK compuesta `(breed_id, species_id) → breeds (id, species_id)`
@@ -16,15 +16,31 @@
   `docs/DECISIONS.md`.
 - Migración `20261007172110_pets_select_policy_owner.sql`: la política SELECT de `pets` comprueba
   `owner_id = auth.uid()` antes de `is_pet_member(id)` para que `INSERT … RETURNING` funcione.
-  Validada en local; **pendiente de aplicar en `kitom-dev`**.
+  Aplicada en `kitom-dev`.
 - Migración `20261007182429_grant_safe_pet_id_from_path.sql`: `grant execute` de
   `safe_pet_id_from_path(text)` a `authenticated`, necesario para que las políticas de los buckets de
-  mascota se puedan evaluar. **Pendiente de aplicar en `kitom-dev`**.
+  mascota se puedan evaluar. Aplicada en `kitom-dev`.
+- Migración `20261008150202_daily_logs_fixes.sql`: corrige `recompute_pet_streak` (`date + bigint`,
+  ninguna escritura en `daily_logs` funcionaba) y `trg_recompute_pet_streak_fn` (borrar una mascota con
+  registros violaba la FK de `pet_streaks`); RPC `save_daily_log` (SECURITY INVOKER); ventana de
+  creación de 7 días; `log_date` inmutable; CHECKs de contenido; grants endurecidos. Validada en local
+  con `db reset`; **pendiente de aplicar en `kitom-dev`**. Decisión: `docs/DECISIONS.md`.
+- Pruebas de BD: `supabase/tests/database/*.test.sql` (pgTAP, en transacción con `ROLLBACK`; solo
+  local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
+  -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.
+- Tipos: `gen types --local` (CLI 2.120) usa otro generador que `--linked` (sin
+  `__InternalSupabase.PostgrestVersion`, con `ComputedFields`): regenerar siempre con `--linked`.
 - Lección Storage: las políticas se evalúan con el rol que consulta; necesita EXECUTE sobre toda
   función que la política invoque (aunque sea `security definer`).
 - Lección RLS: en `INSERT … RETURNING` la política SELECT se evalúa sobre la fila nueva **antes** de que
   exista en la tabla; una función que la busque por id (p. ej. `is_pet_member(id)`) no la encuentra.
   Probar siempre los inserts con `RETURNING` (es lo que hace `insert().select()`).
+- Lección cascadas: los triggers de la tabla hija se ejecutan durante un `ON DELETE CASCADE`; si escriben
+  en otra tabla que referencia al padre, violan su FK. Además el orden de las cascadas depende del
+  nombre (OID) de los triggers de FK y varía entre entornos. Probar siempre "borrar el padre con hijos"
+  con 2+ filas hijas.
+- Lección upsert: PostgREST hace `ON CONFLICT DO UPDATE SET` de todas las columnas enviadas, así que
+  necesita UPDATE sobre las columnas inmutables. En tablas con GRANT por columna, usar una RPC.
 - Edge Functions: **pendientes**. No existe `supabase/functions/` y la carpeta `edge-functions/` que
   citan los docs no está en el repo.
 - Esquema v2.2.1 **congelado**: solo cambia por bugs reales detectados construyendo el frontend.

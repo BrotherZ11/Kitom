@@ -29,11 +29,12 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - Edge Functions (`ai-analysis-process`, `generate-pet-report`, `delete-account`, `revenuecat-webhook`):
   **pendientes**. La carpeta `edge-functions/` que citan los docs no está en el repo.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
-- Migración `20261007172110_pets_select_policy_owner.sql` (corrige crear mascotas): validada en local;
-  **pendiente de aplicar en `kitom-dev`**.
-- Migración `20261007182429_grant_safe_pet_id_from_path.sql` (sin ella falla todo Storage de mascotas;
-  necesaria para fotos): **pendiente de aplicar en `kitom-dev`**.
-- `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): validados en local; **pendientes de ejecutar en `kitom-dev`**
+- Migraciones `20261007172110_pets_select_policy_owner.sql` (crear mascotas) y
+  `20261007182429_grant_safe_pet_id_from_path.sql` (Storage de mascotas): aplicadas en `kitom-dev`.
+- Migración `20261008150202_daily_logs_fixes.sql` (sin ella no se puede escribir en `daily_logs` ni
+  borrar una mascota con registros): validada en local (`supabase/tests/database/daily_logs.test.sql`);
+  **pendiente de aplicar en `kitom-dev`**. Frontend de Daily Logs: pendiente.
+- `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 
 ## Reglas absolutas

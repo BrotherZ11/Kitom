@@ -3,6 +3,49 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-08 — Daily logs: un registro por día, guardado por RPC y reglas de contenido en la BD
+
+**Contexto.** `daily_logs` existía desde la baseline (columnas = PRD §8.3), pero ninguna escritura
+funcionaba (`recompute_pet_streak` sumaba `date + bigint`), el upsert documentado necesitaba UPDATE
+sobre columnas inmutables, y borrar una mascota con 2+ registros violaba la FK de `pet_streaks` (el
+trigger de rachas recalculaba durante la cascada).
+
+**Decisión** (migración `20261008150202_daily_logs_fixes.sql`).
+- Un único registro por mascota y día (`UNIQUE (pet_id, log_date)`): es el estado general del día, la
+  clave natural sirve de idempotencia offline y el cliente no envía `id`. Sin síntomas en el MVP: son
+  del flujo de IA (PRD §8.4) y no se crea `daily_log_symptoms`.
+- El registro es de la mascota: owner y editores aceptados crean, editan y borran cualquier registro;
+  `viewer` solo lee. RLS sin cambios. `last_edited_by` registra la última modificación.
+- Guardado con `save_daily_log` **SECURITY INVOKER**: aplica la RLS y los grants de quien llama; pone
+  `logged_by = auth.uid()` solo al crear; sustituye el registro completo. UPDATE y después INSERT
+  (con reintento ante `unique_violation`), no `INSERT … ON CONFLICT`: los triggers BEFORE INSERT se
+  ejecutan antes de detectar el conflicto y la ventana de fechas impediría editar registros antiguos.
+- Escalas 1–5 sin valor por defecto (un 3 inventaría datos): relativas a lo habitual para energía,
+  apetito, actividad, vocalización e interacción social; de calidad para ánimo y sueño. La escala no
+  está en la BD (los CHECK 1–5 ya existían); es contrato de la UI y de la futura IA.
+- Fechas: crear solo entre hoy y hoy − 7 en la zona del propietario (limita rellenar rachas a
+  posteriori); editar sin límite; `log_date` inmutable (sin GRANT de UPDATE + trigger). Si el perfil
+  del propietario no tiene zona sincronizada, vale `UTC` (default de `profiles.timezone`).
+- Sin registros vacíos (`daily_logs_not_empty_check`): al menos un nivel, comportamiento inusual
+  marcado o descrito, una nota con texto o una etiqueta.
+- Tags de lista cerrada en un CHECK (`vet_visit`, `home_change`, `new_pet`, del PRD §8.3): añadir uno
+  requiere migración, a cambio de que la IA y los informes reciban siempre códigos conocidos. Se
+  descartó una tabla de catálogo con traducciones por ser excesiva para tres valores.
+- Límites de texto: no había ningún criterio previo en la app. `notes` ≤ **2000** caracteres (unas
+  300 palabras: holgado para un diario y acotado para el contexto de la IA) y
+  `unusual_behavior_notes` ≤ **1000** (describe una sola conducta). Se cuentan caracteres, no bytes.
+- Rachas: solo se corrigió el tipo (`rn::integer`). Al borrar un registro durante la cascada del
+  borrado de la mascota no se recalcula (su racha se borra con ella), lo que hace el borrado
+  independiente del orden de cascada, que depende de los OID de cada entorno.
+- Grants: `anon` sin nada; `authenticated` sin TRUNCATE/REFERENCES/TRIGGER/MAINTAIN ni UPDATE de
+  `log_date`.
+
+**Consecuencias.** Un registro nuevo creado offline que tarde más de 7 días en sincronizarse se
+rechaza. Con 8 días de ventana se puede ganar `streak_7` rellenando la semana anterior (aceptado).
+Hasta sincronizar `profiles.timezone` desde el frontend, los usuarios por delante de UTC no pueden
+registrar "hoy" entre su medianoche y la medianoche UTC. Pruebas: `supabase/tests/database/daily_logs.test.sql`.
+Contrato: `FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen» y §5.
+
 ## 2026-10-07 — Fotos de mascota: JPEG ≤ 1600 px, path único por subida y referencia antes que archivo
 
 **Contexto.** `pets.photo_path` y el bucket privado `pet-photos` (con políticas por `pet_id`) ya
