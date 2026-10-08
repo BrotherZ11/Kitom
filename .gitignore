@@ -8,7 +8,8 @@ node_modules/
 
 # Claude Code (configuración personal)
 .claude/settings.local.json
-
+.playwright-mcp/
+.agents/skills/
 # IDE
 .idea/
 
