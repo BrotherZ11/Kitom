@@ -10,6 +10,18 @@ export type PetErrorCode =
   | 'invalid_weight'
   | 'birth_date_future'
   | 'invalid_value'
+  // Fotos (`pet-photo-picker.ts`, `api/pet-photos-api.ts`).
+  | 'camera_permission'
+  | 'gallery_permission'
+  | 'camera_unavailable'
+  | 'invalid_image_type'
+  | 'image_too_large'
+  | 'image_processing_failed'
+  | 'photo_upload_failed'
+  | 'photo_update_failed'
+  | 'photo_delete_failed'
+  | 'photo_url_failed'
+  | 'photo_storage'
   | 'unknown';
 
 export class PetError extends Error {
@@ -19,6 +31,17 @@ export class PetError extends Error {
     super(code, { cause });
     this.name = 'PetError';
     this.code = code;
+  }
+}
+
+/** Permiso de cámara o galería denegado. `canAskAgain = false`: solo se puede activar en Ajustes. */
+export class PetPhotoPermissionError extends PetError {
+  readonly canAskAgain: boolean;
+
+  constructor(code: 'camera_permission' | 'gallery_permission', canAskAgain: boolean) {
+    super(code);
+    this.name = 'PetPhotoPermissionError';
+    this.canAskAgain = canAskAgain;
   }
 }
 
@@ -64,6 +87,36 @@ export function toPetError(error: unknown): PetError {
   }
 
   return new PetError('unknown', error);
+}
+
+type StorageLikeError = { status?: number; statusCode?: string; message?: string };
+
+/**
+ * Traduce un error de Storage (`StorageApiError`) a un código de UI. `fallback` es el código de la
+ * operación que falló (subir, borrar o firmar) cuando el error no es más específico.
+ */
+export function toPetPhotoError(error: unknown, fallback: PetErrorCode): PetError {
+  if (error instanceof PetError) return error;
+  if (__DEV__) console.warn('[pets] photo', error);
+
+  if (error instanceof TypeError) return new PetError('network', error);
+
+  const { status, statusCode, message = '' } = (error ?? {}) as StorageLikeError;
+  if (isNetworkFailure(message)) return new PetError('network', error);
+
+  const httpStatus = Number(status ?? statusCode);
+  if (httpStatus === 401 || httpStatus === 403 || /row-level security|unauthorized/i.test(message)) {
+    return new PetError('not_allowed', error);
+  }
+  if (httpStatus === 413 || /maximum allowed size|too large/i.test(message)) {
+    return new PetError('image_too_large', error);
+  }
+  if (httpStatus === 415 || /mime type/i.test(message)) {
+    return new PetError('invalid_image_type', error);
+  }
+  if (httpStatus >= 500) return new PetError('photo_storage', error);
+
+  return new PetError(fallback, error);
 }
 
 export function petErrorMessage(error: unknown): string {

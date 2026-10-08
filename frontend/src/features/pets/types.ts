@@ -23,7 +23,7 @@ export const BREED_STATUS_VALUES = ['known', 'mixed', 'unknown'] as const satisf
  * - `owner_id`: solo INSERT, y lo pone la capa de datos a partir de la sesión (nunca el formulario);
  *   cambiarlo solo es posible con la RPC `transfer_pet_ownership`.
  * - `is_active`: solo el propietario puede cambiarlo (trigger); archivar no está implementado.
- * - `photo_path`: la subida a Storage no está implementada.
+ * - `photo_path`: lo escribe solo `api/pet-photos-api.ts` (subir/quitar foto), nunca el formulario.
  * `id`, `created_at` y `updated_at` los gestiona la base de datos.
  */
 export type PetEditableColumn =

@@ -33,7 +33,15 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kitom necesita acceder a tus fotos para añadir la foto de tu mascota.",
+          "cameraPermission": "Kitom necesita la cámara para hacer la foto de tu mascota.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

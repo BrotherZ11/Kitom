@@ -1,8 +1,8 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { PetPhoto } from '@/features/pets/components/pet-photo';
 import {
   formatBirthDate,
   formatList,
@@ -19,6 +19,8 @@ type PetDetailsProps = {
   /** Raza ya formateada (`formatBreed`); `null` = sin contestar. */
   breedLabel: string | null;
   isShared: boolean;
+  /** Foto y sus acciones (`PetPhotoEditor`), fuera del formulario de datos. */
+  photo: ReactNode;
 };
 
 function DetailRow({ label, value }: { label: string; value: string | null }) {
@@ -32,11 +34,11 @@ function DetailRow({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-export function PetDetails({ pet, speciesName, breedLabel, isShared }: PetDetailsProps) {
+export function PetDetails({ pet, speciesName, breedLabel, isShared, photo }: PetDetailsProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <PetPhoto name={pet.name} photoPath={pet.photo_path} size={96} />
+        {photo}
         <ThemedText type="subtitle" style={styles.center}>
           {pet.name}
         </ThemedText>

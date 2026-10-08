@@ -10,8 +10,6 @@ import { supabase } from '@/lib/supabase';
 const PET_COLUMNS =
   'id, owner_id, name, species_id, sex, breed, breed_id, breed_status, birth_date, weight_kg, sterilized, known_conditions, allergies, temperament_notes, photo_path, is_active, created_at, updated_at';
 
-const PET_PHOTOS_BUCKET = 'pet-photos';
-
 /**
  * Copia solo las columnas editables. Aunque llegue un objeto con más propiedades (p. ej. `owner_id`
  * o `id`), nunca se envían a Supabase.
@@ -99,11 +97,19 @@ export async function fetchCanEditPet(petId: string): Promise<boolean> {
   return data;
 }
 
-/** URL firmada temporal de la foto (bucket privado); nunca se persiste. */
-export async function fetchPetPhotoUrl(photoPath: string): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from(PET_PHOTOS_BUCKET)
-    .createSignedUrl(photoPath, 60 * 60);
+/**
+ * Cambia solo `photo_path` (path de Storage, nunca una URL). Separado de `updatePet` para que un
+ * fallo de la foto no afecte a la edición de los datos. Lo usa `api/pet-photos-api.ts`.
+ */
+export async function updatePetPhotoPath(petId: string, photoPath: string | null): Promise<Pet> {
+  const { data, error } = await supabase
+    .from('pets')
+    .update({ photo_path: photoPath })
+    .eq('id', petId)
+    .select(PET_COLUMNS)
+    .maybeSingle();
   if (error) throw toPetError(error);
-  return data.signedUrl;
+  // Igual que en `updatePet`: RLS (`can_edit_pet`) filtró la fila.
+  if (!data) throw new PetError('not_allowed');
+  return data;
 }

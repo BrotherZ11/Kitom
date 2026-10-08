@@ -6,7 +6,6 @@ import {
   deletePet,
   fetchCanEditPet,
   fetchPet,
-  fetchPetPhotoUrl,
   fetchPets,
   updatePet,
 } from '@/features/pets/api/pets-api';
@@ -27,16 +26,6 @@ export function usePet(petId: string) {
 /** Solo para decidir qué acciones mostrar; RLS decide de verdad al escribir. */
 export function useCanEditPet(petId: string) {
   return useQuery({ queryKey: petKeys.canEdit(petId), queryFn: () => fetchCanEditPet(petId) });
-}
-
-export function usePetPhotoUrl(photoPath: string | null) {
-  return useQuery({
-    queryKey: petKeys.photo(photoPath ?? ''),
-    queryFn: () => fetchPetPhotoUrl(photoPath ?? ''),
-    enabled: photoPath !== null,
-    // La URL firmada dura 1 h; se renueva antes de que caduque.
-    staleTime: 50 * 60 * 1000,
-  });
 }
 
 export function useCreatePet() {

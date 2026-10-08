@@ -10,6 +10,7 @@ import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/auth-context';
 import { PetDetails } from '@/features/pets/components/pet-details';
+import { PetPhotoEditor } from '@/features/pets/components/pet-photo-editor';
 import { useBreed } from '@/features/pets/hooks/use-breeds';
 import { useCanEditPet, useDeletePet, usePet } from '@/features/pets/hooks/use-pets';
 import { useSpecies } from '@/features/pets/hooks/use-species';
@@ -80,6 +81,7 @@ export default function PetDetailScreen() {
         speciesName={speciesName}
         breedLabel={breedLabel}
         isShared={!isOwner}
+        photo={<PetPhotoEditor pet={currentPet} canEdit={canEdit.data === true} />}
       />
 
       {canEdit.data ? (
