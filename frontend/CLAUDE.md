@@ -31,7 +31,12 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   (detección del dispositivo pendiente). Ningún texto visible fuera de `src/i18n/locales/`.
 - `src/components/ui/` — Screen, TextField, Button, FormMessage, OptionGroup y estados
   Loading/Error/Empty (`query-state.tsx`) (mínimos, no es el design system final).
-- `src/features/profile/` — zona horaria del perfil: `timezone.ts` (detección con `Intl`, validación
+- `src/features/daily-logs/` — registro diario, fase 1 (hoy, online; ruta `(app)/pets/[id]/daily-log`,
+  tarjeta en la ficha). Guardar solo con `save_daily_log`; "hoy" solo con `useTodayLogDate`/`log-date.ts`;
+  lógica pura en `daily-log-form.ts`, `log-date.ts` y `daily-log-errors.ts` (probada con `npm test`).
+  Contrato: `docs/FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen». Pendiente: offline e historial.
+- `src/lib/submit-guard.ts` — evita envíos dobles (toques antes de que el botón se deshabilite).
+- `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
   `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`
   solo si es `NULL` y nunca la sobrescribe. Contrato: `docs/FRONTEND_ARCHITECTURE.md` §9.

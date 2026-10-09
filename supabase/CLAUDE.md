@@ -28,7 +28,7 @@
 - Migración `20261008155257_profile_timezone.sql`: `profiles.timezone` admite `NULL` (= sin configurar)
   y no tiene default; `validate_profile_timezone` deja pasar `NULL`, valida solo si el valor cambia y
   exige `UTC` o Área/Ubicación; los `'UTC'` existentes (siempre el default) pasan a `NULL`. RLS y grants
-  sin cambios. Validada en local con `db reset`; **pendiente de aplicar en `kitom-dev`**.
+  sin cambios. Validada en local con `db reset`; aplicada en `kitom-dev`.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
   -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.

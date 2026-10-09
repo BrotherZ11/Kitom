@@ -170,7 +170,35 @@ validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use
 - **RPC:** ninguno
 
 ### DailyLogScreen
-Backend listo (migración `20261008150202_daily_logs_fixes.sql`); frontend pendiente. Decisión: `DECISIONS.md`.
+Backend: migración `20261008150202_daily_logs_fixes.sql`. Frontend **fase 1 implementada** (registro
+de hoy, online; sin offline ni historial). Decisiones: `DECISIONS.md`.
+
+**Implementación (fase 1).** Ruta `(app)/pets/[id]/daily-log` (registro de **hoy**); entrada desde la
+ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/features/daily-logs/`:
+`api/daily-logs-api.ts`, `hooks/use-daily-log.ts`, `hooks/use-today-log-date.ts`, `log-date.ts`,
+`daily-log-form.ts` (valores, validación, payload y estado del editor), `daily-log-errors.ts`,
+`query-keys.ts`, `types.ts`, `components/` (`DailyLogEditor`, `ScaleSelector`, `TagSelector`,
+`TodayLogCard`). Pruebas: `*.test.mjs` (`npm test`).
+- **"Hoy":** solo `useTodayLogDate()` / `todayLogDate()`: día del calendario (`Intl`, nunca
+  `toISOString`) en la zona del **perfil** → la del **dispositivo** si es `NULL`/no válida → `UTC`. La
+  pantalla fija la fecha al abrirse (el registro que se rellena no cambia de día); la tarjeta de la
+  ficha la recalcula al volver a primer plano.
+- **Abrir:** lee `daily_logs` por (`pet_id`, `log_date`); si no hay, formulario vacío. Nunca crea nada
+  al abrir. Los cambios posteriores de la query no pisan lo que se está editando.
+- **Guardar:** `rpc('save_daily_log', toSaveDailyLogArgs(...))` con el registro completo. Botón
+  deshabilitado + `createSubmitGuard` (`lib/submit-guard.ts`) contra dobles toques; el formulario se
+  bloquea mientras guarda. Éxito: la fila devuelta pasa al formulario y a la caché, se invalida solo
+  `['daily-logs','detail',petId,logDate]` y se muestra «Registro guardado.» sin salir. Error: se
+  conservan los datos y se muestra el mensaje (`dailyLogs.errors.*`).
+- **Tipos:** los generados marcan todos los parámetros de la RPC como no nulos; `SaveDailyLogArgs`
+  (`types.ts`) admite `null` en niveles y notas y se convierte al tipo generado solo en la API.
+- **«Todo como siempre»:** pone las 7 escalas en 3 en el formulario; no guarda ni toca lo opcional.
+  Tocar una opción ya elegida la deja en `null`.
+- **Comportamiento inusual:** la nota solo se envía con el interruptor activado (el campo no se ve si
+  está desactivado).
+- **Permisos (UX):** `can_edit_pet` (`useCanEditPet`). Sin permiso: formulario de solo lectura (o
+  «Todavía no hay registro de hoy»), sin botones de guardar. RLS/RPC siguen siendo la autoridad.
+- **Query keys:** `['daily-logs','detail',petId,logDate]` (`null` = no existe), `['profile','timezone']`.
 - **READ:** `pets`, `daily_logs` (del día, si existe, para precargar el formulario). `SELECT`: miembros
   (`is_pet_member`, incluye `viewer`).
 - **WRITE (crear y editar):** solo `rpc('save_daily_log', { p_pet_id, p_log_date, p_energy_level,

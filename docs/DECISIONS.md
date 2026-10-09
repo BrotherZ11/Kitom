@@ -3,6 +3,28 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-08 — Daily Logs frontend (fase 1): registro de hoy, online
+
+**Decisión.**
+- "Hoy" se calcula solo en `features/daily-logs/log-date.ts`: día del calendario con `Intl` en la zona
+  del perfil → dispositivo → `UTC`. Nunca `toISOString()` (en Madrid daría el día siguiente entre las
+  00:00 y las 02:00). La pantalla fija la fecha al abrirse para que el registro en curso no cambie de
+  día si se cruza la medianoche.
+- Una pantalla por día con el registro completo: abrir no crea nada; guardar envía todos los campos
+  a `save_daily_log` (la RPC sustituye el registro). La fila devuelta se pasa al formulario y a la
+  caché; un refetch posterior no pisa lo que el usuario está editando.
+- Escalas sin valor inicial; volver a tocar la opción elegida la deja en `null` (sin indicar).
+  «Todo como siempre» solo rellena el formulario.
+- La nota de comportamiento inusual no se envía con el interruptor desactivado: el campo no se ve y
+  no debe guardarse texto oculto (se conserva en pantalla por si se reactiva).
+- Tipos de la RPC: los generados no admiten `null` en parámetros de función; `SaveDailyLogArgs`
+  lo corrige solo para los parámetros que la RPC acepta y se convierte en un único punto de la API.
+- Permisos solo como UX con `can_edit_pet` (lo mismo que Pets); sin lógica por `owner_id`.
+
+**Consecuencias.** Un co-tutor en otra zona horaria calcula "hoy" con la suya, pero la BD valida con
+la del propietario: alrededor de medianoche podría recibir `invalid_date` (los co-tutores aún no
+tienen UI; pendiente una RPC tipo `pet_local_today`). Contrato: `FRONTEND_ARCHITECTURE.md` §4.
+
 ## 2026-10-08 — Zona horaria del perfil: NULL = sin configurar e inicialización desde el dispositivo
 
 **Contexto.** `profiles.timezone` ya existía (`text NOT NULL DEFAULT 'UTC'`) y su trigger convertía

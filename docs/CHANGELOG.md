@@ -5,6 +5,16 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-08
 
+- Daily Logs frontend, fase 1: registro de **hoy** de una mascota (crear y editar, online) en
+  `(app)/pets/[id]/daily-log`, con entrada desde la ficha. Escalas 1–5 sin valor inicial, «Todo como
+  siempre», comportamiento inusual, etiquetas cerradas y notas; guardado solo con `save_daily_log`.
+  "Hoy" en la zona del perfil → dispositivo → UTC. Nueva feature `frontend/src/features/daily-logs/` y
+  `lib/submit-guard.ts`. Sin cambios de BD. Contrato en `FRONTEND_ARCHITECTURE.md` §4
+  «DailyLogScreen»; decisión en `DECISIONS.md`.
+- Corrección (de nuevo): `frontend/src/types/database.types.ts` volvía a estar en UTF-16 tras regenerarlo
+  desde PowerShell; vuelve a UTF-8 con el mismo contenido.
+- La migración `20261008155257_profile_timezone.sql` consta aplicada en `kitom-dev`.
+
 - Zona horaria del perfil: `profiles.timezone` admite `NULL` (= sin configurar) y la app la inicializa
   con la del dispositivo sin sobrescribir nunca un valor existente. Nueva migración
   `20261008155257_profile_timezone.sql` (validada en local; **pendiente de aplicar en `kitom-dev`**) y

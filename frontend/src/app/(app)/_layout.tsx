@@ -14,6 +14,7 @@ export default function AppLayout() {
       <Stack.Screen name="pets/new" options={{ title: t('pets.new.title') }} />
       <Stack.Screen name="pets/[id]/index" options={{ title: t('pets.detail.title') }} />
       <Stack.Screen name="pets/[id]/edit" options={{ title: t('pets.edit.title') }} />
+      <Stack.Screen name="pets/[id]/daily-log" options={{ title: t('dailyLogs.screenTitle') }} />
     </Stack>
   );
 }
