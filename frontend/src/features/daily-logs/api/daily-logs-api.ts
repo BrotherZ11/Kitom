@@ -1,4 +1,9 @@
 import { toDailyLogError } from '@/features/daily-logs/daily-log-errors';
+import {
+  DAILY_LOG_COLUMNS,
+  queryHistoryPage,
+  type DailyLogHistoryPage,
+} from '@/features/daily-logs/daily-log-history';
 import type { DailyLog, GeneratedSaveDailyLogArgs, SaveDailyLogArgs } from '@/features/daily-logs/types';
 import { supabase } from '@/lib/supabase';
 
@@ -7,8 +12,17 @@ import { supabase } from '@/lib/supabase';
  * `save_daily_log` (nunca insert/upsert directo: el upsert falla por los GRANT por columna).
  */
 
-const DAILY_LOG_COLUMNS =
-  'id, pet_id, logged_by, last_edited_by, log_date, energy_level, appetite_level, mood_level, activity_level, sleep_quality, vocalization_level, social_interaction_level, unusual_behavior, unusual_behavior_notes, notes, tags, created_at, updated_at';
+/** Página del historial de una mascota (`log_date` descendente, desde `cursor` exclusivo). */
+export async function fetchDailyLogHistory(
+  petId: string,
+  cursor: string | null
+): Promise<DailyLogHistoryPage> {
+  try {
+    return await queryHistoryPage(supabase, petId, cursor);
+  } catch (error) {
+    throw toDailyLogError(error);
+  }
+}
 
 /** Registro de una mascota en un día; `null` si no existe (o no hay acceso: RLS no lo distingue). */
 export async function fetchDailyLog(petId: string, logDate: string): Promise<DailyLog | null> {

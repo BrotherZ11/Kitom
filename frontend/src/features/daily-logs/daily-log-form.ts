@@ -178,6 +178,30 @@ export function toSaveDailyLogArgs(
   };
 }
 
+export type DailyLogSummary = {
+  /** Escalas indicadas, en el orden de pantalla. Las no indicadas no aparecen. */
+  scales: { field: ScaleField; value: ScaleValue }[];
+  tags: DailyLogTag[];
+  unusualBehavior: boolean;
+  hasNotes: boolean;
+};
+
+/**
+ * Resumen de un registro para el historial: solo lo que el usuario indicó, tal cual. Sin
+ * puntuaciones agregadas ni interpretaciones.
+ */
+export function summarizeDailyLog(values: DailyLogFormValues): DailyLogSummary {
+  return {
+    scales: SCALE_FIELDS.flatMap((field) => {
+      const value = values.scales[field];
+      return value === null ? [] : [{ field, value }];
+    }),
+    tags: values.tags,
+    unusualBehavior: values.unusualBehavior,
+    hasNotes: values.notes.trim() !== '',
+  };
+}
+
 /** ¿Hay algún dato de «Más detalles»? (para abrir la sección al cargar un registro). */
 export function hasDetailValues(values: DailyLogFormValues): boolean {
   return DETAIL_SCALE_FIELDS.some((field) => values.scales[field] !== null);

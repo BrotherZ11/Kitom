@@ -32,8 +32,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - Migraciones `20261007172110_pets_select_policy_owner.sql` (crear mascotas) y
   `20261007182429_grant_safe_pet_id_from_path.sql` (Storage de mascotas): aplicadas en `kitom-dev`.
 - Migración `20261008150202_daily_logs_fixes.sql` (sin ella no se puede escribir en `daily_logs` ni
-  borrar una mascota con registros): aplicada en `kitom-dev`. Frontend de Daily Logs: fase 1 (registro
-  de hoy, online) implementada; offline e historial pendientes.
+  borrar una mascota con registros): aplicada en `kitom-dev`. Frontend de Daily Logs: registro de hoy e
+  historial (consulta/edición de registros anteriores), online; offline y borrado pendientes.
 - Migración `20261008155257_profile_timezone.sql` (`profiles.timezone` admite `NULL` = sin configurar;
   la app la inicializa con la zona del dispositivo): aplicada en `kitom-dev`.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario

@@ -14,7 +14,8 @@ import { t } from '@/i18n';
 const RELATIVE_LABELS = ['much_less', 'less', 'usual', 'more', 'much_more'] as const;
 const QUALITY_LABELS = ['very_bad', 'bad', 'normal', 'good', 'very_good'] as const;
 
-function optionLabel(field: ScaleField, value: ScaleValue, length: 'short' | 'full'): string {
+/** Texto de una opción de la escala (`short` en botones y resúmenes, `full` para lectores de pantalla). */
+export function scaleOptionLabel(field: ScaleField, value: ScaleValue, length: 'short' | 'full'): string {
   return scaleKind(field) === 'quality'
     ? t(`dailyLogs.scale.quality.${length}.${QUALITY_LABELS[value - 1]}`)
     : t(`dailyLogs.scale.relative.${length}.${RELATIVE_LABELS[value - 1]}`);
@@ -40,7 +41,7 @@ export function ScaleSelector({ field, value, onChange, disabled = false }: Scal
       <View style={styles.header}>
         <ThemedText type="smallBold">{label}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          {value === null ? t('dailyLogs.scale.notAnswered') : optionLabel(field, value, 'full')}
+          {value === null ? t('dailyLogs.scale.notAnswered') : scaleOptionLabel(field, value, 'full')}
         </ThemedText>
       </View>
       <View style={styles.options} accessibilityRole="radiogroup" accessibilityLabel={label}>
@@ -50,7 +51,7 @@ export function ScaleSelector({ field, value, onChange, disabled = false }: Scal
             <Pressable
               key={option}
               accessibilityRole="radio"
-              accessibilityLabel={`${label}: ${optionLabel(field, option, 'full')}`}
+              accessibilityLabel={`${label}: ${scaleOptionLabel(field, option, 'full')}`}
               accessibilityHint={isSelected ? t('dailyLogs.scale.clearHint') : undefined}
               accessibilityState={{ checked: isSelected, disabled }}
               disabled={disabled}
@@ -69,7 +70,7 @@ export function ScaleSelector({ field, value, onChange, disabled = false }: Scal
                 themeColor={isSelected ? 'text' : 'textSecondary'}
                 numberOfLines={2}
                 style={styles.optionText}>
-                {optionLabel(field, option, 'short')}
+                {scaleOptionLabel(field, option, 'short')}
               </ThemedText>
             </Pressable>
           );

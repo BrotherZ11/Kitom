@@ -3,6 +3,29 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-09 — Historial de Daily Logs: cursor sobre log_date, carga progresiva y edición en el mismo formulario
+
+**Decisión.**
+- Paginación por cursor (keyset) sobre `log_date`, no por `offset`: `log_date` es único por mascota y
+  está indexado (`UNIQUE (pet_id, log_date)`), y el cursor no se desplaza si se guarda un registro nuevo
+  mientras se navega. 20 registros por página; se pide uno de más para saber si hay otra página sin
+  una consulta extra al final.
+- Carga progresiva con un botón explícito («Cargar registros anteriores») dentro de la pantalla con
+  scroll, no lista virtualizada con scroll infinito: evita anidar `FlatList` en el `ScrollView` de
+  `Screen` y es suficiente para páginas de 20. Si el historial crece mucho por sesión, pasar a
+  `FlatList`.
+- Ruta por fecha (`daily-logs/[date]`), no por id: la identidad del registro es (`pet_id`, `log_date`),
+  igual que en la RPC y en el futuro modo offline. Abrir un día sin registro no lo crea.
+- Se reutiliza `DailyLogEditor` sin cambios: recibe la fecha de la fila guardada, así que editar
+  conserva el `log_date` original.
+- Resumen de la lista: solo lo indicado (escalas con su texto, etiquetas, comportamiento inusual,
+  notas). Sin medias ni valoraciones, coherente con que Kitom no interpreta clínicamente.
+- Guardar (hoy o histórico) actualiza en caché el registro y la página del historial que lo contenga
+  y revalida solo las queries de esa mascota.
+
+**Consecuencias.** Sin cambios de BD. `pet_streaks` aún no se muestra en el historial. La lista no es
+virtualizada.
+
 ## 2026-10-08 — Daily Logs frontend (fase 1): registro de hoy, online
 
 **Decisión.**

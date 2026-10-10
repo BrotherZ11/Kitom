@@ -34,7 +34,10 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
 - `src/features/daily-logs/` — registro diario, fase 1 (hoy, online; ruta `(app)/pets/[id]/daily-log`,
   tarjeta en la ficha). Guardar solo con `save_daily_log`; "hoy" solo con `useTodayLogDate`/`log-date.ts`;
   lógica pura en `daily-log-form.ts`, `log-date.ts` y `daily-log-errors.ts` (probada con `npm test`).
-  Contrato: `docs/FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen». Pendiente: offline e historial.
+  Historial: `(app)/pets/[id]/daily-logs` y `daily-logs/[date]`, paginación por cursor en
+  `daily-log-history.ts` (recibe el cliente por parámetro: probado con `npm test` y contra Supabase local).
+  Contrato: `docs/FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen» y «HistoryScreen». Pendiente: offline,
+  borrado, calendario y gráficos.
 - `src/lib/submit-guard.ts` — evita envíos dobles (toques antes de que el botón se deshabilite).
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,

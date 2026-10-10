@@ -262,6 +262,23 @@ export const es = {
       create: 'Registrar hoy',
       edit: 'Ver o editar el de hoy',
       view: 'Ver el de hoy',
+      history: 'Ver historial',
+    },
+    history: {
+      title: 'Historial',
+      emptyTitle: 'Todavía no hay registros',
+      emptyDescription: 'Los registros diarios de esta mascota aparecerán aquí.',
+      logToday: 'Registrar hoy',
+      loadMore: 'Cargar registros anteriores',
+      end: 'No hay registros más antiguos.',
+      noScales: 'Sin escalas indicadas',
+      unusualBehavior: 'Algo fuera de lo habitual',
+      withNotes: 'Con notas',
+    },
+    entry: {
+      title: 'Registro',
+      missing: 'No hay registro de este día.',
+      backToHistory: 'Volver al historial',
     },
     errors: {
       network: 'No hay conexión. Comprueba tu red e inténtalo de nuevo.',

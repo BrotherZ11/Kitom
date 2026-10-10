@@ -227,9 +227,30 @@ ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/featur
 - **Storage:** ninguno
 
 ### HistoryScreen
-- **READ:** `daily_logs` (rango de fechas), `pet_streaks`
-- **WRITE:** —
-- **RPC:** ninguno
+**Historial implementado** (lista y consulta/edición de registros anteriores; sin calendario, gráficos
+ni borrado). `pet_streaks` todavía no se muestra.
+- **Rutas:** `(app)/pets/[id]/daily-logs` (lista) y `(app)/pets/[id]/daily-logs/[date]` (un registro,
+  `date` = `YYYY-MM-DD` validada con `parseLogDateParam`). Entrada: «Ver historial» en `TodayLogCard`
+  (ficha de la mascota).
+- **READ (lista):** `daily_logs` filtrado solo por `pet_id` (RLS `is_pet_member` decide el acceso:
+  owner y co-tutores aceptados; pendientes y ajenos reciben una lista vacía), `order(log_date desc)`,
+  **paginación por cursor**: `lt('log_date', cursor)` + `limit(HISTORY_PAGE_SIZE + 1)` (20 por página; la
+  fila sobrante indica que hay más). Usa `UNIQUE (pet_id, log_date)` / `idx_daily_logs_pet_date`. Código:
+  `features/daily-logs/daily-log-history.ts` (`queryHistoryPage`, `toHistoryPage`, `flattenHistory`),
+  `useDailyLogHistory` (`useInfiniteQuery`). Carga progresiva con «Cargar registros anteriores».
+- **Resumen por día:** fecha **guardada** (`formatLogDateLabel`, con año si no es el actual; nunca
+  recalculada con la zona actual), escalas indicadas con su texto corto, etiquetas, «Algo fuera de lo
+  habitual» y «Con notas». Sin puntuaciones agregadas ni interpretaciones (`summarizeDailyLog`).
+- **Un registro:** lee por (`pet_id`, `log_date`). Si no existe, «No hay registro de este día» (nunca
+  crea). Si existe, `DailyLogEditor` de la fase 1 con `logDate = log.log_date`: editable si
+  `can_edit_pet`, solo lectura si no (`resolveHistoryLogView`). Guardar = `save_daily_log` con la fecha
+  original (la RPC edita sin límite de antigüedad).
+- **Tras guardar** (hoy o histórico): la fila sustituye a la de la caché del registro y, si está
+  cargada, a la del historial (`replaceLogInHistory`); después se invalidan
+  `['daily-logs','detail',petId,logDate]` y `['daily-logs','history',petId]` (`dailyLogKeysAfterSave`).
+- **Errores:** primera página → `ErrorState` con reintento; «cargar más» → mensaje bajo la lista sin
+  perder lo cargado. Mapeo con `toDailyLogError`.
+- **WRITE:** solo `save_daily_log` (ver «DailyLogScreen»). Sin borrado en esta fase.
 
 ### RemindersScreen
 - **READ:** `reminders`

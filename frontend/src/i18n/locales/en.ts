@@ -264,6 +264,23 @@ export const en: Translations = {
       create: 'Log today',
       edit: "View or edit today's log",
       view: "View today's log",
+      history: 'View history',
+    },
+    history: {
+      title: 'History',
+      emptyTitle: 'No logs yet',
+      emptyDescription: "This pet's daily logs will appear here.",
+      logToday: 'Log today',
+      loadMore: 'Load earlier logs',
+      end: 'No earlier logs.',
+      noScales: 'No scales answered',
+      unusualBehavior: 'Something out of the ordinary',
+      withNotes: 'With notes',
+    },
+    entry: {
+      title: 'Log',
+      missing: 'There is no log for this day.',
+      backToHistory: 'Back to history',
     },
     errors: {
       network: 'No connection. Check your network and try again.',

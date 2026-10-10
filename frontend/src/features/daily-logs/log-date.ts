@@ -48,8 +48,15 @@ export function todayLogDate(
   return formatLocalDate(now, resolveLogTimeZone(candidates, normalize));
 }
 
-/** Texto visible de una fecha `YYYY-MM-DD` (p. ej. «jueves, 8 de octubre»). */
-export function formatLogDateLabel(logDate: string, locale: string): string {
+/**
+ * Texto visible de una fecha `YYYY-MM-DD` (p. ej. «jueves, 8 de octubre»; con `withYear`, «… de
+ * 2026»). Muestra exactamente el día guardado: no depende de la zona horaria actual.
+ */
+export function formatLogDateLabel(
+  logDate: string,
+  locale: string,
+  { withYear = false }: { withYear?: boolean } = {}
+): string {
   const match = LOG_DATE.exec(logDate);
   if (!match) return logDate;
   // Mediodía UTC y zona UTC: el día mostrado es exactamente el de `logDate`.
@@ -60,6 +67,7 @@ export function formatLogDateLabel(logDate: string, locale: string): string {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
+      ...(withYear ? { year: 'numeric' } : {}),
     }).format(date);
   } catch {
     return logDate;

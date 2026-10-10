@@ -3,6 +3,14 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-09
+
+- Historial de Daily Logs: lista por mascota (`log_date` descendente, 20 por página con carga
+  progresiva) y consulta/edición de registros anteriores con el formulario existente y
+  `save_daily_log`, conservando la fecha original. Viewers en solo lectura. Entrada «Ver historial»
+  desde la ficha. Sin cambios de BD. Contrato en `FRONTEND_ARCHITECTURE.md` §4 «HistoryScreen»;
+  decisión en `DECISIONS.md`.
+
 ## 2026-10-08
 
 - Daily Logs frontend, fase 1: registro de **hoy** de una mascota (crear y editar, online) en
