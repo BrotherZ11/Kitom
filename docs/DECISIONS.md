@@ -3,6 +3,54 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-10 — Daily logs: concurrencia optimista en save_daily_log (fase 0 del modo offline)
+
+**Contexto.** `save_daily_log` sustituye el registro completo sin comprobar si cambió desde que el
+cliente lo leyó: con dos dispositivos, un co-tutor o una edición sin conexión, el segundo guardado
+pisa al primero sin avisar (reproducido en la app web). Leer y luego guardar desde el cliente no lo
+arregla: entre las dos llamadas puede entrar otro guardado.
+
+**Decisión** (migración `20261010160332_daily_logs_concurrency.sql`; solo cambia la función).
+- Dos precondiciones opcionales: `p_expected_updated_at` (editar solo la versión leída) y
+  `p_expect_absent` (crear solo si no existe). Son excluyentes (`22023` si llegan las dos).
+- La versión es `daily_logs.updated_at`: ya existe, ya la devuelve la RPC y la mantiene un trigger.
+  Se descartó una columna `revision` por exigir cambio de tabla, grants y tipos para el mismo efecto
+  práctico (ver riesgo abajo).
+- Atomicidad sin bloqueos explícitos: la versión se compara en el `WHERE` del propio `UPDATE` (un
+  escritor concurrente hace esperar al segundo, que reevalúa el `WHERE` sobre la fila ya cambiada) y
+  la creación se apoya en `UNIQUE (pet_id, log_date)`.
+- Conflicto = `P0001` con `hint` `daily_log_conflict` (mismo patrón que `log_date_future`) y `detail`
+  `version_mismatch` | `row_missing` | `row_exists`. No se devuelve la fila remota: el cliente la lee
+  después (ya tiene SELECT por RLS).
+- Los permisos van antes: viewer y ajeno reciben `42501` exista o no el registro, así el error no
+  sirve para averiguar nada. Si el permiso se revoca en mitad de la llamada también es `42501`.
+- Un registro borrado desde que se leyó es un conflicto (`row_missing`), no se recrea solo.
+- Con `p_expect_absent` se comprueba la existencia antes del `INSERT`: si no, un registro antiguo que
+  ya existe daría «fuera de la ventana de 7 días» (trigger BEFORE INSERT) en vez de conflicto.
+- Firma: se borra la de 13 parámetros y se crea una de 15 con default en los dos nuevos. Con
+  `CREATE OR REPLACE` habrían quedado dos funciones y las llamadas actuales seguirían usando la
+  antigua. Mismos permisos que antes (`authenticated` y `service_role`; ni `PUBLIC` ni `anon`).
+- Reintentos: no hay id de operación en el servidor. Si se pierde la respuesta de un guardado, el
+  reintento recibe conflicto y el cliente compara el contenido remoto con el enviado.
+
+**Consecuencias.**
+- Transición: sin precondiciones la RPC se comporta como antes (gana el último guardado y puede
+  pisar en silencio otro guardado). Es lo que envía el frontend actual. **No se usa para la
+  sincronización offline**: cada operación de la cola envía una precondición. Cuando no queden
+  clientes sin ella, se podrá exigir en otra migración.
+- Riesgo aceptado: `updated_at` es la hora de inicio de la transacción (`now()`), no un contador. Dos
+  escrituras de la misma fila en la misma transacción, o dos transacciones iniciadas en el mismo
+  microsegundo, dejan la misma versión. Los clientes hacen una llamada por transacción, así que solo
+  afectaría a scripts de backend o a una coincidencia de microsegundo con un guardado sin
+  precondición. Si se quiere cerrar del todo: trigger propio de `daily_logs` con `clock_timestamp()`
+  estrictamente creciente (requiere aprobación; esquema y triggers sin cambios en esta fase).
+- El cliente debe guardar y reenviar `updated_at` como la cadena original que devuelve PostgREST
+  (microsegundos), nunca pasada por `Date`: truncada a milisegundos no coincide nunca y todo guardado
+  daría conflicto.
+- Pruebas: `supabase/tests/database/daily_logs.test.sql` §13 (lógica, en secuencia) y
+  `supabase/tests/concurrency/daily_logs_concurrency.sh` (sesiones simultáneas reales, solo local).
+  Contrato: `FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen» y `README.md` §15.
+
 ## 2026-10-09 — Historial de Daily Logs: cursor sobre log_date, carga progresiva y edición en el mismo formulario
 
 **Decisión.**
