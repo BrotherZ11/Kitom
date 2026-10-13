@@ -67,6 +67,49 @@ create function test_helpers.save(
     p_unusual, p_unusual_notes, p_notes, p_tags)
 $$;
 
+-- Guardado con precondición (migración *_daily_logs_concurrency.sql). Devuelve
+-- 'ok' o 'SQLSTATE|hint|detail' del error: throws_ok no comprueba hint ni
+-- detail. El error deshace la escritura de esa llamada (subtransacción).
+create function test_helpers.try_save(
+  p_pet uuid, p_date date,
+  p_mood smallint default null, p_notes text default null,
+  p_expected timestamptz default null, p_absent boolean default false
+) returns text
+  language plpgsql security invoker as $$
+declare
+  v_state  text;
+  v_hint   text;
+  v_detail text;
+begin
+  perform public.save_daily_log(
+    p_pet, p_date, null, null, p_mood, null, null, null, null,
+    false, null, p_notes, '{}', p_expected, p_absent);
+  return 'ok';
+exception when others then
+  get stacked diagnostics
+    v_state  = returned_sqlstate,
+    v_hint   = pg_exception_hint,
+    v_detail = pg_exception_detail;
+  return concat_ws('|', v_state, nullif(v_hint, ''), nullif(v_detail, ''));
+end $$;
+
+-- Versión "leída hace un rato": todo el archivo es una transacción y now()
+-- no avanza, así que las filas con una versión anterior se siembran con esta.
+create function test_helpers.v0() returns timestamptz
+  language sql stable as $$ select now() - interval '2 hours' $$;
+
+-- Versión (updated_at) y contenido de un registro, tal como los lee el cliente.
+create function test_helpers.version_of(p_pet uuid, p_date date) returns timestamptz
+  language sql stable security invoker as $$
+  select updated_at from public.daily_logs where pet_id = p_pet and log_date = p_date
+$$;
+
+create function test_helpers.snapshot_of(p_pet uuid, p_date date) returns text
+  language sql stable security invoker as $$
+  select row(mood_level, notes, logged_by, last_edited_by, log_date)::text
+  from public.daily_logs where pet_id = p_pet and log_date = p_date
+$$;
+
 grant execute on all functions in schema test_helpers to anon, authenticated;
 
 -- Usuarios: A owner · E editor · V viewer · O ajeno · S owner de rachas
@@ -133,12 +176,12 @@ select is(
         'sleep_quality', 'social_interaction_level', 'tags', 'unusual_behavior', 'unusual_behavior_notes', 'vocalization_level'],
   'grants: INSERT sin id, created_at, updated_at ni last_edited_by');
 select ok(not has_function_privilege('anon',
-  'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[])', 'EXECUTE'),
+  'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[], timestamptz, boolean)', 'EXECUTE'),
   'rpc: anon (ni PUBLIC) no puede ejecutar save_daily_log');
 select ok(has_function_privilege('authenticated',
-  'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[])', 'EXECUTE'),
+  'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[], timestamptz, boolean)', 'EXECUTE'),
   'rpc: authenticated puede ejecutar save_daily_log');
-select ok(not (select prosecdef from pg_proc where oid = 'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[])'::regprocedure),
+select ok(not (select prosecdef from pg_proc where oid = 'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[], timestamptz, boolean)'::regprocedure),
   'rpc: save_daily_log es SECURITY INVOKER');
 select is(
   (select array_agg(policyname::text order by policyname) from pg_policies where schemaname = 'public' and tablename = 'daily_logs'),
@@ -721,6 +764,241 @@ select lives_ok($$ select test_helpers.save('b0000000-0000-4000-8000-00000000000
                    (now() at time zone 'Pacific/Pago_Pago')::date, 3::smallint) $$,
   'timezone: el editor puede registrar el "hoy" del propietario');
 reset role;
+
+-- =====================================================================
+-- 13. Concurrencia optimista (migración *_daily_logs_concurrency.sql)
+-- =====================================================================
+-- Límite de estas pruebas: el archivo entero es UNA transacción, así que las
+-- escrituras ocurren en secuencia y now() (de donde sale updated_at) no
+-- avanza. Los registros "leídos antes" se siembran con una versión anterior
+-- (test_helpers.v0()). Aquí se comprueba la lógica de las precondiciones; la
+-- carrera real entre dos sesiones se prueba en
+-- supabase/tests/concurrency/daily_logs_concurrency.sh.
+-- Mascota K de A · E editor · V viewer · O ajeno. Zonas horarias a NULL (UTC).
+select test_helpers.act_as_postgres();
+update public.profiles set timezone = null
+where id in ('a0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000002');
+
+insert into public.pets (id, owner_id, name, species_id)
+select 'b0000000-0000-4000-8000-000000000061', 'a0000000-0000-4000-8000-000000000001', 'K', s.id
+from public.species s where s.code = 'dog';
+
+insert into public.pet_co_owners (pet_id, user_id, invited_by, role, status, accepted_at) values
+  ('b0000000-0000-4000-8000-000000000061', 'a0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'editor', 'accepted', now()),
+  ('b0000000-0000-4000-8000-000000000061', 'a0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'viewer', 'accepted', now());
+
+-- Registros creados por A "hace dos horas" (versión v0): ayer, hace 2, 3 y 20 días
+select test_helpers.act_as_service();
+insert into public.daily_logs (pet_id, logged_by, log_date, mood_level, notes, created_at, updated_at)
+select 'b0000000-0000-4000-8000-000000000061', 'a0000000-0000-4000-8000-000000000001',
+       test_helpers.today() - d, 3, 'v0', test_helpers.v0(), test_helpers.v0()
+from unnest(array[1, 2, 3, 20]) as d;
+select test_helpers.act_as_postgres();
+
+-- 13a. Firma única y permisos -------------------------------------------
+select is(
+  (select count(*)::int from pg_proc where pronamespace = 'public'::regnamespace and proname = 'save_daily_log'),
+  1, 'firma: existe una sola save_daily_log (sin sobrecargas)');
+select ok(
+  to_regprocedure('public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[])') is null,
+  'firma: la versión de 13 parámetros ya no existe');
+select is(
+  (select row(pronargs, pronargdefaults)::text from pg_proc where pronamespace = 'public'::regnamespace and proname = 'save_daily_log'),
+  row(15::smallint, 2::smallint)::text, 'firma: 15 parámetros, los 2 últimos con valor por defecto');
+select is(
+  (select array_agg(acl.grantee::regrole::text order by acl.grantee::regrole::text)
+   from pg_proc p, aclexplode(p.proacl) as acl
+   where p.pronamespace = 'public'::regnamespace and p.proname = 'save_daily_log' and acl.privilege_type = 'EXECUTE'),
+  array['authenticated', 'postgres', 'service_role'],
+  'grants: EXECUTE solo para authenticated, service_role y el propietario (ni PUBLIC ni anon)');
+
+-- 13b. Crear con p_expect_absent ------------------------------------------
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000001');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today(), 4::smallint, 'creado', p_absent => true),
+  'ok', 'expect_absent: el owner crea el registro de hoy');
+select is(test_helpers.snapshot_of('b0000000-0000-4000-8000-000000000061', test_helpers.today()),
+  row(4::smallint, 'creado'::text, 'a0000000-0000-4000-8000-000000000001'::uuid, null::uuid, test_helpers.today())::text,
+  'expect_absent: logged_by = owner, sin last_edited_by y con el log_date pedido');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today(), 1::smallint, 'segunda creación', p_absent => true),
+  'P0001|daily_log_conflict|row_exists', 'expect_absent: conflicto si el registro ya existe');
+select is(test_helpers.snapshot_of('b0000000-0000-4000-8000-000000000061', test_helpers.today()),
+  row(4::smallint, 'creado'::text, 'a0000000-0000-4000-8000-000000000001'::uuid, null::uuid, test_helpers.today())::text,
+  'expect_absent: el conflicto no modifica el registro existente');
+reset role;
+
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000002');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today(), 1::smallint, 'editor', p_absent => true),
+  'P0001|daily_log_conflict|row_exists', 'expect_absent: el editor recibe conflicto sobre el registro del owner');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 5, 2::smallint, 'editor crea', p_absent => true),
+  'ok', 'expect_absent: el editor crea un registro');
+select is(test_helpers.snapshot_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 5),
+  row(2::smallint, 'editor crea'::text, 'a0000000-0000-4000-8000-000000000002'::uuid, null::uuid, test_helpers.today() - 5)::text,
+  'expect_absent: logged_by = editor');
+reset role;
+
+-- 13c. Permisos antes que conflictos ---------------------------------------
+-- Viewer y ajeno reciben siempre 42501, exista o no el registro y sea cual
+-- sea la versión que envíen: no pueden usar el error para averiguar nada.
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000003');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today(), 1::smallint, 'viewer', p_absent => true),
+  '42501', 'viewer + expect_absent sobre un registro que existe: 42501, no conflicto');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 6, 1::smallint, 'viewer', p_absent => true),
+  '42501', 'viewer + expect_absent sobre un día sin registro: 42501');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1, 1::smallint, 'viewer', p_expected => test_helpers.v0()),
+  '42501', 'viewer con la versión correcta: 42501');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1, 1::smallint, 'viewer', p_expected => test_helpers.v0() - interval '1 day'),
+  '42501', 'viewer con una versión obsoleta: 42501, no conflicto');
+reset role;
+
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000004');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today(), 1::smallint, 'ajeno', p_absent => true),
+  '42501', 'ajeno + expect_absent sobre un registro que existe: 42501, no conflicto');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 6, 1::smallint, 'ajeno', p_absent => true),
+  '42501', 'ajeno + expect_absent sobre un día sin registro: 42501');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1, 1::smallint, 'ajeno', p_expected => test_helpers.v0()),
+  '42501', 'ajeno con la versión correcta: 42501');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1, 1::smallint, 'ajeno', p_expected => test_helpers.v0() - interval '1 day'),
+  '42501', 'ajeno con una versión obsoleta: 42501, no conflicto');
+reset role;
+
+select test_helpers.act_as_anon();
+select throws_ok($$ select public.save_daily_log('b0000000-0000-4000-8000-000000000061', current_date,
+                    null, null, 3::smallint, null, null, null, null, false, null, null, '{}', null, true) $$,
+  '42501', null, 'anon: no puede ejecutar la RPC con precondición');
+reset role;
+
+select is(test_helpers.snapshot_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1),
+  row(3::smallint, 'v0'::text, 'a0000000-0000-4000-8000-000000000001'::uuid, null::uuid, test_helpers.today() - 1)::text,
+  'viewer/ajeno/anon: el registro de ayer no ha cambiado');
+
+-- 13d. Editar con la versión leída ------------------------------------------
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000001');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1, 5::smallint, 'owner edita', p_expected => test_helpers.v0()),
+  'ok', 'versión coincidente: el owner edita');
+select is(test_helpers.snapshot_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1),
+  row(5::smallint, 'owner edita'::text, 'a0000000-0000-4000-8000-000000000001'::uuid, 'a0000000-0000-4000-8000-000000000001'::uuid, test_helpers.today() - 1)::text,
+  'versión coincidente: contenido nuevo, logged_by y log_date intactos, last_edited_by = owner');
+select isnt(test_helpers.version_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1), test_helpers.v0(),
+  'versión coincidente: updated_at cambia al editar');
+reset role;
+
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000002');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1, 2::smallint, 'editor edita',
+                                p_expected => test_helpers.version_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1)),
+  'ok', 'versión coincidente: el editor edita el registro del owner');
+select is(test_helpers.snapshot_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1),
+  row(2::smallint, 'editor edita'::text, 'a0000000-0000-4000-8000-000000000001'::uuid, 'a0000000-0000-4000-8000-000000000002'::uuid, test_helpers.today() - 1)::text,
+  'versión coincidente: logged_by sigue siendo el owner, last_edited_by = editor');
+reset role;
+
+-- El owner todavía tiene la versión v0 que leyó antes de que el editor guardara
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000001');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1, 1::smallint, 'obsoleto', p_expected => test_helpers.v0()),
+  'P0001|daily_log_conflict|version_mismatch', 'versión obsoleta: conflicto');
+select is(test_helpers.snapshot_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1),
+  row(2::smallint, 'editor edita'::text, 'a0000000-0000-4000-8000-000000000001'::uuid, 'a0000000-0000-4000-8000-000000000002'::uuid, test_helpers.today() - 1)::text,
+  'versión obsoleta: el guardado del editor no se pisa (ni contenido ni last_edited_by)');
+reset role;
+select is((select created_at from public.daily_logs
+           where pet_id = 'b0000000-0000-4000-8000-000000000061' and log_date = test_helpers.today() - 1),
+  test_helpers.v0(), 'auditoría: created_at no cambia al editar con precondición');
+
+-- 13e. Registro borrado desde que se leyó -----------------------------------
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000002');
+delete from public.daily_logs where pet_id = 'b0000000-0000-4000-8000-000000000061' and log_date = test_helpers.today() - 2;
+reset role;
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000001');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 2, 4::smallint, 'sobre un borrado', p_expected => test_helpers.v0()),
+  'P0001|daily_log_conflict|row_missing', 'registro borrado desde que se leyó: conflicto');
+select is((select count(*)::int from public.daily_logs
+           where pet_id = 'b0000000-0000-4000-8000-000000000061' and log_date = test_helpers.today() - 2),
+  0, 'registro borrado: no se vuelve a crear en silencio');
+reset role;
+
+-- 13f. Reintento tras perder la confirmación del guardado -------------------
+-- El primer envío se aplica pero el cliente no recibe la respuesta y repite
+-- la misma llamada. El servidor no la aplica dos veces: devuelve conflicto y
+-- el cliente decide leyendo el registro (contenido = lo enviado → sincronizado).
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000002');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 3, 2::smallint, 'ack perdido', p_expected => test_helpers.v0()),
+  'ok', 'ack perdido (editar): el primer envío se aplica');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 3, 2::smallint, 'ack perdido', p_expected => test_helpers.v0()),
+  'P0001|daily_log_conflict|version_mismatch', 'ack perdido (editar): el reintento idéntico se rechaza');
+select is((select row(mood_level, notes, last_edited_by)::text from public.daily_logs
+           where pet_id = 'b0000000-0000-4000-8000-000000000061' and log_date = test_helpers.today() - 3),
+  row(2::smallint, 'ack perdido'::text, 'a0000000-0000-4000-8000-000000000002'::uuid)::text,
+  'ack perdido (editar): el contenido remoto es el enviado y last_edited_by quien reintenta → se puede dar por sincronizado');
+reset role;
+
+-- Entre el primer envío y el reintento, otra persona cambia el registro
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000001');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 3, 5::smallint, 'cambio del owner',
+                                p_expected => test_helpers.version_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 3)),
+  'ok', 'ack perdido (editar): el owner cambia el registro antes del reintento');
+reset role;
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000002');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 3, 2::smallint, 'ack perdido', p_expected => test_helpers.v0()),
+  'P0001|daily_log_conflict|version_mismatch', 'ack perdido (editar): el reintento tardío también se rechaza');
+select isnt((select row(mood_level, notes, last_edited_by)::text from public.daily_logs
+             where pet_id = 'b0000000-0000-4000-8000-000000000061' and log_date = test_helpers.today() - 3),
+  row(2::smallint, 'ack perdido'::text, 'a0000000-0000-4000-8000-000000000002'::uuid)::text,
+  'ack perdido (editar): el contenido remoto ya no es el enviado → no se da por sincronizado ni se pisa');
+
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 4, 4::smallint, 'ack perdido al crear', p_absent => true),
+  'ok', 'ack perdido (crear): el primer envío crea el registro');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 4, 4::smallint, 'ack perdido al crear', p_absent => true),
+  'P0001|daily_log_conflict|row_exists', 'ack perdido (crear): el reintento idéntico se rechaza, no duplica');
+select is(test_helpers.snapshot_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 4),
+  row(4::smallint, 'ack perdido al crear'::text, 'a0000000-0000-4000-8000-000000000002'::uuid, null::uuid, test_helpers.today() - 4)::text,
+  'ack perdido (crear): el contenido remoto es el enviado y logged_by quien reintenta → se puede dar por sincronizado');
+reset role;
+
+-- 13g. Las validaciones de siempre siguen aplicando --------------------------
+select test_helpers.act_as('a0000000-0000-4000-8000-000000000001');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 8, 3::smallint, null, p_absent => true),
+  'P0001|log_date_too_old', 'expect_absent: crear fuera de la ventana de 7 días sigue rechazado');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() + 1, 3::smallint, null, p_absent => true),
+  'P0001|log_date_future', 'expect_absent: crear con fecha futura sigue rechazado');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 20, 3::smallint, 'tardío', p_absent => true),
+  'P0001|daily_log_conflict|row_exists', 'expect_absent sobre un registro antiguo que ya existe: conflicto, no "fuera de ventana"');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 20, 4::smallint, 'edita antiguo', p_expected => test_helpers.v0()),
+  'ok', 'versión coincidente: un registro de hace 20 días se edita sin límite de antigüedad');
+select matches(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 20, null, null,
+                                     p_expected => test_helpers.version_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 20)),
+  '^23514', 'versión coincidente: dejar el registro vacío sigue rechazado (CHECK)');
+select matches(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 20, 6::smallint, null,
+                                     p_expected => test_helpers.version_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 20)),
+  '^23514', 'versión coincidente: nivel 6 sigue rechazado (CHECK)');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 1, 3::smallint, 'ambas',
+                                p_expected => test_helpers.v0(), p_absent => true),
+  '22023', 'las dos precondiciones a la vez: parámetros inválidos');
+
+-- 13h. Llamadas sin precondición (compatibilidad) ----------------------------
+-- La llamada actual del frontend: 13 argumentos con nombre, sin los nuevos.
+select is((select row(mood_level, notes)::text from public.save_daily_log(
+             p_pet_id => 'b0000000-0000-4000-8000-000000000061', p_log_date => test_helpers.today() - 1,
+             p_energy_level => null, p_appetite_level => null, p_mood_level => 3::smallint, p_activity_level => null,
+             p_sleep_quality => null, p_vocalization_level => null, p_social_interaction_level => null,
+             p_unusual_behavior => false, p_unusual_behavior_notes => null, p_notes => 'legacy', p_tags => '{}')),
+  row(3::smallint, 'legacy'::text)::text,
+  'legacy (13 argumentos con nombre): resuelve a la función única y sustituye sin comprobar versión');
+select is((select row(mood_level, notes)::text from public.save_daily_log(
+             p_pet_id => 'b0000000-0000-4000-8000-000000000061', p_log_date => test_helpers.today() - 1,
+             p_energy_level => null, p_appetite_level => null, p_mood_level => 4::smallint, p_activity_level => null,
+             p_sleep_quality => null, p_vocalization_level => null, p_social_interaction_level => null,
+             p_unusual_behavior => false, p_unusual_behavior_notes => null, p_notes => 'legacy null', p_tags => '{}',
+             p_expected_updated_at => null, p_expect_absent => null)),
+  row(4::smallint, 'legacy null'::text)::text,
+  'precondiciones NULL explícitas: equivalen a no enviarlas');
+select is(test_helpers.try_save('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 6, 3::smallint, 'legacy crea'),
+  'ok', 'legacy: crea el registro si no existe');
+select is(test_helpers.snapshot_of('b0000000-0000-4000-8000-000000000061', test_helpers.today() - 6),
+  row(3::smallint, 'legacy crea'::text, 'a0000000-0000-4000-8000-000000000001'::uuid, null::uuid, test_helpers.today() - 6)::text,
+  'legacy: logged_by = quien crea');
+reset role;
+
+select is((select count(*)::int from public.daily_logs where pet_id = 'b0000000-0000-4000-8000-000000000061'),
+  7, 'concurrencia: 7 registros de K (hoy, -1, -3, -4, -5, -6 y -20), ninguno duplicado ni recreado');
 
 select * from finish();
 rollback;

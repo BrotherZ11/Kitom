@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-stat
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/auth-context';
+import { TodayLogCard } from '@/features/daily-logs/components/today-log-card';
 import { PetDetails } from '@/features/pets/components/pet-details';
 import { PetPhotoEditor } from '@/features/pets/components/pet-photo-editor';
 import { useBreed } from '@/features/pets/hooks/use-breeds';
@@ -83,6 +84,8 @@ export default function PetDetailScreen() {
         isShared={!isOwner}
         photo={<PetPhotoEditor pet={currentPet} canEdit={canEdit.data === true} />}
       />
+
+      <TodayLogCard petId={id} canEdit={canEdit.data === true} />
 
       {canEdit.data ? (
         <Button

@@ -170,7 +170,36 @@ validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use
 - **RPC:** ninguno
 
 ### DailyLogScreen
-Backend listo (migración `20261008150202_daily_logs_fixes.sql`); frontend pendiente. Decisión: `DECISIONS.md`.
+Backend: migraciones `20261008150202_daily_logs_fixes.sql` y
+`20261010160332_daily_logs_concurrency.sql`. Frontend **fase 1 implementada** (registro
+de hoy, online; sin offline ni historial). Decisiones: `DECISIONS.md`.
+
+**Implementación (fase 1).** Ruta `(app)/pets/[id]/daily-log` (registro de **hoy**); entrada desde la
+ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/features/daily-logs/`:
+`api/daily-logs-api.ts`, `hooks/use-daily-log.ts`, `hooks/use-today-log-date.ts`, `log-date.ts`,
+`daily-log-form.ts` (valores, validación, payload y estado del editor), `daily-log-errors.ts`,
+`query-keys.ts`, `types.ts`, `components/` (`DailyLogEditor`, `ScaleSelector`, `TagSelector`,
+`TodayLogCard`). Pruebas: `*.test.mjs` (`npm test`).
+- **"Hoy":** solo `useTodayLogDate()` / `todayLogDate()`: día del calendario (`Intl`, nunca
+  `toISOString`) en la zona del **perfil** → la del **dispositivo** si es `NULL`/no válida → `UTC`. La
+  pantalla fija la fecha al abrirse (el registro que se rellena no cambia de día); la tarjeta de la
+  ficha la recalcula al volver a primer plano.
+- **Abrir:** lee `daily_logs` por (`pet_id`, `log_date`); si no hay, formulario vacío. Nunca crea nada
+  al abrir. Los cambios posteriores de la query no pisan lo que se está editando.
+- **Guardar:** `rpc('save_daily_log', toSaveDailyLogArgs(...))` con el registro completo. Botón
+  deshabilitado + `createSubmitGuard` (`lib/submit-guard.ts`) contra dobles toques; el formulario se
+  bloquea mientras guarda. Éxito: la fila devuelta pasa al formulario y a la caché, se invalida solo
+  `['daily-logs','detail',petId,logDate]` y se muestra «Registro guardado.» sin salir. Error: se
+  conservan los datos y se muestra el mensaje (`dailyLogs.errors.*`).
+- **Tipos:** los generados marcan todos los parámetros de la RPC como no nulos; `SaveDailyLogArgs`
+  (`types.ts`) admite `null` en niveles y notas y se convierte al tipo generado solo en la API.
+- **«Todo como siempre»:** pone las 7 escalas en 3 en el formulario; no guarda ni toca lo opcional.
+  Tocar una opción ya elegida la deja en `null`.
+- **Comportamiento inusual:** la nota solo se envía con el interruptor activado (el campo no se ve si
+  está desactivado).
+- **Permisos (UX):** `can_edit_pet` (`useCanEditPet`). Sin permiso: formulario de solo lectura (o
+  «Todavía no hay registro de hoy»), sin botones de guardar. RLS/RPC siguen siendo la autoridad.
+- **Query keys:** `['daily-logs','detail',petId,logDate]` (`null` = no existe), `['profile','timezone']`.
 - **READ:** `pets`, `daily_logs` (del día, si existe, para precargar el formulario). `SELECT`: miembros
   (`is_pet_member`, incluye `viewer`).
 - **WRITE (crear y editar):** solo `rpc('save_daily_log', { p_pet_id, p_log_date, p_energy_level,
@@ -181,6 +210,26 @@ Backend listo (migración `20261008150202_daily_logs_fixes.sql`); frontend pendi
   idempotente. `logged_by` lo pone el servidor al crear y se conserva al editar; `last_edited_by` y
   `updated_at` los ponen triggers. **No usar `upsert`** de supabase-js: hace `SET` de `pet_id`/`logged_by`,
   que no tienen GRANT de UPDATE (`42501`). Solo owner y editores (`can_edit_pet`).
+- **Concurrencia (backend listo, migración `20261010160332_daily_logs_concurrency.sql`; el frontend
+  todavía no lo usa):** dos parámetros opcionales, como mucho uno por llamada (`22023` si llegan los
+  dos). `p_expected_updated_at` = `updated_at` de la fila leída: edita solo esa versión.
+  `p_expect_absent: true`: crea solo si no existe registro de ese día. Si no se cumple, `P0001` con
+  `hint` `daily_log_conflict` y `details` `version_mismatch` (otro guardado cambió la fila),
+  `row_missing` (se borró) o `row_exists` (ya existía); HTTP 400 y nada escrito. Tras un conflicto
+  hay que leer la fila: si su contenido es el que se envió (respuesta perdida de un envío anterior),
+  ya está guardada.
+  - **La versión es la cadena original.** PostgREST devuelve `updated_at` con microsegundos
+    (`2026-10-10T16:14:12.851355+00:00`; omite los ceros finales, así que puede traer menos de seis
+    decimales: `…:26.89152+00:00`) y la comparación en el servidor es exacta. Guardarla y
+    reenviarla **tal cual llegó**, como `string`: nunca convertirla con `new Date(…)`,
+    `toISOString()` ni librerías de fechas, que la truncan a milisegundos. Si se trunca, la versión
+    no coincide nunca: cada guardado da conflicto (no se pierden datos, pero la sincronización no
+    avanza).
+  - **Sin precondición = gana el último guardado.** Sin ninguno de los dos parámetros (la llamada
+    actual del frontend online) la RPC sustituye el registro sin comprobar la versión y puede pisar
+    en silencio el guardado de otro dispositivo o co-tutor. Se mantiene solo por compatibilidad con
+    el frontend actual. **No usarla para la sincronización offline**: cada operación de la cola debe
+    enviar `p_expected_updated_at` (editar lo que se leyó) o `p_expect_absent` (crear).
 - **DELETE:** `delete().eq('pet_id', …).eq('log_date', …)`; owner y editores, también registros que
   creó otra persona. 0 filas = `not_allowed`. Recalcula la racha.
 - **Campos:** niveles `smallint` 1–5, empiezan en `NULL` (nunca 3 por defecto). Energía, apetito,
@@ -195,13 +244,35 @@ Backend listo (migración `20261008150202_daily_logs_fixes.sql`); frontend pendi
 - **Errores:** `42501` → `not_allowed` (viewer, ajeno, mascota inexistente o sin sesión); `P0001` con
   `hint` `log_date_future` / `log_date_too_old` → `invalid_log_date`; `23514` → valor inválido (nombre de
   la constraint en el mensaje: `daily_logs_*_check`, incluido `daily_logs_not_empty_check` y
-  `daily_logs_tags_check`); fallo de red → `network`.
+  `daily_logs_tags_check`); fallo de red → `network`. Con precondiciones (todavía no enviadas):
+  `P0001` con `hint` `daily_log_conflict` → conflicto; `22023` → se enviaron las dos a la vez.
 - **Storage:** ninguno
 
 ### HistoryScreen
-- **READ:** `daily_logs` (rango de fechas), `pet_streaks`
-- **WRITE:** —
-- **RPC:** ninguno
+**Historial implementado** (lista y consulta/edición de registros anteriores; sin calendario, gráficos
+ni borrado). `pet_streaks` todavía no se muestra.
+- **Rutas:** `(app)/pets/[id]/daily-logs` (lista) y `(app)/pets/[id]/daily-logs/[date]` (un registro,
+  `date` = `YYYY-MM-DD` validada con `parseLogDateParam`). Entrada: «Ver historial» en `TodayLogCard`
+  (ficha de la mascota).
+- **READ (lista):** `daily_logs` filtrado solo por `pet_id` (RLS `is_pet_member` decide el acceso:
+  owner y co-tutores aceptados; pendientes y ajenos reciben una lista vacía), `order(log_date desc)`,
+  **paginación por cursor**: `lt('log_date', cursor)` + `limit(HISTORY_PAGE_SIZE + 1)` (20 por página; la
+  fila sobrante indica que hay más). Usa `UNIQUE (pet_id, log_date)` / `idx_daily_logs_pet_date`. Código:
+  `features/daily-logs/daily-log-history.ts` (`queryHistoryPage`, `toHistoryPage`, `flattenHistory`),
+  `useDailyLogHistory` (`useInfiniteQuery`). Carga progresiva con «Cargar registros anteriores».
+- **Resumen por día:** fecha **guardada** (`formatLogDateLabel`, con año si no es el actual; nunca
+  recalculada con la zona actual), escalas indicadas con su texto corto, etiquetas, «Algo fuera de lo
+  habitual» y «Con notas». Sin puntuaciones agregadas ni interpretaciones (`summarizeDailyLog`).
+- **Un registro:** lee por (`pet_id`, `log_date`). Si no existe, «No hay registro de este día» (nunca
+  crea). Si existe, `DailyLogEditor` de la fase 1 con `logDate = log.log_date`: editable si
+  `can_edit_pet`, solo lectura si no (`resolveHistoryLogView`). Guardar = `save_daily_log` con la fecha
+  original (la RPC edita sin límite de antigüedad).
+- **Tras guardar** (hoy o histórico): la fila sustituye a la de la caché del registro y, si está
+  cargada, a la del historial (`replaceLogInHistory`); después se invalidan
+  `['daily-logs','detail',petId,logDate]` y `['daily-logs','history',petId]` (`dailyLogKeysAfterSave`).
+- **Errores:** primera página → `ErrorState` con reintento; «cargar más» → mensaje bajo la lista sin
+  perder lo cargado. Mapeo con `toDailyLogError`.
+- **WRITE:** solo `save_daily_log` (ver «DailyLogScreen»). Sin borrado en esta fase.
 
 ### RemindersScreen
 - **READ:** `reminders`
@@ -269,8 +340,12 @@ Al recuperar conexión: procesa la cola en orden
   ↓
 success  -> marca como sincronizado (no hay id local que sustituir: la
             identidad es (pet_id, log_date) y el cliente no envía `id`)
-conflict -> no existe: si otro dispositivo ya creó el registro de ese día,
-            save_daily_log lo actualiza (gana el último guardado)
+conflict -> hoy el frontend guarda sin precondición y gana el último guardado.
+            El backend ya permite detectarlo (p_expected_updated_at /
+            p_expect_absent -> hint daily_log_conflict, sección 4). La cola
+            offline NUNCA usa la llamada sin precondición: envía siempre una
+            (con la cadena original de updated_at) y resuelve el conflicto,
+            nunca sobrescribe en silencio (pendiente)
 retry    -> reintento con backoff simple; no bloquea la cola completa
             si un solo item falla
 ```
