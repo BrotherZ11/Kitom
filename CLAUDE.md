@@ -36,6 +36,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   historial (consulta/edición de registros anteriores), online; offline y borrado pendientes.
 - Migración `20261008155257_profile_timezone.sql` (`profiles.timezone` admite `NULL` = sin configurar;
   la app la inicializa con la zona del dispositivo): aplicada en `kitom-dev`.
+- Migración `20261010160332_daily_logs_concurrency.sql` (`save_daily_log` con precondiciones
+  opcionales `p_expected_updated_at` / `p_expect_absent`; conflicto = `hint` `daily_log_conflict`):
+  aplicada en `kitom-dev` y tipos regenerados. El frontend todavía no envía precondiciones.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 
@@ -56,7 +59,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 
 ## Comandos
 - Desde `frontend/`: `npx expo start` · `npx expo lint` · `npx tsc --noEmit` · `npx expo-doctor` · `npm test`
-- Pruebas de BD (solo local): `supabase/tests/database/*.test.sql` (pgTAP, ver `supabase/CLAUDE.md`).
+- Pruebas de BD (solo local): `supabase/tests/database/*.test.sql` (pgTAP) y
+  `supabase/tests/concurrency/*.sh` (sesiones simultáneas); ver `supabase/CLAUDE.md`.
 - Desde la raíz: Supabase CLI siempre como `npx supabase ...` (no hay instalación global).
 - Entorno Windows: hay herramientas Bash y PowerShell; las restricciones de `.claude/settings.json` cubren ambas.
 

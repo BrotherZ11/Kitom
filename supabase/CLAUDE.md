@@ -29,9 +29,23 @@
   y no tiene default; `validate_profile_timezone` deja pasar `NULL`, valida solo si el valor cambia y
   exige `UTC` o Área/Ubicación; los `'UTC'` existentes (siempre el default) pasan a `NULL`. RLS y grants
   sin cambios. Validada en local con `db reset`; aplicada en `kitom-dev`.
+- Migración `20261010160332_daily_logs_concurrency.sql`: `save_daily_log` pasa de 13 a 15 parámetros
+  (se borra la firma anterior, sin sobrecarga) con las precondiciones opcionales
+  `p_expected_updated_at` / `p_expect_absent`; conflicto = `P0001` + `hint` `daily_log_conflict`. Sin
+  cambios de tablas, triggers, RLS ni grants. Validada en local con `db reset`; aplicada en
+  `kitom-dev` y tipos regenerados. Decisión: `docs/DECISIONS.md`.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
   -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.
+- Pruebas de concurrencia: `bash supabase/tests/concurrency/daily_logs_concurrency.sh` (solo local, vía
+  `docker exec`; varias sesiones de psql a la vez; crea datos con ids fijos y los borra al terminar).
+  `.gitattributes` fuerza LF en `*.sh` (con `core.autocrlf=true` saldrían con CRLF y bash fallaría).
+  pgTAP corre en una transacción y no puede probar carreras: toda lógica que dependa de bloqueos o
+  de la versión de una fila necesita un caso aquí.
+- Lección versiones: en una transacción `now()` no avanza, así que en pgTAP dos escrituras seguidas
+  dejan el mismo `updated_at`. Sembrar las filas "leídas antes" con un `updated_at` anterior.
+- Lección firmas: añadir parámetros con `CREATE OR REPLACE` crea otra función (la identidad son los
+  tipos de entrada). Borrar la firma anterior y volver a aplicar `revoke`/`grant` a la nueva.
 - Tipos: `gen types --local` (CLI 2.120) usa otro generador que `--linked` (sin
   `__InternalSupabase.PostgrestVersion`, con `ComputedFields`): regenerar siempre con `--linked`.
 - Lección Storage: las políticas se evalúan con el rol que consulta; necesita EXECUTE sobre toda

@@ -3,6 +3,25 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-13
+
+- La migración `20261010160332_daily_logs_concurrency.sql` consta aplicada en `kitom-dev`. Tipos
+  regenerados (`save_daily_log` con `p_expected_updated_at?` y `p_expect_absent?`); el archivo se
+  normalizó a UTF-8 (la regeneración desde PowerShell lo había dejado en UTF-16).
+- `.gitattributes`: los scripts `*.sh` siempre con finales LF (con `core.autocrlf=true` salían con
+  CRLF y bash fallaba).
+
+## 2026-10-10
+
+- Backend de registros diarios, fase 0 del modo offline: nueva migración
+  `20261010160332_daily_logs_concurrency.sql`. `save_daily_log` acepta las precondiciones opcionales
+  `p_expected_updated_at` y `p_expect_absent` y devuelve `P0001` con `hint` `daily_log_conflict` si
+  otro guardado se adelantó, en vez de pisarlo. Sustituye la firma de 13 parámetros por una de 15 (sin
+  sobrecarga); las llamadas actuales siguen funcionando igual. Sin cambios de tablas, RLS ni grants.
+  Validada en local desde `db reset` con 215 pruebas pgTAP y la nueva prueba de sesiones simultáneas
+  `supabase/tests/concurrency/daily_logs_concurrency.sh`. Frontend sin cambios de código. Contrato en
+  `FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen»; decisión en `DECISIONS.md`.
+
 ## 2026-10-09
 
 - Historial de Daily Logs: lista por mascota (`log_date` descendente, 20 por página con carga

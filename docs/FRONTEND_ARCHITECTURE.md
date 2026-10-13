@@ -170,7 +170,8 @@ validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use
 - **RPC:** ninguno
 
 ### DailyLogScreen
-Backend: migración `20261008150202_daily_logs_fixes.sql`. Frontend **fase 1 implementada** (registro
+Backend: migraciones `20261008150202_daily_logs_fixes.sql` y
+`20261010160332_daily_logs_concurrency.sql`. Frontend **fase 1 implementada** (registro
 de hoy, online; sin offline ni historial). Decisiones: `DECISIONS.md`.
 
 **Implementación (fase 1).** Ruta `(app)/pets/[id]/daily-log` (registro de **hoy**); entrada desde la
@@ -209,6 +210,26 @@ ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/featur
   idempotente. `logged_by` lo pone el servidor al crear y se conserva al editar; `last_edited_by` y
   `updated_at` los ponen triggers. **No usar `upsert`** de supabase-js: hace `SET` de `pet_id`/`logged_by`,
   que no tienen GRANT de UPDATE (`42501`). Solo owner y editores (`can_edit_pet`).
+- **Concurrencia (backend listo, migración `20261010160332_daily_logs_concurrency.sql`; el frontend
+  todavía no lo usa):** dos parámetros opcionales, como mucho uno por llamada (`22023` si llegan los
+  dos). `p_expected_updated_at` = `updated_at` de la fila leída: edita solo esa versión.
+  `p_expect_absent: true`: crea solo si no existe registro de ese día. Si no se cumple, `P0001` con
+  `hint` `daily_log_conflict` y `details` `version_mismatch` (otro guardado cambió la fila),
+  `row_missing` (se borró) o `row_exists` (ya existía); HTTP 400 y nada escrito. Tras un conflicto
+  hay que leer la fila: si su contenido es el que se envió (respuesta perdida de un envío anterior),
+  ya está guardada.
+  - **La versión es la cadena original.** PostgREST devuelve `updated_at` con microsegundos
+    (`2026-10-10T16:14:12.851355+00:00`; omite los ceros finales, así que puede traer menos de seis
+    decimales: `…:26.89152+00:00`) y la comparación en el servidor es exacta. Guardarla y
+    reenviarla **tal cual llegó**, como `string`: nunca convertirla con `new Date(…)`,
+    `toISOString()` ni librerías de fechas, que la truncan a milisegundos. Si se trunca, la versión
+    no coincide nunca: cada guardado da conflicto (no se pierden datos, pero la sincronización no
+    avanza).
+  - **Sin precondición = gana el último guardado.** Sin ninguno de los dos parámetros (la llamada
+    actual del frontend online) la RPC sustituye el registro sin comprobar la versión y puede pisar
+    en silencio el guardado de otro dispositivo o co-tutor. Se mantiene solo por compatibilidad con
+    el frontend actual. **No usarla para la sincronización offline**: cada operación de la cola debe
+    enviar `p_expected_updated_at` (editar lo que se leyó) o `p_expect_absent` (crear).
 - **DELETE:** `delete().eq('pet_id', …).eq('log_date', …)`; owner y editores, también registros que
   creó otra persona. 0 filas = `not_allowed`. Recalcula la racha.
 - **Campos:** niveles `smallint` 1–5, empiezan en `NULL` (nunca 3 por defecto). Energía, apetito,
@@ -223,7 +244,8 @@ ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/featur
 - **Errores:** `42501` → `not_allowed` (viewer, ajeno, mascota inexistente o sin sesión); `P0001` con
   `hint` `log_date_future` / `log_date_too_old` → `invalid_log_date`; `23514` → valor inválido (nombre de
   la constraint en el mensaje: `daily_logs_*_check`, incluido `daily_logs_not_empty_check` y
-  `daily_logs_tags_check`); fallo de red → `network`.
+  `daily_logs_tags_check`); fallo de red → `network`. Con precondiciones (todavía no enviadas):
+  `P0001` con `hint` `daily_log_conflict` → conflicto; `22023` → se enviaron las dos a la vez.
 - **Storage:** ninguno
 
 ### HistoryScreen
@@ -318,8 +340,12 @@ Al recuperar conexión: procesa la cola en orden
   ↓
 success  -> marca como sincronizado (no hay id local que sustituir: la
             identidad es (pet_id, log_date) y el cliente no envía `id`)
-conflict -> no existe: si otro dispositivo ya creó el registro de ese día,
-            save_daily_log lo actualiza (gana el último guardado)
+conflict -> hoy el frontend guarda sin precondición y gana el último guardado.
+            El backend ya permite detectarlo (p_expected_updated_at /
+            p_expect_absent -> hint daily_log_conflict, sección 4). La cola
+            offline NUNCA usa la llamada sin precondición: envía siempre una
+            (con la cadena original de updated_at) y resuelve el conflicto,
+            nunca sobrescribe en silencio (pendiente)
 retry    -> reintento con backoff simple; no bloquea la cola completa
             si un solo item falla
 ```

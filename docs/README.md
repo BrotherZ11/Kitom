@@ -69,7 +69,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 | `request_generate_report(pet_id, start, end)` | solo validación, no escribe nada |
 | `is_org_member(org_id)` | lectura, `organization_members` |
 | `register_push_token(token, platform, device_id, app_version, os_version)` | `push_tokens` — reasigna el token al `auth.uid()` actual, ver sección 17.1 |
-| `save_daily_log(pet_id, log_date, <7 niveles>, unusual_behavior, unusual_behavior_notes, notes, tags)` | `daily_logs` — crea o sustituye el registro del día; **SECURITY INVOKER** (aplica RLS y grants de quien llama). Añadida en la migración `20261008150202`, ver sección 15 |
+| `save_daily_log(pet_id, log_date, <7 niveles>, unusual_behavior, unusual_behavior_notes, notes, tags [, expected_updated_at, expect_absent])` | `daily_logs` — crea o sustituye el registro del día; **SECURITY INVOKER** (aplica RLS y grants de quien llama). Añadida en la migración `20261008150202`; precondiciones opcionales de concurrencia en la `20261010160332`, ver sección 15 |
 
 **Nota de taxonomía (v2.2.1):** dentro de esta tabla hay dos tipos distintos, aunque ambos tengan `EXECUTE` para `authenticated`:
 - **RPC de producto** (la mayoría): representan una acción real de negocio que el frontend invoca — `request_ai_analysis`, `invite_pet_member`, `transfer_pet_ownership`...
@@ -163,6 +163,13 @@ Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza
 > - Al **crear**, `log_date` debe estar entre hoy y hoy − 7 en la zona del propietario; un registro offline más antiguo se rechaza (`hint` `log_date_too_old`). Al **editar** no hay límite. `log_date` es inmutable (sin GRANT de UPDATE + trigger `protect_daily_log_audit_fields`).
 > - CHECKs: `tags` ⊆ {`vet_visit`, `home_change`, `new_pet`}; `notes` ≤ 2000 y `unusual_behavior_notes` ≤ 1000 caracteres; `daily_logs_not_empty_check` (al menos un nivel, comportamiento inusual, una nota con texto o una etiqueta).
 > - Grants: `anon` sin privilegios; `authenticated` sin TRUNCATE/REFERENCES/TRIGGER/MAINTAIN.
+>
+> Concurrencia optimista (migración `20261010160332_daily_logs_concurrency.sql`, decisión en `DECISIONS.md`):
+> - `save_daily_log` acepta dos precondiciones opcionales: `p_expected_updated_at` (edita solo si `updated_at` sigue siendo el que leyó el cliente) y `p_expect_absent` (crea solo si no hay registro de ese día). Si no se cumplen: `P0001`, `hint` `daily_log_conflict`, `detail` `version_mismatch` | `row_missing` | `row_exists`; no se escribe nada. Los permisos se comprueban antes.
+> - La versión es `updated_at` (la pone el trigger `set_timestamp_daily_logs`). La comprobación está en el `WHERE` del `UPDATE` y en `UNIQUE (pet_id, log_date)`: es atómica.
+> - La comparación de versión es exacta (microsegundos): el cliente reenvía la cadena de `updated_at` tal como la recibió.
+> - Sin precondiciones se mantiene el comportamiento anterior (sustituye sin comprobar: gana el último guardado), solo por compatibilidad con el frontend actual. No sirve para la sincronización offline.
+> - Una sola función: se borró la firma de 13 parámetros y se creó la de 15 (los dos nuevos con default), para no dejar una sobrecarga sin protección.
 
 ## 16. Streaks
 
