@@ -31,18 +31,27 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   (detección del dispositivo pendiente). Ningún texto visible fuera de `src/i18n/locales/`.
 - `src/components/ui/` — Screen, TextField, Button, FormMessage, OptionGroup y estados
   Loading/Error/Empty (`query-state.tsx`) (mínimos, no es el design system final).
-- `src/features/daily-logs/` — registro diario, fase 1 (hoy, online; ruta `(app)/pets/[id]/daily-log`,
-  tarjeta en la ficha). Guardar solo con `save_daily_log`; "hoy" solo con `useTodayLogDate`/`log-date.ts`;
+- `src/features/daily-logs/` — registro diario (hoy: ruta `(app)/pets/[id]/daily-log`, tarjeta en la
+  ficha). Guardar es local + motor de sincronización (nunca llamar a `save_daily_log` desde pantallas);
+  "hoy" solo con `useTodayLogDate`/`log-date.ts`;
   lógica pura en `daily-log-form.ts`, `log-date.ts` y `daily-log-errors.ts` (probada con `npm test`).
   Historial: `(app)/pets/[id]/daily-logs` y `daily-logs/[date]`, paginación por cursor en
   `daily-log-history.ts` (recibe el cliente por parámetro: probado con `npm test` y contra Supabase local).
-  Contrato: `docs/FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen» y «HistoryScreen». Pendiente: offline,
-  borrado, calendario y gráficos.
-- `src/features/daily-logs/offline/` — base del modo offline, **sin conectar** a hooks ni pantallas:
-  `local-daily-log.ts` (modelo local, validación y transiciones), `daily-log-content.ts`,
-  `daily-log-merge.ts` (fusión a tres bandas), `sync-errors.ts`, `sync-backoff.ts`. Todo puro y probado.
-  `updated_at` siempre como la cadena del servidor (nunca por `Date`); sincronizar siempre con
-  precondición (`toSyncPrecondition`). Contrato: `docs/FRONTEND_ARCHITECTURE.md` §5.
+  Contrato: `docs/FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen» y «HistoryScreen». Pendiente:
+  borrado, calendario, gráficos y lo pendiente del modo offline (§5).
+- `src/features/daily-logs/offline/` — modo offline: modelo local (`local-daily-log.ts`), contenido,
+  fusión, errores y backoff (fase 1) y, en fase 2, `daily-log-repository.ts` (escrituras locales de
+  una en una), `daily-log-remote.ts` (única escritura remota, con precondición), el motor
+  `daily-log-sync-engine.ts`, `sync-triggers.ts`, `daily-log-view.ts` (vistas combinadas) y
+  `daily-log-cache.ts` (coherencia con TanStack). Todo puro y probado; el proveedor React está en
+  `features/daily-logs/sync/`. Fase 3: resolución de conflictos en `(app)/pets/[id]/daily-logs/resolve/[date]`
+  (`components/conflict-resolution.tsx`, `engine.resolveConflict`, `buildResolvedContent`); nunca
+  concatenar notas sin que el usuario revise el texto. Fase 4: `daily-log-version.ts` (orden de
+  `updated_at`), marca de lectura en `refreshSnapshot` (nunca retroceder), lecturas a través del
+  almacén, `engine.discardLocalChanges` (solo local) y `(app)/daily-logs/unsynced`. Una versión nueva
+  no sustituye lo que el usuario está escribiendo (`decideSourceChange`). Ayudantes de pruebas del motor:
+  `offline/sync-test-helpers.mjs` y `fake-daily-log-server.mjs`. `updated_at` siempre como la cadena del servidor (nunca por `Date`).
+  Contrato: `docs/FRONTEND_ARCHITECTURE.md` §5.
 - `src/lib/local-store/` — `createLocalStore(storage, userId)`: datos locales por usuario, validados
   al leer (`local-store.ts`); adaptadores `device-storage.ts` (AsyncStorage) y `memory-storage.ts`
   (tests). **Sin cifrar**: nunca tokens ni credenciales; no registrar contenido en logs.
@@ -60,7 +69,11 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`
   solo si es `NULL` y nunca la sobrescribe. Contrato: `docs/FRONTEND_ARCHITECTURE.md` §9.
 - ESLint configurado (`eslint.config.js`, `eslint-config-expo`).
-- Tests unitarios: `npm test` (runner de Node 24, sin dependencias). Archivos `*.test.mjs` junto al
+- Tests de integración: `npm run test:integration` ejecuta `src/**/*.integration.test.mjs` contra el
+  Supabase **local** (`scripts/test-integration.mjs` lee URL y clave anónima de `npx supabase status` y
+  se niega si no es local). En `npm test` se omiten.
+- Tests unitarios: `npm test` (runner de Node 24, sin dependencias; `--test-timeout` de 30 s: un test
+  colgado falla. Las pruebas del motor usan temporizadores falsos). Archivos `*.test.mjs` junto al
   módulo; importan el `.ts` directamente (type stripping de Node), así que el módulo probado debe ser
   puro (sin `@/`, React Native ni `__DEV__`). Son `.mjs` porque TypeScript 6 no incluye `@types/node`.
   `import type` con `@/` sí vale (se elimina); un módulo puro que importa otro en ejecución usa ruta

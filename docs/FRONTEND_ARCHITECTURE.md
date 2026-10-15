@@ -171,8 +171,8 @@ validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use
 
 ### DailyLogScreen
 Backend: migraciones `20261008150202_daily_logs_fixes.sql` y
-`20261010160332_daily_logs_concurrency.sql`. Frontend **fase 1 implementada** (registro
-de hoy, online; sin offline ni historial). Decisiones: `DECISIONS.md`.
+`20261010160332_daily_logs_concurrency.sql`. Frontend: registro de hoy e historial, con guardado
+local y sincronización (§5 «Integración»). Decisiones: `DECISIONS.md`.
 
 **Implementación (fase 1).** Ruta `(app)/pets/[id]/daily-log` (registro de **hoy**); entrada desde la
 ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/features/daily-logs/`:
@@ -184,13 +184,21 @@ ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/featur
   `toISOString`) en la zona del **perfil** → la del **dispositivo** si es `NULL`/no válida → `UTC`. La
   pantalla fija la fecha al abrirse (el registro que se rellena no cambia de día); la tarjeta de la
   ficha la recalcula al volver a primer plano.
-- **Abrir:** lee `daily_logs` por (`pet_id`, `log_date`); si no hay, formulario vacío. Nunca crea nada
-  al abrir. Los cambios posteriores de la query no pisan lo que se está editando.
-- **Guardar:** `rpc('save_daily_log', toSaveDailyLogArgs(...))` con el registro completo. Botón
-  deshabilitado + `createSubmitGuard` (`lib/submit-guard.ts`) contra dobles toques; el formulario se
-  bloquea mientras guarda. Éxito: la fila devuelta pasa al formulario y a la caché, se invalida solo
-  `['daily-logs','detail',petId,logDate]` y se muestra «Registro guardado.» sin salir. Error: se
-  conservan los datos y se muestra el mensaje (`dailyLogs.errors.*`).
+- **Abrir:** vista combinada servidor + dispositivo (`useDailyLog`, §5 «Integración»): lo pendiente en
+  el dispositivo prevalece; sin pendientes, la fila del servidor (con conexión se espera hasta 3 s);
+  sin conexión o si el servidor tarda, la última copia local, indicándolo, y si no hay ninguna,
+  formulario vacío (solo hoy). Nunca crea nada al abrir. Una versión que llega después solo sustituye
+  los valores si el usuario no ha tocado nada (§5 «Endurecimiento»).
+- **Guardar:** valida, guarda **en el dispositivo** (`useSaveDailyLog` → `engine.saveLocal`, mutación
+  con `networkMode: 'always'`), muestra «Guardado en este dispositivo.» y el estado «Pendiente de
+  sincronizar», y pide sincronizar. El envío a `save_daily_log` lo hace el motor (§5), siempre con
+  precondición. El formulario solo se bloquea durante la escritura local, nunca por la red. Botón
+  deshabilitado + `createSubmitGuard` (`lib/submit-guard.ts`) contra dobles toques. Error local:
+  «No se pudo guardar en este dispositivo» (`local_save_failed`), sin perder lo escrito.
+- **Estado de sincronización** (`components/sync-status.tsx`, bajo el formulario): Sincronizado,
+  Pendiente de sincronizar, Sincronizando, Conflicto pendiente de resolver, No se pudo sincronizar;
+  con explicación y «Reintentar» cuando aplica. «Sincronizado» solo cuando el servidor confirmó o la
+  reconciliación demostró que ya tiene ese contenido.
 - **Tipos:** los generados marcan todos los parámetros de la RPC como no nulos; `SaveDailyLogArgs`
   (`types.ts`) admite `null` en niveles y notas y se convierte al tipo generado solo en la API.
 - **«Todo como siempre»:** pone las 7 escalas en 3 en el formulario; no guarda ni toca lo opcional.
@@ -210,8 +218,8 @@ ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/featur
   idempotente. `logged_by` lo pone el servidor al crear y se conserva al editar; `last_edited_by` y
   `updated_at` los ponen triggers. **No usar `upsert`** de supabase-js: hace `SET` de `pet_id`/`logged_by`,
   que no tienen GRANT de UPDATE (`42501`). Solo owner y editores (`can_edit_pet`).
-- **Concurrencia (backend listo, migración `20261010160332_daily_logs_concurrency.sql`; el frontend
-  todavía no lo usa):** dos parámetros opcionales, como mucho uno por llamada (`22023` si llegan los
+- **Concurrencia (migración `20261010160332_daily_logs_concurrency.sql`; el motor de sincronización
+  envía siempre una de las dos):** dos parámetros opcionales, como mucho uno por llamada (`22023` si llegan los
   dos). `p_expected_updated_at` = `updated_at` de la fila leída: edita solo esa versión.
   `p_expect_absent: true`: crea solo si no existe registro de ese día. Si no se cumple, `P0001` con
   `hint` `daily_log_conflict` y `details` `version_mismatch` (otro guardado cambió la fila),
@@ -225,11 +233,11 @@ ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/featur
     `toISOString()` ni librerías de fechas, que la truncan a milisegundos. Si se trunca, la versión
     no coincide nunca: cada guardado da conflicto (no se pierden datos, pero la sincronización no
     avanza).
-  - **Sin precondición = gana el último guardado.** Sin ninguno de los dos parámetros (la llamada
-    actual del frontend online) la RPC sustituye el registro sin comprobar la versión y puede pisar
-    en silencio el guardado de otro dispositivo o co-tutor. Se mantiene solo por compatibilidad con
-    el frontend actual. **No usarla para la sincronización offline**: cada operación de la cola debe
-    enviar `p_expected_updated_at` (editar lo que se leyó) o `p_expect_absent` (crear).
+  - **Sin precondición = gana el último guardado.** Sin ninguno de los dos parámetros la RPC
+    sustituye el registro sin comprobar la versión y puede pisar en silencio el guardado de otro
+    dispositivo o co-tutor. El frontend ya no la usa (desde la fase 2 del modo offline); se mantiene
+    en el backend por compatibilidad con builds anteriores. Cada envío lleva
+    `p_expected_updated_at` (editar lo que se leyó) o `p_expect_absent` (crear).
 - **DELETE:** `delete().eq('pet_id', …).eq('log_date', …)`; owner y editores, también registros que
   creó otra persona. 0 filas = `not_allowed`. Recalcula la racha.
 - **Campos:** niveles `smallint` 1–5, empiezan en `NULL` (nunca 3 por defecto). Energía, apetito,
@@ -244,8 +252,9 @@ ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/featur
 - **Errores:** `42501` → `not_allowed` (viewer, ajeno, mascota inexistente o sin sesión); `P0001` con
   `hint` `log_date_future` / `log_date_too_old` → `invalid_log_date`; `23514` → valor inválido (nombre de
   la constraint en el mensaje: `daily_logs_*_check`, incluido `daily_logs_not_empty_check` y
-  `daily_logs_tags_check`); fallo de red → `network`. Con precondiciones (todavía no enviadas):
-  `P0001` con `hint` `daily_log_conflict` → conflicto; `22023` → se enviaron las dos a la vez.
+  `daily_logs_tags_check`); fallo de red → `network`. Precondiciones: `P0001` con `hint`
+  `daily_log_conflict` → conflicto; `22023` → se enviaron las dos a la vez. En la sincronización se
+  clasifican con `classifySyncError` (§5).
 - **Storage:** ninguno
 
 ### HistoryScreen
@@ -263,16 +272,22 @@ ni borrado). `pet_streaks` todavía no se muestra.
 - **Resumen por día:** fecha **guardada** (`formatLogDateLabel`, con año si no es el actual; nunca
   recalculada con la zona actual), escalas indicadas con su texto corto, etiquetas, «Algo fuera de lo
   habitual» y «Con notas». Sin puntuaciones agregadas ni interpretaciones (`summarizeDailyLog`).
-- **Un registro:** lee por (`pet_id`, `log_date`). Si no existe, «No hay registro de este día» (nunca
-  crea). Si existe, `DailyLogEditor` de la fase 1 con `logDate = log.log_date`: editable si
-  `can_edit_pet`, solo lectura si no (`resolveHistoryLogView`). Guardar = `save_daily_log` con la fecha
-  original (la RPC edita sin límite de antigüedad).
-- **Tras guardar** (hoy o histórico): la fila sustituye a la de la caché del registro y, si está
-  cargada, a la del historial (`replaceLogInHistory`); después se invalidan
-  `['daily-logs','detail',petId,logDate]` y `['daily-logs','history',petId]` (`dailyLogKeysAfterSave`).
+- **Lista combinada:** las páginas del servidor con los cambios pendientes del dispositivo encima,
+  sin duplicar días (`resolveDailyLogHistory`); cada día pendiente, fallido o en conflicto muestra su
+  estado. Un registro creado sin conexión aparece en su sitio si cae en lo ya cargado. Sin conexión
+  se muestra lo guardado en el dispositivo (aviso arriba, sin «cargar más»); sin conexión y sin nada
+  local, error (nunca una lista vacía engañosa). Al cargar páginas se guarda una copia local de cada
+  fila sin cambios pendientes.
+- **Un registro:** vista combinada por (`pet_id`, `log_date`). Si no existe, «No hay registro de este
+  día» (nunca crea; sin conexión y sin copia local, error). Si existe, `DailyLogEditor` con la fecha
+  de la ruta: editable si `can_edit_pet`, solo lectura si no (`resolveHistoryLogView`). Guardar =
+  igual que hoy (local + motor), con la fecha original (la RPC edita sin límite de antigüedad).
+- **Tras sincronizar** (hoy o histórico): la fila confirmada pasa a la caché del registro y a la del
+  historial (`applyLocalChangeToCache`); si ese día no estaba cargado, se revalida el historial.
 - **Errores:** primera página → `ErrorState` con reintento; «cargar más» → mensaje bajo la lista sin
   perder lo cargado. Mapeo con `toDailyLogError`.
-- **WRITE:** solo `save_daily_log` (ver «DailyLogScreen»). Sin borrado en esta fase.
+- **WRITE:** solo `save_daily_log` con precondición, desde el motor (ver «DailyLogScreen» y §5). Sin
+  borrado en esta fase.
 
 ### RemindersScreen
 - **READ:** `reminders`
@@ -327,27 +342,28 @@ ni borrado). `pet_streaks` todavía no se muestra.
 ## 5. Offline (daily logs)
 
 ```
-Usuario completa el formulario
+Usuario pulsa Guardar
   ↓
-Persistencia local inmediata (SQLite/MMKV/AsyncStorage — cualquiera vale,
-no hace falta una solución compleja), con clave (user_id, pet_id, log_date):
-varias ediciones sin red del mismo día se combinan en una sola entrada
+Validación del formulario
   ↓
-Si hay red: rpc('save_daily_log', …) con el registro completo
-Si no hay red: se queda en cola de sincronización
+Guardado local inmediato (AsyncStorage, clave (user_id, pet_id, log_date)):
+una sola operación por registro; las ediciones sucesivas se funden en ella
   ↓
-Al recuperar conexión: procesa la cola en orden
+«Guardado en este dispositivo» + «Pendiente de sincronizar»
   ↓
-success  -> marca como sincronizado (no hay id local que sustituir: la
-            identidad es (pet_id, log_date) y el cliente no envía `id`)
-conflict -> hoy el frontend guarda sin precondición y gana el último guardado.
-            El backend ya permite detectarlo (p_expected_updated_at /
-            p_expect_absent -> hint daily_log_conflict, sección 4). La cola
-            offline NUNCA usa la llamada sin precondición: envía siempre una
-            (con la cadena original de updated_at) y resuelve el conflicto,
-            nunca sobrescribe en silencio (pendiente)
-retry    -> reintento con backoff simple; no bloquea la cola completa
-            si un solo item falla
+Motor de sincronización (si hay conectividad y sesión de ese usuario):
+una operación detrás de otra, la más antigua primero
+rpc('save_daily_log', registro completo + p_expected_updated_at | p_expect_absent)
+  ↓
+success  -> «Sincronizado»; la fila devuelta es la nueva base
+conflict -> se lee la fila remota: si ya tiene lo enviado (respuesta perdida,
+            guardado idéntico) -> «Sincronizado»; si no -> «Conflicto
+            pendiente de resolver», datos locales intactos, nada se reenvía
+retry    -> red o servidor: backoff con jitter; la red nunca agota la
+            operación; el servidor, tras 8 fallos -> «No se pudo sincronizar»
+give_up  -> permisos o validación -> «No se pudo sincronizar», sin reintento
+            automático; «Reintentar» tras corregir la causa
+auth     -> espera a una sesión válida, sin contar el intento
 ```
 
 Casos a manejar explícitamente en la UI:
@@ -355,10 +371,169 @@ Casos a manejar explícitamente en la UI:
 - **Permisos perdidos mientras estaba offline** (p. ej. el owner revocó el acceso del co-tutor): `save_daily_log` fallará con `42501` al reconectar; mostrar "ya no tienes acceso a esta mascota", no reintentar indefinidamente.
 - **Timezone:** el `log_date` se calcula en el momento de crear el registro (sección 14 del README), no al sincronizar — así un registro offline no cambia de día solo por tardar en subir.
 
-### Infraestructura (fase 1 del frontend: implementada, todavía sin conectar)
+### Integración (fase 2: guardado local y motor de sincronización)
 
-Módulos puros y probados (`npm test`). **Ninguna pantalla ni hook los usa todavía**: `useDailyLog`,
-`useSaveDailyLog` y el historial siguen siendo online, y no hay motor de sincronización. Decisiones:
+Implementada en Daily Logs (registro de hoy, registro de un día del historial, lista del historial y
+tarjeta de la ficha). Decisiones: `DECISIONS.md` (2026-10-15). Pruebas: `npm test` (motor con un
+servidor falso que reproduce el contrato de la RPC, vista, caché, repositorio) y `npm run
+test:integration` (motor contra el Supabase **local**: Postgres real, RLS y precondiciones; nunca
+`kitom-dev`).
+
+**Piezas** (`frontend/src/features/daily-logs/offline/`, puras salvo el proveedor):
+- `daily-log-repository.ts`: registros locales de un usuario sobre `LocalStore`. Única puerta de
+  escritura local: `update` ejecuta lectura → cambio → escritura de una en una y avisa de cada cambio
+  (con el registro anterior). `refreshSnapshot` guarda la última fila del servidor como copia **solo**
+  si no hay cambios pendientes (nunca toca la base de una operación) y nunca retrocede (ver
+  «Endurecimiento»).
+- `daily-log-remote.ts`: `save_daily_log` y lectura de la fila de un día, con tiempo límite propio
+  (20 s; sin él una conexión colgada bloquearía la cola), sin los reintentos internos de supabase-js
+  y devolviendo error + `status` HTTP para clasificarlos. Nunca lanza.
+- `daily-log-sync-engine.ts`: el motor (ver flujo arriba). `saveLocal`, `requestSync` (una sola
+  pasada a la vez: lo que llega durante una pasada se junta en otra), `retry`, `idle`, `start`/`stop`
+  y `setSessionUserId`. Solo envía si hay conectividad (señal) y la sesión es del dueño del almacén;
+  se comprueba antes de cada envío. Red o sesión detienen la pasada; el backoff programa la siguiente.
+- `sync-triggers.ts`: pasada al arrancar, al recuperar la conectividad (`onlineManager`) y al volver
+  a primer plano (`AppState`); además, tras cada guardado local y al renovarse la sesión.
+- `daily-log-view.ts`: vistas combinadas (registro y lista) y estado visible.
+- `daily-log-cache.ts`: coherencia con TanStack Query. Cada escritura local actualiza la query local
+  (`['daily-logs','local',userId,petId,logDate]`) y la lista local; una fila confirmada pasa al
+  registro del día y al historial. La caché nunca se persiste.
+- `features/daily-logs/sync/daily-log-sync-provider.tsx`: crea almacén y motor por usuario (en
+  `(app)/_layout.tsx`); al cambiar de usuario se crean otros y el anterior se para.
+
+**Reglas de datos.**
+- Crear: sin fila remota conocida → `p_expect_absent`. Si ya existe (`row_exists`), se lee la fila y
+  se clasifica: mismo contenido → sincronizado; distinto → conflicto.
+- Editar: `p_expected_updated_at` con la cadena exacta de la fila sobre la que se editó; la base solo
+  cambia al confirmar el servidor o al reconciliar. El formulario guarda sobre la fila que mostró al
+  abrirse o cargó después sin cambios del usuario (no sobre una versión de otro dispositivo que llegue
+  mientras el usuario edita: así se detecta el conflicto).
+- Respuesta perdida: un error sin respuesta nunca es éxito; el reintento recibe conflicto y se
+  reconcilia leyendo la fila.
+- Conflicto: se conservan los datos locales y la fila remota. Seguir editando en conflicto se
+  guarda en local, sin enviar. Se resuelve en la pantalla de conflictos (ver «Resolución de
+  conflictos»).
+- Cola: primero lo que menos ha fallado y, a igualdad, lo más antiguo, para que un registro que
+  falla una y otra vez no bloquee a los demás. Un 5xx no detiene la pasada; la red y el 401 sí (y el
+  401 bloquea hasta una sesión nueva).
+
+**Web.** `networkMode: 'always'` **solo** en la mutación de guardado de Daily Logs (que ya solo es
+local): sin conexión no queda en pausa ni TanStack la reenvía al reconectar. El resto de la app
+conserva su configuración (`query-defaults.ts`). Las queries locales también usan `always`.
+
+**Pendiente:** sesión offline en arranque en frío; cerrar sesión con pendientes; limpiar datos locales
+al cambiar de usuario; borrar registros (local y remoto); Pets y Pet Photos sin conexión. Con la app recién abierta sin conexión, la ficha de la mascota no carga (Pets no
+es offline), así que el registro de hoy solo se puede abrir si la mascota estaba ya en caché.
+
+### Resolución de conflictos (fase 3)
+
+Pantalla `(app)/pets/[id]/daily-logs/resolve/[date]`, a la que se llega con «Revisar y resolver»
+(conflicto) o «Ver detalles» (no se pudo sincronizar) desde el estado de sincronización del
+formulario. Componente `features/daily-logs/components/conflict-resolution.tsx`. Decisiones:
+`DECISIONS.md` (2026-10-15, fase 3).
+
+**Qué muestra.** Mascota y fecha; que tus cambios se conservaron en el dispositivo y no se guardarán
+en el servidor hasta que decidas; el estado y su motivo; para cada dato distinto, tu versión, la del
+servidor y quién lo cambió («Solo lo cambiaste tú», «Solo cambió en el servidor», «Cambió en los dos
+sitios: tienes que elegir», etiquetas que se juntan); y siempre tus datos locales completos, en texto
+seleccionable para copiarlos.
+
+**Decisiones** (`buildResolvedContent` en `offline/daily-log-merge.ts`, sobre la fusión a tres bandas):
+- «Conservar mis cambios»: tu versión completa.
+- «Conservar los del servidor»: la versión remota (no se envía nada).
+- «Combinar»: lo cambiado solo por ti se conserva, lo cambiado solo en el servidor se acepta, las
+  etiquetas se unen como conjunto sin duplicados y cada dato cambiado en los dos sitios exige elegir.
+  Para `notes` y para comportamiento inusual (con su nota, como unidad) se ofrece además «Conservar
+  ambas y revisar» solo si las dos versiones tienen texto: la propuesta (`suggestCombinedText`) aparece
+  en un campo editable y se guarda lo que el usuario deje; nunca se concatena sola. Se ve el resultado
+  antes de guardar.
+- Fila remota borrada (o sin acceso: RLS no lo distingue): «Volver a crearlo con mis datos»
+  (`p_expect_absent`) o descartar la copia del dispositivo. Nunca se recrea sola.
+- No se pudo sincronizar: motivo, «Reintentar», descartar la copia del dispositivo y, sin permiso, que
+  los datos no se guardaron en el servidor y se pueden copiar (fase 4: «Endurecimiento»).
+
+**Guardar la resolución** (`engine.resolveConflict`): espera a que no haya una pasada en curso; lee la
+versión remota más reciente; si no es la que vio el usuario, guarda la nueva y vuelve a pedir
+resolución sin enviar nada; si es la misma, el contenido elegido queda pendiente sobre esa versión y se
+envía con su precondición. «Sincronizado» solo si el servidor confirma o ya tenía exactamente ese
+contenido. Si vuelve a haber conflicto, se conserva la decisión y se pide de nuevo. Sin conexión no
+se cambia nada; si la red cae al enviar, queda pendiente en el dispositivo. Al resolverse, el
+formulario abierto carga el resultado si no se ha tocado; si se estaba editando, conserva lo escrito y
+avisa (`decideSourceChange`; antes se volvía a montar y se perdía lo no guardado).
+
+### Endurecimiento (fase 4)
+
+Decisiones: `DECISIONS.md` (2026-10-15, fase 4). Pruebas: `offline/daily-log-hardening.test.mjs`,
+`daily-log-form.test.mjs`, `offline/daily-log-view.test.mjs` e integración (`npm run test:integration`).
+
+**Lecturas tardías** (`daily-log-repository.ts`, `daily-log-cache.ts`, `daily-log-version.ts`). Ninguna
+respuesta del servidor hace retroceder la copia local ni la caché:
+- Las versiones (`updated_at`) se comparan como instantes con microsegundos, sin pasar por `Date`
+  (`compareVersions`). Iguales (aunque se escriban distinto) = la misma fila: no se escribe nada. Una
+  cadena que no se puede comparar no sustituye a nada salvo en una lectura reciente.
+- Quien lee del servidor toma una marca (`snapshotMark`) antes de pedir y la pasa a
+  `refreshSnapshot`. Si el registro cambió en el dispositivo después de la marca, la respuesta es
+  tardía: solo se acepta una versión estrictamente posterior; una ausencia, una versión igual, una
+  anterior o una no comparable se ignoran. Una versión anterior a la copia nunca se acepta. Nunca se
+  toca una operación pendiente, fallida o en conflicto.
+- Las queries del registro del día y del historial leen **a través** del almacén
+  (`readDailyLogThroughRepository`, `readHistoryPageThroughRepository`): devuelven la versión más
+  reciente conocida. La query del día además nunca acepta una fila anterior a la que tiene
+  (`structuralSharing: keepNewestDailyLog`, aplicado por TanStack dentro de la propia escritura de la
+  caché), y `applyLocalChangeToCache` solo escribe filas posteriores. No se cancelan lecturas en vuelo:
+  cancelar y escribir después dejaría una ventana entre las dos operaciones; así la decisión ocurre
+  siempre en un único punto (la cola del almacén o la escritura de TanStack).
+- Límite conocido: una ausencia (`null`) que llega a la query en el mismo instante en que el motor
+  confirma una creación puede verse un momento; la siguiente lectura lo corrige (no afecta a la copia
+  local ni a la base de la precondición).
+
+**Abrir el formulario** (`useDailyLog(…, { waitForRemote: true })` en hoy y en un registro anterior):
+- Con conexión y sin cambios pendientes, espera a la versión del servidor hasta `REMOTE_WAIT_MS` (3 s).
+- Sin conexión, o pasado el tope, abre con la copia del dispositivo y lo indica («todavía no se ha
+  podido comprobar la versión del servidor» o «Sin conexión»). Hoy, sin copia, permite empezar.
+- Si la versión del servidor llega con el formulario abierto, `decideSourceChange`
+  (`daily-log-form.ts`): misma versión → nada (renders o cambios de caché irrelevantes); mismo
+  contenido → solo avanza la base; contenido distinto y formulario sin tocar → se cargan los valores
+  nuevos; contenido distinto y el usuario ya editó → se conservan sus valores, la base no cambia (la
+  precondición detecta el cambio al guardar) y se avisa, con un botón explícito para cargar esa versión.
+  Lo mismo al resolverse un conflicto en segundo plano: el formulario ya no se vuelve a montar.
+
+**Descartar la copia de este dispositivo** (`engine.discardLocalChanges`, transición
+`discardLocalChanges` en `local-daily-log.ts`), a petición, con confirmación en dos pasos en el detalle:
+- Fallido (permisos, fecha, validación, reintentos agotados): queda la última fila confirmada como
+  copia sincronizada o, si nunca existió en el servidor según el dispositivo, desaparece la copia.
+- Conflicto con la fila remota leída: queda esa fila (o nada, si el servidor ya no la tiene). Sin leer
+  la fila remota no se descarta (`remote_unknown`): no hay una versión fiable que conservar.
+- Pendiente: no se descarta (`not_discardable`); todavía se puede enviar o editar.
+- Espera a que no haya una pasada en curso y decide dentro de `repository.update`. Nunca llama al
+  servidor. El texto dice que no se borra nada del servidor.
+
+**Registros sin sincronizar** (`(app)/daily-logs/unsynced`, entrada con contador en la pantalla de
+inicio `(app)/index.tsx`, `components/unsynced-entry.tsx`, `useUnsyncedDailyLogs`). Lista los registros
+pendientes, fallidos o en conflicto del usuario con sesión, de todas sus mascotas, leídos solo del
+almacén local (`repository.list()`, query `['daily-logs','local-unsynced',userId]`): no depende de que
+RLS deje ver la mascota. El nombre sale de la lista de mascotas si está; si no, «Mascota no disponible».
+Cada uno abre su detalle (`daily-logs/resolve/[date]`, que no exige la mascota): conflicto → resolver;
+fallido → motivo, reintentar o descartar; pendiente → qué falta y los datos. Nada se borra solo al
+perder el acceso a una mascota. La query se revalida solo cuando un registro entra o sale de la lista.
+
+**Sesión.** Tras un 401 el motor no envía nada más con esa sesión: ni volver a primer plano, ni
+recuperar la red, ni un guardado nuevo. Solo una sesión nueva o renovada (`setSessionUserId`, que el
+proveedor llama en cada cambio de sesión de Supabase Auth) lo desbloquea. Un 401 de una sesión ya
+sustituida no bloquea la nueva.
+
+**Errores de lectura local.** Un fallo al leer el almacén se muestra como error
+(`local_read_failed`) con «Reintentar» en el registro, el historial, la lista y el detalle; nunca como
+"no hay datos". **Resolver** solo devuelve `synced` si el registro sigue en el dispositivo y el
+servidor lo confirmó o ya tenía ese contenido; si desaparece mientras tanto, `not_in_conflict`.
+
+**Detalle sin conexión.** Si la fila remota de un conflicto no se ha leído: sin conexión se dice y
+quedan los datos para copiar; con conexión se lee sola; si falla, «No se ha podido comprobar» y
+«Reintentar».
+
+### Infraestructura (fase 1 del frontend)
+
+Módulos puros y probados (`npm test`) sobre los que se construye la integración. Decisiones:
 `DECISIONS.md` (2026-10-13).
 
 **LocalStore** (`frontend/src/lib/local-store/`).
@@ -443,8 +618,9 @@ cambiaron a valores distintos, **conflicto** y decide el usuario (nunca se pisa 
 - Cada nivel es una unidad.
 - `unusual_behavior` + `unusual_behavior_notes` son una sola unidad.
 - `notes`: dos ediciones distintas son siempre conflicto, aunque una contenga a la otra. No se
-  concatenan solas; «conservar ambas» (`combineNotes`) es una resolución explícita, sin duplicar
-  texto y sin recortar (si no cabe en el límite, hay que elegir o editar).
+  concatenan solas: «conservar ambas» es un texto que el usuario revisa y edita
+  (`suggestCombinedText` solo propone, sin duplicar ni recortar; si no cabe en el límite, hay que
+  acortarlo o elegir).
 - `tags`: se fusionan como conjunto, etiqueta a etiqueta; no generan conflicto. Sin duplicados y
   ordenadas, como en la RPC. Una etiqueta remota desconocida para esta versión se conserva.
 - Sin `base` (creado sin conexión y ya existía, `row_exists`) se compara con un registro vacío.

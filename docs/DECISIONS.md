@@ -3,6 +3,100 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-15 — Daily logs offline, fase 4: endurecimiento
+
+**Contexto.** La auditoría de la fase 3 encontró que una lectura tardía podía hacer retroceder la
+copia local y la caché, que el formulario se abría con una copia antigua, que un registro fallido no se
+podía descartar, que los pendientes de una mascota sin acceso quedaban inalcanzables y que un 401 se
+reenviaba en cada disparador.
+
+**Decisión.**
+- Versiones comparadas como instantes con microsegundos (sin `Date`) y marca de lectura en el almacén:
+  una respuesta tardía solo se acepta si es estrictamente posterior. Las queries del servidor leen a
+  través del almacén y la query del día descarta filas anteriores dentro de la escritura de TanStack.
+  No se cancelan lecturas en vuelo (cancelar y escribir después deja una ventana).
+- El formulario espera al servidor como mucho 3 s con conexión; nunca sin conexión. Una versión que
+  llega después solo sustituye los valores si el usuario no ha tocado nada; si ya editó, se avisa y la
+  precondición decide al guardar. Se elimina el remontaje del formulario al resolver conflictos.
+- Descartar la copia local es una operación propia, solo local, para fallidos y conflictos con versión
+  remota conocida; nunca para pendientes ni para conflictos sin leer el servidor.
+- «Registros sin sincronizar» en la pantalla de inicio, que hoy es la única pantalla global estable de
+  la zona autenticada: la lista sale del almacén local y no depende de ver la mascota.
+- Tras un 401 solo una sesión nueva o renovada desbloquea el envío.
+
+**Consecuencias.**
+- La base de la precondición solo avanza con contenido idéntico o sin cambios del usuario; el resto de
+  casos acaba en conflicto explícito, nunca en un pisado.
+- La caché del historial espera a que cada fila pase por el almacén (algunas lecturas locales más por
+  página).
+- B6 (un toque en «Guardar resolución» sin petición y la pantalla arriba, en Android) no se reprodujo;
+  ver hipótesis en `CHANGELOG.md`. No se da por corregido.
+- Sustituye a la consecuencia de la fase 3 «descartar solo si el registro ya no está en el servidor».
+
+## 2026-10-15 — Daily logs offline, fase 3: resolución de conflictos y recuperación
+
+**Contexto.** La fase 2 detecta los conflictos y conserva los datos, pero el usuario no podía
+resolverlos. Además había que revisar la recuperación ante errores y una ejecución de tests que se
+quedó colgada.
+
+**Decisión.**
+- Pantalla propia de resolución (ruta `daily-logs/resolve/[date]`), no un diálogo: necesita espacio
+  para comparar dato a dato y es accesible desde el estado de sincronización del formulario.
+- Tres decisiones: mis cambios, los del servidor o combinar (automático solo lo que cambió un único
+  lado y las etiquetas; lo cambiado en los dos sitios exige elegir). «Conservar ambas» solo como texto
+  revisado y editable: se eliminó la combinación automática de notas de la API de fusión.
+- Una resolución no es un guardado: se vuelve a leer el servidor; si cambió desde la comparación se
+  pide resolver otra vez sin enviar nada; si no, se envía con la precondición de esa versión.
+- Fila remota ausente: recrear o descartar, siempre a petición. RLS no distingue «borrada» de «sin
+  acceso», así que el texto lo dice así; si no hay permiso, el envío falla con `42501` y se muestra
+  como fallido, nunca como guardado.
+- Cola: orden por fallos acumulados y antigüedad, para que un registro que falla siempre no bloquee
+  al resto.
+- Tests con tiempo límite (`--test-timeout`) y sin temporizadores reales en las pruebas del motor: un
+  cuelgue falla en vez de bloquear la ejecución.
+
+**Consecuencias.**
+- El cuelgue observado en la fase 2 (una ejecución bajo un código mutado a propósito) no se reprodujo
+  en 28 repeticiones con las mismas condiciones; se cubren sus causas posibles con lo anterior.
+- Descartar cambios locales solo existe para registros que ya no están en el servidor.
+- Pendientes los mismos de la fase 2 salvo la resolución (ver `FRONTEND_ARCHITECTURE.md` §5).
+
+## 2026-10-15 — Daily logs offline, fase 2: guardado local y motor de sincronización
+
+**Contexto.** Con la base de la fase 1 (almacén, modelo, errores, backoff y fusión), falta guardar en
+el dispositivo desde el formulario y enviar al servidor sin perder ni pisar datos.
+
+**Decisión.**
+- Guardar es siempre local: la mutación de TanStack solo escribe en el dispositivo y el envío lo hace
+  un motor propio. Así ninguna petición de red queda en pausa en TanStack para enviarse sola después
+  (era el riesgo en web, comprobado el 2026-10-13). `networkMode: 'always'` solo en esa mutación; el
+  resto de la app no cambia.
+- Motor de una sola pasada a la vez y una operación detrás de otra (evita carreras dentro de la
+  instalación). Disparadores: guardado, arranque, conectividad, primer plano y sesión renovada.
+- Siempre con precondición; el frontend deja de llamar a `save_daily_log` sin ella (se borró esa
+  llamada de la API de pantallas). El backend la mantiene por compatibilidad.
+- Conflicto = leer la fila remota. Si ya tiene lo enviado, sincronizado (cubre la respuesta perdida y
+  la creación idéntica en dos dispositivos); si no, conflicto con los datos locales intactos. No se
+  aplica todavía la fusión automática a tres bandas: la resolución (automática o elegida) llega con la
+  pantalla de conflictos.
+- Sesión: el motor nace sin sesión y solo envía si la sesión activa es del dueño del almacén; 401
+  deja la operación esperando sin gastar intentos hasta que la sesión se renueve.
+- Lecturas: vista combinada calculada en cada render a partir de la query del servidor y la del
+  dispositivo (no se fusionan en la caché). Copia local de cada fila leída sin cambios pendientes,
+  para mostrar lo último conocido sin conexión; nunca sustituye a una operación pendiente.
+- Base del formulario: la fila que mostró al abrirse; solo avanza cuando el servidor confirma lo
+  guardado desde ese formulario.
+- Tiempo límite de 20 s por petición del motor y sin reintentos internos de supabase-js.
+- Pruebas de integración contra el Supabase local con `npm run test:integration`
+  (`scripts/test-integration.mjs`), que se niega a ejecutarse si la URL no es local.
+
+**Consecuencias.**
+- Los datos locales de un usuario quedan en el dispositivo al cambiar de cuenta (aislados por clave);
+  limpiarlos y cerrar sesión con pendientes quedan para otra fase.
+- Un conflicto necesita al usuario; en esta fase solo se muestra y se puede volver a comprobar.
+- Con la app abierta en frío sin conexión no se puede llegar al formulario (Pets no es offline).
+- Las pruebas de integración dejan usuarios `it-…@kitom.test` en el Auth local (borran sus mascotas).
+
 ## 2026-10-13 — Daily logs offline, fase 1: almacén local, conectividad y módulos puros
 
 **Contexto.** Antes de guardar en local y sincronizar hace falta una base revisable: dónde y cómo se

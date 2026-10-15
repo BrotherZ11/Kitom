@@ -3,6 +3,40 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-15
+
+- Daily Logs offline, fase 4 (endurecimiento): una lectura del servidor que llega tarde ya no hace
+  retroceder la copia local ni la caché (versiones con microsegundos, sin `Date`); el formulario espera
+  hasta 3 s al servidor con conexión, se abre con la copia del dispositivo si tarda o no hay conexión
+  (indicándolo) y solo carga una versión posterior si no se ha tocado; descartar la copia de este
+  dispositivo en registros fallidos o en conflicto (solo local, con confirmación); «Registros sin
+  sincronizar» con contador en la pantalla de inicio, también para mascotas sin acceso; un 401 espera a
+  una sesión nueva; errores de lectura local visibles como error; la pantalla de resolución explica el
+  estado sin conexión. Sin cambios de BD. B6 (toque en «Guardar resolución» sin petición, Android) no
+  reproducido: las únicas salidas sin petición son una pasada en curso (espera y continúa, con prueba),
+  sin red o sin sesión (muestra «No se ha podido comprobar…») y registro ya resuelto; en la prueba
+  original el segundo toque sí funcionó con la decisión intacta, así que no hubo remontaje. Contrato en
+  `FRONTEND_ARCHITECTURE.md` §5 «Endurecimiento»; decisión en `DECISIONS.md`.
+
+- Daily Logs offline, fase 3: pantalla para resolver conflictos (tu versión, la del servidor, qué
+  difiere y quién lo cambió; conservar mis cambios, los del servidor o combinar con decisión explícita
+  en lo cambiado por ambos; notas «ambas» solo como texto revisado) y detalle de los registros que no
+  se pudieron sincronizar. Guardar una resolución vuelve a leer el servidor y la envía con
+  precondición; si cambió otra vez, se pide de nuevo. Fila remota ausente: recrear o descartar a
+  petición. La cola ya no se queda atascada en un registro que falla siempre. Tests con tiempo
+  límite. Sin cambios de BD. Contrato en `FRONTEND_ARCHITECTURE.md` §5; decisión en `DECISIONS.md`.
+
+- Daily Logs offline, fase 2: el registro de hoy y los registros del historial se guardan primero en
+  el dispositivo y un motor de sincronización los envía con `save_daily_log` y precondición
+  (`p_expected_updated_at` / `p_expect_absent`), una operación detrás de otra, al guardar, al
+  recuperar la conexión, al volver a primer plano y al renovarse la sesión. Sin conexión se muestran
+  los últimos datos conocidos. Estados visibles (Sincronizado, Pendiente de sincronizar,
+  Sincronizando, Conflicto pendiente de resolver, No se pudo sincronizar) y «Reintentar». Conflictos y
+  respuestas perdidas se reconcilian leyendo la fila remota, sin pisar datos. En web solo la
+  mutación de guardado de Daily Logs pasa a `networkMode: 'always'`. Nueva orden
+  `npm run test:integration` (Supabase local). Sin cambios de BD. Contrato en
+  `FRONTEND_ARCHITECTURE.md` §4 y §5; decisión en `DECISIONS.md`.
+
 ## 2026-10-13
 
 - Daily Logs offline, fase 1 (infraestructura, sin conectar a las pantallas): `LocalStore` sobre

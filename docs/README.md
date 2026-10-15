@@ -168,7 +168,7 @@ Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza
 > - `save_daily_log` acepta dos precondiciones opcionales: `p_expected_updated_at` (edita solo si `updated_at` sigue siendo el que leyó el cliente) y `p_expect_absent` (crea solo si no hay registro de ese día). Si no se cumplen: `P0001`, `hint` `daily_log_conflict`, `detail` `version_mismatch` | `row_missing` | `row_exists`; no se escribe nada. Los permisos se comprueban antes.
 > - La versión es `updated_at` (la pone el trigger `set_timestamp_daily_logs`). La comprobación está en el `WHERE` del `UPDATE` y en `UNIQUE (pet_id, log_date)`: es atómica.
 > - La comparación de versión es exacta (microsegundos): el cliente reenvía la cadena de `updated_at` tal como la recibió.
-> - Sin precondiciones se mantiene el comportamiento anterior (sustituye sin comprobar: gana el último guardado), solo por compatibilidad con el frontend actual. No sirve para la sincronización offline.
+> - Sin precondiciones se mantiene el comportamiento anterior (sustituye sin comprobar: gana el último guardado), solo por compatibilidad con builds anteriores: el frontend envía siempre una precondición desde la fase 2 del modo offline. No sirve para la sincronización offline.
 > - Una sola función: se borró la firma de 13 parámetros y se creó la de 15 (los dos nuevos con default), para no dejar una sobrecarga sin protección.
 
 ## 16. Streaks

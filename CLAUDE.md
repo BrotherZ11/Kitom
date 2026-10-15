@@ -33,15 +33,16 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `20261007182429_grant_safe_pet_id_from_path.sql` (Storage de mascotas): aplicadas en `kitom-dev`.
 - Migración `20261008150202_daily_logs_fixes.sql` (sin ella no se puede escribir en `daily_logs` ni
   borrar una mascota con registros): aplicada en `kitom-dev`. Frontend de Daily Logs: registro de hoy e
-  historial (consulta/edición de registros anteriores), online; offline y borrado pendientes.
+  historial (consulta/edición de registros anteriores), con modo offline (ver abajo); borrado pendiente.
 - Migración `20261008155257_profile_timezone.sql` (`profiles.timezone` admite `NULL` = sin configurar;
   la app la inicializa con la zona del dispositivo): aplicada en `kitom-dev`.
 - Migración `20261010160332_daily_logs_concurrency.sql` (`save_daily_log` con precondiciones
   opcionales `p_expected_updated_at` / `p_expect_absent`; conflicto = `hint` `daily_log_conflict`):
-  aplicada en `kitom-dev` y tipos regenerados. El frontend todavía no envía precondiciones.
-- Daily Logs offline: solo existe la base (almacén local, modelo, fusión, errores, backoff y señal de
-  conectividad; `docs/FRONTEND_ARCHITECTURE.md` §5). **No está conectada**: el guardado sigue siendo
-  online y no hay motor de sincronización.
+  aplicada en `kitom-dev` y tipos regenerados. El frontend la usa siempre con precondición.
+- Daily Logs offline: guardado local + motor de sincronización integrados en el registro de hoy y el
+  historial, con pantalla de resolución de conflictos, descarte de la copia local y «Registros sin
+  sincronizar» en inicio (`docs/FRONTEND_ARCHITECTURE.md` §5). Pendiente: arranque en frío sin conexión,
+  logout con pendientes, limpieza de datos al cambiar de usuario y Pets offline.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 
@@ -62,6 +63,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 
 ## Comandos
 - Desde `frontend/`: `npx expo start` · `npx expo lint` · `npx tsc --noEmit` · `npx expo-doctor` · `npm test`
+  · `npm run test:integration` (solo contra el Supabase local; se niega si la URL no es local)
 - Pruebas de BD (solo local): `supabase/tests/database/*.test.sql` (pgTAP) y
   `supabase/tests/concurrency/*.sh` (sesiones simultáneas); ver `supabase/CLAUDE.md`.
 - Desde la raíz: Supabase CLI siempre como `npx supabase ...` (no hay instalación global).
