@@ -61,7 +61,7 @@ type AuthState =
 |---|---|---|
 | Server state | `pets`, `daily_logs`, `reminders`, `subscriptions`... | React Query / TanStack Query (o SWR), nunca en un store global manual |
 | Local UI state | tab activo, formulario abierto, texto en curso | `useState` local al componente |
-| Offline persistence | `daily_logs` creados sin conexión | ver sección 6 |
+| Offline persistence | `daily_logs` creados sin conexión | ver sección 5 |
 | Derived state | "¿tengo acceso de edición a esta mascota?", "¿me queda cupo de IA?" | calculado a partir de server state, nunca duplicado a mano |
 
 No se introduce Redux ni una capa de estado global adicional — con React Query + Context para sesión/mascota activa es suficiente para el alcance actual.
@@ -354,6 +354,131 @@ Casos a manejar explícitamente en la UI:
 - **Fecha inválida / futura / fuera de la ventana:** `validate_daily_log_date` la rechazará (`hint` `log_date_future` o `log_date_too_old`); no reintentar automáticamente. Consecuencia de la ventana de creación de 7 días: un registro **nuevo** creado sin conexión que tarde más de 7 días en sincronizarse será rechazado (editar uno que ya existe en el servidor no tiene límite).
 - **Permisos perdidos mientras estaba offline** (p. ej. el owner revocó el acceso del co-tutor): `save_daily_log` fallará con `42501` al reconectar; mostrar "ya no tienes acceso a esta mascota", no reintentar indefinidamente.
 - **Timezone:** el `log_date` se calcula en el momento de crear el registro (sección 14 del README), no al sincronizar — así un registro offline no cambia de día solo por tardar en subir.
+
+### Infraestructura (fase 1 del frontend: implementada, todavía sin conectar)
+
+Módulos puros y probados (`npm test`). **Ninguna pantalla ni hook los usa todavía**: `useDailyLog`,
+`useSaveDailyLog` y el historial siguen siendo online, y no hay motor de sincronización. Decisiones:
+`DECISIONS.md` (2026-10-13).
+
+**LocalStore** (`frontend/src/lib/local-store/`).
+- `local-store.ts`: `createLocalStore(storage, userId)` → `read`, `write`, `remove`, `list` sobre
+  colecciones tipadas (`LocalCollection<T>`: `name`, `version`, `parse`, `matchesKey`). El proveedor se
+  inyecta como `KeyValueStorage` (`getItem`, `setItem`, `removeItem`, `getAllKeys`).
+- Adaptadores: `async-storage-adapter.ts` + `device-storage.ts` (AsyncStorage) y `memory-storage.ts`
+  (tests).
+- **Claves:** `kitom:v1:<userId>:<colección>:<id>[:<id>…]`, una por elemento (nunca una cola en una
+  sola clave). Registros diarios: `kitom:v1:<userId>:daily-logs:<petId>:<logDate>`. Los segmentos solo
+  admiten `[A-Za-z0-9_-]`. `v1` es la versión del formato de claves.
+- **Valor:** JSON `{ "v": <versión de la colección>, "data": … }`.
+- **Lectura:** `found` | `missing` | `corrupt` (`invalid_json`, `invalid_envelope`, `invalid_data`,
+  `key_mismatch`) | `unknown_version`. Lo que no es válido nunca se devuelve como dato ni se borra
+  solo: decide quien lee. Un fallo del proveedor lanza `LocalStoreError('storage_failed')`.
+- **Aislamiento:** cada almacén solo ve las claves de su `userId`; además un valor guardado bajo la
+  clave de otro usuario, mascota o fecha se rechaza (`key_mismatch`).
+- **No es almacenamiento seguro.** AsyncStorage no cifra en reposo y en web es `localStorage`
+  (legible por cualquier script del mismo origen). Nunca tokens ni credenciales (la sesión sigue en
+  `secure-session-storage.ts`); las notas se guardan en claro en el dispositivo. El módulo no escribe
+  contenido en logs. Límites por defecto: Android ~6 MB en total y ~2 MB por valor; web ~5 MB por origen.
+
+**Modelo local** (`frontend/src/features/daily-logs/offline/local-daily-log.ts`, colección
+`localDailyLogs`, versión 1). Un registro por (`userId`, `petId`, `logDate`):
+
+| Campo | Contenido |
+|---|---|
+| `userId`, `petId`, `logDate` | identidad; `logDate` (`YYYY-MM-DD`) se fija al crear y ninguna transición la cambia |
+| `serverRow` | última fila de `daily_logs` confirmada por el servidor, o `null` |
+| `baseVersion` | `serverRow.updated_at`, la cadena exacta de PostgREST; `null` = se espera que no exista |
+| `status` | `synced` · `pending` · `failed` (rechazo permanente) · `conflict` |
+| `pending` | la única operación pendiente: `operationId` (UUID v4), `revision`, `content` (registro completo, columnas de la BD), `attempts` (envíos fallidos; marca el backoff), `countedAttempts` (los que cuentan para el límite: fallos con respuesta del servidor), `nextAttemptAt`, `editedAt`; `null` si `synced` |
+| `error` | último error: `kind`, `reason` (código, nunca el mensaje), `at` |
+| `conflict` | `detail` (`version_mismatch`, `row_missing` o `row_exists`), `remote` (`not_fetched`, `absent` o `present` + fila), `detectedAt` |
+
+- **Validación** (`parseLocalDailyLog`, al leer y tras cada transición): forma de cada campo (UUID en
+  minúsculas, fecha real, niveles 1–5 o `null`, `updated_at` como cadena) y coherencia (`baseVersion`
+  igual a `serverRow.updated_at`; `synced` ⇔ sin operación; `conflict` ⇔ con datos de conflicto;
+  `failed` con error; filas de la misma mascota y fecha). Un registro no válido es `corrupt`.
+- **Ediciones sucesivas:** `applyLocalEdit` actualiza la misma operación (mismo `operationId`,
+  contenido sustituido, `revision + 1`, intentos a cero). La base se fija al crear la operación. Sin
+  cambios respecto a la fila del servidor no se crea operación.
+- **Identificador de operación:** se genera una sola vez, al crear la operación; ediciones,
+  reintentos y conflictos lo conservan. Único generador: `createOperationId()` de
+  `frontend/src/lib/device-operation-id.ts` (`expo-crypto`, `randomUUID`), sobre la lógica pura de
+  `lib/operation-id.ts`. Nunca `Math.random`: si la fuente falla, lanza `OperationIdError`. El modelo
+  rechaza cualquier `operationId` que no sea un UUID v4. En web necesita contexto seguro (HTTPS o
+  localhost).
+- **Precondición:** `toSyncPrecondition` → `p_expected_updated_at: baseVersion` o
+  `p_expect_absent: true`. Nunca una llamada sin precondición.
+- **Resultados de un envío:** `applySyncSuccess` (la fila devuelta pasa a ser la base; si hubo otra
+  edición durante el envío, sigue pendiente), `applySyncFailure`, `setConflictRemote`, `resolveConflict`.
+- **Nunca se descarta una operación.** `failed` (rechazo permanente o intentos agotados) conserva el
+  contenido y el error; no se reintenta sola y vuelve a `pending` con `retryFailedSync` (reintento
+  pedido por el usuario) o con una edición.
+- Los instantes locales son ms del reloj del dispositivo y no se envían al servidor.
+
+**Errores de sincronización** (`offline/sync-errors.ts`, `classifySyncError(error, httpStatus)`):
+
+| Tipo | Cuándo | Qué se hace |
+|---|---|---|
+| `network` | no hubo respuesta (fetch lanzó o se abortó) | reintento con backoff; nunca agota los intentos |
+| `server` | 5xx, 408, 429, Postgres 08/40/53/57, `PGRST000`–`003` | reintento con backoff; `failed` tras 8 fallos con respuesta |
+| `auth` | 401, `PGRST301`–`303` | esperar a tener sesión; no cuenta como intento |
+| `permission` | `42501`, 403 | `failed` |
+| `validation` | `log_date_future`/`log_date_too_old`, Postgres 22/23 | `failed` |
+| `conflict` | `P0001` + `hint` `daily_log_conflict` | `conflict`: leer la fila remota y fusionar |
+| `unknown` | cualquier otro caso | otro 4xx → `failed`; sin datos → reintento con límite |
+
+Una respuesta HTTP nunca se clasifica como `network`, y `network` se decide por el mensaje de `fetch`,
+no por el tipo: un `TypeError` cualquiera es `unknown` y sí tiene límite. Solo los fallos con respuesta
+cuentan para el límite: una racha sin conexión no acerca una operación a `failed`. Con `auth` el modelo
+no programa espera: quien sincronice debe esperar a tener sesión antes de reenviar.
+
+Backoff (`offline/sync-backoff.ts`): 2 s × 2ⁿ con tope de 5 min; la mitad fija y la otra mitad
+aleatoria; reloj y azar inyectables. **Valores provisionales** (base, tope y límite de 8): no hay
+datos de uso que los respalden; hay que validarlos al construir el motor de sincronización.
+
+**Fusión a tres bandas** (`offline/daily-log-merge.ts`, `mergeDailyLogContent({ base, local, remote })`).
+Por unidad: si solo cambió un lado, gana ese lado; si cambiaron a lo mismo, no hay conflicto; si
+cambiaron a valores distintos, **conflicto** y decide el usuario (nunca se pisa en silencio).
+- Cada nivel es una unidad.
+- `unusual_behavior` + `unusual_behavior_notes` son una sola unidad.
+- `notes`: dos ediciones distintas son siempre conflicto, aunque una contenga a la otra. No se
+  concatenan solas; «conservar ambas» (`combineNotes`) es una resolución explícita, sin duplicar
+  texto y sin recortar (si no cabe en el límite, hay que elegir o editar).
+- `tags`: se fusionan como conjunto, etiqueta a etiqueta; no generan conflicto. Sin duplicados y
+  ordenadas, como en la RPC. Una etiqueta remota desconocida para esta versión se conserva.
+- Sin `base` (creado sin conexión y ya existía, `row_exists`) se compara con un registro vacío.
+- Sin estrategia automática, pendientes de decisión del usuario: fila remota borrada
+  (`remote_deleted`) y fusión que deja el registro vacío (`empty_result`).
+- Si lo local ya es lo que tiene el servidor (respuesta perdida de un envío anterior), queda
+  `synced` sin reenviar.
+
+**Conectividad** (`frontend/src/lib/connectivity.ts`, conectada en `lib/query-client.ts`).
+`expo-network` → `onlineManager.setEventListener` de TanStack Query, en móvil y web. Es una señal:
+solo hay «sin conexión» si el sistema afirma `isConnected === false`; estado desconocido o error de
+lectura = conectado. `isInternetReachable` no se usa. Sin polling: eventos del sistema y una lectura
+inicial. TanStack Query llama a la limpieza al sustituir el listener o quedarse sin suscriptores.
+
+`networkMode` (`frontend/src/lib/query-defaults.ts`, probado contra `@tanstack/query-core`): conserva
+lo que hacía cada plataforma antes de existir la señal. Ninguna feature fija el suyo.
+- **Móvil: `always`.** Antes TanStack Query no recibía señal de red en móvil, así que toda petición
+  se intentaba y sin red fallaba con `network`; `always` es eso mismo. No se revalida nada al
+  reconectar (antes no existía ese evento). Con el modo por defecto las queries se quedarían cargando
+  y las mutaciones de Pets, fotos y Daily Logs quedarían en pausa y se enviarían solas al reconectar.
+- **Web: modo por defecto de TanStack Query, sin cambios.** Con el navegador sin conexión las
+  queries y las mutaciones quedan en pausa y se lanzan al reconectar. Para Daily Logs eso es un
+  guardado diferido **sin precondición** (comprobado en navegador el 2026-10-13). Sigue pendiente de
+  decisión; cambio mínimo propuesto: `networkMode: 'always'` solo en la mutación de `useSaveDailyLog`.
+- Auth y la sincronización de la zona horaria no pasan por TanStack Query: no les afecta.
+
+**Comprobación del almacenamiento real** (`frontend/src/lib/local-store/local-store-check.ts`,
+`checkLocalStore(deviceStorage, fase)`). Escribe, lee, lista, sobrescribe y borra datos de prueba
+bajo usuarios reservados (`self-check-*`) y limpia al acabar; en dos fases (`write`, reiniciar la app,
+`verify`) comprueba que los datos sobreviven a un reinicio. No forma parte de la app: se llama a
+mano desde un build de desarrollo. Los tests de `npm test` (memoria y la implementación web de
+AsyncStorage sobre un `localStorage` falso) **no equivalen** a una prueba en dispositivo. Ejecutada
+el 2026-10-13: Android 16 (emulador, Expo Go 57.0.9) y Chromium, correcta en ambos, incluido el
+reinicio. Sin probar: iOS, dispositivo Android físico y development build propio.
 
 ## 6. Errores — comportamiento esperado
 

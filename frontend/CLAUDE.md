@@ -38,6 +38,22 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   `daily-log-history.ts` (recibe el cliente por parámetro: probado con `npm test` y contra Supabase local).
   Contrato: `docs/FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen» y «HistoryScreen». Pendiente: offline,
   borrado, calendario y gráficos.
+- `src/features/daily-logs/offline/` — base del modo offline, **sin conectar** a hooks ni pantallas:
+  `local-daily-log.ts` (modelo local, validación y transiciones), `daily-log-content.ts`,
+  `daily-log-merge.ts` (fusión a tres bandas), `sync-errors.ts`, `sync-backoff.ts`. Todo puro y probado.
+  `updated_at` siempre como la cadena del servidor (nunca por `Date`); sincronizar siempre con
+  precondición (`toSyncPrecondition`). Contrato: `docs/FRONTEND_ARCHITECTURE.md` §5.
+- `src/lib/local-store/` — `createLocalStore(storage, userId)`: datos locales por usuario, validados
+  al leer (`local-store.ts`); adaptadores `device-storage.ts` (AsyncStorage) y `memory-storage.ts`
+  (tests). **Sin cifrar**: nunca tokens ni credenciales; no registrar contenido en logs.
+  `local-store-check.ts` (`checkLocalStore`) es la comprobación manual contra el almacenamiento real;
+  pasar los tests en memoria no equivale a probar en dispositivo.
+- `src/lib/operation-id.ts` + `device-operation-id.ts` — único generador de identificadores de
+  operación (`createOperationId`, UUID v4 de `expo-crypto`). Nunca `Math.random` ni otro generador.
+- `src/lib/connectivity.ts` — señal de red de `expo-network` para `onlineManager` (conectada en
+  `query-client.ts`). Es una señal, no una garantía. Opciones del QueryClient en `query-defaults.ts`:
+  en móvil `networkMode: 'always'` (conserva el comportamiento previo a la señal); no cambiarlo ni
+  fijar otro por feature sin revisar `docs/DECISIONS.md` (2026-10-13).
 - `src/lib/submit-guard.ts` — evita envíos dobles (toques antes de que el botón se deshabilite).
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
@@ -47,6 +63,8 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
 - Tests unitarios: `npm test` (runner de Node 24, sin dependencias). Archivos `*.test.mjs` junto al
   módulo; importan el `.ts` directamente (type stripping de Node), así que el módulo probado debe ser
   puro (sin `@/`, React Native ni `__DEV__`). Son `.mjs` porque TypeScript 6 no incluye `@types/node`.
+  `import type` con `@/` sí vale (se elimina); un módulo puro que importa otro en ejecución usa ruta
+  relativa con extensión (`./otro.ts`).
 Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
 Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
 Pendiente: login por teléfono (OTP), cambio de contraseña desde ajustes; en Pets: limpieza de fotos huérfanas,

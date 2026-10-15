@@ -39,6 +39,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - Migración `20261010160332_daily_logs_concurrency.sql` (`save_daily_log` con precondiciones
   opcionales `p_expected_updated_at` / `p_expect_absent`; conflicto = `hint` `daily_log_conflict`):
   aplicada en `kitom-dev` y tipos regenerados. El frontend todavía no envía precondiciones.
+- Daily Logs offline: solo existe la base (almacén local, modelo, fusión, errores, backoff y señal de
+  conectividad; `docs/FRONTEND_ARCHITECTURE.md` §5). **No está conectada**: el guardado sigue siendo
+  online y no hay motor de sincronización.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 

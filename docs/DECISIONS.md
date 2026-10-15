@@ -3,6 +3,67 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-13 — Daily logs offline, fase 1: almacén local, conectividad y módulos puros
+
+**Contexto.** Antes de guardar en local y sincronizar hace falta una base revisable: dónde y cómo se
+guardan los datos, qué forma tiene un registro pendiente y qué pasa cuando el servidor tiene otra
+versión. Esta fase no conecta nada a las pantallas ni envía operaciones.
+
+**Decisión.**
+- Almacén: AsyncStorage detrás de una interfaz propia (`KeyValueStorage`), con una clave por
+  registro (`kitom:v1:<userId>:daily-logs:<petId>:<logDate>`) y un sobre con versión por colección.
+  Se descartó guardar la cola en una sola clave (cada edición reescribiría todo y un fallo la
+  corrompería entera). Los datos no válidos o de otra versión se señalan y no se borran solos.
+- Riesgo aceptado: AsyncStorage no cifra en reposo y en web es `localStorage`. Las notas quedan en
+  claro en el dispositivo; tokens y credenciales nunca van a este almacén.
+- Una sola operación pendiente por registro. `operationId` es estable mientras la operación existe
+  y `revision` cuenta las ediciones fundidas: así se sabe si el contenido cambió durante un envío.
+  No se guarda un estado «enviando»: si la app muere a mitad, el reintento recibe conflicto y se
+  resuelve comparando con la fila remota (no hay id de operación en el servidor).
+- `operationId`: UUID v4 de `expo-crypto` (`randomUUID`), con un único generador
+  (`lib/device-operation-id.ts`). Se eligió porque Hermes no expone `crypto.randomUUID` (comprobado en
+  Android: `undefined`), usa el generador seguro del sistema en iOS y Android y WebCrypto en web, y
+  va incluido en Expo Go. Sin alternativa con `Math.random`: si no hay fuente segura, no se crea la
+  operación. El identificador nace con la operación y no cambia en reintentos ni ediciones.
+- Fusión por unidades con conflicto explícito cuando ambos lados cambian lo mismo. Etiquetas como
+  conjunto (sin conflicto posible). Notas: siempre conflicto, nunca concatenación automática.
+  `unusual_behavior` y su nota, juntos. Fila remota borrada y fusión vacía quedan sin resolver.
+- Errores: `network` solo si no hubo respuesta, decidido por el mensaje de `fetch` y no por el tipo
+  (un `TypeError` de programación no debe reintentarse sin fin). Dos contadores: `attempts` (todos los
+  envíos fallidos; marca el backoff) y `countedAttempts` (solo los fallos con respuesta; marca el
+  límite). Así una racha sin conexión no acerca la operación a `failed`. Agotar el límite no borra
+  nada: queda `failed` con su contenido y su error hasta que el usuario reintente o edite. Permisos
+  y validación pasan a `failed` al primer fallo; el conflicto nunca se reintenta. Sin sesión se
+  espera sin contar intentos.
+- Backoff (2 s × 2ⁿ, tope 5 min) y límite (8): valores provisionales, sin datos que los respalden.
+  Se validan en la fase de sincronización.
+- Conectividad: `expo-network` → `onlineManager`. En móvil se fija `networkMode: 'always'`. No es
+  una política nueva: antes no había señal de red en móvil y todo se intentaba siempre; `always`
+  mantiene eso ahora que la señal existe. Con el modo por defecto cambiarían todas las features: las
+  queries se quedarían cargando y las seis mutaciones (crear, editar y borrar mascota, subir y quitar
+  foto, guardar registro) quedarían en pausa y se enviarían solas al reconectar. Tampoco se activa
+  la revalidación al reconectar en móvil. En web no se cambia el modo que ya tenía. Auth y la zona
+  horaria no usan TanStack Query. Comprobado con tests contra `@tanstack/query-core` y a mano en un
+  emulador Android (guardar sin red da error al instante, nada se envía al reconectar, una consulta
+  sin red termina en error con «Reintentar»).
+- Tests: los módulos puros se importan entre sí con ruta relativa y extensión `.ts` (así los ejecuta
+  Node sin compilar); `allowImportingTsExtensions` en `tsconfig.json`.
+
+**Consecuencias.**
+- `expo-network` tiene código nativo: hace falta un development build nuevo (Expo Go ya lo incluye).
+- Pendiente de decidir en la fase 2: en **web**, con el navegador sin conexión, TanStack Query ya
+  pausaba las mutaciones y las enviaba al reconectar (comportamiento anterior, sin tocar); para
+  Daily Logs eso es un guardado sin precondición diferido. Comprobado en navegador: sin red no sale
+  ninguna petición ni se muestra error, y al reconectar se envía solo. Cambio mínimo propuesto, sin
+  aplicar: `networkMode: 'always'` en la mutación de `useSaveDailyLog` (no un cambio global).
+- `expo-crypto` también tiene código nativo (mismo development build nuevo que `expo-network`).
+- Expo Doctor sigue con una comprobación pendiente: `@expo/ui`, `expo`, `expo-router` y
+  `expo-splash-screen` van un parche por detrás del esperado. No se actualizan aquí por ser ajenos a
+  esta fase; van en un cambio propio (`chore/`).
+- Pendiente: conectar el guardado local y el motor de sincronización, borrar los datos locales al
+  cerrar sesión, generador de `operationId`, UI de conflictos y de estado de sincronización.
+- Contrato: `FRONTEND_ARCHITECTURE.md` §5 «Infraestructura».
+
 ## 2026-10-10 — Daily logs: concurrencia optimista en save_daily_log (fase 0 del modo offline)
 
 **Contexto.** `save_daily_log` sustituye el registro completo sin comprobar si cambió desde que el

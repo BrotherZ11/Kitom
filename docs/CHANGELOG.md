@@ -5,6 +5,17 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-13
 
+- Daily Logs offline, fase 1 (infraestructura, sin conectar a las pantallas): `LocalStore` sobre
+  AsyncStorage con claves por usuario y registro (`frontend/src/lib/local-store/`), modelo local del
+  registro diario, clasificación de errores, backoff y fusión a tres bandas
+  (`frontend/src/features/daily-logs/offline/`), y señal de conectividad de `expo-network` en
+  TanStack Query (`lib/connectivity.ts`, `lib/query-defaults.ts`, `lib/query-client.ts`), y generador
+  único de identificadores de operación (`lib/operation-id.ts`, `lib/device-operation-id.ts`).
+  Dependencias nuevas: `@react-native-async-storage/async-storage` 2.2.0, `expo-network` ~57.0.2 y
+  `expo-crypto` ~57.0.4 (requieren un development build nuevo). Sin cambios de BD, de UX ni del
+  guardado actual. Almacenamiento real comprobado en emulador Android y en navegador
+  (`local-store-check.ts`); iOS sin probar. Contrato en `FRONTEND_ARCHITECTURE.md` §5; decisión en
+  `DECISIONS.md`.
 - La migración `20261010160332_daily_logs_concurrency.sql` consta aplicada en `kitom-dev`. Tipos
   regenerados (`save_daily_log` con `p_expected_updated_at?` y `p_expect_absent?`); el archivo se
   normalizó a UTF-8 (la regeneración desde PowerShell lo había dejado en UTF-16).

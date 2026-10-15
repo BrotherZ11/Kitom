@@ -1,0 +1,136 @@
+// Pruebas de `connectivity.ts` con el runner de Node (`npm test`). Ver frontend/CLAUDE.md.
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+
+import { createConnectivityListener, isOnline } from './connectivity.ts';
+
+/** Fuente de red falsa: `emit` simula un cambio; `initial` es una promesa o una función que lanza. */
+function fakeSource(initial) {
+  const listeners = new Set();
+  return {
+    listeners,
+    removed: 0,
+    emit(state) {
+      for (const listener of [...listeners]) listener(state);
+    },
+    getState() {
+      return typeof initial === 'function' ? initial() : initial;
+    },
+    addListener(listener) {
+      listeners.add(listener);
+      return {
+        remove: () => {
+          this.removed += 1;
+          listeners.delete(listener);
+        },
+      };
+    },
+  };
+}
+
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+function start(source) {
+  const values = [];
+  const cleanup = createConnectivityListener(source)((online) => values.push(online));
+  return { values, cleanup };
+}
+
+describe('isOnline', () => {
+  it('solo hay "sin conexión" cuando el sistema lo afirma', () => {
+    assert.equal(isOnline({ isConnected: true, isInternetReachable: true }), true);
+    assert.equal(isOnline({ isConnected: false, isInternetReachable: false }), false);
+    assert.equal(isOnline({}), true);
+    assert.equal(isOnline(null), true);
+    assert.equal(isOnline(undefined), true);
+  });
+
+  it('una red sin salida validada a internet sigue contando como conectada', () => {
+    assert.equal(isOnline({ isConnected: true, isInternetReachable: false }), true);
+  });
+});
+
+describe('createConnectivityListener', () => {
+  it('publica el estado inicial y después cada cambio', async () => {
+    const source = fakeSource(Promise.resolve({ isConnected: false }));
+    const { values } = start(source);
+    await settle();
+    assert.deepEqual(values, [false]);
+
+    source.emit({ isConnected: true });
+    source.emit({ isConnected: false });
+    assert.deepEqual(values, [false, true, false]);
+  });
+
+  it('el estado inicial no pisa un evento que llegó antes', async () => {
+    let resolveInitial;
+    const source = fakeSource(new Promise((resolve) => (resolveInitial = resolve)));
+    const { values } = start(source);
+    source.emit({ isConnected: false });
+    resolveInitial({ isConnected: true });
+    await settle();
+    assert.deepEqual(values, [false]);
+  });
+
+  it('si no se puede leer el estado, no se da por perdido la conexión y los eventos siguen llegando', async () => {
+    for (const initial of [
+      Promise.reject(new Error('ERR_NETWORK_NO_ACCESS_NETWORKINFO')),
+      () => {
+        throw new Error('módulo no disponible');
+      },
+    ]) {
+      const source = fakeSource(initial);
+      const { values } = start(source);
+      await settle();
+      assert.deepEqual(values, []);
+      source.emit({ isConnected: false });
+      assert.deepEqual(values, [false]);
+    }
+  });
+
+  it('si no se puede suscribir, queda el estado inicial y la limpieza no falla', async () => {
+    const source = {
+      getState: () => Promise.resolve({ isConnected: true }),
+      addListener: () => {
+        throw new Error('sin eventos');
+      },
+    };
+    const { values, cleanup } = start(source);
+    await settle();
+    assert.deepEqual(values, [true]);
+    cleanup();
+  });
+
+  it('la limpieza quita la suscripción y descarta lo que llegue después', async () => {
+    let resolveInitial;
+    const source = fakeSource(new Promise((resolve) => (resolveInitial = resolve)));
+    const { values, cleanup } = start(source);
+    assert.equal(source.listeners.size, 1);
+
+    cleanup();
+    assert.equal(source.listeners.size, 0);
+    assert.equal(source.removed, 1);
+
+    resolveInitial({ isConnected: false });
+    await settle();
+    assert.deepEqual(values, []);
+
+    cleanup(); // llamarla dos veces no falla ni vuelve a quitar nada
+    assert.equal(source.removed, 1);
+  });
+
+  it('cada arranque crea su propia suscripción (TanStack Query lo reinicia al volver a tener suscriptores)', async () => {
+    const source = fakeSource(Promise.resolve({ isConnected: true }));
+    const setup = createConnectivityListener(source);
+    const first = [];
+    const stopFirst = setup((online) => first.push(online));
+    stopFirst();
+    const second = [];
+    setup((online) => second.push(online));
+    await settle();
+    source.emit({ isConnected: false });
+    assert.deepEqual(first, []);
+    assert.deepEqual(second, [true, false]);
+    assert.equal(source.listeners.size, 1);
+  });
+});
