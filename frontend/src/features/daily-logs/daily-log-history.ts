@@ -87,7 +87,7 @@ export type DailyLogView = 'editable' | 'read_only' | 'missing';
  * Qué mostrar al abrir un registro anterior: sin registro, nada que editar (abrir nunca crea);
  * con registro, editable si `can_edit_pet` (UX: la autorización real es RLS/RPC).
  */
-export function resolveHistoryLogView(log: DailyLog | null, canEdit: boolean): DailyLogView {
+export function resolveHistoryLogView(log: object | null, canEdit: boolean): DailyLogView {
   if (!log) return 'missing';
   return canEdit ? 'editable' : 'read_only';
 }

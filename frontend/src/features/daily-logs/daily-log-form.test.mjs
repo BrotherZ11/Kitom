@@ -6,6 +6,7 @@ import {
   DAILY_LOG_TAGS,
   SCALE_FIELDS,
   dailyLogEditorReducer,
+  decideSourceChange,
   emptyDailyLogForm,
   initialDailyLogEditorState,
   setAllAsUsual,
@@ -157,7 +158,8 @@ describe('payload de save_daily_log', () => {
     assert.equal(args.p_mood_level, 2);
     assert.equal(args.p_sleep_quality, 5);
     assert.equal(args.p_notes, 'Paseo largo');
-    assert.deepEqual(args.p_tags, ['vet_visit', 'home_change']);
+    // Etiquetas sin duplicados y en el orden estable de la RPC.
+    assert.deepEqual(args.p_tags, ['home_change', 'vet_visit']);
   });
 });
 
@@ -215,5 +217,70 @@ describe('estado del editor', () => {
     const state = initialDailyLogEditorState(savedLog());
     assert.equal(state.status, 'idle');
     assert.equal(state.values.scales.energy, 4);
+  });
+});
+
+describe('otra versión con el formulario abierto (respuesta tardía, guardado confirmado, conflicto resuelto)', () => {
+  const v1 = savedLog({ notes: 'Copia del dispositivo', updated_at: '2026-10-09T09:00:00.1+00:00' });
+  const v2 = savedLog({ notes: 'Versión del servidor', updated_at: '2026-10-09T10:00:00.2+00:00' });
+  const opened = { content: v1, baseRow: v1 };
+  const untouched = initialDailyLogEditorState(v1);
+  const edited = dailyLogEditorReducer(untouched, { type: 'edit', update: (v) => ({ ...v, notes: 'Lo que escribo' }) });
+
+  it('la misma versión (renders o cambios de caché irrelevantes): nada', () => {
+    assert.equal(decideSourceChange(opened, { content: { ...v1 }, baseRow: { ...v1 } }, untouched), 'none');
+    assert.equal(decideSourceChange(opened, { content: { ...v1 }, baseRow: { ...v1 } }, edited), 'none');
+  });
+
+  it('respuesta del servidor que llega tarde y el usuario no ha tocado nada: se cargan sus valores', () => {
+    assert.equal(decideSourceChange(opened, { content: v2, baseRow: v2 }, untouched), 'reload');
+    const reloaded = dailyLogEditorReducer(untouched, { type: 'load', log: v2 });
+    assert.equal(reloaded.values.notes, 'Versión del servidor');
+    assert.equal(reloaded.dirty, false);
+  });
+
+  it('el usuario ya modificó algún campo: no se sustituye nada (se avisa) y la base no avanza', () => {
+    assert.equal(edited.dirty, true);
+    assert.equal(decideSourceChange(opened, { content: v2, baseRow: v2 }, edited), 'keep');
+    const saving = dailyLogEditorReducer(untouched, { type: 'saveStarted' });
+    assert.equal(decideSourceChange(opened, { content: v2, baseRow: v2 }, saving), 'keep');
+  });
+
+  it('el servidor no existía y ahora sí (o al revés) cuenta como otra versión', () => {
+    const empty = { content: null, baseRow: null };
+    assert.equal(decideSourceChange(empty, { content: v2, baseRow: v2 }, initialDailyLogEditorState(null)), 'reload');
+    assert.equal(decideSourceChange(opened, empty, untouched), 'reload');
+  });
+
+  it('el servidor confirma lo que se guardó desde aquí: solo avanza la base, sin tocar los valores', () => {
+    let state = dailyLogEditorReducer(edited, { type: 'saveStarted' });
+    state = dailyLogEditorReducer(state, { type: 'saveSucceeded', log: savedLog({ notes: 'Lo que escribo' }) });
+    assert.equal(state.dirty, false);
+    const confirmed = savedLog({ notes: 'Lo que escribo', updated_at: '2026-10-09T11:00:00.3+00:00' });
+    assert.equal(decideSourceChange(opened, { content: confirmed, baseRow: confirmed }, state), 'adopt');
+  });
+
+  it('mismo contenido con otra base mientras se escribe: avanza la base y se conserva lo escrito', () => {
+    const sameContentNewBase = savedLog({ notes: 'Copia del dispositivo', updated_at: '2026-10-09T12:00:00+00:00' });
+    assert.equal(decideSourceChange(opened, { content: sameContentNewBase, baseRow: sameContentNewBase }, edited), 'adopt');
+  });
+
+  it('con cambios pendientes la pantalla sigue mostrando ese contenido: la respuesta del servidor no cambia nada', () => {
+    const pendingContent = { ...v1, notes: 'Pendiente' };
+    const withPending = { content: pendingContent, baseRow: v1 };
+    // La vista prioriza lo pendiente: contenido y base iguales aunque el servidor tenga v2.
+    assert.equal(decideSourceChange(withPending, { content: { ...pendingContent }, baseRow: v1 }, untouched), 'none');
+  });
+
+  it('conflicto resuelto en segundo plano mientras se escribe: se conserva lo escrito y se avisa', () => {
+    const resolved = savedLog({ notes: 'Resuelto', updated_at: '2026-10-09T13:00:00+00:00' });
+    assert.equal(decideSourceChange(opened, { content: { ...resolved, notes: 'Resuelto' }, baseRow: resolved }, edited), 'keep');
+    assert.equal(decideSourceChange(opened, { content: resolved, baseRow: resolved }, untouched), 'reload');
+  });
+
+  it('editar marca el formulario como modificado; guardar o cargar otra versión lo limpia', () => {
+    assert.equal(untouched.dirty, false);
+    assert.equal(edited.dirty, true);
+    assert.equal(dailyLogEditorReducer(edited, { type: 'load', log: v2 }).dirty, false);
   });
 });

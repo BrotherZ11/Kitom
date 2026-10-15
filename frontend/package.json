@@ -48,7 +48,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \"src/**/*.test.mjs\""
+    "test": "node --test --test-timeout=30000 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \"src/**/*.test.mjs\"",
+    "test:integration": "node scripts/test-integration.mjs"
   },
   "private": true
 }

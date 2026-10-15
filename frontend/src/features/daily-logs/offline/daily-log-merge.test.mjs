@@ -5,7 +5,15 @@ import { describe, it } from 'node:test';
 
 import { NOTES_MAX_LENGTH } from '../daily-log-form.ts';
 import { normalizeDailyLogContent, sameDailyLogContent } from './daily-log-content.ts';
-import { combineNotes, mergeDailyLogContent, mergeTags, resolveDailyLogConflicts } from './daily-log-merge.ts';
+import {
+  buildResolvedContent,
+  combineNotes,
+  compareDailyLogVersions,
+  mergeDailyLogContent,
+  mergeTags,
+  resolveDailyLogConflicts,
+  suggestCombinedText,
+} from './daily-log-merge.ts';
 
 function content(overrides = {}) {
   return {
@@ -187,13 +195,18 @@ describe('mergeDailyLogContent: notas modificadas simultáneamente', () => {
     assert.equal(result.differsFromRemote, false);
   });
 
-  it('resolver: local, remoto o conservar ambas', () => {
+  it('resolver: local, remoto o un texto revisado por el usuario (nunca una concatenación automática)', () => {
     const conflict = merge(base, local, remote);
     const resolve = (notes) => resolveDailyLogConflicts(conflict, { notes }, remote);
     assert.equal(resolve('local').content.notes, local.notes);
     assert.deepEqual(resolve('remote'), { status: 'merged', content: remote, differsFromRemote: false });
-    assert.equal(resolve('combine').content.notes, 'Comió bien. Paseo corto.\n\nComió bien. Por la tarde vomitó.');
-    assert.equal(resolve('combine').differsFromRemote, true);
+    // «Conservar ambas»: la propuesta se revisa y edita; se guarda lo que el usuario confirma.
+    const suggestion = suggestCombinedText(local.notes, remote.notes);
+    assert.equal(suggestion, 'Comió bien. Paseo corto.\n\nComió bien. Por la tarde vomitó.');
+    const edited = resolve({ text: '  Comió bien. Paseo corto. Por la tarde vomitó.  ' });
+    assert.equal(edited.content.notes, 'Comió bien. Paseo corto. Por la tarde vomitó.');
+    assert.equal(edited.differsFromRemote, true);
+    assert.equal(resolve({ text: '   ' }).content.notes, null);
   });
 
   it('sin elegir todas las unidades no hay resultado', () => {
@@ -207,7 +220,9 @@ describe('mergeDailyLogContent: notas modificadas simultáneamente', () => {
   it('conservar ambas no recorta: si no cabe, hay que elegir o editar', () => {
     const long = (letter) => letter.repeat(NOTES_MAX_LENGTH - 10);
     const conflict = merge(base, content({ notes: long('a') }), content({ notes: long('b') }));
-    assert.deepEqual(resolveDailyLogConflicts(conflict, { notes: 'combine' }, content({ notes: long('b') })), {
+    const tooLong = suggestCombinedText(long('a'), long('b'));
+    assert.ok(tooLong.length > NOTES_MAX_LENGTH);
+    assert.deepEqual(resolveDailyLogConflicts(conflict, { notes: { text: tooLong } }, content({ notes: long('b') })), {
       status: 'invalid',
       unit: 'notes',
       reason: 'too_long',
@@ -216,20 +231,77 @@ describe('mergeDailyLogContent: notas modificadas simultáneamente', () => {
 
   it('un nivel no se puede "combinar"', () => {
     const conflict = merge(content(), content({ energy_level: 5 }), content({ energy_level: 1 }));
-    assert.deepEqual(resolveDailyLogConflicts(conflict, { energy_level: 'combine' }, content({ energy_level: 1 })), {
+    assert.deepEqual(resolveDailyLogConflicts(conflict, { energy_level: { text: '3' } }, content({ energy_level: 1 })), {
       status: 'invalid',
       unit: 'energy_level',
       reason: 'cannot_combine',
     });
   });
 
-  it('conservar ambas en comportamiento inusual: interruptor activado y notas combinadas', () => {
+  it('comportamiento inusual y su nota se resuelven juntos; con texto revisado queda activado', () => {
     const start = content({ unusual_behavior: true, unusual_behavior_notes: 'cojea' });
     const theirs = content({ unusual_behavior: false, unusual_behavior_notes: null });
     const conflict = merge(start, content({ unusual_behavior: true, unusual_behavior_notes: 'cojea más' }), theirs);
-    const result = resolveDailyLogConflicts(conflict, { unusual_behavior: 'combine' }, theirs);
-    assert.equal(result.content.unusual_behavior, true);
-    assert.equal(result.content.unusual_behavior_notes, 'cojea más');
+    const edited = resolveDailyLogConflicts(conflict, { unusual_behavior: { text: 'cojea más de la pata izquierda' } }, theirs);
+    assert.equal(edited.content.unusual_behavior, true);
+    assert.equal(edited.content.unusual_behavior_notes, 'cojea más de la pata izquierda');
+    const server = resolveDailyLogConflicts(conflict, { unusual_behavior: 'remote' }, theirs);
+    assert.equal(server.content.unusual_behavior, false);
+    assert.equal(server.content.unusual_behavior_notes, null);
+  });
+});
+
+describe('compareDailyLogVersions', () => {
+  it('clasifica cada dato: igual, solo mío, solo del servidor, conflicto y etiquetas combinadas', () => {
+    const base = content({ energy_level: 3, mood_level: 3, notes: 'base', tags: ['vet_visit'] });
+    const mine = content({ energy_level: 5, mood_level: 3, notes: 'mía', tags: ['new_pet', 'vet_visit'] });
+    const theirs = content({ energy_level: 3, mood_level: 1, notes: 'suya', tags: [] });
+    const byUnit = Object.fromEntries(compareDailyLogVersions({ base, local: mine, remote: theirs }).map((item) => [item.unit, item]));
+    assert.equal(byUnit.energy_level.change, 'local_only');
+    assert.equal(byUnit.mood_level.change, 'remote_only');
+    assert.equal(byUnit.notes.change, 'conflict');
+    assert.equal(byUnit.appetite_level.change, 'same');
+    assert.equal(byUnit.tags.change, 'merged');
+    assert.deepEqual(byUnit.notes.local, { notes: 'mía' });
+    assert.deepEqual(byUnit.notes.remote, { notes: 'suya' });
+    assert.deepEqual(Object.keys(byUnit.unusual_behavior.local), ['unusual_behavior', 'unusual_behavior_notes']);
+  });
+
+  it('sin base (creación concurrente) todo lo distinto es conflicto', () => {
+    const units = compareDailyLogVersions({ base: null, local: content({ energy_level: 5 }), remote: content({ energy_level: 1 }) });
+    assert.equal(units.find((item) => item.unit === 'energy_level').change, 'conflict');
+  });
+});
+
+describe('buildResolvedContent', () => {
+  const base = content({ energy_level: 3, mood_level: 3, notes: 'base', tags: ['vet_visit'] });
+  const mine = content({ energy_level: 5, mood_level: 3, notes: 'mía', tags: ['new_pet', 'vet_visit'] });
+  const theirs = content({ energy_level: 3, mood_level: 1, notes: 'suya', tags: [] });
+  const versions = { base, local: mine, remote: theirs };
+
+  it('conservar mis cambios: mi versión completa', () => {
+    assert.deepEqual(buildResolvedContent(versions, 'local'), { status: 'merged', content: mine, differsFromRemote: true });
+  });
+
+  it('conservar los del servidor: la versión remota completa (no hay nada que enviar)', () => {
+    assert.deepEqual(buildResolvedContent(versions, 'remote'), { status: 'merged', content: theirs, differsFromRemote: false });
+  });
+
+  it('combinar: lo de un solo lado se conserva o acepta, etiquetas como conjunto y el conflicto exige decisión', () => {
+    assert.deepEqual(buildResolvedContent(versions, 'combine'), { status: 'incomplete', missing: ['notes'] });
+    const result = buildResolvedContent(versions, 'combine', { notes: 'remote' });
+    assert.equal(result.status, 'merged');
+    assert.equal(result.content.energy_level, 5); // solo mío
+    assert.equal(result.content.mood_level, 1); // solo del servidor
+    assert.equal(result.content.notes, 'suya'); // decisión explícita
+    assert.deepEqual(result.content.tags, ['new_pet']); // yo añadí new_pet; el servidor quitó vet_visit
+  });
+
+  it('fila remota borrada: solo se puede volver a crear con mis datos, nunca combinar ni aceptar', () => {
+    const deleted = { base, local: mine, remote: null };
+    assert.deepEqual(buildResolvedContent(deleted, 'local'), { status: 'merged', content: mine, differsFromRemote: true });
+    assert.deepEqual(buildResolvedContent(deleted, 'remote'), { status: 'unresolved', reason: 'remote_deleted' });
+    assert.deepEqual(buildResolvedContent(deleted, 'combine'), { status: 'unresolved', reason: 'remote_deleted' });
   });
 });
 

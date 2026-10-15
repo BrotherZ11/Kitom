@@ -1,4 +1,4 @@
-import type { DailyLog } from '@/features/daily-logs/types';
+import type { DailyLog, SaveDailyLogArgs } from '@/features/daily-logs/types';
 
 import { parseLogDateParam } from '../daily-log-history.ts';
 
@@ -100,6 +100,29 @@ export function contentFromRow(row: DailyLog): DailyLogContent {
     notes: row.notes,
     tags: row.tags ?? [],
   });
+}
+
+/**
+ * Argumentos de `save_daily_log` (sin precondición) para guardar `content` como registro completo del
+ * día. Único punto que convierte contenido en parámetros de la RPC.
+ */
+export function contentToSaveArgs(petId: string, logDate: string, content: DailyLogContent): SaveDailyLogArgs {
+  const normalized = normalizeDailyLogContent(content);
+  return {
+    p_pet_id: petId,
+    p_log_date: logDate,
+    p_energy_level: normalized.energy_level,
+    p_appetite_level: normalized.appetite_level,
+    p_mood_level: normalized.mood_level,
+    p_activity_level: normalized.activity_level,
+    p_sleep_quality: normalized.sleep_quality,
+    p_vocalization_level: normalized.vocalization_level,
+    p_social_interaction_level: normalized.social_interaction_level,
+    p_unusual_behavior: normalized.unusual_behavior,
+    p_unusual_behavior_notes: normalized.unusual_behavior_notes,
+    p_notes: normalized.notes,
+    p_tags: normalized.tags,
+  };
 }
 
 /** Mismo contenido una vez normalizado. */

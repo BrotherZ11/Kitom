@@ -50,6 +50,15 @@ const UNIT_COLUMNS: Record<MergeUnit, readonly ContentColumn[]> = {
 
 export const MERGE_UNITS: readonly MergeUnit[] = [...LEVEL_COLUMNS, 'unusual_behavior', 'notes'];
 
+/** Unidades (y `tags`) en las que dos versiones del registro son distintas, en el orden de pantalla. */
+export function differingUnits(a: DailyLogContent, b: DailyLogContent): (MergeUnit | 'tags')[] {
+  const left = normalizeDailyLogContent(a);
+  const right = normalizeDailyLogContent(b);
+  const units: (MergeUnit | 'tags')[] = MERGE_UNITS.filter((unit) => !sameUnit(left, right, unit));
+  const sameTags = left.tags.length === right.tags.length && left.tags.every((tag, i) => tag === right.tags[i]);
+  return sameTags ? units : [...units, 'tags'];
+}
+
 const EMPTY_CONTENT: DailyLogContent = {
   energy_level: null,
   appetite_level: null,
@@ -138,23 +147,33 @@ function finish(content: DailyLogContent, remote: DailyLogContent): DailyLogMerg
   return { status: 'merged', content, differsFromRemote: !sameDailyLogContent(content, remote) };
 }
 
-export type CombinedNotes = { ok: true; value: string | null } | { ok: false; reason: 'too_long' };
-
 /**
- * Resolución «conservar ambas» de dos textos en conflicto. Sin duplicar: si son iguales o uno
- * contiene al otro, queda el más completo; si no, el remoto (ya guardado) y debajo el local. Si el
- * resultado supera el límite de la columna no se recorta: hay que elegir o editar.
+ * Propuesta para «conservar ambas» en dos textos en conflicto: sin duplicar (si son iguales o uno
+ * contiene al otro, el más completo; si no, el remoto y debajo el local). Es solo una propuesta: la
+ * interfaz la muestra en un campo editable y lo que se guarda es lo que el usuario confirma. Nunca
+ * se aplica sola.
  */
-export function combineNotes(local: string | null, remote: string | null, maxLength: number): CombinedNotes {
+export function suggestCombinedText(local: string | null, remote: string | null): string | null {
   const mine = local ?? '';
   const theirs = remote ?? '';
   const value = mine.includes(theirs) ? mine : theirs.includes(mine) ? theirs : `${theirs}\n\n${mine}`;
-  if (value.length > maxLength) return { ok: false, reason: 'too_long' };
-  return { ok: true, value: value === '' ? null : value };
+  return value === '' ? null : value;
 }
 
-/** `combine` solo existe para las unidades con texto: `notes` y `unusual_behavior`. */
-export type MergeResolution = 'local' | 'remote' | 'combine';
+export type CombinedNotes = { ok: true; value: string | null } | { ok: false; reason: 'too_long' };
+
+/** `suggestCombinedText` con el límite de la columna (sin recortar: si no cabe, hay que editar). */
+export function combineNotes(local: string | null, remote: string | null, maxLength: number): CombinedNotes {
+  const value = suggestCombinedText(local, remote);
+  if ((value?.length ?? 0) > maxLength) return { ok: false, reason: 'too_long' };
+  return { ok: true, value };
+}
+
+/**
+ * Decisión del usuario para una unidad en conflicto: su versión, la del servidor, o un texto que ha
+ * revisado y editado (solo `notes` y `unusual_behavior`; parte de `suggestCombinedText`).
+ */
+export type MergeResolution = 'local' | 'remote' | { text: string };
 
 export type DailyLogResolutionResult =
   | DailyLogMergeOutcome
@@ -163,9 +182,15 @@ export type DailyLogResolutionResult =
   /** La resolución elegida no se puede aplicar a esa unidad. */
   | { status: 'invalid'; unit: MergeUnit; reason: 'too_long' | 'cannot_combine' };
 
+const TEXT_LIMITS: Partial<Record<MergeUnit, number>> = {
+  notes: NOTES_MAX_LENGTH,
+  unusual_behavior: UNUSUAL_BEHAVIOR_NOTES_MAX_LENGTH,
+};
+
 /**
- * Aplica la decisión del usuario a cada unidad en conflicto. `combine` en `unusual_behavior` deja
- * el interruptor activado si lo estaba en cualquiera de los dos lados y combina las notas.
+ * Aplica la decisión del usuario a cada unidad en conflicto; lo que no estaba en conflicto queda
+ * como lo dejó la fusión. Un texto editado en `unusual_behavior` deja el interruptor activado si lo
+ * estaba en cualquiera de los dos lados o si el texto no está vacío.
  */
 export function resolveDailyLogConflicts(
   result: Extract<DailyLogMergeResult, { status: 'conflict' }>,
@@ -178,27 +203,106 @@ export function resolveDailyLogConflicts(
   const content: Partial<DailyLogContent> = { ...result.merged };
   for (const conflict of result.conflicts) {
     const resolution = resolutions[conflict.unit];
-    if (resolution !== 'combine') {
+    if (resolution === 'local' || resolution === 'remote') {
       Object.assign(content, resolution === 'local' ? conflict.local : conflict.remote);
       continue;
     }
-    if (conflict.unit === 'notes') {
-      const notes = combineNotes(conflict.local.notes ?? null, conflict.remote.notes ?? null, NOTES_MAX_LENGTH);
-      if (!notes.ok) return { status: 'invalid', unit: conflict.unit, reason: notes.reason };
-      content.notes = notes.value;
-    } else if (conflict.unit === 'unusual_behavior') {
-      const notes = combineNotes(
-        conflict.local.unusual_behavior_notes ?? null,
-        conflict.remote.unusual_behavior_notes ?? null,
-        UNUSUAL_BEHAVIOR_NOTES_MAX_LENGTH
-      );
-      if (!notes.ok) return { status: 'invalid', unit: conflict.unit, reason: notes.reason };
-      content.unusual_behavior = Boolean(conflict.local.unusual_behavior || conflict.remote.unusual_behavior);
-      content.unusual_behavior_notes = notes.value;
-    } else {
+    const limit = TEXT_LIMITS[conflict.unit];
+    if (!resolution || limit === undefined) {
       return { status: 'invalid', unit: conflict.unit, reason: 'cannot_combine' };
+    }
+    const text = resolution.text.trim();
+    if (text.length > limit) return { status: 'invalid', unit: conflict.unit, reason: 'too_long' };
+    if (conflict.unit === 'notes') {
+      content.notes = text === '' ? null : text;
+    } else {
+      content.unusual_behavior = Boolean(
+        text !== '' || conflict.local.unusual_behavior || conflict.remote.unusual_behavior
+      );
+      content.unusual_behavior_notes = text === '' ? null : text;
     }
   }
 
   return finish(normalizeDailyLogContent(content as DailyLogContent), normalizeDailyLogContent(remote));
+}
+
+/** Cómo cambió cada dato entre la base, tu versión y la del servidor. */
+export type UnitChange =
+  /** Tu versión y la del servidor coinciden. */
+  | 'same'
+  /** Solo lo cambiaste tú: se puede conservar. */
+  | 'local_only'
+  /** Solo cambió en el servidor: se puede aceptar. */
+  | 'remote_only'
+  /** Cambió en los dos lados con valores distintos: requiere decisión. */
+  | 'conflict'
+  /** Etiquetas cambiadas en los dos lados: se combinan como conjunto. */
+  | 'merged';
+
+export type UnitComparison = {
+  unit: MergeUnit | 'tags';
+  change: UnitChange;
+  local: Partial<DailyLogContent>;
+  remote: Partial<DailyLogContent>;
+};
+
+/** Comparación por unidad para la pantalla de conflictos (en el orden de pantalla). */
+export function compareDailyLogVersions(versions: {
+  base: DailyLogContent | null;
+  local: DailyLogContent;
+  remote: DailyLogContent;
+}): UnitComparison[] {
+  const base = normalizeDailyLogContent(versions.base ?? EMPTY_CONTENT);
+  const local = normalizeDailyLogContent(versions.local);
+  const remote = normalizeDailyLogContent(versions.remote);
+  const changeOf = (
+    same: (a: DailyLogContent, b: DailyLogContent) => boolean,
+    bothChanged: UnitChange
+  ): UnitChange =>
+    same(local, remote) ? 'same' : same(local, base) ? 'remote_only' : same(remote, base) ? 'local_only' : bothChanged;
+
+  const units: UnitComparison[] = MERGE_UNITS.map((unit) => ({
+    unit,
+    change: changeOf((a, b) => sameUnit(a, b, unit), 'conflict'),
+    local: pick(local, unit),
+    remote: pick(remote, unit),
+  }));
+  const sameTags = (a: DailyLogContent, b: DailyLogContent) =>
+    a.tags.length === b.tags.length && a.tags.every((tag, index) => tag === b.tags[index]);
+  units.push({
+    unit: 'tags',
+    change: changeOf(sameTags, 'merged'),
+    local: { tags: local.tags },
+    remote: { tags: remote.tags },
+  });
+  return units;
+}
+
+export type ResolutionStrategy = 'local' | 'remote' | 'combine';
+
+/**
+ * Contenido final según la estrategia elegida en la pantalla de conflictos:
+ * - `local`: tu versión completa; `remote`: la del servidor completa.
+ * - `combine`: lo cambiado por un solo lado se conserva o se acepta, las etiquetas se unen como
+ *   conjunto y cada unidad en conflicto usa la decisión explícita de `resolutions`.
+ * Sin fila remota (se borró) solo cabe `local` (volver a crearla); descartar es otra acción.
+ */
+export function buildResolvedContent(
+  versions: { base: DailyLogContent | null; local: DailyLogContent; remote: DailyLogContent | null },
+  strategy: ResolutionStrategy,
+  resolutions: Partial<Record<MergeUnit, MergeResolution>> = {}
+): DailyLogResolutionResult {
+  const local = normalizeDailyLogContent(versions.local);
+  if (versions.remote === null) {
+    if (strategy !== 'local') return { status: 'unresolved', reason: 'remote_deleted' };
+    return isEmptyDailyLogContent(local)
+      ? { status: 'unresolved', reason: 'empty_result' }
+      : { status: 'merged', content: local, differsFromRemote: true };
+  }
+  const remote = normalizeDailyLogContent(versions.remote);
+  if (strategy === 'local') return finish(local, remote);
+  if (strategy === 'remote') return finish(remote, remote);
+
+  const merge = mergeDailyLogContent({ base: versions.base, local, remote });
+  return merge.status === 'conflict' ? resolveDailyLogConflicts(merge, resolutions, remote) : merge;
 }

@@ -300,6 +300,34 @@ export function applyLocalEdit(
   });
 }
 
+/**
+ * Copia local de una fila confirmada por el servidor, sin cambios pendientes: el último dato
+ * conocido para mostrar sin conexión. No sustituye nunca a una operación pendiente.
+ */
+export function createSyncedLocalDailyLog(
+  identity: { userId: string; petId: string; logDate: string },
+  row: DailyLog
+): LocalDailyLog {
+  return checked({
+    ...identity,
+    serverRow: row,
+    baseVersion: row.updated_at,
+    status: 'synced',
+    pending: null,
+    error: null,
+    conflict: null,
+  });
+}
+
+/**
+ * Reintento inmediato pedido por el usuario de una operación `pending` que espera su backoff: se
+ * adelanta el siguiente intento. No cambia contadores, contenido ni identificador.
+ */
+export function allowImmediateSync(log: LocalDailyLog): LocalDailyLog {
+  if (log.status !== 'pending' || log.pending === null || log.pending.nextAttemptAt === null) return log;
+  return checked({ ...log, pending: { ...log.pending, nextAttemptAt: null } });
+}
+
 /** Qué operación (y qué contenido) se envió: se captura antes de llamar al servidor. */
 export type SentOperation = Pick<LocalDailyLogPending, 'operationId' | 'revision'>;
 
@@ -429,6 +457,52 @@ export function setConflictRemote(log: LocalDailyLog, remoteRow: DailyLog | null
   const remote: LocalDailyLogConflict['remote'] =
     remoteRow === null ? { status: 'absent' } : { status: 'present', row: remoteRow };
   return checked({ ...log, conflict: { ...log.conflict, remote } });
+}
+
+/**
+ * Volver a comparar con el servidor (p. ej. tras editar en conflicto o si el otro dispositivo ya
+ * cambió su versión): la fila remota pasa a «sin leer» y la sincronización la vuelve a leer.
+ */
+export function refetchConflictRemote(log: LocalDailyLog): LocalDailyLog {
+  if (log.conflict === null || log.conflict.remote.status === 'not_fetched') return log;
+  return checked({ ...log, conflict: { ...log.conflict, remote: { status: 'not_fetched' } } });
+}
+
+/**
+ * Resultado de descartar los cambios locales de un registro:
+ * - `discarded`: `record` es lo que queda en el dispositivo (la última versión confirmada por el
+ *   servidor como copia sincronizada, o `null` si no se conoce ninguna).
+ * - `not_discardable`: no hay cambios que descartar o todavía se pueden enviar (`pending`).
+ * - `remote_unknown`: conflicto cuya versión del servidor no se ha leído; no se sabe qué conservar.
+ */
+export type DiscardLocalChangesResult =
+  | { status: 'discarded'; record: LocalDailyLog | null }
+  | { status: 'not_discardable' }
+  | { status: 'remote_unknown' };
+
+/**
+ * Descarta los cambios locales de un registro `failed` o `conflict` (decisión explícita del
+ * usuario). Solo afecta al dispositivo: nunca envía, borra ni cambia nada en el servidor.
+ * - Fallido: vuelve a la última fila confirmada (`serverRow`) o, si nunca existió en el servidor
+ *   según el dispositivo, desaparece la copia local.
+ * - Conflicto con la fila remota leída: queda esa fila (o nada, si el servidor ya no la tiene).
+ * - Conflicto sin leer la fila remota: no se descarta (no hay una versión fiable que conservar).
+ * - Pendiente: no se descarta; todavía se puede enviar o editar.
+ */
+export function discardLocalChanges(log: LocalDailyLog | null): DiscardLocalChangesResult {
+  if (!log?.pending || (log.status !== 'failed' && log.status !== 'conflict')) {
+    return { status: 'not_discardable' };
+  }
+  const identity = { userId: log.userId, petId: log.petId, logDate: log.logDate };
+  if (log.status === 'conflict') {
+    const remote = log.conflict?.remote;
+    if (!remote || remote.status === 'not_fetched') return { status: 'remote_unknown' };
+    return {
+      status: 'discarded',
+      record: remote.status === 'present' ? createSyncedLocalDailyLog(identity, remote.row) : null,
+    };
+  }
+  return { status: 'discarded', record: log.serverRow ? createSyncedLocalDailyLog(identity, log.serverRow) : null };
 }
 
 /**

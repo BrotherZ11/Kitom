@@ -10,6 +10,10 @@ export type DailyLogErrorCode =
   | 'notes_too_long'
   | 'invalid_tag'
   | 'invalid_value'
+  /** No se pudo guardar en el dispositivo (almacenamiento local o identificador de operación). */
+  | 'local_save_failed'
+  /** No se pudo leer lo guardado en el dispositivo (no significa que no haya nada). */
+  | 'local_read_failed'
   | 'unknown';
 
 export class DailyLogError extends Error {

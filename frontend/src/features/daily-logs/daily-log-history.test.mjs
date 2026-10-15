@@ -198,7 +198,8 @@ describe('registro histórico', () => {
     assert.notEqual(args.p_log_date, today);
     assert.equal(args.p_energy_level, 4);
     assert.equal(args.p_notes, 'Antes');
-    assert.deepEqual(args.p_tags, ['vet_visit', 'home_change']);
+    // Etiquetas sin duplicados y en el orden estable de la RPC.
+    assert.deepEqual(args.p_tags, ['home_change', 'vet_visit']);
   });
 
   it('vista: sin registro no hay nada que editar; viewer solo lectura; editor edita', () => {

@@ -4,12 +4,13 @@ import {
   queryHistoryPage,
   type DailyLogHistoryPage,
 } from '@/features/daily-logs/daily-log-history';
-import type { DailyLog, GeneratedSaveDailyLogArgs, SaveDailyLogArgs } from '@/features/daily-logs/types';
+import type { DailyLog } from '@/features/daily-logs/types';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Acceso a `daily_logs`. Lectura: RLS (`is_pet_member`, incluye viewers). Escritura: solo la RPC
- * `save_daily_log` (nunca insert/upsert directo: el upsert falla por los GRANT por columna).
+ * Lecturas de `daily_logs` para las pantallas. RLS (`is_pet_member`, incluye viewers). La escritura
+ * no está aquí: solo la hace el motor de sincronización (`offline/daily-log-remote.ts`), siempre con
+ * `save_daily_log` y con precondición (nunca insert/upsert directo ni la llamada sin precondición).
  */
 
 /** Página del historial de una mascota (`log_date` descendente, desde `cursor` exclusivo). */
@@ -32,18 +33,6 @@ export async function fetchDailyLog(petId: string, logDate: string): Promise<Dai
     .eq('pet_id', petId)
     .eq('log_date', logDate)
     .maybeSingle();
-  if (error) throw toDailyLogError(error);
-  return data;
-}
-
-/**
- * Crea o sustituye el registro del día (identidad `pet_id` + `log_date`) y devuelve la fila guardada.
- * `logged_by`, `last_edited_by` y los timestamps los pone la BD.
- */
-export async function saveDailyLog(args: SaveDailyLogArgs): Promise<DailyLog> {
-  // Los tipos generados no admiten NULL en los parámetros de la RPC, aunque `save_daily_log` sí
-  // (ver `SaveDailyLogArgs`): conversión explícita solo en este punto.
-  const { data, error } = await supabase.rpc('save_daily_log', args as GeneratedSaveDailyLogArgs);
   if (error) throw toDailyLogError(error);
   return data;
 }

@@ -1,5 +1,8 @@
 import type { DailyLogErrorCode } from '@/features/daily-logs/daily-log-errors';
+import type { DailyLogContent } from '@/features/daily-logs/offline/daily-log-content';
 import type { DailyLog, SaveDailyLogArgs } from '@/features/daily-logs/types';
+
+import { contentToSaveArgs, sameDailyLogContent } from './offline/daily-log-content.ts';
 
 /**
  * Formulario del registro diario. Módulo puro (solo imports de tipos, que se eliminan al ejecutar):
@@ -72,8 +75,24 @@ export function isDailyLogTag(value: unknown): value is DailyLogTag {
   return (DAILY_LOG_TAGS as readonly unknown[]).includes(value);
 }
 
+/** Columnas de contenido de un registro: una fila de `daily_logs` o el contenido local pendiente. */
+export type DailyLogContentSource = Pick<
+  DailyLog,
+  | 'energy_level'
+  | 'appetite_level'
+  | 'mood_level'
+  | 'activity_level'
+  | 'sleep_quality'
+  | 'vocalization_level'
+  | 'social_interaction_level'
+  | 'unusual_behavior'
+  | 'unusual_behavior_notes'
+  | 'notes'
+  | 'tags'
+>;
+
 /** Valores del formulario a partir del registro guardado (o vacío si no hay). */
-export function toDailyLogFormValues(log: DailyLog | null): DailyLogFormValues {
+export function toDailyLogFormValues(log: DailyLogContentSource | null): DailyLogFormValues {
   if (!log) return emptyDailyLogForm();
   return {
     scales: {
@@ -152,30 +171,33 @@ export function validateDailyLogForm(values: DailyLogFormValues): DailyLogFormEr
 }
 
 /**
- * Argumentos de `save_daily_log`: el registro completo del día (un `null` deja ese dato vacío).
+ * Registro completo del día que resulta del formulario (lo que se guarda en local y se envía).
  * Nunca incluye `id`, `logged_by`, `last_edited_by` ni timestamps: los pone la BD.
  */
+export function toDailyLogContent(values: DailyLogFormValues): DailyLogContent {
+  const content = toContent(values);
+  return {
+    energy_level: values.scales.energy,
+    appetite_level: values.scales.appetite,
+    mood_level: values.scales.mood,
+    activity_level: values.scales.activity,
+    sleep_quality: values.scales.sleep,
+    vocalization_level: values.scales.vocalization,
+    social_interaction_level: values.scales.social,
+    unusual_behavior: values.unusualBehavior,
+    unusual_behavior_notes: content.unusualBehaviorNotes,
+    notes: content.notes,
+    tags: values.tags.filter(isDailyLogTag),
+  };
+}
+
+/** Argumentos de `save_daily_log` (sin precondición): el registro completo del día. */
 export function toSaveDailyLogArgs(
   petId: string,
   logDate: string,
   values: DailyLogFormValues
 ): SaveDailyLogArgs {
-  const content = toContent(values);
-  return {
-    p_pet_id: petId,
-    p_log_date: logDate,
-    p_energy_level: values.scales.energy,
-    p_appetite_level: values.scales.appetite,
-    p_mood_level: values.scales.mood,
-    p_activity_level: values.scales.activity,
-    p_sleep_quality: values.scales.sleep,
-    p_vocalization_level: values.scales.vocalization,
-    p_social_interaction_level: values.scales.social,
-    p_unusual_behavior: values.unusualBehavior,
-    p_unusual_behavior_notes: content.unusualBehaviorNotes,
-    p_notes: content.notes,
-    p_tags: values.tags.filter(isDailyLogTag),
-  };
+  return contentToSaveArgs(petId, logDate, toDailyLogContent(values));
 }
 
 export type DailyLogSummary = {
@@ -218,17 +240,22 @@ export type DailyLogEditorState = {
   status: DailyLogEditorStatus;
   /** Error de validación local o del servidor; `null` si no hay. */
   error: DailyLogFormError | DailyLogErrorCode | null;
+  /** El usuario cambió algún campo desde que se abrió, cargó o guardó el formulario. */
+  dirty: boolean;
 };
 
 export type DailyLogEditorAction =
   | { type: 'edit'; update: (values: DailyLogFormValues) => DailyLogFormValues }
+  /** Cargar otra versión del registro (p. ej. la del servidor que llegó tarde), sin cambios del usuario. */
+  | { type: 'load'; log: DailyLogContentSource | null }
   | { type: 'invalid'; error: DailyLogFormError }
   | { type: 'saveStarted' }
-  | { type: 'saveSucceeded'; log: DailyLog }
+  /** Guardado (en este dispositivo): `log` es el contenido tal como quedó guardado. */
+  | { type: 'saveSucceeded'; log: DailyLogContentSource }
   | { type: 'saveFailed'; error: DailyLogErrorCode };
 
-export function initialDailyLogEditorState(log: DailyLog | null): DailyLogEditorState {
-  return { values: toDailyLogFormValues(log), status: 'idle', error: null };
+export function initialDailyLogEditorState(log: DailyLogContentSource | null): DailyLogEditorState {
+  return { values: toDailyLogFormValues(log), status: 'idle', error: null, dirty: false };
 }
 
 export function dailyLogEditorReducer(
@@ -239,16 +266,56 @@ export function dailyLogEditorReducer(
     case 'edit':
       // Mientras se guarda el formulario está bloqueado: la respuesta sustituirá los valores.
       if (state.status === 'saving') return state;
-      return { values: action.update(state.values), status: 'idle', error: null };
+      return { values: action.update(state.values), status: 'idle', error: null, dirty: true };
+    case 'load':
+      return initialDailyLogEditorState(action.log);
     case 'invalid':
       return { ...state, status: 'error', error: action.error };
     case 'saveStarted':
       return { ...state, status: 'saving', error: null };
     case 'saveSucceeded':
-      // La fila devuelta por la RPC es la verdad (texto recortado, tags ordenados).
-      return { values: toDailyLogFormValues(action.log), status: 'saved', error: null };
+      // El contenido guardado ya está normalizado (texto recortado, tags ordenados).
+      return { values: toDailyLogFormValues(action.log), status: 'saved', error: null, dirty: false };
     case 'saveFailed':
       // Se conservan los valores introducidos para poder reintentar.
       return { ...state, status: 'error', error: action.error };
   }
+}
+
+/** Con qué versión del registro está trabajando el formulario: contenido y fila base (precondición). */
+export type DailyLogEditorSource = {
+  content: DailyLogContentSource | null;
+  baseRow: DailyLog | null;
+};
+
+/**
+ * Qué hacer cuando la pantalla trae otra versión del registro (llega la respuesta del servidor,
+ * se confirma un guardado o se resuelve un conflicto) con el formulario ya abierto:
+ * - `none`: es la misma versión (cambios de caché o renders irrelevantes): nada.
+ * - `adopt`: mismo contenido que el formulario o que la versión abierta; solo avanza la base. Los
+ *   valores (y lo que el usuario esté escribiendo) no cambian.
+ * - `reload`: contenido distinto y el usuario no ha tocado nada: se cargan los valores nuevos.
+ * - `keep`: contenido distinto y el usuario ya editó: no se sustituye nada; la base sigue siendo la
+ *   abierta, así que al guardar la precondición detecta el cambio concurrente. La pantalla avisa.
+ * Si había cambios locales pendientes, la vista ya muestra ese contenido (no el del servidor), así que
+ * una respuesta remota no produce ningún cambio aquí.
+ */
+export type DailyLogSourceChange = 'none' | 'adopt' | 'reload' | 'keep';
+
+const contentOf = (source: DailyLogContentSource | null): DailyLogContent =>
+  toDailyLogContent(toDailyLogFormValues(source));
+
+export function decideSourceChange(
+  opened: DailyLogEditorSource,
+  next: DailyLogEditorSource,
+  editor: Pick<DailyLogEditorState, 'values' | 'status' | 'dirty'>
+): DailyLogSourceChange {
+  const nextContent = contentOf(next.content);
+  const sameBase =
+    (opened.baseRow?.id ?? null) === (next.baseRow?.id ?? null) &&
+    (opened.baseRow?.updated_at ?? null) === (next.baseRow?.updated_at ?? null);
+  const sameContent = sameDailyLogContent(contentOf(opened.content), nextContent);
+  if (sameBase && sameContent) return 'none';
+  if (sameDailyLogContent(toDailyLogContent(editor.values), nextContent) || sameContent) return 'adopt';
+  return editor.dirty || editor.status === 'saving' ? 'keep' : 'reload';
 }
