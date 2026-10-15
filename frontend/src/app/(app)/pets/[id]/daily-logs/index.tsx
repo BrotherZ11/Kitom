@@ -7,13 +7,15 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-stat
 import { Screen } from '@/components/ui/screen';
 import { HistoryListItem } from '@/features/daily-logs/components/history-list-item';
 import { toDailyLogError } from '@/features/daily-logs/daily-log-errors';
-import { flattenHistory } from '@/features/daily-logs/daily-log-history';
 import { useDailyLogHistory } from '@/features/daily-logs/hooks/use-daily-log';
 import { useTodayLogDate } from '@/features/daily-logs/hooks/use-today-log-date';
 import { useCanEditPet } from '@/features/pets/hooks/use-pets';
 import { t } from '@/i18n';
 
-/** Historial de registros diarios de una mascota, del más reciente al más antiguo, por páginas. */
+/**
+ * Historial de registros diarios de una mascota, del más reciente al más antiguo, por páginas, con
+ * los cambios pendientes del dispositivo encima. Sin conexión muestra lo guardado en el dispositivo.
+ */
 export default function DailyLogHistoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -27,14 +29,16 @@ export default function DailyLogHistoryScreen() {
     router.push({ pathname: '/pets/[id]/daily-logs/[date]', params: { id, date } });
 
   const content = () => {
-    if (history.isPending) return <LoadingState />;
-    // Sin datos: falló la primera página. Con datos, el error es de "cargar más" (abajo).
-    if (history.isError && !history.data) {
-      return <ErrorState message={errorMessage(history.error)} onRetry={() => history.refetch()} />;
+    const { view } = history;
+    if (view.state === 'loading') return <LoadingState />;
+    // Sin datos del servidor ni del dispositivo: error (nunca una lista vacía engañosa). Con datos,
+    // el error es de "cargar más" (abajo).
+    if (view.state === 'error') {
+      return <ErrorState message={errorMessage(view.error)} onRetry={history.refetch} />;
     }
 
-    const logs = flattenHistory(history.data.pages);
-    if (logs.length === 0) {
+    const { items } = view;
+    if (items.length === 0) {
       return (
         <EmptyState
           title={t('dailyLogs.history.emptyTitle')}
@@ -48,17 +52,23 @@ export default function DailyLogHistoryScreen() {
     const currentYear = today?.slice(0, 4);
     return (
       <>
-        {logs.map((log) => (
+        {view.offline ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            {t('dailyLogs.sync.offline')}
+          </ThemedText>
+        ) : null}
+        {items.map(({ log, syncStatus }) => (
           <HistoryListItem
-            key={log.id}
+            key={log.log_date}
             log={log}
+            syncStatus={syncStatus}
             isToday={log.log_date === today}
             withYear={currentYear !== undefined && !log.log_date.startsWith(currentYear)}
             onPress={() => openLog(log.log_date)}
           />
         ))}
         <FormMessage message={history.isFetchNextPageError ? errorMessage(history.error) : null} />
-        {history.hasNextPage ? (
+        {view.offline ? null : history.hasNextPage ? (
           <Button
             variant="secondary"
             label={t('dailyLogs.history.loadMore')}

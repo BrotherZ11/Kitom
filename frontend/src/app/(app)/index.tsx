@@ -7,6 +7,7 @@ import { FormMessage } from '@/components/ui/form-message';
 import { Screen } from '@/components/ui/screen';
 import { useAuth } from '@/features/auth/auth-context';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
+import { UnsyncedDailyLogsEntry } from '@/features/daily-logs/components/unsynced-entry';
 import { t } from '@/i18n';
 
 /** Pantalla temporal: confirma que la sesión está activa. Se sustituirá por la Home real. */
@@ -34,6 +35,8 @@ export default function HomeScreen() {
       <FormMessage message={error ? authErrorMessage(error) : null} />
 
       <Button label={t('home.goToPets')} onPress={() => router.push('/pets')} />
+      {/* Registros con cambios solo en el dispositivo, también de mascotas que ya no se ven. */}
+      <UnsyncedDailyLogsEntry />
       <Button
         variant="secondary"
         label={t('home.signOut')}

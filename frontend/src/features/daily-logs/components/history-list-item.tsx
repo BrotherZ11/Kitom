@@ -3,8 +3,10 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { scaleOptionLabel } from '@/features/daily-logs/components/scale-selector';
+import { syncStatusLabel } from '@/features/daily-logs/components/sync-status';
 import { summarizeDailyLog, toDailyLogFormValues } from '@/features/daily-logs/daily-log-form';
 import { formatLogDateLabel } from '@/features/daily-logs/log-date';
+import type { DisplaySyncStatus } from '@/features/daily-logs/offline/daily-log-view';
 import type { DailyLog } from '@/features/daily-logs/types';
 import { useTheme } from '@/hooks/use-theme';
 import { getLocale, t } from '@/i18n';
@@ -14,11 +16,13 @@ type HistoryListItemProps = {
   /** Mostrar el año (registros de otro año). */
   withYear: boolean;
   isToday: boolean;
+  /** Estado de sincronización; solo se muestra si no está sincronizado. */
+  syncStatus?: DisplaySyncStatus;
   onPress: () => void;
 };
 
 /** Un día del historial: la fecha guardada y lo que se indicó, tal cual (sin puntuaciones ni valoraciones). */
-export function HistoryListItem({ log, withYear, isToday, onPress }: HistoryListItemProps) {
+export function HistoryListItem({ log, withYear, isToday, syncStatus, onPress }: HistoryListItemProps) {
   const theme = useTheme();
   const summary = summarizeDailyLog(toDailyLogFormValues(log));
   const dateLabel = formatLogDateLabel(log.log_date, getLocale(), { withYear });
@@ -35,11 +39,13 @@ export function HistoryListItem({ log, withYear, isToday, onPress }: HistoryList
     summary.unusualBehavior ? t('dailyLogs.history.unusualBehavior') : null,
     summary.hasNotes ? t('dailyLogs.history.withNotes') : null,
   ].filter((item): item is string => item !== null);
+  const syncLabel = syncStatus && syncStatus !== 'synced' ? syncStatusLabel(syncStatus) : null;
+  const needsAttention = syncStatus === 'conflict' || syncStatus === 'failed';
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={[title, scales, ...extras].join('. ')}
+      accessibilityLabel={[title, syncLabel, scales, ...extras].filter(Boolean).join('. ')}
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
@@ -47,6 +53,14 @@ export function HistoryListItem({ log, withYear, isToday, onPress }: HistoryList
         pressed && styles.pressed,
       ]}>
       <ThemedText type="smallBold">{title}</ThemedText>
+      {syncLabel ? (
+        <ThemedText
+          type="small"
+          themeColor={needsAttention ? undefined : 'textSecondary'}
+          style={needsAttention ? { color: theme.danger } : undefined}>
+          {syncLabel}
+        </ThemedText>
+      ) : null}
       <ThemedText type="small" themeColor="textSecondary">
         {scales}
       </ThemedText>

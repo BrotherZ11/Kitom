@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Spacing } from '@/constants/theme';
+import { syncStatusLabel } from '@/features/daily-logs/components/sync-status';
 import { toDailyLogError } from '@/features/daily-logs/daily-log-errors';
 import { useDailyLog } from '@/features/daily-logs/hooks/use-daily-log';
 import { useTodayLogDate } from '@/features/daily-logs/hooks/use-today-log-date';
@@ -21,19 +22,26 @@ export function TodayLogCard({ petId, canEdit }: TodayLogCardProps) {
   const router = useRouter();
   const theme = useTheme();
   const logDate = useTodayLogDate();
-  const log = useDailyLog(petId, logDate);
+  // Sin conexión y sin nada guardado no se sabe si hoy hay registro: se muestra el error de red.
+  const { view } = useDailyLog(petId, logDate);
+  const hasLog = view.state === 'ready' && view.content !== null;
 
-  const status = log.isPending
-    ? t('common.loading')
-    : log.isError
-      ? t(`dailyLogs.errors.${toDailyLogError(log.error).code}`)
-      : log.data
-        ? `✓ ${t('dailyLogs.card.todayDone')}`
-        : t('dailyLogs.card.todayEmpty');
+  const status =
+    view.state === 'loading'
+      ? t('common.loading')
+      : view.state === 'error'
+        ? t(`dailyLogs.errors.${toDailyLogError(view.error).code}`)
+        : hasLog
+          ? `✓ ${t('dailyLogs.card.todayDone')}`
+          : t('dailyLogs.card.todayEmpty');
+  const syncLabel =
+    view.state === 'ready' && view.syncStatus && view.syncStatus !== 'synced'
+      ? syncStatusLabel(view.syncStatus)
+      : null;
 
   const actionLabel = !canEdit
     ? t('dailyLogs.card.view')
-    : log.data
+    : hasLog
       ? t('dailyLogs.card.edit')
       : t('dailyLogs.card.create');
 
@@ -43,8 +51,13 @@ export function TodayLogCard({ petId, canEdit }: TodayLogCardProps) {
       <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
         {status}
       </ThemedText>
+      {syncLabel ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {syncLabel}
+        </ThemedText>
+      ) : null}
       <Button
-        variant={canEdit && !log.data ? 'primary' : 'secondary'}
+        variant={canEdit && !hasLog ? 'primary' : 'secondary'}
         label={actionLabel}
         onPress={() => router.push({ pathname: '/pets/[id]/daily-log', params: { id: petId } })}
       />

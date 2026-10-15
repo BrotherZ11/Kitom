@@ -14,7 +14,11 @@ import { useCanEditPet, usePet } from '@/features/pets/hooks/use-pets';
 import { petErrorMessage } from '@/features/pets/pet-errors';
 import { getLocale, t } from '@/i18n';
 
-/** Registro de hoy de una mascota (crear o editar). Solo online en esta fase. */
+/**
+ * Registro de hoy de una mascota (crear o editar). Se guarda en el dispositivo y se sincroniza. Con
+ * conexión espera brevemente a la versión del servidor; sin conexión (o si el servidor tarda)
+ * muestra lo último conocido y, si no hay nada, permite empezarlo.
+ */
 export default function DailyLogScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -22,24 +26,22 @@ export default function DailyLogScreen() {
   const canEdit = useCanEditPet(id);
   // La fecha se fija al abrir: el registro que se está rellenando no cambia de día.
   const logDate = useTodayLogDate({ refreshOnForeground: false });
-  const log = useDailyLog(id, logDate);
+  const { view, refetch } = useDailyLog(id, logDate, { allowOfflineCreate: true, waitForRemote: true });
 
   const content = () => {
-    if (pet.isError) {
+    // Con datos ya cargados (p. ej. al quedarse sin conexión), un error al refrescar no tapa la pantalla.
+    if (pet.isError && pet.data === undefined) {
       return <ErrorState message={petErrorMessage(pet.error)} onRetry={() => pet.refetch()} />;
     }
-    if (canEdit.isError) {
+    if (canEdit.isError && canEdit.data === undefined) {
       return <ErrorState message={petErrorMessage(canEdit.error)} onRetry={() => canEdit.refetch()} />;
     }
-    if (log.isError) {
+    if (view.state === 'error') {
       return (
-        <ErrorState
-          message={t(`dailyLogs.errors.${toDailyLogError(log.error).code}`)}
-          onRetry={() => log.refetch()}
-        />
+        <ErrorState message={t(`dailyLogs.errors.${toDailyLogError(view.error).code}`)} onRetry={refetch} />
       );
     }
-    if (pet.isPending || canEdit.isPending || logDate === null || log.isPending) {
+    if (pet.data === undefined || canEdit.data === undefined || logDate === null || view.state === 'loading') {
       return <LoadingState />;
     }
     if (pet.data === null) {
@@ -59,12 +61,18 @@ export default function DailyLogScreen() {
           <ThemedText themeColor="textSecondary">
             {`${t('dailyLogs.today')} · ${formatLogDateLabel(logDate, getLocale())}`}
           </ThemedText>
+          {view.offline || view.checking ? (
+            <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
+              {t(view.offline ? 'dailyLogs.sync.offline' : 'dailyLogs.sync.notChecked')}
+            </ThemedText>
+          ) : null}
         </View>
         <DailyLogEditor
           key={logDate}
           petId={id}
           logDate={logDate}
-          initialLog={log.data}
+          initialContent={view.content}
+          baseRow={view.baseRow}
           canEdit={canEdit.data}
         />
       </>

@@ -24,7 +24,7 @@ export default function DailyLogEntryScreen() {
   const logDate = parseLogDateParam(date);
   const pet = usePet(id);
   const canEdit = useCanEditPet(id);
-  const log = useDailyLog(id, logDate);
+  const { view, refetch } = useDailyLog(id, logDate, { waitForRemote: true });
 
   const missing = (
     <EmptyState
@@ -36,21 +36,19 @@ export default function DailyLogEntryScreen() {
 
   const content = () => {
     if (logDate === null) return missing;
-    if (pet.isError) {
+    // Con datos ya cargados (p. ej. al quedarse sin conexión), un error al refrescar no tapa la pantalla.
+    if (pet.isError && pet.data === undefined) {
       return <ErrorState message={petErrorMessage(pet.error)} onRetry={() => pet.refetch()} />;
     }
-    if (canEdit.isError) {
+    if (canEdit.isError && canEdit.data === undefined) {
       return <ErrorState message={petErrorMessage(canEdit.error)} onRetry={() => canEdit.refetch()} />;
     }
-    if (log.isError) {
+    if (view.state === 'error') {
       return (
-        <ErrorState
-          message={t(`dailyLogs.errors.${toDailyLogError(log.error).code}`)}
-          onRetry={() => log.refetch()}
-        />
+        <ErrorState message={t(`dailyLogs.errors.${toDailyLogError(view.error).code}`)} onRetry={refetch} />
       );
     }
-    if (pet.isPending || canEdit.isPending || log.isPending) return <LoadingState />;
+    if (pet.data === undefined || canEdit.data === undefined || view.state === 'loading') return <LoadingState />;
     if (pet.data === null) {
       return (
         <EmptyState
@@ -61,23 +59,29 @@ export default function DailyLogEntryScreen() {
       );
     }
 
-    const view = resolveHistoryLogView(log.data, canEdit.data);
-    if (view === 'missing' || !log.data) return missing;
+    const mode = resolveHistoryLogView(view.content, canEdit.data);
+    if (mode === 'missing' || !view.content) return missing;
 
     return (
       <>
         <View style={styles.header}>
           <ThemedText type="subtitle">{pet.data.name}</ThemedText>
           <ThemedText themeColor="textSecondary">
-            {formatLogDateLabel(log.data.log_date, getLocale(), { withYear: true })}
+            {formatLogDateLabel(logDate, getLocale(), { withYear: true })}
           </ThemedText>
+          {view.offline || view.checking ? (
+            <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
+              {t(view.offline ? 'dailyLogs.sync.offline' : 'dailyLogs.sync.notChecked')}
+            </ThemedText>
+          ) : null}
         </View>
         <DailyLogEditor
-          key={log.data.log_date}
+          key={logDate}
           petId={id}
-          logDate={log.data.log_date}
-          initialLog={log.data}
-          canEdit={view === 'editable'}
+          logDate={logDate}
+          initialContent={view.content}
+          baseRow={view.baseRow}
+          canEdit={mode === 'editable'}
         />
       </>
     );

@@ -253,6 +253,48 @@ export const es = {
     notesHint: 'Opcional.',
     save: 'Guardar registro',
     saved: 'Registro guardado.',
+    savedLocally: 'Guardado en este dispositivo.',
+    sync: {
+      synced: 'Sincronizado',
+      pending: 'Pendiente de sincronizar',
+      syncing: 'Sincronizando…',
+      conflict: 'Conflicto pendiente de resolver',
+      failed: 'No se pudo sincronizar',
+      retry: 'Reintentar',
+      offline: 'Sin conexión: se muestran los datos guardados en este dispositivo.',
+      notChecked:
+        'Se muestran los datos guardados en este dispositivo: todavía no se ha podido comprobar la versión del servidor.',
+      kept: 'Tus cambios se conservan en este dispositivo.',
+      reason: {
+        waitingNetwork: 'Se enviará cuando vuelva la conexión.',
+        waitingSession: 'Se enviará cuando la sesión vuelva a estar activa.',
+        retrying: 'El servidor no respondió como se esperaba; se volverá a intentar.',
+        permission: 'Ya no tienes permiso para editar los registros de esta mascota.',
+        date: 'El servidor no acepta la fecha: un registro nuevo solo se puede crear hasta 7 días después de su día.',
+        invalid: 'El servidor rechazó alguno de los datos. Revísalos y guarda de nuevo.',
+        server: 'El servidor no aceptó el cambio tras varios intentos.',
+      },
+      conflictDetail: {
+        notCompared: 'Falta compararlo con la versión del servidor.',
+        deleted: 'Este registro ya no está en el servidor (se eliminó o ya no tienes acceso).',
+        changed: 'Otra persona u otro dispositivo cambió este registro.',
+        fields: 'Datos distintos:',
+      },
+    },
+    newerVersion: {
+      message:
+        'Hay otra versión de este registro (del servidor o de una resolución). Lo que has escrito se mantiene; si lo guardas, podrás comparar las dos versiones.',
+      load: 'Descartar lo que he escrito y cargar esa versión',
+    },
+    unsynced: {
+      title: 'Registros sin sincronizar',
+      none: 'No hay registros pendientes de sincronizar.',
+      some: 'Hay cambios guardados solo en este dispositivo. Revísalos.',
+      open: 'Ver registros sin sincronizar',
+      description:
+        'Cambios guardados en este dispositivo que todavía no están en el servidor. Toca uno para ver sus datos y qué puedes hacer.',
+      unknownPet: 'Mascota no disponible (sin acceso o eliminada)',
+    },
     readOnly: 'Puedes ver este registro, pero no editarlo.',
     emptyReadOnly: 'Todavía no hay registro de hoy.',
     card: {
@@ -275,6 +317,87 @@ export const es = {
       unusualBehavior: 'Algo fuera de lo habitual',
       withNotes: 'Con notas',
     },
+    resolve: {
+      title: 'Resolver conflicto',
+      detailTitle: 'Registro sin sincronizar',
+      open: 'Revisar y resolver',
+      openDetails: 'Ver detalles',
+      kept: 'Tus cambios se han conservado en este dispositivo: no se ha perdido nada. No se guardarán en el servidor hasta que decidas.',
+      keptFailed:
+        'No se ha podido sincronizar este registro. Tus datos siguen guardados en este dispositivo: no se ha perdido nada.',
+      keptPending: 'Tus cambios están guardados en este dispositivo y se enviarán al servidor automáticamente.',
+      nothingToResolve: 'Este registro no tiene cambios pendientes en este dispositivo.',
+      remoteCheck: {
+        offline:
+          'Sin conexión: no se puede comprobar la versión del servidor. Tus datos siguen en este dispositivo y puedes copiarlos abajo. Cuando vuelva la conexión podrás resolver el conflicto.',
+        checking: 'Comprobando la versión del servidor…',
+        failed: 'No se ha podido comprobar la versión del servidor. Tus datos siguen en este dispositivo.',
+      },
+      discardLocal: {
+        title: 'Descartar la copia de este dispositivo',
+        explanation:
+          'Solo se eliminarán los cambios guardados en este dispositivo. No se borrará nada del servidor; si allí existe el registro, permanecerá intacto.',
+        action: 'Descartar la copia de este dispositivo',
+        confirm: 'No se puede deshacer. Si quieres conservar tus datos, cópialos antes desde la lista de arriba.',
+        confirmButton: 'Sí, descartar la copia de este dispositivo',
+      },
+      back: 'Volver al registro',
+      permissionHelp:
+        'Ya no puedes guardar registros de esta mascota, así que tus cambios no se han guardado en el servidor. Siguen en este dispositivo: puedes seleccionarlos abajo y copiarlos.',
+      deletedExplanation:
+        'Este registro ya no está en el servidor: se eliminó o ya no tienes acceso a esta mascota. No se volverá a crear si no lo decides tú.',
+      decision: '¿Qué quieres hacer?',
+      recreate: 'Volver a crearlo con mis datos',
+      save: 'Guardar resolución',
+      differences: 'Datos distintos',
+      mine: 'Tu versión',
+      server: 'Servidor',
+      restSame: 'El resto de los datos coincide.',
+      keepMine: 'Conservar mis cambios',
+      keepServer: 'Conservar los del servidor',
+      combine: 'Combinar',
+      autoMine: 'Se conservan tus cambios en:',
+      autoServer: 'Se aceptan los del servidor en:',
+      autoTags: 'Etiquetas: se juntan las de ambas versiones, sin repetir.',
+      decideFor: 'Elige para',
+      chooseMine: 'Mi versión',
+      chooseServer: 'La del servidor',
+      chooseBoth: 'Conservar ambas y revisar',
+      reviewCombined: 'Revisa el texto combinado',
+      reviewCombinedHint: 'Edítalo si hace falta. Se guardará tal como lo dejes.',
+      result: 'Resultado',
+      localValues: 'Tus datos en este dispositivo',
+      noTags: 'Sin etiquetas',
+      noNotes: 'Sin notas',
+      yes: 'Sí',
+      no: 'No',
+      change: {
+        localOnly: 'Solo lo cambiaste tú.',
+        remoteOnly: 'Solo cambió en el servidor.',
+        conflict: 'Cambió en los dos sitios: tienes que elegir.',
+        merged: 'Cambiaron en los dos sitios; se pueden juntar.',
+      },
+      errors: {
+        incomplete: 'Elige una opción para cada dato en conflicto.',
+        tooLong: 'El texto es demasiado largo. Acórtalo o elige una de las versiones.',
+        empty: 'Con esta combinación el registro quedaría vacío. Elige otra opción.',
+      },
+      outcome: {
+        synced: 'Resolución guardada y sincronizada.',
+        pending:
+          'Resolución guardada en este dispositivo, pero todavía no en el servidor. Se enviará cuando haya conexión.',
+        conflict: 'El registro ha vuelto a cambiar en el servidor. Revisa las diferencias otra vez.',
+        failed: 'El servidor no ha aceptado la resolución. Tus datos siguen en este dispositivo.',
+        unavailable:
+          'No se ha podido comprobar la versión del servidor (sin conexión o sin sesión). No se ha guardado nada.',
+        notInConflict: 'Este registro ya no tiene conflictos.',
+        discarded: 'Se ha descartado la copia de este dispositivo. No se ha borrado nada del servidor.',
+        notDiscardable:
+          'Este registro ya no se puede descartar: no tiene cambios fallidos ni en conflicto (puede que se esté enviando).',
+        remoteUnknown:
+          'Todavía no se conoce la versión del servidor, así que no se puede descartar sin riesgo. Vuelve a intentarlo con conexión.',
+      },
+    },
     entry: {
       title: 'Registro',
       missing: 'No hay registro de este día.',
@@ -290,6 +413,9 @@ export const es = {
         'La descripción de lo que has notado es demasiado larga (máximo 1000 caracteres).',
       invalid_tag: 'Alguna etiqueta no es válida.',
       invalid_value: 'Alguno de los datos no tiene un formato válido.',
+      local_save_failed: 'No se pudo guardar en este dispositivo. Inténtalo de nuevo.',
+      local_read_failed:
+        'No se han podido leer los datos guardados en este dispositivo. Esto no significa que no haya datos: inténtalo de nuevo.',
       unknown: 'Algo ha salido mal. Inténtalo de nuevo.',
     },
   },
