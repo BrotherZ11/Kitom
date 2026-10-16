@@ -51,9 +51,12 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   Fase 6: arranque en frío sin conexión (estado de sesión `offline`: datos locales del usuario de la
   sesión guardada, nada se envía ni se lee del servidor hasta renovarla). Pendiente: Pets offline y la
   limpieza (no automática) de datos locales de cuentas que no vuelven.
-- Diseño v2 (`docs/design/`): **solo diseño, sin implementar**. Tokens, fuentes, iconos de app, barra de
-  pestañas y pantallas nuevas pendientes según `docs/design/PLAN_DESARROLLO.md`; `frontend/assets/brand/`
-  todavía no está enlazado en `app.json`.
+- Diseño v2 (`docs/design/`): implementación en curso por fases (F0–F5, rama `feat/ui-brand-implementation`).
+  F0 (tokens en `frontend/src/theme/`, tema claro/oscuro, fuentes de marca, capa de compatibilidad) y
+  F1 (componentes de `frontend/src/components/ui/`) hechas (`frontend/CLAUDE.md` › «Tema y diseño»).
+  Pendientes: pantallas (F2–F4), barra de pestañas y Hoy (F5) según `docs/design/PLAN_DESARROLLO.md`.
+  `frontend/assets/brand/` todavía no está enlazado en `app.json`: varios PNG de icono están mal
+  rasterizados (franja transparente inferior, favicon y notificación vacíos); pendiente de corregir.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 

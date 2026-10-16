@@ -52,7 +52,7 @@ Kitom acompaña el día a día de una persona y su animal: registrar cómo está
 
 ## Iconografía
 
-- Lucide (lucide-react-native, pendiente de instalar) con trazo 2 px, terminaciones redondas y rejilla de 24. Tamaños `icon-xs` a `icon-lg`; por defecto `icon-md`.
+- Lucide (lucide-react-native) con trazo 2 px, terminaciones redondas y rejilla de 24. Tamaños `icon-xs` a `icon-lg`; por defecto `icon-md`.
 - Iconos fijos: Hoy `home`, Historial `chart-line`, Registrar `plus`, Agenda `calendar`, Perfil `user`, Consultar `camera` (botón de cabecera); urgencias `eye`, `refresh-cw`, `stethoscope`, `triangle-alert`.
 - Un icono nunca va solo si transmite un estado: siempre con texto o `accessibilityLabel`.
 - Nada de huellas, huesos ni siluetas de perro y gato como decoración. El único motivo animal es el símbolo.
@@ -124,5 +124,5 @@ Máximo una notificación de hábito al día; el usuario elige la hora y puede d
 ## Implementación (React Native)
 
 - Tokens en `tokens.ts` (colores claro/oscuro, tipografía, espaciado, radios, bordes, elevación, iconos, tamaños, movimiento y urgencias con su valor de la base de datos). Un ThemeProvider (React Context) elige el tema con `useColorScheme()`.
-- Fuentes con `@expo-google-fonts/hanken-grotesk` e `@expo-google-fonts/ibm-plex-mono` (pendientes de instalar).
+- Fuentes con `@expo-google-fonts/hanken-grotesk` e `@expo-google-fonts/ibm-plex-mono`, cargadas en `frontend/src/theme/fonts.ts`.
 - Los componentes de este sistema son la referencia visual; los estilos web (`bundle.css`) documentan medidas y estados con los mismos tokens.

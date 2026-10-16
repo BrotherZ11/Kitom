@@ -262,5 +262,5 @@ para el veterinario, orientación con todo el historial, idioma inglés, etiquet
 9. **Eliminar cuenta con mascotas**: `delete-account` devuelve 409 `has_pets`; el diálogo explica qué
    pasa, pero falta decidir el flujo (borrar mascotas primero o en cascada).
 10. **Límites del plan gratuito y precios**: marcadores hasta cerrar PRD §10.4 y §14.
-11. **Paquetes pendientes de instalar (requieren permiso)**: `@expo-google-fonts/hanken-grotesk`,
-    `@expo-google-fonts/ibm-plex-mono`, `lucide-react-native` y `react-native-svg`.
+11. **Paquetes**: `@expo-google-fonts/hanken-grotesk`, `@expo-google-fonts/ibm-plex-mono`,
+    `lucide-react-native` y `react-native-svg` instalados (aprobados el 16 oct 2026, fase F0).

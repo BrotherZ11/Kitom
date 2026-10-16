@@ -39,9 +39,7 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   sesión pantalla a pantalla.
 - `src/i18n/` — `t(key)` tipado; `es` y `en` con las mismas claves (`Translations`), idioma activo `es`
   (detección del dispositivo pendiente). Ningún texto visible fuera de `src/i18n/locales/`.
-- `src/components/ui/` — Screen, TextField, Button, FormMessage, OptionGroup y estados
-  Loading/Error/Empty (`query-state.tsx`) (mínimos, no es el design system final). El diseño final
-  (tokens, componentes, pantallas y fases de implementación) está en `docs/design/`; sin implementar.
+- `src/components/ui/` — componentes de marca (F1); lista y reglas en «Tema y diseño» abajo.
 - `src/features/daily-logs/` — registro diario (hoy: ruta `(app)/pets/[id]/daily-log`, tarjeta en la
   ficha). Guardar es local + motor de sincronización (nunca llamar a `save_daily_log` desde pantallas);
   "hoy" solo con `useTodayLogDate`/`log-date.ts`;
@@ -100,6 +98,45 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
   Pendiente: login por teléfono (OTP), cambio de contraseña desde ajustes; en Pets: limpieza de fotos huérfanas,
   archivar (`is_active`), selector de fecha nativo, gestión de co-tutores y límite de mascotas del plan free.
+
+## Tema y diseño (diseño v2, `docs/design/`)
+
+- Referencia: `docs/design/PLAN_DESARROLLO.md` (fases), `PANTALLAS.md` (tablero de cada pantalla),
+  `GUIA-DE-MARCA.md` y `componentes/`. Implementación por fases F0–F5; F0 (base) y F1 (componentes) hechas.
+- `src/theme/tokens.ts` — copia de `docs/design/tokens/tokens.ts` (generado: no editar a mano; se cambia
+  `docs/design/fuente/brand.py`, se regenera y se vuelve a copiar). Colores, tipografía, espaciado,
+  radios, elevación, movimiento y urgencias.
+- `src/theme/theme-provider.tsx` — `AppThemeProvider` (layout raíz): claro/oscuro según el sistema,
+  tema de Expo Router y fondo de la ventana nativa. `useAppTheme()` da `{ scheme, colors }`.
+- `src/theme/fonts.ts` — Hanken Grotesk 400/500/600 e IBM Plex Mono 500, importadas por peso; el
+  layout raíz mantiene el splash hasta que cargan (si fallan, sigue con las del sistema). El peso va en
+  `fontFamily` (tokens), nunca en `fontWeight`.
+- Código nuevo: colores de `useTheme()` por nombre de token (`ink`, `inkMuted`, `primary`, `surface`…),
+  texto con `Text` (`variant` de `typography`), espaciado y radios de los tokens. Ningún color fijo.
+- **Transitorio** (hasta adaptar cada pantalla, F2–F4): `useTheme()` también acepta los nombres
+  anteriores (`text`, `textSecondary`, `tint`, `border`…, mapeados a tokens en `hooks/use-theme.ts`;
+  ninguno puede llamarse como un token: lo comprueba el compilador),
+  `ThemedText` traduce sus `type` a la escala de marca y `constants/theme.ts` conserva `Spacing`. No
+  usarlos en código nuevo; se retiran cuando ninguna pantalla los use.
+- Iconos: Lucide, **solo** desde `@/components/ui/icons` (uno a uno; importar la raíz de
+  `lucide-react-native` mete ~1.900 iconos en el bundle y ESLint lo prohíbe) y con `<Icon>` (trazo 2,
+  `iconSize`, oculto a lectores de pantalla). Gráficas y anillos: `react-native-svg`.
+- Componentes (`src/components/ui/`, fichas en `docs/design/componentes/`): `Text`, `Button` (primary,
+  secondary, ghost, danger, dangerGhost; lg/md/sm; `loading`/`loadingLabel`), `IconButton`, `TextField`
+  (+ `FieldError`), `SegmentedControl`, `Chip`, `OptionGroup` (chips de selección única),
+  `StepSelector`, `Switch`, `Card`, `ListItem`, `Alert`, `Banner`, `Tag`, `Avatar`, `KitomSymbol`,
+  `Skeleton`, `LoadingState`/`ErrorState`/`EmptyState` (`query-state.tsx`), `FormMessage`, `Dialog`,
+  `BottomSheet`, `Toast` (`useToast`, proveedor en el layout raíz) y `Screen` (con `footer` para el
+  botón principal). Cabeceras de `Stack`: `useStackScreenOptions()`. Elevación: `useElevation()`
+  (`boxShadow` en claro, filete en oscuro; nunca `shadow*`).
+- Movimiento: pulsación (`usePressFeedback`, 120 ms) y entradas de superposiciones (`motion.ts`,
+  200 ms); todo con `ReduceMotion.System` o `useReducedMotion`. Sin gestos nuevos (las hojas se cierran
+  con botón, velo o «atrás»). Escrituras de valores compartidos de Reanimated con `.set()` (React
+  Compiler no admite asignar `.value` fuera de worklets).
+- Galería de componentes **solo de desarrollo**: ruta `/dev-components` (`src/app/dev-components.tsx`,
+  protegida con `__DEV__` en el layout raíz). Es la única excepción a «ningún texto fuera de i18n»
+  (contenido de muestra del prototipo, nunca visible para usuarios). Útil para revisar cambios de
+  componentes en dispositivo.
 
 ## Tipos de Supabase
 

@@ -3,6 +3,60 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-16 — Diseño v2, F1: componentes de marca
+
+**Contexto.** F1 crea los componentes compartidos que usarán las pantallas de acceso, mascotas y
+registro. El prototipo (`kitom.css`) y las fichas dan medidas y estados; había que fijar cómo se
+implementan en React Native sin dependencias nuevas.
+
+**Decisión.**
+
+- Solo los componentes con uso previsto en F2–F4 (ver `frontend/CLAUDE.md` › «Tema y diseño»). Quedan
+  para su fase: StreakRing y la animación del punto de hoy (F4/F5), TrendChart, OtpInput, Medal,
+  UrgencyTag. Las APIs de `Button`, `TextField`, `OptionGroup`, `FormMessage` y `query-state` se
+  mantienen (salvo `variant="link"`, que pasa a `ghost`), así las pantallas actuales adoptan el diseño
+  sin reescribirse.
+- Cuando la ficha y el prototipo difieren, manda el prototipo (p. ej. botón deshabilitado sobre fondo
+  hundido, no por opacidad; alertas de información y aviso con los tonos del tablero 0.1).
+- Iconos Lucide importados uno a uno en `components/ui/icons.ts`; ESLint prohíbe la raíz del paquete
+  (Metro no descarta código: serían ~1.900 iconos en el bundle).
+- Sombras como `boxShadow` (nueva arquitectura: iOS, Android y web) generadas desde los tokens de
+  elevación; en oscuro, filete. Las props `shadow*` están obsoletas en web.
+- Superposiciones con `Modal` y entradas de Reanimated (200 ms, `ReduceMotion.System`); sin gestos de
+  arrastre (no aprobados). Toast con proveedor propio en el layout raíz, solo para éxitos.
+- Galería `/dev-components` solo en desarrollo (`Stack.Protected guard={__DEV__}`), única excepción a la
+  regla de i18n.
+
+**Consecuencias.** Las pantallas ya tienen la apariencia básica de marca, pero su composición sigue
+siendo la anterior hasta F2–F4. El nombre de color antiguo `danger` se retiró (tapaba al token en
+oscuro); el compilador impide que otro nombre antiguo coincida con un token.
+
+## 2026-10-16 — Diseño v2, F0: tema por contexto, fuentes de marca y migración por capas
+
+**Contexto.** El frontend usaba la paleta y las fuentes de la plantilla de Expo (`constants/theme.ts`,
+`ThemedText`) en ~30 archivos. El diseño v2 trae tokens generados para React Native y pide adaptar las
+pantallas por fases sin perder funcionalidad.
+
+**Decisión.**
+
+- Tokens copiados tal cual a `frontend/src/theme/tokens.ts` (siguen siendo generados).
+  `AppThemeProvider` (React Context) elige claro/oscuro con `useColorScheme()` y también fija el tema de
+  Expo Router y el fondo de la ventana. La preferencia manual se añadirá con la pantalla de ajustes; no
+  se guarda nada hasta entonces.
+- Fuentes con `@expo-google-fonts/*` importadas por peso (solo los 4 cortes de los tokens) y cargadas
+  en tiempo de ejecución con `useFonts`: funciona en Expo Go, sin build nativo. El splash espera a las
+  fuentes; si fallan, la app arranca con las del sistema.
+- Migración por capas: `useTheme()` y `ThemedText` mantienen su API anterior, pero ya resuelven a
+  tokens; así toda la app cambia de paleta y tipografía a la vez, y cada pantalla pasa a los componentes
+  del diseño en su fase. Se descartó reescribir todas las pantallas de golpe (diff enorme y difícil de
+  revisar, en particular en el código offline de Daily Logs).
+- Dependencias: `react-native-svg` 15.15.4 (la del SDK 57), `lucide-react-native` 1.58 y las dos de
+  fuentes; instaladas con `npx expo install`, sin actualizar nada más.
+
+**Consecuencias.** Hasta terminar F4 conviven los nombres de color antiguos y los tokens; los antiguos
+no se usan en código nuevo y se retiran al final. `ThemedText` limita sus tipos a los usados
+(`default`, `small`, `smallBold`, `subtitle`).
+
 ## 2026-10-16 — Diseño v2: navegación, orden del primer uso y tokens de gráficas
 
 **Contexto.** El diseño completo de la app (`docs/design/`, 90 pantallas) tenía que fijar la barra

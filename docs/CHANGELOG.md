@@ -5,6 +5,21 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-16
 
+- Diseño v2, F1 (componentes): componentes de marca en `src/components/ui/` según los tableros y las
+  fichas de `docs/design/componentes/` (botones, campos, selectores, escala de pasos, interruptor,
+  tarjetas, listas, alertas, bandas, etiquetas, avatar, estados de carga/vacío/error, diálogo, hoja
+  inferior y avisos breves), con claro/oscuro, respuesta al pulsar y respeto a «reducir movimiento».
+  Las pantallas existentes ya usan los nuevos `Button`, `TextField`, `OptionGroup`, `FormMessage`,
+  estados y `Screen`, y cabeceras de marca; sin cambios de comportamiento ni de datos. Galería solo de
+  desarrollo en `/dev-components`. Eliminados `global.css` y `themed-view.tsx` (sin uso). Corregido:
+  en tema oscuro, el color `danger` antiguo tapaba al token `danger`. Decisión en `DECISIONS.md`.
+
+- Diseño v2, F0 (base visual): toda la app usa ya la paleta «Ritmo» (claro y oscuro según el sistema) y
+  las fuentes de marca (Hanken Grotesk e IBM Plex Mono); las cabeceras de navegación y el fondo de la
+  ventana siguen el tema. Nuevos `src/theme/` (tokens, tema, fuentes) y componente `Text`. Dependencias
+  nuevas: `react-native-svg`, `lucide-react-native` y las dos de fuentes. Sin cambios de comportamiento,
+  datos ni BD. Decisión en `DECISIONS.md`.
+
 - Daily Logs offline, fase 6 (arranque en frío sin conexión): abrir la app sin red con la sesión
   caducada ya no lleva al login tras ~25 s de espera: en 4 s como máximo se abre con los datos guardados
   en el dispositivo del usuario de esa sesión y el aviso «Sesión sin comprobar» («Volver a comprobar»).
