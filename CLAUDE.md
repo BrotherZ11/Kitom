@@ -5,6 +5,7 @@ recordatorios, análisis orientativo con IA (foto + síntomas), rachas/logros y 
 Stack: Expo (React Native) + TypeScript + Supabase. Documentación en español; código e identificadores en inglés.
 
 ## Mapa del repo
+
 - `frontend/` — app Expo; único paquete npm del repo. Reglas: `frontend/CLAUDE.md`.
 - `supabase/` — config del CLI y `migrations/` (esquema realmente desplegado). Reglas: `supabase/CLAUDE.md`.
 - `database/v2.2.1/` — SQL de diseño original. **Histórico, solo lectura.**
@@ -12,18 +13,22 @@ Stack: Expo (React Native) + TypeScript + Supabase. Documentación en español; 
   (contrato pantalla ↔ datos/RPC/Storage), `AUTH.md` (Auth, deep links, Google y configuración
   necesaria en Supabase), `SEED.md` (datos de referencia), `DECISIONS.md` (decisiones técnicas), `CHANGELOG_v2.2.1.md` (histórico) y
   `CHANGELOG.md` (cambios actuales).
+- `docs/design/` — diseño de la app (identidad «Ritmo», tokens, componentes, prototipo de 90 pantallas,
+  inventario `PANTALLAS.md` y `PLAN_DESARROLLO.md`). Recursos de marca para la app en `frontend/assets/brand/`.
 
 ## Jerarquía de fuentes de verdad
+
 1. `supabase/migrations/` — lo que existe de verdad en la base de datos.
 2. `docs/FRONTEND_ARCHITECTURE.md` y `docs/README.md` — contrato técnico.
-3. `docs/PRD.md` — alcance y producto. Ante una contradicción técnica (p. ej. §11 modelo de datos,
-   §12 stack), ganan 1–2.
+3. `docs/PRD.md` — alcance y producto; `docs/design/` — diseño de pantallas.
+   Ante una contradicción técnica (p. ej. §11 modelo de datos, §12 stack), ganan 1–2.
 
 Decisiones de stack ya tomadas: **Expo Router + TanStack Query + React Context**. No usar
 react-navigation directamente ni Zustand/Redux, aunque los mencione el PRD.
 Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 
 ## Estado conocido (no asumir que existe)
+
 - `organizations` / `organization_members` / `is_org_member()` (archivo 27 de `database/v2.2.1/`):
   **no desplegados** en el remoto. Fuera del MVP; no crear migración salvo petición expresa.
 - Edge Functions (`ai-analysis-process`, `generate-pet-report`, `delete-account`, `revenuecat-webhook`):
@@ -46,10 +51,14 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   Fase 6: arranque en frío sin conexión (estado de sesión `offline`: datos locales del usuario de la
   sesión guardada, nada se envía ni se lee del servidor hasta renovarla). Pendiente: Pets offline y la
   limpieza (no automática) de datos locales de cuentas que no vuelven.
+- Diseño v2 (`docs/design/`): **solo diseño, sin implementar**. Tokens, fuentes, iconos de app, barra de
+  pestañas y pantallas nuevas pendientes según `docs/design/PLAN_DESARROLLO.md`; `frontend/assets/brand/`
+  todavía no está enlazado en `app.json`.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 
 ## Reglas absolutas
+
 - **Remoto (`kitom-dev`)**: ninguna operación contra el proyecto remoto sin aprobación explícita del
   usuario, y nunca operaciones destructivas. `db push` está bloqueado: lo ejecuta el usuario.
   Prohibido también `migration repair|squash`, `link|unlink`, `config push`, `functions deploy|delete`,
@@ -65,6 +74,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - No borrar archivos ni ejecutar `npm run reset-project` sin permiso.
 
 ## Comandos
+
 - Desde `frontend/`: `npx expo start` · `npx expo lint` · `npx tsc --noEmit` · `npx expo-doctor` · `npm test`
   · `npm run test:integration` (solo contra el Supabase local; se niega si la URL no es local)
 - Pruebas de BD (solo local): `supabase/tests/database/*.test.sql` (pgTAP) y
@@ -73,10 +83,12 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - Entorno Windows: hay herramientas Bash y PowerShell; las restricciones de `.claude/settings.json` cubren ambas.
 
 ## Definición de "terminado"
+
 `npx expo lint` y `npx tsc --noEmit` sin errores · sin secretos en el diff · docs actualizados si
 cambia un contrato (RPC, tabla, código de error, ruta de Storage).
 
 ## Estructura y documentación
+
 - Mantener el repositorio limpio, coherente y documentado como parte de cada tarea; colocar los
   archivos nuevos en la ubicación arquitectónicamente correcta y reutilizar documentación existente
   en vez de duplicar contenido.
@@ -91,6 +103,7 @@ cambia un contrato (RPC, tabla, código de error, ruta de Storage).
   qué.
 
 ## Git
+
 - `main` siempre estable; no se trabaja directamente sobre ella.
 - Ramas: `feat/…`, `fix/…`, `chore/…`, `docs/…`, `db/…`.
 - Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `db:`.
@@ -98,6 +111,7 @@ cambia un contrato (RPC, tabla, código de error, ruta de Storage).
   nunca mezclados con UI.
 
 ## Reglas de dominio que no se pueden romper
+
 - Kitom NO diagnostica. Prohibido "diagnóstico"/"diagnostica" en copy; usar "orientación",
   "posibles causas", "señales de alerta". Disclaimer visible en cada resultado de IA.
 - Las llamadas al proveedor de IA solo desde Edge Functions, nunca desde el cliente.

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Función de Premium</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div style="padding: 58px 20px 0; opacity: .5" aria-hidden="true"><p class="t1">Kika</p></div>
+  <div class="scrim">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh" style="max-height: 460px; display: flex; flex-direction: column">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="between" style="padding: 8px 12px 0 20px">
+        <h1 id="sh" class="t2">Más mascotas, con Premium</h1>
+        <a class="ib" href="PerfilMascota.dc.html" aria-label="Cerrar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+      </div>
+      <div class="col" style="gap: 16px; padding: 12px 20px 16px; overflow: auto">
+        
+        <p class="muted">En el plan gratuito cuidas de una mascota. Con Premium puedes añadir a Atom y a todas las que quieras, cada una con su historial.</p>
+        <div class="row" style="gap: 0"><div class="av s64 warm" style="box-shadow: 0 0 0 4px var(--raised)">K</div><div class="av s64" style="margin-left: -12px; box-shadow: 0 0 0 4px var(--raised)">A</div><div class="av s64" style="margin-left: -12px; background: var(--sunken); color: var(--muted); box-shadow: 0 0 0 4px var(--raised)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></div></div>
+      </div>
+      <div style="padding: 8px 20px 34px; display: flex; flex-direction: column; gap: 10px"><a class="btn primary" href="Premium.dc.html">Ver Kitom Premium</a><a class="btn ghost md" href="PerfilMascota.dc.html">Ahora no</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

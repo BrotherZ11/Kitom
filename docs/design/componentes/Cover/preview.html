@@ -1,0 +1,25 @@
+<!-- @dsCard height=288 -->
+<div class="cv">
+<svg class="cv-art" viewBox="0 0 960 288" aria-hidden="true">
+<!-- blocks: laguna-600 slab 272x224 (radius-lg), laguna-100 128x136, arena-300 128x120, sol-500 disc r24 (= punto de hoy)
+     arrangement: one tall slab bleeding off the top with two satellites stacked on the right edge, the sun disc low-left
+     pattern: literal motif, the week ring (six days + today) drawn as six arcs on the slab, because the ring is Kitom's habit language
+     steps: gaps space-4 (16), radii radius-lg (18), arc stroke space-4 + 2 -->
+<rect class="b1" x="560" y="-18" width="256" height="240" rx="18"/>
+<rect class="b2" x="832" y="-18" width="128" height="154" rx="18"/>
+<rect class="b3" x="832" y="152" width="128" height="136" rx="18"/>
+<circle class="b4" cx="520" cy="244" r="24"/>
+<g fill="none" stroke-width="18" stroke-linecap="round"><path class="arc" d="M702.7 34.3A70 70 0 0 1 746.3 55.3"/><path class="arc" d="M754.7 65.8A70 70 0 0 1 765.4 113.0"/><path class="arc" d="M762.4 126.0A70 70 0 0 1 732.3 163.9"/><path class="arc" d="M720.2 169.7A70 70 0 0 1 671.8 169.7"/><path class="arc" d="M659.7 163.9A70 70 0 0 1 629.6 126.0"/><path class="arc" d="M626.6 113.0A70 70 0 0 1 637.3 65.8"/></g>
+<circle class="b4" cx="665.6" cy="40.9" r="13"/>
+</svg>
+<div class="cv-text"><div class="cv-name">Kitom</div><div class="cv-tag">Cuidar bien es una suma de días.</div></div>
+</div>
+<style>
+.cv{position:relative;width:960px;height:288px;background:var(--bg);overflow:hidden;font-family:var(--font-sans)}
+.cv-art{position:absolute;inset:0;width:960px;height:288px}
+.b1{fill:var(--laguna-600)}.b2{fill:var(--laguna-100)}.b3{fill:var(--arena-300)}.b4{fill:var(--sol-500)}
+.arc{stroke:var(--laguna-100)}
+.cv-text{position:absolute;left:40px;bottom:36px;max-width:440px}
+.cv-name{font-size:120px;line-height:.92;font-weight:600;letter-spacing:-.04em;color:var(--ink)}
+.cv-tag{font-size:14px;line-height:20px;color:var(--ink-muted);margin-top:16px}
+</style>

@@ -34,6 +34,10 @@ APP (tabs, sesión activa, onboarding completo)
 └── Paywall                (modal, no tab — se abre desde cualquier punto bloqueado)
 ```
 
+Destinos lógicos. La barra inferior del diseño v2 (Hoy · Historial · Registrar · Agenda · Perfil, con
+«Registrar» como acción central y la orientación con IA fuera de las pestañas) está en
+`docs/design/PANTALLAS.md` §1 y `docs/DECISIONS.md` (2026-10-16); todavía no está implementada.
+
 ## 2. Estados de Auth
 
 **Implementado (sesión):** `loading` → `signed_in` | `offline` | `signed_out` (`features/auth/auth-state.ts`).

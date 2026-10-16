@@ -3,6 +3,31 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-16 — Diseño v2: navegación, orden del primer uso y tokens de gráficas
+
+**Contexto.** El diseño completo de la app (`docs/design/`, 90 pantallas) tenía que fijar la barra
+inferior, dónde vive la orientación con IA y el orden del primer uso. David delegó la elección de la
+barra («usa la que creas que es mejor»).
+
+**Decisión.**
+
+- Barra: Hoy · Historial · Registrar · Agenda · Perfil. «Registrar» es una acción central que abre el
+  registro de hoy a pantalla completa, no un destino. Se descartó «Consultar» como pestaña: el PRD v2
+  pone el hábito diario en el centro y la IA como paridad; «Consultar» va en la cabecera de Hoy, en
+  las señales, en Alertas y en el perfil de la mascota. «Tendencias» pasa a llamarse «Historial».
+- Primer uso: bienvenida → cómo funciona → cuenta → verificación → perfil → aviso veterinario →
+  privacidad → primera mascota → recordatorio diario → permiso de avisos → primer registro. El aviso
+  va después de la cuenta porque se guarda en `profiles.disclaimer_accepted_at` (coincide con
+  `FRONTEND_ARCHITECTURE.md` §1).
+- Gráficas: cinco series con dos tokens nuevos, `chartActivity` (#6B7A1F / #B9C46A) y `chartSleep`
+  (#7B5EA7 / #C2A8E8), contraste ≥ 4,5:1 sobre el fondo claro y oscuro de las tarjetas; máximo tres
+  series a la vez y trazo distinto por serie para no depender del color.
+- Tema y voz de la mascota: preferencias locales del dispositivo (no hay columnas).
+
+**Consecuencias.** `FRONTEND_ARCHITECTURE.md` §1 describe destinos lógicos; la barra concreta está en
+`docs/design/PANTALLAS.md` §1. Las diferencias del diseño con la BD están en `PANTALLAS.md` §6 y no se
+implementan sin decisión o migración aprobada.
+
 ## 2026-10-16 — Daily logs offline, fase 6: arranque en frío sin conexión
 
 **Contexto.** Con el token de acceso caducado y sin red, supabase-js 2.117 reintenta la renovación ~25 s,
@@ -12,6 +37,7 @@ sesión, cada petición de datos espera a la inicialización de supabase-js y, s
 peticiones salían como `anon` (RLS devuelve «vacío», que podía pisar la copia local).
 
 **Decisión.**
+
 - Estado explícito `offline` (`auth-state.ts`): la sesión sigue guardada y su usuario se identifica en
   local (forma de la sesión y `sub` del JWT = `user.id`); se abre su almacén y nada más. Un
   `INITIAL_SESSION` sin sesión solo es cierre si el almacenamiento ya no la tiene. Tope de arranque de
@@ -30,6 +56,7 @@ peticiones salían como `anon` (RLS devuelve «vacío», que podía pisar la cop
   dispositivo». Con el permiso desconocido se permite editar (RLS decide al sincronizar).
 
 **Consecuencias.**
+
 - Tras recuperar la red, la sesión puede tardar hasta ~60-90 s en renovarse (margen de supabase-js +
   reintento cada 30 s); hasta entonces no se sincroniza nada.
 - Un arranque lento con red (renovación de más de 4 s) abre la app en `offline` unos segundos.
@@ -48,6 +75,7 @@ del servidor sin usuario, respuestas tardías que podían escribir en la caché 
 el desmontaje, y cerrar sesión sin avisar de los cambios que solo están en el dispositivo.
 
 **Decisión.**
+
 - Cada petición del motor lleva el token de la sesión del dueño, comprobado (sesión y `sub` del JWT)
   justo antes de enviarla y fijado en `Authorization`; sin él, no sale (401 local
   `owner_session_required`, política `wait_for_auth`). Se descartó un cliente de Supabase por usuario
@@ -64,6 +92,7 @@ el desmontaje, y cerrar sesión sin avisar de los cambios que solo están en el 
   desconocida.
 
 **Consecuencias.**
+
 - Una cuenta que no vuelve a entrar deja sus datos en el dispositivo (sin cifrar) indefinidamente;
   limpiarlos exige una decisión de producto (p. ej. al borrar la cuenta o con confirmación explícita).
 - Una sesión caducada o revocada sale sin pantalla de decisión (no queda sesión con la que preguntar):
@@ -81,6 +110,7 @@ podía descartar, que los pendientes de una mascota sin acceso quedaban inalcanz
 reenviaba en cada disparador.
 
 **Decisión.**
+
 - Versiones comparadas como instantes con microsegundos (sin `Date`) y marca de lectura en el almacén:
   una respuesta tardía solo se acepta si es estrictamente posterior. Las queries del servidor leen a
   través del almacén y la query del día descarta filas anteriores dentro de la escritura de TanStack.
@@ -95,6 +125,7 @@ reenviaba en cada disparador.
 - Tras un 401 solo una sesión nueva o renovada desbloquea el envío.
 
 **Consecuencias.**
+
 - La base de la precondición solo avanza con contenido idéntico o sin cambios del usuario; el resto de
   casos acaba en conflicto explícito, nunca en un pisado.
 - La caché del historial espera a que cada fila pase por el almacén (algunas lecturas locales más por
@@ -110,6 +141,7 @@ resolverlos. Además había que revisar la recuperación ante errores y una ejec
 quedó colgada.
 
 **Decisión.**
+
 - Pantalla propia de resolución (ruta `daily-logs/resolve/[date]`), no un diálogo: necesita espacio
   para comparar dato a dato y es accesible desde el estado de sincronización del formulario.
 - Tres decisiones: mis cambios, los del servidor o combinar (automático solo lo que cambió un único
@@ -126,6 +158,7 @@ quedó colgada.
   cuelgue falla en vez de bloquear la ejecución.
 
 **Consecuencias.**
+
 - El cuelgue observado en la fase 2 (una ejecución bajo un código mutado a propósito) no se reprodujo
   en 28 repeticiones con las mismas condiciones; se cubren sus causas posibles con lo anterior.
 - Descartar cambios locales solo existe para registros que ya no están en el servidor.
@@ -137,6 +170,7 @@ quedó colgada.
 el dispositivo desde el formulario y enviar al servidor sin perder ni pisar datos.
 
 **Decisión.**
+
 - Guardar es siempre local: la mutación de TanStack solo escribe en el dispositivo y el envío lo hace
   un motor propio. Así ninguna petición de red queda en pausa en TanStack para enviarse sola después
   (era el riesgo en web, comprobado el 2026-10-13). `networkMode: 'always'` solo en esa mutación; el
@@ -161,6 +195,7 @@ el dispositivo desde el formulario y enviar al servidor sin perder ni pisar dato
   (`scripts/test-integration.mjs`), que se niega a ejecutarse si la URL no es local.
 
 **Consecuencias.**
+
 - Los datos locales de un usuario quedan en el dispositivo al cambiar de cuenta (aislados por clave);
   limpiarlos y cerrar sesión con pendientes quedan para otra fase.
 - Un conflicto necesita al usuario; en esta fase solo se muestra y se puede volver a comprobar.
@@ -174,6 +209,7 @@ guardan los datos, qué forma tiene un registro pendiente y qué pasa cuando el 
 versión. Esta fase no conecta nada a las pantallas ni envía operaciones.
 
 **Decisión.**
+
 - Almacén: AsyncStorage detrás de una interfaz propia (`KeyValueStorage`), con una clave por
   registro (`kitom:v1:<userId>:daily-logs:<petId>:<logDate>`) y un sobre con versión por colección.
   Se descartó guardar la cola en una sola clave (cada edición reescribiría todo y un fallo la
@@ -214,6 +250,7 @@ versión. Esta fase no conecta nada a las pantallas ni envía operaciones.
   Node sin compilar); `allowImportingTsExtensions` en `tsconfig.json`.
 
 **Consecuencias.**
+
 - `expo-network` tiene código nativo: hace falta un development build nuevo (Expo Go ya lo incluye).
 - Pendiente de decidir en la fase 2: en **web**, con el navegador sin conexión, TanStack Query ya
   pausaba las mutaciones y las enviaba al reconectar (comportamiento anterior, sin tocar); para
@@ -236,6 +273,7 @@ pisa al primero sin avisar (reproducido en la app web). Leer y luego guardar des
 arregla: entre las dos llamadas puede entrar otro guardado.
 
 **Decisión** (migración `20261010160332_daily_logs_concurrency.sql`; solo cambia la función).
+
 - Dos precondiciones opcionales: `p_expected_updated_at` (editar solo la versión leída) y
   `p_expect_absent` (crear solo si no existe). Son excluyentes (`22023` si llegan las dos).
 - La versión es `daily_logs.updated_at`: ya existe, ya la devuelve la RPC y la mantiene un trigger.
@@ -259,6 +297,7 @@ arregla: entre las dos llamadas puede entrar otro guardado.
   reintento recibe conflicto y el cliente compara el contenido remoto con el enviado.
 
 **Consecuencias.**
+
 - Transición: sin precondiciones la RPC se comporta como antes (gana el último guardado y puede
   pisar en silencio otro guardado). Es lo que envía el frontend actual. **No se usa para la
   sincronización offline**: cada operación de la cola envía una precondición. Cuando no queden
@@ -279,6 +318,7 @@ arregla: entre las dos llamadas puede entrar otro guardado.
 ## 2026-10-09 — Historial de Daily Logs: cursor sobre log_date, carga progresiva y edición en el mismo formulario
 
 **Decisión.**
+
 - Paginación por cursor (keyset) sobre `log_date`, no por `offset`: `log_date` es único por mascota y
   está indexado (`UNIQUE (pet_id, log_date)`), y el cursor no se desplaza si se guarda un registro nuevo
   mientras se navega. 20 registros por página; se pide uno de más para saber si hay otra página sin
@@ -302,6 +342,7 @@ virtualizada.
 ## 2026-10-08 — Daily Logs frontend (fase 1): registro de hoy, online
 
 **Decisión.**
+
 - "Hoy" se calcula solo en `features/daily-logs/log-date.ts`: día del calendario con `Intl` en la zona
   del perfil → dispositivo → `UTC`. Nunca `toISOString()` (en Madrid daría el día siguiente entre las
   00:00 y las 02:00). La pantalla fija la fecha al abrirse para que el registro en curso no cambie de
@@ -329,6 +370,7 @@ app no podía inicializarla sin pisar una elección real. Además `pg_timezone_n
 y alias (`CET`, `GMT+0`, `EST5EDT`, `posix/…`), en contra del contrato documentado.
 
 **Decisión** (migración `20261008155257_profile_timezone.sql`; sin columna nueva).
+
 - `timezone` admite `NULL` y no tiene default. `NULL` = sin configurar; el servidor sigue usando `UTC`
   donde necesita un "hoy" (`coalesce`, sin cambios en `daily_logs`).
 - Los `'UTC'` existentes pasan a `NULL`: siempre eran el default (no hay pantalla para elegirla).
@@ -336,7 +378,7 @@ y alias (`CET`, `GMT+0`, `EST5EDT`, `posix/…`), en contra del contrato documen
   `pg_timezone_names`, y solo valida cuando el valor cambia (guardar lo mismo es un no-op y un valor
   heredado no bloquea editar el resto del perfil). La app aplica la misma regla, más `Intl`.
 - Inicialización en la app: una vez por usuario y arranque, `update … where id = $user and timezone
-  is null`. La condición en la propia consulta hace el guardado atómico e idempotente y garantiza que
+is null`. La condición en la propia consulta hace el guardado atómico e idempotente y garantiza que
   nunca se sobrescribe un valor existente (sin leer antes). Si no hay zona válida o falla, no se hace
   nada y la app sigue.
 - Detección con `Intl.DateTimeFormat().resolvedOptions().timeZone`, sin dependencias nuevas
@@ -355,6 +397,7 @@ sobre columnas inmutables, y borrar una mascota con 2+ registros violaba la FK d
 trigger de rachas recalculaba durante la cascada).
 
 **Decisión** (migración `20261008150202_daily_logs_fixes.sql`).
+
 - Un único registro por mascota y día (`UNIQUE (pet_id, log_date)`): es el estado general del día, la
   clave natural sirve de idempotencia offline y el cliente no envía `id`. Sin síntomas en el MVP: son
   del flujo de IA (PRD §8.4) y no se crea `daily_log_symptoms`.
@@ -397,6 +440,7 @@ existían. Las políticas llaman a `safe_pet_id_from_path`, cuyo EXECUTE estaba 
 `authenticated`, así que ninguna operación de Storage podía funcionar.
 
 **Decisión.**
+
 - Migración mínima `20261007182429_grant_safe_pet_id_from_path.sql`: solo `grant execute` a
   `authenticated`. Sin cambiar políticas ni buckets; la autorización sigue en `can_edit_pet` /
   `is_pet_member`.
@@ -420,7 +464,8 @@ una limpieza en backend. En web solo se ofrece la galería. Contrato: `FRONTEND_
 ## 2026-10-07 — Razas en el frontend: pregunta progresiva y payload siempre coherente
 
 **Decisión.**
-- La raza se pregunta en dos pasos: estado (*Con raza* / *Mestizo* / *Sin raza*) y, solo con raza,
+
+- La raza se pregunta en dos pasos: estado (_Con raza_ / _Mestizo_ / _Sin raza_) y, solo con raza,
   buscador del catálogo (nombre y alias, sin tildes) u «Otra / no aparece» (texto libre). Sin elegir
   nada queda `breed_status = NULL`; «Prefiero no indicarlo ahora» vuelve a ese estado. Nunca se
   convierte «sin contestar» en `unknown`.
@@ -437,6 +482,7 @@ una limpieza en backend. En web solo se ofrece la galería. Contrato: `FRONTEND_
 «mestizo», ni relacionar la raza con conocimiento clínico, ni impedir una raza de otra especie.
 
 **Decisión** (migración `20261007152630_breeds.sql`).
+
 - Tabla `breeds` ligada a `species` (`UNIQUE (species_id, code)`); nombres y alias en
   `catalog_translations` (`entity_type = 'breed'`), sin sistema de traducciones paralelo.
 - `pets.breed_id` nullable y `pets.breed_status` (`known | mixed | unknown`, `NULL` = no preguntado).
@@ -461,6 +507,7 @@ en tres capas de BD: GRANT por columna (sin UPDATE de `owner_id`), RLS (`is_pet_
 `validate_pet_birth_date`).
 
 **Decisión.**
+
 - Las lecturas no filtran por `owner_id`: RLS devuelve propias y compartidas.
 - Corrección (migración `20261007172110`): la política SELECT pasa a ser
   `owner_id = auth.uid() OR is_pet_member(id)`. Con solo `is_pet_member(id)`, `INSERT … RETURNING`

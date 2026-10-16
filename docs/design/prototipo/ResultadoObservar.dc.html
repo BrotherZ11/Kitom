@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Orientación · Observar</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Home.dc.html" aria-label="Cerrar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a><span class="strong">Orientación para Kika</span><span class="cap muted" style="width: 44px; text-align: right">16 oct</span></div>
+    <div class="lvl observe" role="status">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      <div class="col" style="gap: 4px"><p class="over" style="color: inherit">Observar</p><p class="t3">Vigila cómo camina estos días</p><p class="body">No parece urgente. Anota en el registro si la cojera va a menos.</p></div>
+    </div>
+    <div class="col" style="gap: 10px"><h2 class="t3">Posibles causas</h2><div class="list"><div class="li"><span class="grow">Un tirón o un golpe leve en el paseo</span><span class="tag neutral">Más probable</span></div><div class="li"><span class="grow">Algo clavado en la almohadilla</span><span class="tag neutral">Posible</span></div><div class="li"><span class="grow">Una uña rota</span><span class="tag neutral">Posible</span></div></div></div>
+    <div class="col" style="gap: 10px"><h2 class="t3">Qué puedes hacer</h2><ul class="ul"><li>Revisa la almohadilla y entre los dedos con buena luz.</li><li>Paseos cortos y tranquilos durante dos días.</li><li>Anota cada día cómo la ves.</li></ul></div>
+    <div class="card warm" style="gap: 8px; color: var(--ink)"><p class="strong">Consulta a tu veterinario si…</p><ul class="ul"><li>La cojera dura más de 3 días o va a más.</li><li>No apoya la pata o le duele al tocarla.</li><li>Ves hinchazón o sangre.</li></ul></div>
+    <p class="cap muted">Sin foto. Hemos tenido en cuenta que su actividad ha sido la habitual.</p>
+    <div class="col" style="gap: 10px">
+      <p class="strong" id="fb">¿Te ha sido útil?</p>
+      <div class="row" role="group" aria-labelledby="fb" style="gap: 8px">
+        <button class="{{yesCls}}" aria-pressed="{{yes}}" onClick="{{pickYes}}">Sí</button>
+        <button class="{{noCls}}" aria-pressed="{{no}}" onClick="{{pickNo}}">No</button>
+      </div>
+      <sc-if value="{{askWhy}}" hint-placeholder-val="{{ false }}"><textarea class="input" aria-label="Qué ha faltado (opcional)" placeholder="¿Qué ha faltado? (opcional)"></textarea></sc-if>
+      <sc-if value="{{answered}}" hint-placeholder-val="{{ false }}"><p class="cap muted">Gracias. Nos ayuda a mejorar las orientaciones.</p></sc-if>
+    </div>
+    <div class="alert info" role="note"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg><div>Esta orientación es informativa y no sustituye a un veterinario.</div></div>
+  </div>
+  <div class="foot"><a class="btn secondary" href="Home.dc.html">Volver al inicio</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"fb": null};
+  }
+  renderVals() {
+    const fb = this.state.fb;
+    return { yes: fb === 'yes', no: fb === 'no', answered: fb !== null, askWhy: fb === 'no',
+      yesCls: fb === 'yes' ? 'fb on' : 'fb', noCls: fb === 'no' ? 'fb on' : 'fb',
+      pickYes: () => this.setState({ fb: 'yes' }), pickNo: () => this.setState({ fb: 'no' }) };
+  }
+}
+</script>
+</body>
+</html>

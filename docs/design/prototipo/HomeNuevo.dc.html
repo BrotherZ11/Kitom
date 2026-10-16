@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Hoy · usuario nuevo</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="row" href="SelectorMascota.dc.html" style="gap: 12px; text-decoration: none; color: inherit" aria-label="Cambiar de mascota. Ahora: Kika"><div class="av s40 warm">K</div><div class="col" style="gap: 0"><span class="over">Jueves 16 oct</span><span class="t3 row" style="gap: 4px">Kika<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--muted)"><path d="m6 9 6 6 6-6"></path></svg></span></div></a><a class="btn secondary sm" href="ConsultaIntro.dc.html" aria-label="Consultar con una foto"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>Consultar</a></div>
+    <p class="t2" style="margin-top: -4px">Hola, David</p>
+    <div class="card" style="padding: 20px; gap: 16px">
+      <div class="row" style="gap: 16px; align-items: center">
+        <svg class="ring" width="104" height="104" viewBox="0 0 64 64" role="img" aria-label="Semana vacía; hoy pendiente"><g stroke-width="5.5"><path class="off" d="M34.11 10.10A22 22 0 0 1 47.81 16.70"></path><path class="off" d="M50.44 19.99A22 22 0 0 1 53.82 34.82"></path><path class="off" d="M52.88 38.93A22 22 0 0 1 43.40 50.82"></path><path class="off" d="M39.60 52.64A22 22 0 0 1 24.40 52.64"></path><path class="off" d="M20.60 50.82A22 22 0 0 1 11.12 38.93"></path><path class="off" d="M10.18 34.82A22 22 0 0 1 13.56 19.99"></path></g><circle class="today pending" cx="22.45" cy="12.18" r="3.8"></circle><text x="32" y="35" text-anchor="middle" font-size="10">0/7</text></svg>
+        <div class="col grow" style="gap: 4px"><h1 class="t2">Empieza la semana de Kika</h1><p class="muted">Su primer registro, en unos 40 segundos.</p></div>
+      </div>
+      <a class="btn primary" href="Registro.dc.html">Hacer el primer registro</a>
+    </div>
+    <div class="card flat" style="gap: 10px">
+      <div class="between"><p class="strong">Así verás su evolución</p><span class="data muted">0/3</span></div>
+      <div class="bar" aria-hidden="true"><i style="width: 0%"></i></div>
+      <p class="cap muted">Con 3 registros empezarás a ver sus tendencias. Con unas semanas, Kitom sabrá qué es lo normal en Kika.</p>
+    </div>
+    <div class="col" style="gap: 10px">
+      <div class="between"><h2 class="t3">Próximo</h2><a class="link" href="Agenda.dc.html" style="font-size: 14px">Ver agenda</a></div>
+      <a class="card flat" href="Recordatorio.dc.html" style="flex-direction: row; align-items: center; gap: 12px; text-decoration: none; color: inherit">
+        <span class="ico" style="width: 36px; height: 36px; border-radius: 10px; background: var(--sunken); color: var(--muted); display: flex; align-items: center; justify-content: center; flex: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span>
+        <span class="col grow" style="gap: 0"><span>Su agenda está vacía.</span><span class="cap muted">Añade una vacuna, una cita o su medicación.</span></span>
+        <span class="link" style="font-size: 14px">Añadir</span>
+      </a>
+    </div>
+  </div>
+  <nav class="tabbar" aria-label="Principal">
+    <a class="tab on" href="Home.dc.html" aria-current="page"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span>Hoy</a>
+    <a class="tab" href="Tendencias.dc.html"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg></span>Historial</a>
+    <a class="tab act" href="Registro.dc.html" aria-label="Registrar el día de Kika. Pendiente"><span class="fab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><i></i></span>Registrar</a>
+    <a class="tab" href="Agenda.dc.html"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span>Agenda</a>
+    <a class="tab" href="PerfilMascota.dc.html"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span>Perfil</a>
+    </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mascota creada</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="align-items: center; text-align: center; padding-top: 96px">
+    <div style="position: relative; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center">
+      <div style="position: absolute; inset: 0"><svg class="ring" width="200" height="200" viewBox="0 0 64 64" role="img" aria-label="Semana vacía; hoy pendiente"><g stroke-width="3.2"><path class="off" d="M34.11 10.10A22 22 0 0 1 47.81 16.70"></path><path class="off" d="M50.44 19.99A22 22 0 0 1 53.82 34.82"></path><path class="off" d="M52.88 38.93A22 22 0 0 1 43.40 50.82"></path><path class="off" d="M39.60 52.64A22 22 0 0 1 24.40 52.64"></path><path class="off" d="M20.60 50.82A22 22 0 0 1 11.12 38.93"></path><path class="off" d="M10.18 34.82A22 22 0 0 1 13.56 19.99"></path></g><circle class="today pending" cx="22.45" cy="12.18" r="3.8"></circle></svg></div>
+      <div class="av s96 warm" style="width: 104px; height: 104px; font-size: 40px">K</div>
+    </div>
+    <div class="col" style="gap: 8px; align-items: center">
+      <h1 class="t1">Kika ya está en Kitom</h1>
+      <p class="blg muted" style="max-width: 300px">Su semana empieza hoy. Cada registro completa un tramo del anillo.</p>
+    </div>
+    <div class="card" style="width: 100%; text-align: left">
+      <div class="between">
+        <div class="col" style="gap: 2px"><p class="strong" id="rd">Recordatorio diario</p><p class="cap muted">Una notificación al día, a la hora que elijas.</p></div>
+        <button class="swbtn" role="switch" aria-checked="{{on}}" aria-labelledby="rd" onClick="{{toggle}}"><span class="{{onCls}}"></span></button>
+      </div>
+      <sc-if value="{{on}}" hint-placeholder-val="{{ true }}">
+        <div class="chips" role="radiogroup" aria-label="Hora del recordatorio">
+          <sc-for list="{{hours}}" as="h" hint-placeholder-count="4">
+            <button class="{{h.cls}}" role="radio" aria-checked="{{h.on}}" onClick="{{h.pick}}">{{h.label}}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  <div class="foot">
+    <a class="btn primary" href="{{next}}">Hacer su primer registro</a>
+    <a class="btn ghost md" href="HomeNuevo.dc.html">Ir al inicio</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"on": true, "h": "20:00"};
+  }
+  renderVals() {
+    const on = this.state.on;
+    return {
+      on, onCls: on ? 'switch on' : 'switch', toggle: () => this.setState({ on: !on }),
+      next: on ? 'PermisoAvisos.dc.html' : 'Registro.dc.html',
+      hours: ['09:00', '14:00', '20:00', 'Otra'].map((x) => ({ label: x, on: this.state.h === x,
+        cls: this.state.h === x ? 'chip on' : 'chip', pick: () => this.setState({ h: x }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

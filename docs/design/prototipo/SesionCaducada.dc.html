@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Sesión caducada</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div style="padding: 58px 20px 0; opacity: .5" aria-hidden="true"><p class="t1">Hoy</p></div>
+  <div class="scrim center">
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dl" aria-describedby="dl-d">
+      <div class="av s40" style="border-radius: 12px; background: var(--brand); color: var(--primary)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
+      <div class="col" style="gap: 6px">
+        <h1 id="dl" class="t2">Vuelve a entrar</h1>
+        <p id="dl-d" class="muted">Tu sesión ha caducado por seguridad. Lo que no se haya subido sigue guardado en este móvil.</p>
+      </div>
+      
+      <div class="col" style="gap: 10px"><a class="btn primary" href="Login.dc.html" autofocus>Entrar de nuevo</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

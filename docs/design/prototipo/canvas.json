@@ -1,0 +1,1129 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-16T09:20:00Z"
+ },
+ "title": "Kitom · Prototipo",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Componentes.dc.html": {
+   "x": 0,
+   "y": 300,
+   "w": 1280,
+   "h": 2140,
+   "title": "0.1 Componentes y estados",
+   "is_interactive": true,
+   "radius": 0
+  },
+  "Mapa.dc.html": {
+   "x": 1360,
+   "y": 300,
+   "w": 1280,
+   "h": 2000,
+   "title": "0.2 Mapa de navegación",
+   "is_interactive": true,
+   "radius": 0
+  },
+  "Splash.dc.html": {
+   "x": 0,
+   "y": 2856,
+   "w": 390,
+   "h": 844,
+   "title": "1.0 Splash",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Main.dc.html": {
+   "x": 470,
+   "y": 2856,
+   "w": 390,
+   "h": 844,
+   "title": "1.1 Bienvenida",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Onboarding.dc.html": {
+   "x": 940,
+   "y": 2856,
+   "w": 390,
+   "h": 844,
+   "title": "1.2 Cómo funciona",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Cuenta.dc.html": {
+   "x": 1410,
+   "y": 2856,
+   "w": 390,
+   "h": 844,
+   "title": "1.3 Crear cuenta · error en el campo",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "VerificaEmail.dc.html": {
+   "x": 1880,
+   "y": 2856,
+   "w": 390,
+   "h": 844,
+   "title": "1.4 Verifica tu email",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Login.dc.html": {
+   "x": 2350,
+   "y": 2856,
+   "w": 390,
+   "h": 844,
+   "title": "1.5 Iniciar sesión",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Telefono.dc.html": {
+   "x": 2820,
+   "y": 2856,
+   "w": 390,
+   "h": 844,
+   "title": "1.6 Acceso con teléfono",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Codigo.dc.html": {
+   "x": 3290,
+   "y": 2856,
+   "w": 390,
+   "h": 844,
+   "title": "1.7 Código de verificación",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Recuperar.dc.html": {
+   "x": 0,
+   "y": 3780,
+   "w": 390,
+   "h": 844,
+   "title": "1.8 Recuperar contraseña",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "NuevaClave.dc.html": {
+   "x": 470,
+   "y": 3780,
+   "w": 390,
+   "h": 844,
+   "title": "1.9 Nueva contraseña",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "TuPerfil.dc.html": {
+   "x": 0,
+   "y": 5040,
+   "w": 390,
+   "h": 844,
+   "title": "2.1 Tu perfil",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Idioma.dc.html": {
+   "x": 470,
+   "y": 5040,
+   "w": 390,
+   "h": 844,
+   "title": "2.2 Idioma · hoja",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Aviso.dc.html": {
+   "x": 940,
+   "y": 5040,
+   "w": 390,
+   "h": 844,
+   "title": "2.3 Aviso veterinario",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Privacidad.dc.html": {
+   "x": 1410,
+   "y": 5040,
+   "w": 390,
+   "h": 844,
+   "title": "2.4 Datos y privacidad",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "MascotaNueva.dc.html": {
+   "x": 0,
+   "y": 6300,
+   "w": 390,
+   "h": 844,
+   "title": "3.1 Perfil mínimo",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "FotoHoja.dc.html": {
+   "x": 470,
+   "y": 6300,
+   "w": 390,
+   "h": 844,
+   "title": "3.2 Foto · hoja de opciones",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "PermisoFotos.dc.html": {
+   "x": 940,
+   "y": 6300,
+   "w": 390,
+   "h": 844,
+   "title": "3.3 Sin permiso de fotos",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "MascotaLista.dc.html": {
+   "x": 1410,
+   "y": 6300,
+   "w": 390,
+   "h": 844,
+   "title": "3.4 Mascota creada",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "PermisoAvisos.dc.html": {
+   "x": 1880,
+   "y": 6300,
+   "w": 390,
+   "h": 844,
+   "title": "3.5 Permiso de avisos",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "PerfilMascota.dc.html": {
+   "x": 2350,
+   "y": 6300,
+   "w": 390,
+   "h": 844,
+   "title": "3.6 Perfil de mascota",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "PerfilGuardado.dc.html": {
+   "x": 2820,
+   "y": 6300,
+   "w": 390,
+   "h": 844,
+   "title": "3.7 Perfil · cambios guardados",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "CompletarPerfil.dc.html": {
+   "x": 3290,
+   "y": 6300,
+   "w": 390,
+   "h": 844,
+   "title": "3.8 Editar perfil · datos progresivos",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "SelectorMascota.dc.html": {
+   "x": 0,
+   "y": 7224,
+   "w": 390,
+   "h": 844,
+   "title": "3.9 Selector de mascota · hoja",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "SinMascotas.dc.html": {
+   "x": 470,
+   "y": 7224,
+   "w": 390,
+   "h": 844,
+   "title": "3.10 Sin mascotas",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "EliminarMascota.dc.html": {
+   "x": 940,
+   "y": 7224,
+   "w": 390,
+   "h": 844,
+   "title": "3.11 Eliminar mascota · diálogo",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "HomeNuevo.dc.html": {
+   "x": 0,
+   "y": 8484,
+   "w": 390,
+   "h": 844,
+   "title": "4.1 Hoy · usuario nuevo",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Home.dc.html": {
+   "x": 470,
+   "y": 8484,
+   "w": 390,
+   "h": 844,
+   "title": "4.2 Hoy · día pendiente con señal",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "HomeHecho.dc.html": {
+   "x": 940,
+   "y": 8484,
+   "w": 390,
+   "h": 844,
+   "title": "4.3 Hoy · día registrado",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "HomeOscuro.dc.html": {
+   "x": 1410,
+   "y": 8484,
+   "w": 390,
+   "h": 844,
+   "title": "4.4 Hoy · tema oscuro",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "HomeAlerta.dc.html": {
+   "x": 1880,
+   "y": 8484,
+   "w": 390,
+   "h": 844,
+   "title": "4.5 Hoy · con alerta relevante",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "HomePocos.dc.html": {
+   "x": 2350,
+   "y": 8484,
+   "w": 390,
+   "h": 844,
+   "title": "4.6 Hoy · pocos datos y sin agenda",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Registro.dc.html": {
+   "x": 0,
+   "y": 9744,
+   "w": 390,
+   "h": 844,
+   "title": "5.1 Registro · bienestar",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RegistroDetalles.dc.html": {
+   "x": 470,
+   "y": 9744,
+   "w": 390,
+   "h": 844,
+   "title": "5.2 Registro · detalles opcionales",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RegistroGuardado.dc.html": {
+   "x": 940,
+   "y": 9744,
+   "w": 390,
+   "h": 844,
+   "title": "5.3 Registro guardado",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RegistroEditar.dc.html": {
+   "x": 1410,
+   "y": 9744,
+   "w": 390,
+   "h": 844,
+   "title": "5.4 Editar un registro anterior",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RegistroHoyEditar.dc.html": {
+   "x": 1880,
+   "y": 9744,
+   "w": 390,
+   "h": 844,
+   "title": "5.5 Editar el registro de hoy",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RegistroError.dc.html": {
+   "x": 2350,
+   "y": 9744,
+   "w": 390,
+   "h": 844,
+   "title": "5.6 Error al guardar",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RegistroDescartar.dc.html": {
+   "x": 2820,
+   "y": 9744,
+   "w": 390,
+   "h": 844,
+   "title": "5.7 Salir sin guardar · diálogo",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RegistroOffline.dc.html": {
+   "x": 3290,
+   "y": 9744,
+   "w": 390,
+   "h": 844,
+   "title": "5.8 Guardado sin conexión",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RegistroConflicto.dc.html": {
+   "x": 0,
+   "y": 10668,
+   "w": 390,
+   "h": 844,
+   "title": "5.9 Conflicto al sincronizar · hoja",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RegistroSync.dc.html": {
+   "x": 470,
+   "y": 10668,
+   "w": 390,
+   "h": 844,
+   "title": "5.10 Registro sincronizado",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Tendencias.dc.html": {
+   "x": 0,
+   "y": 11928,
+   "w": 390,
+   "h": 844,
+   "title": "6.1 Historial · semana",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "HistorialMes.dc.html": {
+   "x": 470,
+   "y": 11928,
+   "w": 390,
+   "h": 844,
+   "title": "6.2 Historial · mes",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "DiaDetalle.dc.html": {
+   "x": 940,
+   "y": 11928,
+   "w": 390,
+   "h": 844,
+   "title": "6.3 Detalle del día",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Alertas.dc.html": {
+   "x": 1410,
+   "y": 11928,
+   "w": 390,
+   "h": 844,
+   "title": "6.4 Historial de alertas",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "HistorialVacio.dc.html": {
+   "x": 1880,
+   "y": 11928,
+   "w": 390,
+   "h": 844,
+   "title": "6.5 Historial · sin datos suficientes",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "HistorialLimite.dc.html": {
+   "x": 2350,
+   "y": 11928,
+   "w": 390,
+   "h": 844,
+   "title": "6.6 Historial · límite del plan gratuito",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ConsultaIntro.dc.html": {
+   "x": 0,
+   "y": 13188,
+   "w": 390,
+   "h": 844,
+   "title": "7.1 Consultar · introducción",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ConsentimientoFoto.dc.html": {
+   "x": 470,
+   "y": 13188,
+   "w": 390,
+   "h": 844,
+   "title": "7.2 Consentimiento de fotos · hoja",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ConsultaFoto.dc.html": {
+   "x": 940,
+   "y": 13188,
+   "w": 390,
+   "h": 844,
+   "title": "7.3 Hacer la foto",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ConsultaPrevia.dc.html": {
+   "x": 1410,
+   "y": 13188,
+   "w": 390,
+   "h": 844,
+   "title": "7.4 Vista previa de la foto",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Consulta.dc.html": {
+   "x": 1880,
+   "y": 13188,
+   "w": 390,
+   "h": 844,
+   "title": "7.5 Consultar · señales",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ConsultaRevision.dc.html": {
+   "x": 2350,
+   "y": 13188,
+   "w": 390,
+   "h": 844,
+   "title": "7.6 Revisar antes de enviar",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Analizando.dc.html": {
+   "x": 2820,
+   "y": 13188,
+   "w": 390,
+   "h": 844,
+   "title": "7.7 Preparando la orientación",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ResultadoObservar.dc.html": {
+   "x": 3290,
+   "y": 13188,
+   "w": 390,
+   "h": 844,
+   "title": "7.8 Resultado · observar",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Resultado.dc.html": {
+   "x": 0,
+   "y": 14112,
+   "w": 390,
+   "h": 844,
+   "title": "7.9 Resultado · cambio de rutina",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ResultadoPronto.dc.html": {
+   "x": 470,
+   "y": 14112,
+   "w": 390,
+   "h": 844,
+   "title": "7.10 Resultado · consultar pronto",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ResultadoUrgente.dc.html": {
+   "x": 940,
+   "y": 14112,
+   "w": 390,
+   "h": 844,
+   "title": "7.11 Resultado · urgente",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ConsultaError.dc.html": {
+   "x": 1410,
+   "y": 14112,
+   "w": 390,
+   "h": 844,
+   "title": "7.12 Error al preparar la orientación",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ConsultaLimite.dc.html": {
+   "x": 1880,
+   "y": 14112,
+   "w": 390,
+   "h": 844,
+   "title": "7.13 Límite de consultas",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Consultas.dc.html": {
+   "x": 2350,
+   "y": 14112,
+   "w": 390,
+   "h": 844,
+   "title": "7.14 Consultas anteriores",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Agenda.dc.html": {
+   "x": 0,
+   "y": 15372,
+   "w": 390,
+   "h": 844,
+   "title": "8.1 Agenda · lista",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "AgendaMes.dc.html": {
+   "x": 470,
+   "y": 15372,
+   "w": 390,
+   "h": 844,
+   "title": "8.2 Agenda · calendario",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Recordatorio.dc.html": {
+   "x": 940,
+   "y": 15372,
+   "w": 390,
+   "h": 844,
+   "title": "8.3 Nuevo recordatorio · hoja",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RecordatorioDetalle.dc.html": {
+   "x": 1410,
+   "y": 15372,
+   "w": 390,
+   "h": 844,
+   "title": "8.4 Detalle del recordatorio",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RecordatorioEliminar.dc.html": {
+   "x": 1880,
+   "y": 15372,
+   "w": 390,
+   "h": 844,
+   "title": "8.5 Eliminar recordatorio · diálogo",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "AgendaVacia.dc.html": {
+   "x": 2350,
+   "y": 15372,
+   "w": 390,
+   "h": 844,
+   "title": "8.6 Agenda · sin eventos",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "AvisosAjustes.dc.html": {
+   "x": 2820,
+   "y": 15372,
+   "w": 390,
+   "h": 844,
+   "title": "8.7 Notificaciones",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Logros.dc.html": {
+   "x": 0,
+   "y": 16632,
+   "w": 390,
+   "h": 844,
+   "title": "9.1 Logros y racha",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "LogroDetalle.dc.html": {
+   "x": 470,
+   "y": 16632,
+   "w": 390,
+   "h": 844,
+   "title": "9.2 Detalle de insignia · hoja",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "LogroNuevo.dc.html": {
+   "x": 940,
+   "y": 16632,
+   "w": 390,
+   "h": 844,
+   "title": "9.3 Insignia conseguida",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Ajustes.dc.html": {
+   "x": 0,
+   "y": 17892,
+   "w": 390,
+   "h": 844,
+   "title": "10.1 Tu cuenta y ajustes",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Seguridad.dc.html": {
+   "x": 470,
+   "y": 17892,
+   "w": 390,
+   "h": 844,
+   "title": "10.2 Seguridad y acceso",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "CambiarClave.dc.html": {
+   "x": 940,
+   "y": 17892,
+   "w": 390,
+   "h": 844,
+   "title": "10.3 Cambiar contraseña",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Consentimientos.dc.html": {
+   "x": 1410,
+   "y": 17892,
+   "w": 390,
+   "h": 844,
+   "title": "10.4 Privacidad y consentimientos",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Fotos.dc.html": {
+   "x": 1880,
+   "y": 17892,
+   "w": 390,
+   "h": 844,
+   "title": "10.5 Gestión de fotos",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Exportar.dc.html": {
+   "x": 2350,
+   "y": 17892,
+   "w": 390,
+   "h": 844,
+   "title": "10.6 Exportar mis datos",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Ayuda.dc.html": {
+   "x": 2820,
+   "y": 17892,
+   "w": 390,
+   "h": 844,
+   "title": "10.7 Ayuda y contacto",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Legal.dc.html": {
+   "x": 3290,
+   "y": 17892,
+   "w": 390,
+   "h": 844,
+   "title": "10.8 Información legal y de la app",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "EliminarCuenta.dc.html": {
+   "x": 0,
+   "y": 18816,
+   "w": 390,
+   "h": 844,
+   "title": "10.9 Eliminar cuenta · diálogo",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Premium.dc.html": {
+   "x": 0,
+   "y": 20076,
+   "w": 390,
+   "h": 844,
+   "title": "11.1 Kitom Premium · comparativa",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "PremiumActivo.dc.html": {
+   "x": 470,
+   "y": 20076,
+   "w": 390,
+   "h": 844,
+   "title": "11.2 Premium activado",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Suscripcion.dc.html": {
+   "x": 940,
+   "y": 20076,
+   "w": 390,
+   "h": 844,
+   "title": "11.3 Gestionar suscripción",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "SuscripcionCancelada.dc.html": {
+   "x": 1410,
+   "y": 20076,
+   "w": 390,
+   "h": 844,
+   "title": "11.4 Suscripción cancelada",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "RestaurarCompras.dc.html": {
+   "x": 1880,
+   "y": 20076,
+   "w": 390,
+   "h": 844,
+   "title": "11.5 Restaurar compras · diálogo",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "PlanBloqueado.dc.html": {
+   "x": 2350,
+   "y": 20076,
+   "w": 390,
+   "h": 844,
+   "title": "11.6 Contenido de Premium · hoja",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "Cargando.dc.html": {
+   "x": 0,
+   "y": 21336,
+   "w": 390,
+   "h": 844,
+   "title": "12.1 Cargando",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "SinConexion.dc.html": {
+   "x": 470,
+   "y": 21336,
+   "w": 390,
+   "h": 844,
+   "title": "12.2 Sin conexión",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "ErrorRed.dc.html": {
+   "x": 940,
+   "y": 21336,
+   "w": 390,
+   "h": 844,
+   "title": "12.3 Error de carga",
+   "is_interactive": true,
+   "radius": 44
+  },
+  "SesionCaducada.dc.html": {
+   "x": 1410,
+   "y": 21336,
+   "w": 390,
+   "h": 844,
+   "title": "12.4 Sesión caducada · diálogo",
+   "is_interactive": true,
+   "radius": 44
+  }
+ },
+ "order": [
+  "Componentes.dc.html",
+  "Mapa.dc.html",
+  "Splash.dc.html",
+  "Main.dc.html",
+  "Onboarding.dc.html",
+  "Cuenta.dc.html",
+  "VerificaEmail.dc.html",
+  "Login.dc.html",
+  "Telefono.dc.html",
+  "Codigo.dc.html",
+  "Recuperar.dc.html",
+  "NuevaClave.dc.html",
+  "TuPerfil.dc.html",
+  "Idioma.dc.html",
+  "Aviso.dc.html",
+  "Privacidad.dc.html",
+  "MascotaNueva.dc.html",
+  "FotoHoja.dc.html",
+  "PermisoFotos.dc.html",
+  "MascotaLista.dc.html",
+  "PermisoAvisos.dc.html",
+  "PerfilMascota.dc.html",
+  "PerfilGuardado.dc.html",
+  "CompletarPerfil.dc.html",
+  "SelectorMascota.dc.html",
+  "SinMascotas.dc.html",
+  "EliminarMascota.dc.html",
+  "HomeNuevo.dc.html",
+  "Home.dc.html",
+  "HomeHecho.dc.html",
+  "HomeOscuro.dc.html",
+  "HomeAlerta.dc.html",
+  "HomePocos.dc.html",
+  "Registro.dc.html",
+  "RegistroDetalles.dc.html",
+  "RegistroGuardado.dc.html",
+  "RegistroEditar.dc.html",
+  "RegistroHoyEditar.dc.html",
+  "RegistroError.dc.html",
+  "RegistroDescartar.dc.html",
+  "RegistroOffline.dc.html",
+  "RegistroConflicto.dc.html",
+  "RegistroSync.dc.html",
+  "Tendencias.dc.html",
+  "HistorialMes.dc.html",
+  "DiaDetalle.dc.html",
+  "Alertas.dc.html",
+  "HistorialVacio.dc.html",
+  "HistorialLimite.dc.html",
+  "ConsultaIntro.dc.html",
+  "ConsentimientoFoto.dc.html",
+  "ConsultaFoto.dc.html",
+  "ConsultaPrevia.dc.html",
+  "Consulta.dc.html",
+  "ConsultaRevision.dc.html",
+  "Analizando.dc.html",
+  "ResultadoObservar.dc.html",
+  "Resultado.dc.html",
+  "ResultadoPronto.dc.html",
+  "ResultadoUrgente.dc.html",
+  "ConsultaError.dc.html",
+  "ConsultaLimite.dc.html",
+  "Consultas.dc.html",
+  "Agenda.dc.html",
+  "AgendaMes.dc.html",
+  "Recordatorio.dc.html",
+  "RecordatorioDetalle.dc.html",
+  "RecordatorioEliminar.dc.html",
+  "AgendaVacia.dc.html",
+  "AvisosAjustes.dc.html",
+  "Logros.dc.html",
+  "LogroDetalle.dc.html",
+  "LogroNuevo.dc.html",
+  "Ajustes.dc.html",
+  "Seguridad.dc.html",
+  "CambiarClave.dc.html",
+  "Consentimientos.dc.html",
+  "Fotos.dc.html",
+  "Exportar.dc.html",
+  "Ayuda.dc.html",
+  "Legal.dc.html",
+  "EliminarCuenta.dc.html",
+  "Premium.dc.html",
+  "PremiumActivo.dc.html",
+  "Suscripcion.dc.html",
+  "SuscripcionCancelada.dc.html",
+  "RestaurarCompras.dc.html",
+  "PlanBloqueado.dc.html",
+  "Cargando.dc.html",
+  "SinConexion.dc.html",
+  "ErrorRed.dc.html",
+  "SesionCaducada.dc.html"
+ ],
+ "notes": {
+  "t0": {
+   "x": 0,
+   "y": 60,
+   "text": "0 · Sistema",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s0": {
+   "x": 2720,
+   "y": 300,
+   "w": 380,
+   "text": "Componentes con todos sus estados (normal, seleccionado, deshabilitado, cargando, error, éxito) y mapa navegable: cada fila del mapa abre su pantalla.\nTokens nuevos de gráfica: actividad #6B7A1F / #B9C46A y sueño #7B5EA7 / #C2A8E8 (contraste AA sobre fondo claro y oscuro).",
+   "fill": "teal"
+  },
+  "t1": {
+   "x": 0,
+   "y": 2616,
+   "text": "1 · Arranque y cuenta",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s1": {
+   "x": 3760,
+   "y": 2856,
+   "w": 380,
+   "text": "Orden: Bienvenida → Cómo funciona → Crear cuenta. El aviso veterinario pasa a después de crear la cuenta porque su aceptación se guarda en el perfil (profiles.disclaimer_accepted_at).\nGoogle y email existen en el código; teléfono con código (1.7–1.8) es diseño, pendiente en Auth.\nTransición: deslizamiento horizontal 200 ms.",
+   "fill": "teal"
+  },
+  "t2": {
+   "x": 0,
+   "y": 4800,
+   "text": "2 · Configuración inicial y consentimientos",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s2": {
+   "x": 1880,
+   "y": 5040,
+   "w": 380,
+   "text": "Tres pasos con indicador: Tu perfil → Aviso veterinario (obligatorio, casilla) → Privacidad (comunicaciones opcionales, desactivadas por defecto).\nEl idioma se elige en una hoja (es activo, en marcado como próximamente). La zona horaria se toma del dispositivo.",
+   "fill": "teal"
+  },
+  "t3": {
+   "x": 0,
+   "y": 6060,
+   "text": "3 · Mascotas",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s3": {
+   "x": 3760,
+   "y": 6300,
+   "w": 380,
+   "text": "Perfil mínimo: nombre + especie (perro o gato; «Otro» se explica y no deja continuar). Foto opcional con permiso del sistema explicado antes.\nEl resto del perfil (raza, nacimiento, peso, sexo, esterilización, condiciones, alergias, carácter) se completa después.\nCambio de mascota: toca el nombre en la cabecera.",
+   "fill": "teal"
+  },
+  "t4": {
+   "x": 0,
+   "y": 8244,
+   "text": "4 · Hoy",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s4": {
+   "x": 2820,
+   "y": 8484,
+   "w": 380,
+   "text": "Seis estados: nuevo, día pendiente, día hecho, oscuro, con alerta (veterinario pronto) y pocos datos.\nComo mucho una tarjeta de señal; si es urgente sustituye al bloque del día. La voz de la mascota es opcional (Ajustes).\n«Consultar» en la cabecera abre la orientación con foto.",
+   "fill": "teal"
+  },
+  "t5": {
+   "x": 0,
+   "y": 9504,
+   "text": "5 · Registro diario (< 45 s)",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s5": {
+   "x": 3760,
+   "y": 9744,
+   "w": 380,
+   "text": "Ruta estándar ≈ 25 s: cuatro escalas (energía, apetito, ánimo, actividad) → Guardar. «Todo como siempre» rellena en un toque. Detalles opcionales sin bloquear.\nEstados: guardado, edición de hoy y de días anteriores, error con datos conservados, salir sin guardar, sin conexión, conflicto entre dispositivos y sincronizado.\nOffline y conflictos: diseño; en código el guardado sigue siendo online.",
+   "fill": "teal"
+  },
+  "t6": {
+   "x": 0,
+   "y": 11688,
+   "text": "6 · Historial y evolución",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s6": {
+   "x": 2820,
+   "y": 11928,
+   "w": 380,
+   "text": "Semana y mes. Cinco series (energía, apetito, ánimo, actividad, sueño), máximo tres a la vez; comparación con pequeños múltiplos. Huecos sin interpolar.\nMensajes prudentes: «parece», «en comparación con su semana habitual», nunca causas.\nPlan gratuito: [LÍMITE] días; lo anterior difuminado con invitación sobria.",
+   "fill": "teal"
+  },
+  "t7": {
+   "x": 0,
+   "y": 12948,
+   "text": "7 · Orientación con foto y síntomas",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s7": {
+   "x": 3760,
+   "y": 13188,
+   "w": 380,
+   "text": "Consentimiento de foto antes de la primera foto (mejorar el modelo, desactivado por defecto). Foto opcional + síntomas del catálogo.\nLa IA la llama el servidor (Edge Function pendiente); la app solo muestra el estado.\nCuatro niveles con color, icono y texto. Disclaimer en cada resultado. «¿Te ha sido útil?» sí/no con comentario. En urgente, primero llamar; la valoración se pide más tarde.",
+   "fill": "teal"
+  },
+  "t8": {
+   "x": 0,
+   "y": 15132,
+   "text": "8 · Agenda y recordatorios",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s8": {
+   "x": 3290,
+   "y": 15372,
+   "w": 380,
+   "text": "Tipos: vacuna, medicación, cita, baño, desparasitación, otro. Repetición: nunca, diaria, semanal, mensual, anual. Adjunto opcional.\nMarcar hecho con un toque (se puede deshacer). Vencidos arriba, sin rojo de error.\nAjustes de avisos con estado de permiso denegado y botón a los ajustes del sistema.",
+   "fill": "teal"
+  },
+  "t9": {
+   "x": 0,
+   "y": 16392,
+   "text": "9 · Logros y vínculo",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s9": {
+   "x": 1410,
+   "y": 16632,
+   "w": 380,
+   "text": "MVP: racha, progreso semanal, cuatro insignias del catálogo, detalle y celebración (el punto de hoy se rellena; sin confeti).\nFuturo (marcado): retos semanales.\nVoz de la mascota: interruptor en Logros y en Ajustes.",
+   "fill": "teal"
+  },
+  "t10": {
+   "x": 0,
+   "y": 17652,
+   "text": "10 · Perfil de usuario y ajustes",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s10": {
+   "x": 3760,
+   "y": 17892,
+   "w": 380,
+   "text": "Cuenta, seguridad (contraseña, métodos de acceso), consentimientos, fotos, exportar, ayuda, legal, versión y cerrar sesión.\nEliminar cuenta: lista explícita de lo que se borra y sugerencia de exportar antes; foco inicial en Cancelar.\nExportar e informe PDF dependen de Edge Functions pendientes.",
+   "fill": "teal"
+  },
+  "t11": {
+   "x": 0,
+   "y": 19836,
+   "text": "11 · Suscripción y Premium",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s11": {
+   "x": 2820,
+   "y": 20076,
+   "w": 380,
+   "text": "Comparativa Gratis/Premium honesta: funciones futuras marcadas «Pronto». Precio y límites como [PRECIO] / [LÍMITE].\nMensual y anual con el precio total a la vista; cierre siempre visible; renovación y cancelación explicadas antes de pagar.\nRestaurar compras y gestionar en la tienda del sistema. RevenueCat pendiente.",
+   "fill": "teal"
+  },
+  "t12": {
+   "x": 0,
+   "y": 21096,
+   "text": "12 · Estados globales",
+   "kind": "title1",
+   "maxW": 3200
+  },
+  "s12": {
+   "x": 1880,
+   "y": 21336,
+   "w": 380,
+   "text": "Carga con esqueleto tras 300 ms, sin conexión (se puede seguir registrando), error de carga con reintento y sesión caducada.\nEl resto de estados (vacíos, permisos, confirmaciones, borrados, errores de formulario, éxito, pendiente de sincronizar, bloqueo por plan) viven en su sección.",
+   "fill": "teal"
+  }
+ },
+ "designSystems": [
+  {
+   "title": "Kitom",
+   "namespace": "kitom",
+   "artifact": "https://claude.ai/artifact/LS1y4cit6jZWchSVfcg6c3",
+   "version": null,
+   "copiedAt": "2026-10-16T09:20:00Z"
+  }
+ ]
+}

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Detalle del día</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mrow{display:grid;grid-template-columns:84px minmax(0,1fr) 96px;align-items:center;gap:12px}
+.pips{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.pips i{height:8px;border-radius:999px;background:var(--sunken);display:block}
+.pips i.on{background:var(--primary)}
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Tendencias.dc.html" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a><span class="strong">Miércoles 15 de octubre</span><a class="ib" href="RegistroEditar.dc.html" aria-label="Editar este día"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5zM15 5l4 4"></path></svg></a></div>
+    <div class="card" style="gap: 14px">
+      <div class="mrow"><span class="label">Energía</span><div class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div><span class="cap" style="text-align: right">Como siempre</span></div>
+      <div class="mrow"><span class="label">Apetito</span><div class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div><span class="cap" style="text-align: right">Menos</span></div>
+      <div class="mrow"><span class="label">Ánimo</span><div class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div><span class="cap" style="text-align: right">Normal</span></div>
+      <div class="mrow"><span class="label">Actividad</span><div class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div><span class="cap" style="text-align: right">Menos</span></div>
+      <hr class="divider">
+      <div class="col" style="gap: 6px">
+        <div class="between"><span class="muted">Sueño</span><span>Normal</span></div>
+        <div class="between"><span class="muted">Vocalizaciones</span><span>Más</span></div>
+        <div class="between"><span class="muted">Con personas y animales</span><span>Normal</span></div>
+      </div>
+    </div>
+    <div class="col" style="gap: 10px">
+      <h2 class="t3">Algo fuera de lo habitual</h2>
+      <div class="card flat"><p>Se escondió debajo de la cama con los petardos.</p></div>
+      <h2 class="t3">Nota</h2>
+      <div class="card flat"><p>Ladró bastante por la tarde. Cenó la mitad.</p></div>
+    </div>
+    <p class="cap muted">Registrado por ti a las 21:04 · editado a las 22:15</p>
+  </div>
+  <div class="foot"><a class="btn secondary" href="RegistroEditar.dc.html">Editar este día</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

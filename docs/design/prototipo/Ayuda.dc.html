@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ayuda y contacto</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Ajustes.dc.html" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a><span class="strong">Ayuda</span><span style="width: 44px"></span></div>
+    <div class="list">
+      <sc-for list="{{faq}}" as="f" hint-placeholder-count="5">
+        <div style="border-bottom: 1px solid var(--line)">
+          <button class="opt" aria-expanded="{{f.open}}" onClick="{{f.toggle}}" style="border: 0"><span class="strong grow">{{f.q}}</span><span style="{{f.chevStyle}}; display: flex; color: var(--subtle)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></button>
+          <sc-if value="{{f.open}}" hint-placeholder-val="{{ false }}"><p class="muted" style="padding: 0 16px 14px">{{f.a}}</p></sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div class="card" style="gap: 8px">
+      <p class="strong">¿No encuentras lo que buscas?</p>
+      <p class="cap muted">Te respondemos por email en un día laborable, como mucho.</p>
+      <a class="btn secondary md" href="mailto:[EMAIL DE SOPORTE]"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>Escríbenos</a>
+    </div>
+    <div class="alert bad" role="note"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg><div><strong>En una urgencia, no escribas: llama</strong>Si tu mascota no respira bien, convulsiona o sangra, llama a tu veterinario o a urgencias veterinarias.</div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"open": 0};
+  }
+  renderVals() {
+    const faq = [['¿Kitom sustituye al veterinario?', 'No. Kitom te ayuda a observar y te orienta sobre cuándo consultar, pero no confirma enfermedades. Ante cualquier duda seria, llama a tu veterinario.'], ['¿Cómo funciona la racha?', ''], ['¿Qué pasa si registro sin conexión?', ''], ['¿Quién puede ver mis fotos?', ''], ['¿Cómo cancelo Premium?', '']];
+    return { faq: faq.map((f, i) => ({ q: f[0], a: f[1], open: this.state.open === i, chevStyle: this.state.open === i ? 'transform: rotate(180deg)' : '',
+      toggle: () => this.setState({ open: this.state.open === i ? -1 : i }) })) };
+  }
+}
+</script>
+</body>
+</html>

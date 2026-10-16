@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Salir sin guardar</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div style="padding: 58px 20px 0" aria-hidden="true"><p class="strong" style="text-align: center">Hoy, jueves 16</p></div>
+  <div class="scrim center">
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dl" aria-describedby="dl-d">
+      
+      <div class="col" style="gap: 6px">
+        <h1 id="dl" class="t2">¿Salir sin guardar?</h1>
+        <p id="dl-d" class="muted">Lo que has marcado hoy no se guardará.</p>
+      </div>
+      
+      <div class="col" style="gap: 10px"><a class="btn primary" href="Registro.dc.html" autofocus>Seguir con el registro</a><a class="btn secondary" href="Home.dc.html">Salir sin guardar</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

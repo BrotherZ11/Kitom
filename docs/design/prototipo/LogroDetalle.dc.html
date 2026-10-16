@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Detalle de insignia</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div style="padding: 58px 20px 0; opacity: .5" aria-hidden="true"><p class="t1">Logros de Kika</p></div>
+  <div class="scrim">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh" style="max-height: 520px; display: flex; flex-direction: column">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="between" style="padding: 8px 12px 0 20px">
+        <h1 id="sh" class="t2"></h1>
+        <a class="ib" href="Logros.dc.html" aria-label="Cerrar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+      </div>
+      <div class="col" style="gap: 16px; padding: 12px 20px 16px; overflow: auto">
+        
+        <div class="col" style="align-items: center; text-align: center; gap: 12px">
+          <span class="medal prog big"><span class="dlg">4/7</span></span>
+          <h2 class="t2">7 días seguidos</h2>
+          <p class="muted" style="max-width: 300px">Registra el bienestar de Kika siete días seguidos. Es la mejor forma de que Kitom aprenda qué es lo normal en ella.</p>
+          <div class="bar" role="img" aria-label="4 de 7 días" style="width: 100%"><i style="width: 57%; background: var(--accent)"></i></div>
+          <p class="cap muted">Lleváis 4. Si seguís, el domingo la tenéis.</p>
+        </div>
+      </div>
+      <div style="padding: 8px 20px 34px; display: flex; flex-direction: column; gap: 10px"><a class="btn secondary" href="Logros.dc.html">Entendido</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
