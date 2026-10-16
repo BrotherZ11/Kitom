@@ -30,7 +30,8 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
 - `src/i18n/` — `t(key)` tipado; `es` y `en` con las mismas claves (`Translations`), idioma activo `es`
   (detección del dispositivo pendiente). Ningún texto visible fuera de `src/i18n/locales/`.
 - `src/components/ui/` — Screen, TextField, Button, FormMessage, OptionGroup y estados
-  Loading/Error/Empty (`query-state.tsx`) (mínimos, no es el design system final).
+  Loading/Error/Empty (`query-state.tsx`) (mínimos, no es el design system final). El diseño final
+  (tokens, componentes, pantallas y fases de implementación) está en `docs/design/`; sin implementar.
 - `src/features/daily-logs/` — registro diario, fase 1 (hoy, online; ruta `(app)/pets/[id]/daily-log`,
   tarjeta en la ficha). Guardar solo con `save_daily_log`; "hoy" solo con `useTodayLogDate`/`log-date.ts`;
   lógica pura en `daily-log-form.ts`, `log-date.ts` y `daily-log-errors.ts` (probada con `npm test`).

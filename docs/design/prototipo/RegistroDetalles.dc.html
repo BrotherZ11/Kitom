@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Detalles del registro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 22px; padding-top: 54px">
+    <div class="top">
+      <a class="ib" href="Registro.dc.html" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a>
+      <span class="strong">Detalles</span>
+      <span class="cap muted" style="width: 44px; text-align: right">Opcional</span>
+    </div>
+    <p class="cap muted" style="margin-top: -10px">Comparado con lo habitual en Kika.</p>
+    <div class="col" style="gap: 10px">
+      <h2 class="t3" id="g1">Sueño</h2>
+      <div class="seg three" role="radiogroup" aria-labelledby="g1">
+        <sc-for list="{{sleep}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" role="radio" aria-checked="{{o.on}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for>
+      </div>
+    </div>
+    <div class="col" style="gap: 10px">
+      <h2 class="t3" id="g2">Vocalizaciones</h2>
+      <div class="seg three" role="radiogroup" aria-labelledby="g2">
+        <sc-for list="{{voc}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" role="radio" aria-checked="{{o.on}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for>
+      </div>
+    </div>
+    <div class="col" style="gap: 10px">
+      <h2 class="t3" id="g3">Con personas y otros animales</h2>
+      <div class="seg three" role="radiogroup" aria-labelledby="g3">
+        <sc-for list="{{soc}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" role="radio" aria-checked="{{o.on}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for>
+      </div>
+    </div>
+    <div class="col" style="gap: 10px">
+      <div class="between"><h2 class="t3" id="odd">¿Algo fuera de lo habitual?</h2><button class="swbtn" role="switch" aria-checked="{{odd}}" aria-labelledby="odd" onClick="{{toggleOdd}}"><span class="{{oddCls}}"></span></button></div>
+      <sc-if value="{{odd}}" hint-placeholder-val="{{ true }}">
+        <textarea class="input" aria-labelledby="odd" placeholder="Cuéntanos qué has notado">Se escondió debajo de la cama con los petardos.</textarea>
+      </sc-if>
+    </div>
+    <div class="col" style="gap: 10px">
+      <h2 class="t3">Etiquetas del día</h2>
+      <div class="chips">
+        <sc-for list="{{tags}}" as="c" hint-placeholder-count="3"><button class="{{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.toggle}}">{{c.label}}</button></sc-for>
+      </div>
+    </div>
+    <div class="field">
+      <label for="note">Nota</label>
+      <textarea id="note" class="input" placeholder="Lo que quieras recordar de hoy">Ladró bastante por la tarde.</textarea>
+    </div>
+  </div>
+  <div class="foot"><a class="btn primary" href="RegistroGuardado.dc.html">Guardar el día</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"sleep": "Normal", "voc": "Más", "soc": "Normal", "odd": true, "tags": {}};
+  }
+  renderVals() {
+    const seg = (key) => ['Menos', 'Normal', 'Más'].map((o) => ({ label: o, on: this.state[key] === o,
+      cls: this.state[key] === o ? 'on' : '', pick: () => this.setState({ [key]: o }) }));
+    const TAGS = [['vet_visit', 'Visita al veterinario'], ['home_change', 'Cambio de casa'], ['new_pet', 'Nueva mascota en casa']];
+    const odd = this.state.odd;
+    return {
+      sleep: seg('sleep'), voc: seg('voc'), soc: seg('soc'),
+      odd, oddCls: odd ? 'switch on' : 'switch', toggleOdd: () => this.setState({ odd: !odd }),
+      tags: TAGS.map((t) => { const on = !!this.state.tags[t[0]]; return { label: t[1], on, cls: on ? 'chip on' : 'chip',
+        toggle: () => this.setState({ tags: { ...this.state.tags, [t[0]]: !on } }) }; })
+    };
+  }
+}
+</script>
+</body>
+</html>

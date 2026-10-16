@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Registro guardado</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="align-items: center; text-align: center; padding-top: 110px; gap: 28px">
+    <svg class="ring" width="200" height="200" viewBox="0 0 64 64" role="img" aria-label="6 de 7 días; hoy completado"><g stroke-width="5.5"><path class="on" d="M34.11 10.10A22 22 0 0 1 47.81 16.70"></path><path class="on" d="M50.44 19.99A22 22 0 0 1 53.82 34.82"></path><path class="off" d="M52.88 38.93A22 22 0 0 1 43.40 50.82"></path><path class="on" d="M39.60 52.64A22 22 0 0 1 24.40 52.64"></path><path class="on" d="M20.60 50.82A22 22 0 0 1 11.12 38.93"></path><path class="on" d="M10.18 34.82A22 22 0 0 1 13.56 19.99"></path></g><circle class="today" cx="22.45" cy="12.18" r="4.6"></circle><text x="32" y="34" text-anchor="middle" font-size="9">6/7</text><text x="32" y="41" text-anchor="middle" font-size="3.6" style="fill: var(--muted)">ESTA SEMANA</text></svg>
+    <div class="col" style="gap: 8px; align-items: center">
+      <h1 class="t1">Hecho</h1>
+      <p class="blg muted" style="max-width: 300px">Kika lleva 6 de 7 días esta semana y 4 días seguidos.</p>
+    </div>
+    <a class="card flat" href="Logros.dc.html" style="width: 100%; flex-direction: row; align-items: center; gap: 14px; text-align: left; text-decoration: none; color: inherit">
+      <div class="medal prog" style="width: 44px; height: 44px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"></circle><path d="M15.5 12.9 17 22l-5-3-5 3 1.5-9.1"></path></svg></div>
+      <div class="col grow" style="gap: 6px">
+        <p class="strong">7 días seguidos</p>
+        <div class="bar" role="img" aria-label="4 de 7 días"><i style="width: 57%; background: var(--accent)"></i></div>
+        <p class="cap muted">Lleváis 4. Sin prisa: cada día cuenta.</p>
+      </div>
+    </a>
+  </div>
+  <div class="foot"><a class="btn primary" href="HomeHecho.dc.html">Volver al inicio</a><a class="btn ghost md" href="RegistroHoyEditar.dc.html">Editar el registro</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Nueva contraseña</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Login.dc.html" aria-label="Cancelar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a><span class="strong"></span><span style="width: 44px"></span></div>
+    <div class="col" style="gap: 8px">
+      <h1 class="t1">Crea una contraseña nueva</h1>
+      <p class="muted">Úsala a partir de ahora para entrar en Kitom.</p>
+    </div>
+    <div class="field">
+      <label for="n1">Contraseña nueva</label>
+      <input id="n1" class="input ok" type="password" value="atomykika26" aria-describedby="n1-ok">
+      <p id="n1-ok" class="okmsg"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Tiene al menos 8 caracteres.</p>
+    </div>
+    <div class="field">
+      <label for="n2">Repite la contraseña</label>
+      <input id="n2" class="input error" type="password" value="atomykika2" aria-invalid="true" aria-describedby="n2-err">
+      <p id="n2-err" class="err"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>Las dos contraseñas no coinciden.</p>
+    </div>
+  </div>
+  <div class="foot"><a class="btn primary" href="Home.dc.html">Guardar contraseña</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

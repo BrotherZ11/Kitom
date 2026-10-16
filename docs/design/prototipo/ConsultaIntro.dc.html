@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Consultar con una foto</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Home.dc.html" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a><span class="strong"></span><span class="tag neutral" style="font-weight: 500">[N] de [LÍMITE] este mes</span></div>
+    <div class="col" style="gap: 8px">
+      <p class="over">Kika</p>
+      <h1 class="t1">¿Notas algo raro?</h1>
+      <p class="muted">Cuéntanos qué ves y te damos una orientación: posibles causas, qué hacer en casa y cuándo ir al veterinario.</p>
+    </div>
+    <div class="list">
+      <div class="li"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"></path><circle cx="12" cy="13" r="3"></circle></svg></span><span class="col grow" style="gap: 0"><span class="strong">Una foto, si quieres</span><span class="cap muted">De lo que te preocupa: el ojo, una herida, cómo camina</span></span></div>
+      <div class="li"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13"></path></svg></span><span class="col grow" style="gap: 0"><span class="strong">Lo que ves</span><span class="cap muted">Elige las señales de una lista</span></span></div>
+      <div class="li"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg></span><span class="col grow" style="gap: 0"><span class="strong">Su historia</span><span class="cap muted">Tenemos en cuenta sus últimos 30 días de registros</span></span></div>
+    </div>
+    <div class="alert info" role="note"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg><div><strong>Es una orientación, no una respuesta médica</strong>Kitom no puede confirmar enfermedades ni sustituye a un veterinario. Si dudas, consulta siempre.</div></div>
+    <div class="banner" style="background: var(--danger-bg); color: var(--danger-ink); align-items: flex-start"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg><span>Si no respira bien, convulsiona, sangra o no puede ponerse en pie, no esperes: <a href="tel:+34000000000" style="color: inherit; font-weight: 600">llama a tu veterinario</a>.</span></div>
+  </div>
+  <div class="foot"><a class="btn primary" href="ConsentimientoFoto.dc.html">Empezar</a><a class="btn ghost md" href="Consultas.dc.html">Ver consultas anteriores</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

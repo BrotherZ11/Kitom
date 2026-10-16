@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Iniciar sesión</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Main.dc.html" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a><span class="strong"></span><span style="width: 44px"></span></div>
+    <div class="col" style="gap: 8px">
+      <h1 class="t1">Hola de nuevo</h1>
+      <p class="muted">Entra para ver cómo está tu mascota.</p>
+    </div>
+    <sc-if value="{{loading}}" hint-placeholder-val="{{ false }}">
+      <span class="btn secondary loading" role="status"><span class="spinner" aria-hidden="true"></span>Conectando con Google…</span>
+    </sc-if>
+    <sc-if value="{{idle}}" hint-placeholder-val="{{ true }}">
+      <button class="btn secondary" onClick="{{google}}"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"></path><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"></path><path fill="#FBBC05" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2z"></path><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10C7.2 7.7 9.4 6 12 6z"></path></svg>Continuar con Google</button>
+    </sc-if>
+    <a class="btn secondary" href="Telefono.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg>Continuar con el teléfono</a>
+    <div class="row" style="gap: 12px"><hr class="divider grow"><span class="cap muted">o con tu email</span><hr class="divider grow"></div>
+    <div class="field">
+      <label for="le">Email</label>
+      <input id="le" class="input" type="email" value="david@ejemplo.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="lp">Contraseña</label>
+      <input id="lp" class="input error" type="password" value="kika1234" aria-invalid="true" aria-describedby="lp-err">
+      <p id="lp-err" class="err"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>El email o la contraseña no coinciden.</p>
+    </div>
+    <a class="link" href="Recuperar.dc.html" style="font-size: 15px; align-self: flex-start">He olvidado mi contraseña</a>
+  </div>
+  <div class="foot"><a class="btn primary" href="Home.dc.html">Entrar</a><a class="btn ghost md" href="Cuenta.dc.html">Crear una cuenta</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"loading": false};
+  }
+  renderVals() {
+    const loading = this.state.loading;
+    return { loading, idle: !loading, google: () => this.setState({ loading: true }) };
+  }
+}
+</script>
+</body>
+</html>

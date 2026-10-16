@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Consentimiento de fotos</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div style="padding: 58px 20px 0; opacity: .5" aria-hidden="true"><p class="t1">¿Notas algo raro?</p></div>
+  <div class="scrim">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh" style="max-height: 600px; display: flex; flex-direction: column">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="between" style="padding: 8px 12px 0 20px">
+        <h1 id="sh" class="t2">Antes de tu primera foto</h1>
+        <a class="ib" href="ConsultaIntro.dc.html" aria-label="Cerrar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+      </div>
+      <div class="col" style="gap: 16px; padding: 12px 20px 16px; overflow: auto">
+        
+        <p class="muted">Tú decides cómo usamos tus fotos. Puedes cambiarlo en Ajustes › Privacidad.</p>
+        <div class="list">
+          <div class="li" style="align-items: flex-start; padding-top: 14px; padding-bottom: 14px">
+            <span class="col grow" style="gap: 2px"><span class="strong" id="c1">Usar mis fotos para preparar la orientación</span><span class="cap muted">Necesario para consultar con foto. Se guardan de forma privada con tu consulta.</span></span>
+            <button class="swbtn" role="switch" aria-checked="{{c1}}" aria-labelledby="c1" onClick="{{toggle1}}"><span class="{{c1Cls}}"></span></button>
+          </div>
+          <div class="li" style="align-items: flex-start; padding-top: 14px; padding-bottom: 14px">
+            <span class="col grow" style="gap: 2px"><span class="strong" id="c2">Ayudar a mejorar Kitom con mis fotos</span><span class="cap muted">Opcional. Anónimas y revisadas por veterinarios. Nunca se activa sola.</span></span>
+            <button class="swbtn" role="switch" aria-checked="{{c2}}" aria-labelledby="c2" onClick="{{toggle2}}"><span class="{{c2Cls}}"></span></button>
+          </div>
+        </div>
+        <p class="cap muted">Evita que salgan personas en las fotos.</p>
+      </div>
+      <div style="padding: 8px 20px 34px; display: flex; flex-direction: column; gap: 10px"><sc-if value="{{c1}}" hint-placeholder-val="{{ false }}"><a class="btn primary" href="ConsultaFoto.dc.html">Hacer la foto</a></sc-if><sc-if value="{{no1}}" hint-placeholder-val="{{ true }}"><span class="btn disabled" aria-disabled="true">Hacer la foto</span></sc-if><a class="btn ghost md" href="Consulta.dc.html">Seguir sin foto</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"c1": false, "c2": false};
+  }
+  renderVals() {
+    const { c1, c2 } = this.state;
+    return { c1, no1: !c1, c2, c1Cls: c1 ? 'switch on' : 'switch', c2Cls: c2 ? 'switch on' : 'switch',
+      toggle1: () => this.setState({ c1: !c1 }), toggle2: () => this.setState({ c2: !c2 }) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Código de verificación</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Telefono.dc.html" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a><span class="strong"></span><span style="width: 44px"></span></div>
+    <div class="col" style="gap: 8px">
+      <h1 class="t1">Escribe el código</h1>
+      <p class="muted">Lo hemos enviado al <span class="mono" style="color: var(--ink)">+34 612 345 678</span>.</p>
+    </div>
+    <div class="field">
+      <span class="flabel" id="otpl">Código de 6 cifras</span>
+      <div class="{{otpCls}}" role="group" aria-labelledby="otpl">
+        <span>4</span><span>8</span><span>1</span><span>9</span><span>0</span><span class="f">{{last}}</span>
+      </div>
+      <sc-if value="{{bad}}" hint-placeholder-val="{{ false }}"><p class="err"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>El código no es correcto. Revísalo o pide otro.</p></sc-if>
+    </div>
+    <p class="cap muted">¿No te llega? Podrás pedir otro en <span class="mono">0:38</span>.</p>
+  </div>
+  <div class="foot"><a class="btn primary" href="TuPerfil.dc.html">Verificar</a><a class="btn ghost md" href="Telefono.dc.html">Cambiar el número</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"error": {"editor": "boolean", "default": false}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const bad = this.props.error ?? false;
+    return { bad, last: bad ? '3' : '7', otpCls: bad ? 'otp error' : 'otp' };
+  }
+}
+</script>
+</body>
+</html>

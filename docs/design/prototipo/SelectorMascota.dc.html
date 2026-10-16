@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Elegir mascota</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div style="padding: 58px 20px 0; opacity: .5" aria-hidden="true"><p class="t1">Kika</p></div>
+  <div class="scrim">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh" style="max-height: 460px; display: flex; flex-direction: column">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="between" style="padding: 8px 12px 0 20px">
+        <h1 id="sh" class="t2">Tus mascotas</h1>
+        <a class="ib" href="Home.dc.html" aria-label="Cerrar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+      </div>
+      <div class="col" style="gap: 16px; padding: 12px 20px 16px; overflow: auto">
+        
+        <div class="list" role="radiogroup" aria-labelledby="sh">
+          <a class="opt" role="radio" aria-checked="true" href="Home.dc.html">
+            <span class="av s40 warm">K</span>
+            <span class="col grow" style="gap: 0"><span class="strong">Kika</span><span class="cap muted">Perra · hoy pendiente</span></span>
+            <span class="radio on" aria-hidden="true"></span>
+          </a>
+          <a class="opt" href="PlanBloqueado.dc.html">
+            <span class="av s40" style="background: var(--sunken); color: var(--muted)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span>
+            <span class="col grow" style="gap: 0"><span class="strong">Añadir otra mascota</span><span class="cap muted">En el plan gratuito, una mascota</span></span>
+            <span class="tag neutral">Premium</span>
+          </a>
+        </div>
+        <p class="cap muted">Con varias mascotas, la que elijas aquí es la que ves en Hoy, Historial y Agenda.</p>
+      </div>
+      <div style="height: 26px"></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

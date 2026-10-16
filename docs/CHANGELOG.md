@@ -3,6 +3,14 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-16
+
+- Diseño de la app v2 en `docs/design/` (solo diseño, sin código): inventario de 90 pantallas y
+  estados (`PANTALLAS.md`), plan de implementación por fases (`PLAN_DESARROLLO.md`), guía de marca,
+  tokens (`tokens/`, con `chartActivity` y `chartSleep` nuevos), reglas de componentes, fuentes del
+  prototipo navegable (`prototipo/`) y sus generadores (`fuente/`). Logos e iconos de app en
+  `frontend/assets/brand/` (aún sin enlazar en `app.json`). Decisión de navegación en `DECISIONS.md`.
+
 ## 2026-10-13
 
 - Daily Logs offline, fase 1 (infraestructura, sin conectar a las pantallas): `LocalStore` sobre

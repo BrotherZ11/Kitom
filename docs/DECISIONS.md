@@ -3,6 +3,30 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-16 — Diseño v2: navegación, orden del primer uso y tokens de gráficas
+
+**Contexto.** El diseño completo de la app (`docs/design/`, 90 pantallas) tenía que fijar la barra
+inferior, dónde vive la orientación con IA y el orden del primer uso. David delegó la elección de la
+barra («usa la que creas que es mejor»).
+
+**Decisión.**
+- Barra: Hoy · Historial · Registrar · Agenda · Perfil. «Registrar» es una acción central que abre el
+  registro de hoy a pantalla completa, no un destino. Se descartó «Consultar» como pestaña: el PRD v2
+  pone el hábito diario en el centro y la IA como paridad; «Consultar» va en la cabecera de Hoy, en
+  las señales, en Alertas y en el perfil de la mascota. «Tendencias» pasa a llamarse «Historial».
+- Primer uso: bienvenida → cómo funciona → cuenta → verificación → perfil → aviso veterinario →
+  privacidad → primera mascota → recordatorio diario → permiso de avisos → primer registro. El aviso
+  va después de la cuenta porque se guarda en `profiles.disclaimer_accepted_at` (coincide con
+  `FRONTEND_ARCHITECTURE.md` §1).
+- Gráficas: cinco series con dos tokens nuevos, `chartActivity` (#6B7A1F / #B9C46A) y `chartSleep`
+  (#7B5EA7 / #C2A8E8), contraste ≥ 4,5:1 sobre el fondo claro y oscuro de las tarjetas; máximo tres
+  series a la vez y trazo distinto por serie para no depender del color.
+- Tema y voz de la mascota: preferencias locales del dispositivo (no hay columnas).
+
+**Consecuencias.** `FRONTEND_ARCHITECTURE.md` §1 describe destinos lógicos; la barra concreta está en
+`docs/design/PANTALLAS.md` §1. Las diferencias del diseño con la BD están en `PANTALLAS.md` §6 y no se
+implementan sin decisión o migración aprobada.
+
 ## 2026-10-13 — Daily logs offline, fase 1: almacén local, conectividad y módulos puros
 
 **Contexto.** Antes de guardar en local y sincronizar hace falta una base revisable: dónde y cómo se

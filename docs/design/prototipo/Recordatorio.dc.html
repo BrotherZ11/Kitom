@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Nuevo recordatorio</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.attach{height:52px;border-radius:14px;border:1.5px dashed var(--control);background:transparent;color:var(--primary);font:600 15px/20px 'Hanken Grotesk',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;width:100%}
+</style>
+</helmet>
+<div class="app">
+  <div style="padding: 58px 20px 0; opacity: .5" aria-hidden="true"><p class="t1">Agenda</p></div>
+  <div class="scrim">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh" style="max-height: 790px; display: flex; flex-direction: column">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="between" style="padding: 8px 12px 0 20px">
+        <h1 id="sh" class="t2">Nuevo recordatorio</h1>
+        <a class="ib" href="Agenda.dc.html" aria-label="Cerrar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+      </div>
+      <div class="col" style="gap: 16px; padding: 12px 20px 16px; overflow: auto">
+        
+        <div class="field">
+          <span class="flabel" id="tp">Tipo</span>
+          <div class="chips" role="radiogroup" aria-labelledby="tp">
+            <sc-for list="{{types}}" as="t" hint-placeholder-count="6"><button class="{{t.cls}}" role="radio" aria-checked="{{t.on}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for>
+          </div>
+        </div>
+        <div class="field"><label for="ti">Título</label><input id="ti" class="input" type="text" value="{{title}}" placeholder="Por ejemplo, pastilla del corazón"></div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <div class="field"><label for="d">Día</label><input id="d" class="input" type="text" value="Mar 28 oct"></div>
+          <div class="field"><label for="h">Hora</label><input id="h" class="input mono" type="text" value="17:30"></div>
+        </div>
+        <div class="field">
+          <span class="flabel" id="rp">Repetir</span>
+          <div class="chips" role="radiogroup" aria-labelledby="rp">
+            <sc-for list="{{reps}}" as="r" hint-placeholder-count="5"><button class="{{r.cls}}" role="radio" aria-checked="{{r.on}}" onClick="{{r.pick}}">{{r.label}}</button></sc-for>
+          </div>
+        </div>
+        <div class="field"><label for="av">Avisarme</label><a class="input" id="av" href="#avisos" style="justify-content: space-between; text-decoration: none; color: inherit">El día antes, a las 20:00<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></a></div>
+        <div class="field"><label for="nt">Notas <span style="font-weight: 400; color: var(--muted)">· opcional</span></label><input id="nt" class="input" type="text" value="Clínica Arrabal. Llevar la cartilla."></div>
+        <button class="attach"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l8.6-8.6a4 4 0 0 1 5.7 5.6l-8.6 8.6a2 2 0 0 1-2.8-2.8l8.5-8.5"></path></svg>Adjuntar receta, cartilla o foto</button>
+      </div>
+      <div style="padding: 8px 20px 34px; display: flex; flex-direction: column; gap: 10px"><a class="btn primary" href="Agenda.dc.html">Guardar recordatorio</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"type": "vaccine", "rep": "YEARLY"};
+  }
+  renderVals() {
+    const list = [['vaccine', 'Vacuna', 'syringe', 'Vacuna anual'], ['medication', 'Medicación', 'pill', 'Antiinflamatorio'], ['appointment', 'Cita veterinaria', 'steth', 'Revisión en la clínica'], ['bath', 'Baño y peluquería', 'drops', 'Baño'], ['deworming', 'Desparasitación', 'shield-plus', 'Desparasitación interna'], ['other', 'Otro cuidado', 'heart', '']];
+    const reps = [['NONE', 'No se repite'], ['DAILY', 'Cada día'], ['WEEKLY', 'Cada semana'], ['MONTHLY', 'Cada mes'], ['YEARLY', 'Cada año']];
+    const cur = list.find((t) => t[0] === this.state.type);
+    return {
+      title: cur[3],
+      types: list.map((t) => ({ label: t[1], on: t[0] === this.state.type, cls: t[0] === this.state.type ? 'chip on' : 'chip', pick: () => this.setState({ type: t[0] }) })),
+      reps: reps.map((r) => ({ label: r[1], on: r[0] === this.state.rep, cls: r[0] === this.state.rep ? 'chip on' : 'chip', pick: () => this.setState({ rep: r[0] }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

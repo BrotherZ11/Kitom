@@ -1,0 +1,951 @@
+{
+ "name": "Kitom",
+ "version": 1,
+ "meta": {
+  "source": "Identidad Kitom · dirección Ritmo (oct 2026)"
+ },
+ "color": {
+  "themes": [
+   {
+    "id": "light",
+    "name": "Claro"
+   },
+   {
+    "id": "dark",
+    "name": "Oscuro"
+   }
+  ],
+  "tokens": [
+   {
+    "name": "bg",
+    "value": {
+     "light": "#F2F5F3",
+     "dark": "#0C1918"
+    },
+    "usage": "Fondo de pantalla."
+   },
+   {
+    "name": "surface",
+    "value": {
+     "light": "#FFFFFF",
+     "dark": "#152624"
+    },
+    "usage": "Tarjetas, campos, barras de navegación."
+   },
+   {
+    "name": "surface-raised",
+    "value": {
+     "light": "#FFFFFF",
+     "dark": "#1D3331"
+    },
+    "usage": "Diálogos, menús y hojas inferiores (con elevation-3)."
+   },
+   {
+    "name": "surface-sunken",
+    "value": {
+     "light": "#E6ECE9",
+     "dark": "#0A1413"
+    },
+    "usage": "Pistas de controles segmentados, skeletons y fondos hundidos."
+   },
+   {
+    "name": "surface-brand",
+    "value": {
+     "light": "#DCEBE6",
+     "dark": "#17332F"
+    },
+    "usage": "Paneles suaves de marca y elementos seleccionados."
+   },
+   {
+    "name": "surface-warm",
+    "value": {
+     "light": "#F7EDE6",
+     "dark": "#2A211C"
+    },
+    "usage": "Mensajes en voz de la mascota y celebraciones."
+   },
+   {
+    "name": "surface-inverse",
+    "value": {
+     "light": "#0E3B39",
+     "dark": "#123F3C"
+    },
+    "usage": "Tarjeta de racha y banners destacados."
+   },
+   {
+    "name": "ink",
+    "value": {
+     "light": "#0F2A29",
+     "dark": "#E6EFEC"
+    },
+    "usage": "Texto principal sobre bg, surface, surface-brand y surface-warm."
+   },
+   {
+    "name": "ink-muted",
+    "value": {
+     "light": "#566A67",
+     "dark": "#9DB2AE"
+    },
+    "usage": "Texto secundario sobre bg y surface."
+   },
+   {
+    "name": "ink-subtle",
+    "value": {
+     "light": "#7E918D",
+     "dark": "#7F9894"
+    },
+    "usage": "Placeholders, iconos inactivos y texto deshabilitado. Cumple 3:1, no 4,5:1: nunca para texto que haya que leer."
+   },
+   {
+    "name": "ink-inverse",
+    "value": {
+     "light": "#F2F5F3",
+     "dark": "#F2F5F3"
+    },
+    "usage": "Texto sobre surface-inverse."
+   },
+   {
+    "name": "line",
+    "value": {
+     "light": "#DAE4E0",
+     "dark": "#24403C"
+    },
+    "usage": "Divisores y filetes decorativos de tarjetas."
+   },
+   {
+    "name": "line-control",
+    "value": {
+     "light": "#7E918D",
+     "dark": "#5E7773"
+    },
+    "usage": "Borde de campos, casillas y controles (3:1 sobre surface)."
+   },
+   {
+    "name": "primary",
+    "value": {
+     "light": "#1F6F6B",
+     "dark": "#6CC0B4"
+    },
+    "usage": "Acción principal, estado activo, enlaces y la serie principal de los gráficos."
+   },
+   {
+    "name": "primary-pressed",
+    "value": {
+     "light": "#185956",
+     "dark": "#8DD0C6"
+    },
+    "usage": "Acción principal pulsada."
+   },
+   {
+    "name": "on-primary",
+    "value": {
+     "light": "#FFFFFF",
+     "dark": "#06201E"
+    },
+    "usage": "Texto e iconos sobre primary."
+   },
+   {
+    "name": "accent",
+    "value": {
+     "light": "#F2B441",
+     "dark": "#F2B441"
+    },
+    "usage": "Punto de hoy, rachas e insignias. Relleno, nunca texto sobre claro."
+   },
+   {
+    "name": "on-accent",
+    "value": {
+     "light": "#0F2A29",
+     "dark": "#0F2A29"
+    },
+    "usage": "Texto e iconos sobre accent."
+   },
+   {
+    "name": "accent-ink",
+    "value": {
+     "light": "#8A5A00",
+     "dark": "#F2C46B"
+    },
+    "usage": "Texto en tono sol (por ejemplo, el número de una racha) sobre bg o surface."
+   },
+   {
+    "name": "warm-ink",
+    "value": {
+     "light": "#7D543C",
+     "dark": "#E2B89D"
+    },
+    "usage": "Etiqueta de la voz de la mascota sobre surface-warm."
+   },
+   {
+    "name": "focus-ring",
+    "value": {
+     "light": "#1F6F6B",
+     "dark": "#6CC0B4"
+    },
+    "usage": "Anillo de foco: 2 px sólido con 2 px de separación."
+   },
+   {
+    "name": "scrim",
+    "value": {
+     "light": "rgba(6, 20, 19, 0.48)",
+     "dark": "rgba(0, 0, 0, 0.6)"
+    },
+    "usage": "Velo detrás de diálogos y hojas."
+   },
+   {
+    "name": "observe-bg",
+    "value": {
+     "light": "#E3EEF5",
+     "dark": "#152A36"
+    },
+    "usage": "Fondo del nivel Observar."
+   },
+   {
+    "name": "observe-fg",
+    "value": {
+     "light": "#2D5F80",
+     "dark": "#9CC8E4"
+    },
+    "usage": "Texto e icono del nivel Observar sobre observe-bg."
+   },
+   {
+    "name": "routine-bg",
+    "value": {
+     "light": "#FCEFCF",
+     "dark": "#33270F"
+    },
+    "usage": "Fondo del nivel Cambio de rutina recomendado."
+   },
+   {
+    "name": "routine-fg",
+    "value": {
+     "light": "#7A4D00",
+     "dark": "#F2C46B"
+    },
+    "usage": "Texto e icono de Cambio de rutina sobre routine-bg."
+   },
+   {
+    "name": "vet-bg",
+    "value": {
+     "light": "#FBE2D5",
+     "dark": "#3A1F14"
+    },
+    "usage": "Fondo del nivel Consultar veterinario pronto."
+   },
+   {
+    "name": "vet-fg",
+    "value": {
+     "light": "#9A3412",
+     "dark": "#F5A783"
+    },
+    "usage": "Texto e icono de Consultar veterinario pronto sobre vet-bg."
+   },
+   {
+    "name": "urgent",
+    "value": {
+     "light": "#B42318",
+     "dark": "#B42318"
+    },
+    "usage": "Relleno sólido del nivel Urgente, acudir ahora. Siempre a pantalla o tarjeta completa, nunca solo una etiqueta."
+   },
+   {
+    "name": "on-urgent",
+    "value": {
+     "light": "#FFFFFF",
+     "dark": "#FFFFFF"
+    },
+    "usage": "Texto e icono sobre urgent."
+   },
+   {
+    "name": "success-bg",
+    "value": {
+     "light": "#DDF0E6",
+     "dark": "#123325"
+    },
+    "usage": "Fondo de confirmaciones (guardado, sincronizado)."
+   },
+   {
+    "name": "success-fg",
+    "value": {
+     "light": "#1D6B47",
+     "dark": "#8FD3B0"
+    },
+    "usage": "Texto e icono de confirmación sobre success-bg."
+   },
+   {
+    "name": "danger",
+    "value": {
+     "light": "#B42318",
+     "dark": "#B42318"
+    },
+    "usage": "Relleno de acciones destructivas y errores bloqueantes."
+   },
+   {
+    "name": "on-danger",
+    "value": {
+     "light": "#FFFFFF",
+     "dark": "#FFFFFF"
+    },
+    "usage": "Texto sobre danger."
+   },
+   {
+    "name": "danger-ink",
+    "value": {
+     "light": "#B42318",
+     "dark": "#F28B80"
+    },
+    "usage": "Texto de error de campo y botones destructivos sin relleno, sobre surface y bg."
+   },
+   {
+    "name": "danger-bg",
+    "value": {
+     "light": "#FBE4E1",
+     "dark": "#3A1512"
+    },
+    "usage": "Fondo de alertas de error."
+   },
+   {
+    "name": "chart-energy",
+    "value": {
+     "light": "#1F6F6B",
+     "dark": "#6CC0B4"
+    },
+    "usage": "Serie Energía."
+   },
+   {
+    "name": "chart-appetite",
+    "value": {
+     "light": "#B5651D",
+     "dark": "#E8A55C"
+    },
+    "usage": "Serie Apetito."
+   },
+   {
+    "name": "chart-mood",
+    "value": {
+     "light": "#4D6FA8",
+     "dark": "#8FAEE0"
+    },
+    "usage": "Serie Ánimo."
+   },
+   {
+    "name": "chart-activity",
+    "value": {
+     "light": "#6B7A1F",
+     "dark": "#B9C46A"
+    },
+    "usage": "Serie Actividad."
+   },
+   {
+    "name": "chart-sleep",
+    "value": {
+     "light": "#7B5EA7",
+     "dark": "#C2A8E8"
+    },
+    "usage": "Serie Sueño."
+   },
+   {
+    "name": "chart-grid",
+    "value": {
+     "light": "#DAE4E0",
+     "dark": "#24403C"
+    },
+    "usage": "Rejilla y ejes de gráficos."
+   },
+   {
+    "name": "laguna-50",
+    "value": "#EEF6F4",
+    "usage": "Escala de marca (verde laguna). Úsala a través de los tokens semánticos, no directamente en pantallas."
+   },
+   {
+    "name": "laguna-100",
+    "value": "#DCEBE6",
+    "usage": "Escala de marca (verde laguna). Úsala a través de los tokens semánticos, no directamente en pantallas."
+   },
+   {
+    "name": "laguna-200",
+    "value": "#B9D7CF",
+    "usage": "Escala de marca (verde laguna). Úsala a través de los tokens semánticos, no directamente en pantallas."
+   },
+   {
+    "name": "laguna-300",
+    "value": "#8DBDB2",
+    "usage": "Escala de marca (verde laguna). Úsala a través de los tokens semánticos, no directamente en pantallas."
+   },
+   {
+    "name": "laguna-400",
+    "value": "#5A9C92",
+    "usage": "Escala de marca (verde laguna). Úsala a través de los tokens semánticos, no directamente en pantallas."
+   },
+   {
+    "name": "laguna-500",
+    "value": "#2F807A",
+    "usage": "Escala de marca (verde laguna). Úsala a través de los tokens semánticos, no directamente en pantallas."
+   },
+   {
+    "name": "laguna-600",
+    "value": "#1F6F6B",
+    "usage": "Escala de marca (verde laguna). Úsala a través de los tokens semánticos, no directamente en pantallas."
+   },
+   {
+    "name": "laguna-700",
+    "value": "#185956",
+    "usage": "Escala de marca (verde laguna). Úsala a través de los tokens semánticos, no directamente en pantallas."
+   },
+   {
+    "name": "laguna-800",
+    "value": "#124643",
+    "usage": "Escala de marca (verde laguna). Úsala a través de los tokens semánticos, no directamente en pantallas."
+   },
+   {
+    "name": "laguna-900",
+    "value": "#0E3B39",
+    "usage": "Escala de marca (verde laguna). Úsala a través de los tokens semánticos, no directamente en pantallas."
+   },
+   {
+    "name": "sol-100",
+    "value": "#FDF1D6",
+    "usage": "Acento cálido: hoy, rachas y celebraciones. Nunca como texto sobre fondos claros (usa accent-ink)."
+   },
+   {
+    "name": "sol-300",
+    "value": "#F7CF7A",
+    "usage": "Acento cálido: hoy, rachas y celebraciones. Nunca como texto sobre fondos claros (usa accent-ink)."
+   },
+   {
+    "name": "sol-500",
+    "value": "#F2B441",
+    "usage": "Acento cálido: hoy, rachas y celebraciones. Nunca como texto sobre fondos claros (usa accent-ink)."
+   },
+   {
+    "name": "sol-700",
+    "value": "#8A5A00",
+    "usage": "Acento cálido: hoy, rachas y celebraciones. Nunca como texto sobre fondos claros (usa accent-ink)."
+   },
+   {
+    "name": "arena-100",
+    "value": "#F7EDE6",
+    "usage": "Calidez secundaria: mensajes en voz de la mascota y celebraciones."
+   },
+   {
+    "name": "arena-300",
+    "value": "#EFD9CB",
+    "usage": "Calidez secundaria: mensajes en voz de la mascota y celebraciones."
+   },
+   {
+    "name": "arena-500",
+    "value": "#D9B49C",
+    "usage": "Calidez secundaria: mensajes en voz de la mascota y celebraciones."
+   },
+   {
+    "name": "arena-700",
+    "value": "#7D543C",
+    "usage": "Calidez secundaria: mensajes en voz de la mascota y celebraciones."
+   },
+   {
+    "name": "niebla-0",
+    "value": "#FFFFFF",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "niebla-50",
+    "value": "#F7F9F8",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "niebla-100",
+    "value": "#F2F5F3",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "niebla-200",
+    "value": "#E6ECE9",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "niebla-300",
+    "value": "#DAE4E0",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "niebla-400",
+    "value": "#B5C3BF",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "niebla-500",
+    "value": "#7E918D",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "niebla-600",
+    "value": "#566A67",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "niebla-700",
+    "value": "#3B4E4B",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "niebla-800",
+    "value": "#1F3331",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "niebla-900",
+    "value": "#0F2A29",
+    "usage": "Neutros con tinte verde para el tema claro."
+   },
+   {
+    "name": "noche-500",
+    "value": "#5E7773",
+    "usage": "Neutros del tema oscuro."
+   },
+   {
+    "name": "noche-600",
+    "value": "#284340",
+    "usage": "Neutros del tema oscuro."
+   },
+   {
+    "name": "noche-700",
+    "value": "#1D3331",
+    "usage": "Neutros del tema oscuro."
+   },
+   {
+    "name": "noche-800",
+    "value": "#152624",
+    "usage": "Neutros del tema oscuro."
+   },
+   {
+    "name": "noche-900",
+    "value": "#0C1918",
+    "usage": "Neutros del tema oscuro."
+   }
+  ]
+ },
+ "type": {
+  "fonts": [],
+  "families": {
+   "sans": "\"Hanken Grotesk\", system-ui, -apple-system, \"Segoe UI\", sans-serif",
+   "mono": "\"IBM Plex Mono\", ui-monospace, Menlo, monospace"
+  },
+  "groups": [
+   {
+    "name": "Display",
+    "family": "sans",
+    "styles": [
+     {
+      "name": "display",
+      "family": "sans",
+      "fontSize": "34px",
+      "lineHeight": "40px",
+      "fontWeight": 600,
+      "letterSpacing": "-0.68px",
+      "usage": "Cifra o frase protagonista de una pantalla (bienvenida, resultado). Una por pantalla.",
+      "sample": "Atom ha tenido un buen día"
+     },
+     {
+      "name": "title-1",
+      "family": "sans",
+      "fontSize": "28px",
+      "lineHeight": "34px",
+      "fontWeight": 600,
+      "letterSpacing": "-0.42px",
+      "usage": "Título de pantalla.",
+      "sample": "Historial de Kika"
+     },
+     {
+      "name": "title-2",
+      "family": "sans",
+      "fontSize": "22px",
+      "lineHeight": "28px",
+      "fontWeight": 600,
+      "letterSpacing": "-0.22px",
+      "usage": "Título de sección y de diálogo.",
+      "sample": "Esta semana"
+     },
+     {
+      "name": "title-3",
+      "family": "sans",
+      "fontSize": "18px",
+      "lineHeight": "24px",
+      "fontWeight": 600,
+      "letterSpacing": "-0.09px",
+      "usage": "Título de tarjeta.",
+      "sample": "Vacuna anual"
+     }
+    ]
+   },
+   {
+    "name": "Text",
+    "family": "sans",
+    "styles": [
+     {
+      "name": "body-lg",
+      "family": "sans",
+      "fontSize": "17px",
+      "lineHeight": "24px",
+      "fontWeight": 400,
+      "letterSpacing": "0px",
+      "usage": "Texto destacado y resultados de orientación.",
+      "sample": "Atom ha comido menos estos tres días."
+     },
+     {
+      "name": "body",
+      "family": "sans",
+      "fontSize": "15px",
+      "lineHeight": "22px",
+      "fontWeight": 400,
+      "letterSpacing": "0px",
+      "usage": "Texto por defecto.",
+      "sample": "Añade una nota si algo te ha llamado la atención."
+     },
+     {
+      "name": "body-strong",
+      "family": "sans",
+      "fontSize": "15px",
+      "lineHeight": "22px",
+      "fontWeight": 600,
+      "letterSpacing": "0px",
+      "usage": "Énfasis dentro de body y filas de lista.",
+      "sample": "Desparasitación interna"
+     },
+     {
+      "name": "label",
+      "family": "sans",
+      "fontSize": "13px",
+      "lineHeight": "18px",
+      "fontWeight": 500,
+      "letterSpacing": "0px",
+      "usage": "Etiquetas de campo, chips y pestañas.",
+      "sample": "Energía"
+     },
+     {
+      "name": "caption",
+      "family": "sans",
+      "fontSize": "12px",
+      "lineHeight": "16px",
+      "fontWeight": 400,
+      "letterSpacing": "0px",
+      "usage": "Notas, marcas de tiempo y avisos legales breves.",
+      "sample": "Orientación informativa, no sustituye al veterinario."
+     },
+     {
+      "name": "button",
+      "family": "sans",
+      "fontSize": "16px",
+      "lineHeight": "20px",
+      "fontWeight": 600,
+      "letterSpacing": "0px",
+      "usage": "Texto de botones.",
+      "sample": "Registrar el día"
+     }
+    ]
+   },
+   {
+    "name": "Data",
+    "family": "mono",
+    "styles": [
+     {
+      "name": "data-xl",
+      "family": "mono",
+      "fontSize": "40px",
+      "lineHeight": "44px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.8px",
+      "usage": "Número protagonista (racha, peso).",
+      "sample": "12"
+     },
+     {
+      "name": "data-lg",
+      "family": "mono",
+      "fontSize": "28px",
+      "lineHeight": "32px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.28px",
+      "usage": "Valores de tarjetas de estadística.",
+      "sample": "4/5"
+     },
+     {
+      "name": "data",
+      "family": "mono",
+      "fontSize": "15px",
+      "lineHeight": "20px",
+      "fontWeight": 500,
+      "letterSpacing": "0px",
+      "usage": "Cifras, fechas y unidades en línea.",
+      "sample": "12,4 kg · 3 días"
+     },
+     {
+      "name": "overline",
+      "family": "mono",
+      "fontSize": "11px",
+      "lineHeight": "14px",
+      "fontWeight": 500,
+      "letterSpacing": "0.66px",
+      "usage": "Antetítulos en mayúsculas (fecha del día, secciones).",
+      "sample": "JUE 15 OCT"
+     }
+    ]
+   }
+  ]
+ },
+ "spacing": {
+  "tokens": [
+   {
+    "name": "space-0",
+    "value": "0px",
+    "usage": "Sin espacio."
+   },
+   {
+    "name": "space-1",
+    "value": "4px",
+    "usage": "Icono ↔ texto."
+   },
+   {
+    "name": "space-2",
+    "value": "8px",
+    "usage": "Entre chips y elementos de una fila."
+   },
+   {
+    "name": "space-3",
+    "value": "12px",
+    "usage": "Entre tarjetas de una lista."
+   },
+   {
+    "name": "space-4",
+    "value": "16px",
+    "usage": "Relleno de tarjeta y de campo."
+   },
+   {
+    "name": "space-5",
+    "value": "20px",
+    "usage": "Margen lateral de pantalla (gutter)."
+   },
+   {
+    "name": "space-6",
+    "value": "24px",
+    "usage": "Entre bloques de una pantalla."
+   },
+   {
+    "name": "space-8",
+    "value": "32px",
+    "usage": "Entre secciones."
+   },
+   {
+    "name": "space-10",
+    "value": "40px",
+    "usage": "Aire superior de pantallas de bienvenida."
+   },
+   {
+    "name": "space-12",
+    "value": "48px",
+    "usage": "Separación de estados vacíos."
+   },
+   {
+    "name": "space-16",
+    "value": "64px",
+    "usage": "Máximo; ilustraciones y onboarding."
+   }
+  ]
+ },
+ "radius": {
+  "tokens": [
+   {
+    "name": "radius-xs",
+    "value": "6px",
+    "usage": "Chips de urgencia, etiquetas e insignias pequeñas."
+   },
+   {
+    "name": "radius-sm",
+    "value": "10px",
+    "usage": "Botones pequeños, miniaturas."
+   },
+   {
+    "name": "radius-md",
+    "value": "14px",
+    "usage": "Botones y campos de texto."
+   },
+   {
+    "name": "radius-lg",
+    "value": "18px",
+    "usage": "Tarjetas."
+   },
+   {
+    "name": "radius-xl",
+    "value": "24px",
+    "usage": "Hojas inferiores, diálogos y foto de la tarjeta de mascota."
+   },
+   {
+    "name": "radius-full",
+    "value": "999px",
+    "usage": "Avatares, interruptores y el pulgar del slider."
+   }
+  ]
+ },
+ "shadow": {
+  "tokens": [
+   {
+    "name": "elevation-1",
+    "value": {
+     "light": "0 1px 2px rgba(14, 59, 57, 0.06), 0 6px 16px -10px rgba(14, 59, 57, 0.25)",
+     "dark": "0 0 0 1px rgba(255, 255, 255, 0.04)"
+    },
+    "usage": "Tarjetas sobre bg."
+   },
+   {
+    "name": "elevation-2",
+    "value": {
+     "light": "0 2px 6px rgba(14, 59, 57, 0.08), 0 12px 24px -12px rgba(14, 59, 57, 0.3)",
+     "dark": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 12px 24px -12px rgba(0, 0, 0, 0.6)"
+    },
+    "usage": "Barra de pestañas y botón flotante."
+   },
+   {
+    "name": "elevation-3",
+    "value": {
+     "light": "0 8px 32px -8px rgba(14, 59, 57, 0.35)",
+     "dark": "0 8px 32px -8px rgba(0, 0, 0, 0.7)"
+    },
+    "usage": "Diálogos y hojas inferiores."
+   }
+  ]
+ },
+ "borderWidth": {
+  "tokens": [
+   {
+    "name": "border-hairline",
+    "value": "1px",
+    "usage": "Filete de tarjetas y divisores (line)."
+   },
+   {
+    "name": "border-control",
+    "value": "1.5px",
+    "usage": "Borde de campos y botón secundario (line-control / primary)."
+   },
+   {
+    "name": "border-focus",
+    "value": "2px",
+    "usage": "Anillo de foco (focus-ring), separado 2 px."
+   }
+  ]
+ },
+ "iconSize": {
+  "tokens": [
+   {
+    "name": "icon-xs",
+    "value": "16px",
+    "usage": "Dentro de chips y texto caption."
+   },
+   {
+    "name": "icon-sm",
+    "value": "20px",
+    "usage": "Filas de lista y botones."
+   },
+   {
+    "name": "icon-md",
+    "value": "24px",
+    "usage": "Tamaño por defecto, barra de pestañas."
+   },
+   {
+    "name": "icon-lg",
+    "value": "32px",
+    "usage": "Estados vacíos y cabeceras de resultado."
+   }
+  ]
+ },
+ "size": {
+  "tokens": [
+   {
+    "name": "size-touch-min",
+    "value": "44px",
+    "usage": "Área táctil mínima de cualquier control (usa hitSlop si el visual es menor)."
+   },
+   {
+    "name": "size-button-lg",
+    "value": "52px",
+    "usage": "Botón principal de pantalla."
+   },
+   {
+    "name": "size-button-md",
+    "value": "44px",
+    "usage": "Botón estándar."
+   },
+   {
+    "name": "size-button-sm",
+    "value": "36px",
+    "usage": "Botón compacto (con hitSlop)."
+   },
+   {
+    "name": "size-input",
+    "value": "52px",
+    "usage": "Alto de campo de texto y selector."
+   },
+   {
+    "name": "size-chip",
+    "value": "28px",
+    "usage": "Chips y etiquetas de urgencia."
+   },
+   {
+    "name": "size-tabbar",
+    "value": "56px",
+    "usage": "Barra de pestañas, más el área segura inferior."
+   },
+   {
+    "name": "size-header",
+    "value": "56px",
+    "usage": "Cabecera de navegación."
+   },
+   {
+    "name": "size-list-row",
+    "value": "56px",
+    "usage": "Alto mínimo de fila."
+   },
+   {
+    "name": "size-slider-track",
+    "value": "6px",
+    "usage": "Pista del slider de bienestar."
+   },
+   {
+    "name": "size-slider-thumb",
+    "value": "28px",
+    "usage": "Pulgar del slider."
+   },
+   {
+    "name": "size-avatar-sm",
+    "value": "32px",
+    "usage": "Avatar en listas."
+   },
+   {
+    "name": "size-avatar-md",
+    "value": "40px",
+    "usage": "Selector de mascota en cabecera."
+   },
+   {
+    "name": "size-avatar-lg",
+    "value": "64px",
+    "usage": "Tarjeta de mascota."
+   },
+   {
+    "name": "size-avatar-xl",
+    "value": "96px",
+    "usage": "Perfil de mascota."
+   }
+  ]
+ },
+ "opacity": {
+  "tokens": [
+   {
+    "name": "opacity-disabled",
+    "value": "0.4",
+    "usage": "Controles deshabilitados."
+   },
+   {
+    "name": "opacity-pressed-overlay",
+    "value": "0.08",
+    "usage": "Capa de pulsación sobre superficies."
+   }
+  ]
+ }
+}

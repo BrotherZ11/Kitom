@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Nueva mascota</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.sp{height:56px;border-radius:14px;border:0;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);font:600 15px/20px 'Hanken Grotesk',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.sp.on{background:var(--brand);box-shadow:inset 0 0 0 2px var(--primary);color:var(--primary)}
+.photo-btn{width:112px;height:112px;border-radius:999px;border:1.5px dashed var(--control);background:var(--surface);color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-decoration:none;font:500 13px/18px 'Hanken Grotesk',system-ui,sans-serif}
+</style>
+</helmet>
+<div class="app">
+  <div class="scr">
+    <div class="col" style="gap: 8px; padding-top: 8px">
+      <p class="over">Tu mascota</p>
+      <h1 class="t1">¿A quién vas a cuidar?</h1>
+      <p class="muted">Solo necesitamos su nombre y especie. El resto, cuando quieras.</p>
+    </div>
+    <div style="display: flex; justify-content: center">
+      <a class="photo-btn" href="FotoHoja.dc.html" aria-label="Añadir foto (opcional)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>Foto<span class="cap">opcional</span></a>
+    </div>
+    <div class="field">
+      <label for="name">Nombre</label>
+      <input id="name" class="input focus" type="text" value="Kika" maxlength="40">
+    </div>
+    <div class="field">
+      <span class="flabel" id="sp-label">Especie</span>
+      <div role="radiogroup" aria-labelledby="sp-label" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{species}}" as="s" hint-placeholder-count="3">
+          <button class="{{s.cls}}" role="radio" aria-checked="{{s.on}}" onClick="{{s.pick}}">{{s.label}}</button>
+        </sc-for>
+      </div>
+      <sc-if value="{{other}}" hint-placeholder-val="{{ false }}">
+        <div class="alert info" role="status"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg><div><strong>Por ahora, perros y gatos</strong>Kitom está pensada y revisada para ellos. Te avisaremos cuando podamos acompañar a otras especies.</div></div>
+      </sc-if>
+    </div>
+  </div>
+  <div class="foot">
+    <sc-if value="{{ok}}" hint-placeholder-val="{{ true }}"><a class="btn primary" href="MascotaLista.dc.html">Crear perfil de Kika</a></sc-if>
+    <sc-if value="{{other}}" hint-placeholder-val="{{ false }}"><span class="btn disabled" aria-disabled="true">Crear perfil de Kika</span></sc-if>
+    <p class="cap muted" style="text-align: center">Raza, edad o peso se piden más adelante, en el momento oportuno.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"sp": "dog"};
+  }
+  renderVals() {
+    const opts = [['dog', 'Perro'], ['cat', 'Gato'], ['other', 'Otro']];
+    const other = this.state.sp === 'other';
+    return {
+      other, ok: !other,
+      species: opts.map((o) => ({ id: o[0], label: o[1], on: this.state.sp === o[0],
+        cls: this.state.sp === o[0] ? 'sp on' : 'sp', pick: () => this.setState({ sp: o[0] }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

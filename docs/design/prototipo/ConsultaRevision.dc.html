@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Revisar consulta</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Consulta.dc.html" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a><div class="col" style="gap: 0; align-items: center; text-align: center"><span class="strong">Revisa tu consulta</span><span class="cap muted">Kika</span></div><span class="data muted" style="width: 44px; text-align: right">3/3</span></div>
+    <div class="list">
+      <div class="li"><div class="thumb photo" role="img" aria-label="Foto"></div><span class="col grow" style="gap: 0"><span class="strong">1 foto</span><span class="cap muted">Ojo derecho</span></span><a class="link" href="ConsultaFoto.dc.html" style="font-size: 14px">Cambiar</a></div>
+      <div class="li" style="align-items: flex-start; padding-top: 14px; padding-bottom: 14px"><span class="col grow" style="gap: 8px"><span class="strong">Señales</span><span class="chips"><span class="tag brand">Ojos llorosos</span></span></span><a class="link" href="Consulta.dc.html" style="font-size: 14px">Cambiar</a></div>
+      <div class="li" style="align-items: flex-start; padding-top: 14px; padding-bottom: 14px"><span class="col grow" style="gap: 4px"><span class="strong">Tu nota</span><span class="cap muted">Desde ayer tiene el ojo derecho lloroso y se lo frota con la pata.</span></span></div>
+      <div class="li" style="align-items: flex-start; padding-top: 14px; padding-bottom: 14px"><span class="col grow" style="gap: 4px"><span class="strong">Su contexto</span><span class="cap muted">Perra, 5 años, 12,4 kg · últimos 30 días de registros: el apetito bajó de lunes a miércoles.</span></span></div>
+    </div>
+    <p class="cap muted">Esta consulta cuenta para tu límite: te quedarán [N] de [LÍMITE] este mes.</p>
+  </div>
+  <div class="foot"><a class="btn primary" href="Analizando.dc.html">Pedir orientación</a><p class="cap muted" style="text-align: center">Orientación informativa. No sustituye a un veterinario.</p></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

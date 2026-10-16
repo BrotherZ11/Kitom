@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Preparando la orientación</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@keyframes kspin2{to{transform:rotate(360deg)}}
+.spin{animation:kspin2 2.4s cubic-bezier(.2,0,0,1) infinite;transform-origin:50% 50%}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+.stp{display:flex;align-items:center;gap:12px;min-height:40px}
+.ok{width:24px;height:24px;border-radius:999px;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;flex:none}
+.wait{width:24px;height:24px;border-radius:999px;box-shadow:inset 0 0 0 2px var(--line);flex:none}
+.now{width:24px;height:24px;border-radius:999px;box-shadow:inset 0 0 0 2px var(--primary);flex:none;display:flex;align-items:center;justify-content:center}
+.now i{width:10px;height:10px;border-radius:999px;background:var(--accent);display:block}
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="align-items: center; padding-top: 110px; gap: 28px">
+    <svg class="ring" width="120" height="120" viewBox="0 0 64 64" role="img" aria-label="Preparando la orientación">
+      <g class="spin" stroke-width="5.5"><path class="on" d="M34.11 10.10A22 22 0 0 1 47.81 16.70"></path><path class="off" d="M50.44 19.99A22 22 0 0 1 53.82 34.82"></path><path class="on" d="M52.88 38.93A22 22 0 0 1 43.40 50.82"></path><path class="off" d="M39.60 52.64A22 22 0 0 1 24.40 52.64"></path><path class="on" d="M20.60 50.82A22 22 0 0 1 11.12 38.93"></path><path class="off" d="M10.18 34.82A22 22 0 0 1 13.56 19.99"></path><circle class="today" cx="22.45" cy="12.18" r="4.6"></circle></g>
+    </svg>
+    <div class="col" style="gap: 8px; align-items: center; text-align: center">
+      <h1 class="t2">Preparando la orientación para Kika</h1>
+      <p class="muted" style="max-width: 300px">Suele tardar menos de un minuto. Puedes salir; te avisamos cuando esté lista.</p>
+    </div>
+    <div class="card" style="width: 100%; gap: 4px" role="list" aria-live="polite">
+      <div class="stp" role="listitem"><span class="ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span>Foto y señales recibidas</span></div>
+      <div class="stp" role="listitem"><span class="now" aria-hidden="true"><i></i></span><span class="strong">Comparando con sus últimos 30 días</span></div>
+      <div class="stp" role="listitem"><span class="wait" aria-hidden="true"></span><span class="muted">Preparando posibles causas y consejos</span></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn secondary" href="Resultado.dc.html">Ver el resultado (prototipo)</a><a class="btn ghost md" href="ConsultaError.dc.html">Ver un error (prototipo)</a><p class="cap muted" style="text-align: center">Si te parece urgente, no esperes: llama a tu veterinario.</p></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

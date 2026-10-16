@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kitom Premium</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px; padding-top: 54px">
+    <div class="top"><a class="ib" href="Home.dc.html" aria-label="Cerrar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a><a class="link" href="RestaurarCompras.dc.html" style="font-size: 14px">Restaurar compras</a></div>
+    <div class="col" style="gap: 8px">
+      <p class="over">Kitom Premium</p>
+      <h1 class="t1">Todo su historial, para cuidarla mejor</h1>
+      <p class="muted">Más contexto en cada orientación y todas tus mascotas en un sitio.</p>
+    </div>
+    <div class="cmp">
+      <span class="h" style="text-align: left">Incluye</span><span class="h">Gratis</span><span class="h" style="color: var(--primary)">Premium</span>
+      <span>Registro diario y agenda</span><span class="c">Sí</span><span class="p">Sí</span>
+      <span>Historial</span><span class="c">30 días</span><span class="p">Completo</span>
+      <span>Mascotas</span><span class="c">1</span><span class="p">Sin límite</span>
+      <span>Consultas con foto</span><span class="c">[LÍMITE]</span><span class="p">Sin límite</span>
+      <span>La orientación usa todo su historial</span><span class="c">30 días</span><span class="p">Sí</span>
+      <span>Adjuntos en la agenda</span><span class="c">[LÍMITE]</span><span class="p">Sin límite</span>
+      <span class="row" style="gap: 6px">Informe PDF para el veterinario <span class="tmark" style="font-size: 10px">Pronto</span></span><span class="c">No</span><span class="p">Sí</span>
+      <span class="row" style="gap: 6px">Co-tutores <span class="tmark" style="font-size: 10px">Pronto</span></span><span class="c">No</span><span class="p">Sí</span>
+    </div>
+    <div class="col" role="radiogroup" aria-label="Plan" style="gap: 10px">
+      <button class="{{yearCls}}" role="radio" aria-checked="{{isYear}}" onClick="{{pickYear}}"><span class="radio" aria-hidden="true"></span><span class="col grow" style="gap: 0"><span class="strong">Anual</span><span class="cap muted">[PRECIO AL AÑO] · equivale a [PRECIO/MES]</span></span><span class="tag sol">[AHORRO]</span></button>
+      <button class="{{monthCls}}" role="radio" aria-checked="{{isMonth}}" onClick="{{pickMonth}}"><span class="radio" aria-hidden="true"></span><span class="col grow" style="gap: 0"><span class="strong">Mensual</span><span class="cap muted">[PRECIO AL MES]</span></span></button>
+    </div>
+    <p class="cap muted">«Pronto» significa que llegará en una próxima versión; no lo cobramos como si ya estuviera.</p>
+  </div>
+  <div class="foot">
+    <a class="btn primary" href="PremiumActivo.dc.html">{{cta}}</a>
+    <p class="cap muted" style="text-align: center">Se renueva automáticamente. Cancela cuando quieras desde tu tienda de apps.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"plan": "year"};
+  }
+  renderVals() {
+    const year = this.state.plan === 'year';
+    return { isYear: year, isMonth: !year, yearCls: year ? 'plan on' : 'plan', monthCls: year ? 'plan' : 'plan on',
+      cta: year ? 'Continuar con el plan anual' : 'Continuar con el plan mensual',
+      pickYear: () => this.setState({ plan: 'year' }), pickMonth: () => this.setState({ plan: 'month' }) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Recuperar contraseña</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Login.dc.html" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a><span class="strong"></span><span style="width: 44px"></span></div>
+    <sc-if value="{{form}}" hint-placeholder-val="{{ true }}">
+      <div class="col" style="gap: 20px">
+        <div class="col" style="gap: 8px">
+          <h1 class="t1">Recupera tu contraseña</h1>
+          <p class="muted">Escribe el email de tu cuenta y te enviaremos un enlace para crear una nueva.</p>
+        </div>
+        <div class="field">
+          <label for="re">Email</label>
+          <input id="re" class="input focus" type="email" value="david@ejemplo.com">
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+      <div class="empty" style="padding-top: 48px">
+        <div class="ill"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg></div>
+        <h1 class="t1">Enlace enviado</h1>
+        <p class="blg muted" style="max-width: 310px">Si hay una cuenta con ese email, te llegará en unos minutos. Ábrelo en este móvil.</p>
+      </div>
+    </sc-if>
+  </div>
+  <div class="foot">
+    <sc-if value="{{form}}" hint-placeholder-val="{{ true }}"><button class="btn primary" onClick="{{send}}">Enviar enlace</button></sc-if>
+    <sc-if value="{{sent}}" hint-placeholder-val="{{ false }}"><a class="btn primary" href="NuevaClave.dc.html">Abrir el enlace (prototipo)</a><a class="btn ghost md" href="Login.dc.html">Volver a entrar</a></sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"sent": false};
+  }
+  renderVals() {
+    const sent = this.state.sent;
+    return { sent, form: !sent, send: () => this.setState({ sent: true }) };
+  }
+}
+</script>
+</body>
+</html>

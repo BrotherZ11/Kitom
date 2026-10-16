@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Verifica tu email</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="align-items: center; text-align: center; padding-top: 120px; gap: 24px">
+    <div class="empty">
+      <div class="ill"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg></div>
+      <h1 class="t1">Revisa tu correo</h1>
+      <p class="blg muted" style="max-width: 310px">Te hemos enviado un enlace a <span class="strong" style="color: var(--ink)">david@ejemplo.com</span>. Ábrelo en este móvil para activar tu cuenta.</p>
+    </div>
+    <div class="card flat" style="width: 100%; text-align: left; gap: 6px">
+      <p class="strong">¿No te llega?</p>
+      <p class="cap muted">Mira en la carpeta de spam. Puedes pedir otro enlace dentro de 60 segundos.</p>
+    </div>
+  </div>
+  <div class="foot"><a class="btn primary" href="TuPerfil.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>Abrir mi correo</a><span class="btn disabled md" aria-disabled="true">Reenviar enlace · 0:42</span><a class="btn ghost md" href="Cuenta.dc.html">Cambiar el email</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

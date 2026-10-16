@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Acceso con teléfono</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Cuenta.dc.html" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a><span class="strong"></span><span style="width: 44px"></span></div>
+    <div class="col" style="gap: 8px">
+      <h1 class="t1">Tu número de teléfono</h1>
+      <p class="muted">Te enviaremos un código por SMS para entrar. No lo usamos para nada más.</p>
+    </div>
+    <div class="field">
+      <label for="tel">Teléfono</label>
+      <div class="prefix">
+        <div class="input mono" role="button" tabindex="0" aria-label="Prefijo: España +34">+34<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></div>
+        <input id="tel" class="input mono focus" type="tel" value="612 345 678" autocomplete="tel">
+      </div>
+      <p class="help">Pueden aplicarse tarifas de tu operador.</p>
+    </div>
+  </div>
+  <div class="foot"><a class="btn primary" href="Codigo.dc.html">Enviar código</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

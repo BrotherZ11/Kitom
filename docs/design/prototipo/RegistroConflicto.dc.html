@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Conflicto de edición</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div style="padding: 58px 20px 0; opacity: .5" aria-hidden="true"><p class="t1">Kika</p></div>
+  <div class="scrim">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh" style="max-height: 620px; display: flex; flex-direction: column">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="between" style="padding: 8px 12px 0 20px">
+        <h1 id="sh" class="t2">Hay dos versiones de hoy</h1>
+        <a class="ib" href="RegistroOffline.dc.html" aria-label="Cerrar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+      </div>
+      <div class="col" style="gap: 16px; padding: 12px 20px 16px; overflow: auto">
+        
+        <p class="muted">Se guardó otro registro de Kika desde otro dispositivo mientras no tenías conexión. Elige cuál quieres conservar.</p>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <div class="card flat" style="gap: 8px; box-shadow: inset 0 0 0 2px var(--primary); background: var(--brand)">
+            <p class="over">En este móvil · 21:32</p>
+            <p class="cap">Energía <b>Más</b></p><p class="cap">Apetito <b>Normal</b></p><p class="cap">Ánimo <b>Bien</b></p><p class="cap">Actividad <b>Normal</b></p>
+          </div>
+          <div class="card flat" style="gap: 8px">
+            <p class="over">Guardado · 21:40</p>
+            <p class="cap">Energía <b>Como siempre</b></p><p class="cap">Apetito <b>Normal</b></p><p class="cap">Ánimo <b>Bien</b></p><p class="cap">Actividad <b>Menos</b></p>
+          </div>
+        </div>
+        <p class="cap muted">Nada se pierde hasta que elijas.</p>
+      </div>
+      <div style="padding: 8px 20px 34px; display: flex; flex-direction: column; gap: 10px"><a class="btn primary" href="RegistroSync.dc.html">Conservar el de este móvil</a><a class="btn secondary" href="RegistroSync.dc.html">Usar el guardado</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

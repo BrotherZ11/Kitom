@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Eliminar cuenta</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ulr li::before{background:var(--danger-ink)}
+</style>
+</helmet>
+<div class="app">
+  <div style="padding: 58px 20px 0" aria-hidden="true"><p class="strong" style="text-align: center">Tu cuenta</p></div>
+  <div class="scrim center">
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dl" aria-describedby="dl-d">
+      <div class="av s40" style="border-radius: 12px; background: var(--danger-bg); color: var(--danger-ink)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></div>
+      <div class="col" style="gap: 6px">
+        <h1 id="dl" class="t2">¿Eliminar tu cuenta?</h1>
+        <p id="dl-d" class="muted">Se borrará todo y no se puede deshacer:</p>
+      </div>
+      <ul class="ul ulr">
+          <li>Tu cuenta y tus datos personales.</li>
+          <li>El perfil de Kika, sus 124 registros y sus fotos.</li>
+          <li>La agenda y las orientaciones guardadas.</li>
+        </ul>
+        <p class="cap muted">Si quieres conservarlos, <a href="Exportar.dc.html">exporta tus datos</a> antes.</p>
+      <div class="col" style="gap: 10px"><a class="btn secondary" href="Ajustes.dc.html" autofocus style="box-shadow: inset 0 0 0 2px var(--primary)">Cancelar</a><a class="btn danger" href="Main.dc.html">Eliminar mi cuenta</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

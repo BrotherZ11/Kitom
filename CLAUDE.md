@@ -12,12 +12,14 @@ Stack: Expo (React Native) + TypeScript + Supabase. Documentación en español; 
   (contrato pantalla ↔ datos/RPC/Storage), `AUTH.md` (Auth, deep links, Google y configuración
   necesaria en Supabase), `SEED.md` (datos de referencia), `DECISIONS.md` (decisiones técnicas), `CHANGELOG_v2.2.1.md` (histórico) y
   `CHANGELOG.md` (cambios actuales).
+- `docs/design/` — diseño de la app (identidad «Ritmo», tokens, componentes, prototipo de 90 pantallas,
+  inventario `PANTALLAS.md` y `PLAN_DESARROLLO.md`). Recursos de marca para la app en `frontend/assets/brand/`.
 
 ## Jerarquía de fuentes de verdad
 1. `supabase/migrations/` — lo que existe de verdad en la base de datos.
 2. `docs/FRONTEND_ARCHITECTURE.md` y `docs/README.md` — contrato técnico.
-3. `docs/PRD.md` — alcance y producto. Ante una contradicción técnica (p. ej. §11 modelo de datos,
-   §12 stack), ganan 1–2.
+3. `docs/PRD.md` — alcance y producto; `docs/design/` — diseño de pantallas.
+   Ante una contradicción técnica (p. ej. §11 modelo de datos, §12 stack), ganan 1–2.
 
 Decisiones de stack ya tomadas: **Expo Router + TanStack Query + React Context**. No usar
 react-navigation directamente ni Zustand/Redux, aunque los mencione el PRD.
@@ -42,6 +44,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - Daily Logs offline: solo existe la base (almacén local, modelo, fusión, errores, backoff y señal de
   conectividad; `docs/FRONTEND_ARCHITECTURE.md` §5). **No está conectada**: el guardado sigue siendo
   online y no hay motor de sincronización.
+- Diseño v2 (`docs/design/`): **solo diseño, sin implementar**. Tokens, fuentes, iconos de app, barra de
+  pestañas y pantallas nuevas pendientes según `docs/design/PLAN_DESARROLLO.md`; `frontend/assets/brand/`
+  todavía no está enlazado en `app.json`.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 

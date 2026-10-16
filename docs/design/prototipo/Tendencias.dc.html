@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Historial · semana</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><h1 class="t1">Historial</h1><a class="row" href="SelectorMascota.dc.html" style="gap: 6px; text-decoration: none; color: inherit" aria-label="Mascota: Kika"><div class="av s40 warm">K</div></a></div>
+    <div class="seg three" role="tablist" aria-label="Periodo"><span class="on" role="tab" aria-selected="true">Semana</span><a href="HistorialMes.dc.html" role="tab" aria-selected="false">Mes</a><a href="HistorialLimite.dc.html" role="tab" aria-selected="false">Todo</a></div>
+    <div class="card" style="gap: 14px">
+      <div class="chips" style="gap: 6px" aria-label="Categorías">
+        <sc-for list="{{series}}" as="s" hint-placeholder-count="5">
+          <button class="{{s.chipCls}}" aria-pressed="{{s.on}}" onClick="{{s.toggle}}" style="min-height: 36px; padding: 0 12px; font-size: 13px"><span class="dot" style="background: {{s.color}}"></span>{{s.label}}</button>
+        </sc-for>
+      </div>
+      <div class="row" style="gap: 6px; align-items: stretch">
+        <div class="col" style="justify-content: space-between; gap: 0; padding: 12px 0 14px; font-size: 10px; line-height: 12px; color: var(--muted); width: 44px; flex: none" aria-hidden="true"><span>Mucho más</span><span>Como siempre</span><span>Mucho menos</span></div>
+        <svg class="chart" width="100%" height="180" viewBox="0 0 320 180" preserveAspectRatio="none" role="img" aria-label="Últimos 7 días comparados con lo habitual en Kika. El apetito bajó de lunes a miércoles." style="flex: 1; min-width: 0">
+          <rect class="band" x="{{bandX}}" y="8" width="{{bandW}}" height="160" rx="6"></rect>
+          <line class="grid" x1="0" x2="320" y1="20" y2="20"></line><line class="grid" x1="0" x2="320" y1="55" y2="55"></line>
+          <line class="grid" x1="0" x2="320" y1="90" y2="90" style="stroke-dasharray: 3 3; stroke: var(--control)"></line>
+          <line class="grid" x1="0" x2="320" y1="125" y2="125"></line><line class="grid" x1="0" x2="320" y1="160" y2="160"></line>
+          <path class="s" d="{{energy.d}}" style="stroke: var(--c-energy); opacity: {{energy.op}}"></path>
+          <path class="s" d="{{appetite.d}}" style="stroke: var(--c-appetite); opacity: {{appetite.op}}; stroke-dasharray: 6 4"></path>
+          <path class="s" d="{{mood.d}}" style="stroke: var(--c-mood); opacity: {{mood.op}}; stroke-dasharray: 1 4"></path>
+          <path class="s" d="{{activity.d}}" style="stroke: var(--c-activity); opacity: {{activity.op}}; stroke-dasharray: 10 3 2 3"></path>
+          <path class="s" d="{{sleep.d}}" style="stroke: var(--c-sleep); opacity: {{sleep.op}}; stroke-dasharray: 2 2"></path>
+        </svg>
+      </div>
+      <div class="xl" aria-hidden="true" style="padding-left: 54px"><span>V</span><span>S</span><span>D</span><span>L</span><span>M</span><span>X</span><span>J</span></div>
+      <sc-if value="{{full}}" hint-placeholder-val="{{ true }}"><p class="cap muted">Se ven hasta 3 categorías a la vez. Quita una para ver otra.</p></sc-if>
+    </div>
+    <div class="card" style="gap: 8px">
+      <p class="over">Cómo ha ido la semana</p>
+      <p>El apetito de Kika estuvo por debajo de lo habitual de lunes a miércoles (la zona azul). Hoy vuelve a lo normal.</p>
+      <p class="cap muted">Kitom compara cada día con lo habitual en Kika. No es una valoración médica.</p>
+      <a class="link row" href="Alertas.dc.html" style="gap: 6px">Ver el historial de alertas<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+    </div>
+    <div class="col" style="gap: 10px">
+      <h2 class="t3">Día a día</h2>
+      <div class="list">
+        <a class="li" href="DiaDetalle.dc.html"><span class="col grow" style="gap: 0"><span class="strong">Hoy, jueves 16</span><span class="cap muted">Energía más · Apetito normal · Ánimo bien</span></span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+        <a class="li" href="DiaDetalle.dc.html"><span class="col grow" style="gap: 0"><span class="strong">Miércoles 15</span><span class="cap muted">Apetito menos · Algo fuera de lo habitual · Con nota</span></span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+        <a class="li" href="DiaDetalle.dc.html"><span class="col grow" style="gap: 0"><span class="strong">Martes 14</span><span class="cap muted">Apetito menos · Orientación: cambio de rutina</span></span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+        <div class="li"><span class="col grow" style="gap: 0"><span class="strong muted">Domingo 12</span><span class="cap muted">Sin registro</span></span><a class="link" href="Registro.dc.html" style="font-size: 14px">Añadir</a></div>
+      </div>
+    </div>
+  </div>
+  <nav class="tabbar" aria-label="Principal">
+    <a class="tab" href="Home.dc.html"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span>Hoy</a>
+    <a class="tab on" href="Tendencias.dc.html" aria-current="page"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg></span>Historial</a>
+    <a class="tab act" href="Registro.dc.html" aria-label="Registrar el día de Kika. Pendiente"><span class="fab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><i></i></span>Registrar</a>
+    <a class="tab" href="Agenda.dc.html"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span>Agenda</a>
+    <a class="tab" href="PerfilMascota.dc.html"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span>Perfil</a>
+    </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"hidden": {"activity": true, "sleep": true}};
+  }
+  renderVals() {
+    const data = {
+      energy: [4, 4, null, 3, 3, 3, 4],
+      appetite: [3, 3, null, 2, 2, 2, 3],
+      mood: [4, 4, null, 3, 4, 3, 4],
+      activity: [3, 4, null, 3, 2, 3, 3],
+      sleep: [3, 3, null, 3, 2, 3, 3]
+    };
+    const defs = [
+      { id: 'energy', label: 'Energía', color: 'var(--c-energy)', dash: '' },
+      { id: 'appetite', label: 'Apetito', color: 'var(--c-appetite)', dash: '6 4' },
+      { id: 'mood', label: 'Ánimo', color: 'var(--c-mood)', dash: '1 4' },
+      { id: 'activity', label: 'Actividad', color: 'var(--c-activity)', dash: '10 3 2 3' },
+      { id: 'sleep', label: 'Sueño', color: 'var(--c-sleep)', dash: '2 2' }
+    ];
+    const step = 304 / 6;
+    const path = (vals) => {
+      let d = ''; let pen = false;
+      vals.forEach((v, i) => {
+        if (v == null) { pen = false; return; }
+        d += (pen ? ' L' : ' M') + (8 + i * step).toFixed(1) + ' ' + (160 - (v - 1) * 35).toFixed(1);
+        pen = true;
+      });
+      return d.trim();
+    };
+    const shown = defs.filter((d) => !this.state.hidden[d.id]).length;
+    const out = {};
+    defs.forEach((d) => { const on = !this.state.hidden[d.id]; out[d.id] = { d: path(data[d.id]), op: on ? 1 : 0 }; });
+    return {
+      ...out,
+      series: defs.map((d) => {
+        const on = !this.state.hidden[d.id];
+        const blocked = !on && shown >= 3;
+        return { ...d, on, chipCls: on ? 'chip on' : 'chip',
+          toggle: () => { if (!blocked) this.setState({ hidden: { ...this.state.hidden, [d.id]: on } }); } };
+      }),
+      full: shown >= 3,
+      bandX: (8 + 3 * step - step / 2).toFixed(1),
+      bandW: (3 * step).toFixed(1)
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Registro de hoy</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 22px; padding-top: 54px">
+    <div class="top">
+      <a class="ib" href="{{closeHref}}" aria-label="Cerrar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+      <div class="col" style="gap: 0; align-items: center"><span class="strong">{{title}}</span><span class="cap muted">Kika</span></div>
+      <span class="data muted" style="width: 44px; text-align: right" aria-label="{{progressLabel}}">{{done}}/4</span>
+    </div>
+    <div class="bar" aria-hidden="true"><i style="width: {{pct}}"></i></div>
+    <sc-if value="{{historical}}" hint-placeholder-val="{{ false }}">
+      <div class="alert info" role="status"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5zM15 5l4 4"></path></svg><div><strong>Estás editando un día anterior</strong>Registrado por ti el miércoles a las 21:04.</div></div>
+    </sc-if>
+    <sc-if value="{{fresh}}" hint-placeholder-val="{{ true }}">
+      <button class="chip" onClick="{{allUsual}}" style="align-self: flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Todo como siempre</button>
+    </sc-if>
+    <sc-for list="{{metrics}}" as="m" hint-placeholder-count="4">
+      <div class="metric" role="group" aria-label="{{m.label}}">
+        <div class="between"><h2 class="t3">{{m.label}}</h2><span class="label muted">{{m.current}}</span></div>
+        <div class="steps">
+          <sc-for list="{{m.steps}}" as="s" hint-placeholder-count="5">
+            <button class="{{s.cls}}" aria-pressed="{{s.on}}" aria-label="{{s.aria}}" onClick="{{s.pick}}">{{s.n}}</button>
+          </sc-for>
+        </div>
+        <div class="scale"><span>{{m.low}}</span><span>{{m.high}}</span></div>
+      </div>
+    </sc-for>
+    <a class="li" href="RegistroDetalles.dc.html" style="border: 0; padding: 0; min-height: 48px"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span><span class="col grow" style="gap: 0"><span class="strong">Añadir detalles</span><span class="cap muted">Sueño, vocalizaciones, algo raro, etiquetas o una nota</span></span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--subtle)"><path d="m9 18 6-6-6-6"></path></svg></a>
+  </div>
+  <div class="foot">
+    <sc-if value="{{failed}}" hint-placeholder-val="{{ false }}">
+      <div class="alert bad" role="alert"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg><div><strong>No hemos podido guardar el registro</strong>Lo que has marcado sigue aquí. Vuelve a intentarlo en un momento.</div></div>
+    </sc-if>
+    <sc-if value="{{ready}}" hint-placeholder-val="{{ false }}"><a class="btn primary" href="{{saveHref}}">{{saveLabel}}</a></sc-if>
+    <sc-if value="{{notReady}}" hint-placeholder-val="{{ true }}"><span class="btn disabled" aria-disabled="true">{{saveLabel}}</span></sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"values": {"editor": null}, "saveHref": {"editor": null}, "title": {"editor": null}, "editing": {"editor": "boolean", "default": false}, "historical": {"editor": "boolean", "default": false}, "failed": {"editor": "boolean", "default": false}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const v = this.props.values ?? null;
+    this.state = v ? { energy: v[0], appetite: v[1], mood: v[2], activity: v[3] } : { energy: 4, appetite: null, mood: null, activity: null };
+  }
+  renderVals() {
+    const REL = ['Mucho menos', 'Menos', 'Como siempre', 'Más', 'Mucho más'];
+    const QUA = ['Muy mal', 'Mal', 'Normal', 'Bien', 'Muy bien'];
+    const defs = [
+      { id: 'energy', label: 'Energía', words: REL, low: 'Mucho menos', high: 'Mucho más' },
+      { id: 'appetite', label: 'Apetito', words: REL, low: 'Mucho menos', high: 'Mucho más' },
+      { id: 'mood', label: 'Ánimo', words: QUA, low: 'Muy mal', high: 'Muy bien' },
+      { id: 'activity', label: 'Actividad', words: REL, low: 'Mucho menos', high: 'Mucho más' }
+    ];
+    const metrics = defs.map((d) => {
+      const v = this.state[d.id];
+      return {
+        ...d,
+        current: v ? d.words[v - 1] : 'Sin indicar',
+        steps: [1, 2, 3, 4, 5].map((n) => ({
+          n, on: v === n, cls: v === n ? 'step on' : 'step', aria: d.label + ': ' + d.words[n - 1],
+          pick: () => this.setState({ [d.id]: v === n ? null : n })
+        }))
+      };
+    });
+    const done = defs.filter((d) => this.state[d.id]).length;
+    return {
+      metrics, done,
+      pct: (done / 4) * 100 + '%',
+      progressLabel: done + ' de 4 respondidas',
+      ready: done === 4, notReady: done !== 4,
+      closeHref: done > 0 ? 'RegistroDescartar.dc.html' : 'Home.dc.html',
+      allUsual: () => this.setState({ energy: 3, appetite: 3, mood: 3, activity: 3 }),
+      saveHref: this.props.saveHref ?? 'RegistroGuardado.dc.html',
+      title: this.props.title ?? 'Hoy, jueves 16',
+      editing: this.props.editing ?? false,
+      fresh: !(this.props.editing ?? false),
+      historical: this.props.historical ?? false,
+      failed: this.props.failed ?? false,
+      saveLabel: (this.props.editing ?? false) ? 'Guardar cambios' : 'Guardar el día'
+    };
+  }
+}
+</script>
+</body>
+</html>

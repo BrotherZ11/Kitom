@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Límite de consultas</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="ib" href="Home.dc.html" aria-label="Cerrar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a><span class="strong"></span><span style="width: 44px"></span></div>
+    <div class="col" style="gap: 8px">
+      <p class="over">Plan gratuito</p>
+      <h1 class="t1">Has usado tus [LÍMITE] consultas de este mes</h1>
+      <p class="muted">Vuelven a estar disponibles el 1 de noviembre. El registro diario y la agenda siguen igual.</p>
+    </div>
+    <div class="banner" style="background: var(--danger-bg); color: var(--danger-ink); align-items: flex-start"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg><span>Si no respira bien, convulsiona, sangra o no puede ponerse en pie, no esperes: <a href="tel:+34000000000" style="color: inherit; font-weight: 600">llama a tu veterinario</a>.</span></div>
+    <div class="card brand" style="gap: 10px">
+      <p class="strong">Con Kitom Premium</p>
+      <ul class="ul"><li>Consultas sin límite.</li><li>Cada orientación tiene en cuenta todo su historial, no solo 30 días.</li></ul>
+    </div>
+  </div>
+  <div class="foot"><a class="btn primary" href="Premium.dc.html">Ver Kitom Premium</a><a class="btn ghost md" href="Home.dc.html">Ahora no</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

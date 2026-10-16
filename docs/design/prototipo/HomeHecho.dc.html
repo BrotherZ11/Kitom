@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Hoy · día registrado</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="{{appCls}}">
+  <div class="scr" style="gap: 20px">
+    <div class="top"><a class="row" href="SelectorMascota.dc.html" style="gap: 12px; text-decoration: none; color: inherit" aria-label="Cambiar de mascota. Ahora: Kika"><div class="av s40 warm">K</div><div class="col" style="gap: 0"><span class="over">Jueves 16 oct</span><span class="t3 row" style="gap: 4px">Kika<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--muted)"><path d="m6 9 6 6 6-6"></path></svg></span></div></a><a class="btn secondary sm" href="ConsultaIntro.dc.html" aria-label="Consultar con una foto"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>Consultar</a></div>
+    <div class="card" style="padding: 20px; gap: 16px">
+      <div class="row" style="gap: 16px; align-items: center">
+        <svg class="ring" width="104" height="104" viewBox="0 0 64 64" role="img" aria-label="6 de 7 días registrados, hoy incluido"><g stroke-width="5.5"><path class="on" d="M34.11 10.10A22 22 0 0 1 47.81 16.70"></path><path class="on" d="M50.44 19.99A22 22 0 0 1 53.82 34.82"></path><path class="off" d="M52.88 38.93A22 22 0 0 1 43.40 50.82"></path><path class="on" d="M39.60 52.64A22 22 0 0 1 24.40 52.64"></path><path class="on" d="M20.60 50.82A22 22 0 0 1 11.12 38.93"></path><path class="on" d="M10.18 34.82A22 22 0 0 1 13.56 19.99"></path></g><circle class="today" cx="22.45" cy="12.18" r="4.6"></circle><text x="32" y="35" text-anchor="middle" font-size="10">6/7</text></svg>
+        <div class="col grow" style="gap: 4px"><h1 class="t2">Hecho por hoy</h1><p class="muted">Kika lleva 6 de 7 días esta semana y 4 seguidos.</p></div>
+      </div>
+      <div class="kv">
+        <div><span class="cap muted">Energía</span><span class="label">Más</span></div>
+        <div><span class="cap muted">Apetito</span><span class="label">Normal</span></div>
+        <div><span class="cap muted">Ánimo</span><span class="label">Bien</span></div>
+        <div><span class="cap muted">Actividad</span><span class="label">Normal</span></div>
+      </div>
+      <a class="btn secondary md" href="RegistroHoyEditar.dc.html">Editar el registro de hoy</a>
+    </div>
+    <sc-if value="{{voice}}" hint-placeholder-val="{{ true }}">
+      <div class="voice"><div class="av s32 warm" style="background: var(--surface)">K</div><p>«Hoy he comido un poco más. ¿Mañana paseo largo?»</p></div>
+    </sc-if>
+    <div class="col" style="gap: 10px">
+      <div class="between"><h2 class="t3">Su semana</h2><a class="link" href="Tendencias.dc.html" style="font-size: 14px">Ver historial</a></div>
+      <div class="list"><a class="sm-row" href="Tendencias.dc.html"><span class="col grow" style="gap: 0"><span class="label">Energía</span><span class="cap muted">Como siempre</span></span><svg width="112" height="30" viewBox="0 0 112 30" aria-hidden="true" style="flex: none"><line x1="0" x2="112" y1="15.0" y2="15.0" style="stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 3"></line><path d="M2.0 9.0 L20.0 9.0 M56.0 15.0 L74.0 15.0 L92.0 15.0 L110.0 9.0" style="fill: none; stroke: var(--c-energy); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"></path></svg></a><a class="sm-row" href="Tendencias.dc.html"><span class="col grow" style="gap: 0"><span class="label">Apetito</span><span class="cap muted">Vuelve a lo habitual</span></span><svg width="112" height="30" viewBox="0 0 112 30" aria-hidden="true" style="flex: none"><line x1="0" x2="112" y1="15.0" y2="15.0" style="stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 3"></line><path d="M2.0 15.0 L20.0 15.0 M56.0 21.0 L74.0 21.0 L92.0 21.0 L110.0 15.0" style="fill: none; stroke: var(--c-appetite); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 5 3"></path></svg></a><a class="sm-row" href="Tendencias.dc.html"><span class="col grow" style="gap: 0"><span class="label">Ánimo</span><span class="cap muted">Bien</span></span><svg width="112" height="30" viewBox="0 0 112 30" aria-hidden="true" style="flex: none"><line x1="0" x2="112" y1="15.0" y2="15.0" style="stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 3"></line><path d="M2.0 9.0 L20.0 9.0 M56.0 15.0 L74.0 9.0 L92.0 15.0 L110.0 9.0" style="fill: none; stroke: var(--c-mood); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 3"></path></svg></a></div>
+    </div>
+    <div class="card warm" style="gap: 6px; color: var(--ink)">
+      <p class="over" style="color: var(--warm-ink)">Idea para hoy</p>
+      <p class="strong">Un juego de olfato después de cenar</p>
+      <p class="cap" style="color: var(--warm-ink)">Esconde unos premios por el salón. A muchos perros les ayuda a relajarse cuando hay ruidos fuera.</p>
+    </div>
+    <div class="col" style="gap: 10px">
+      <div class="between"><h2 class="t3">Próximo</h2><a class="link" href="Agenda.dc.html" style="font-size: 14px">Ver agenda</a></div>
+      <div class="list"><a class="li" href="RecordatorioDetalle.dc.html"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path><path d="m8.5 8.5 7 7"></path></svg></span><span class="col grow" style="gap: 0"><span class="strong">Desparasitación interna</span><span class="cap muted">Sábado 18 · 10:00</span></span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a></div>
+    </div>
+  </div>
+  <sc-if value="{{synced}}" hint-placeholder-val="{{ false }}">
+    <div class="toast" role="status"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 21H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path><path d="m9.5 15.5 2 2 3.5-3.5"></path></svg>El registro de hoy ya está subido</div>
+  </sc-if>
+  <nav class="tabbar" aria-label="Principal">
+    <a class="tab on" href="Home.dc.html" aria-current="page"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span>Hoy</a>
+    <a class="tab" href="Tendencias.dc.html"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg></span>Historial</a>
+    <a class="tab act done" href="RegistroHoyEditar.dc.html" aria-label="Registro de hoy hecho. Editar"><span class="fab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>Hecho</a>
+    <a class="tab" href="Agenda.dc.html"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span>Agenda</a>
+    <a class="tab" href="PerfilMascota.dc.html"><span class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span>Perfil</a>
+    </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark": {"editor": "boolean", "default": false}, "petVoice": {"editor": "boolean", "default": true}, "synced": {"editor": "boolean", "default": false}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = this.props.dark ?? false;
+    return { appCls: dark ? 'app dark' : 'app', voice: this.props.petVoice ?? true, synced: this.props.synced ?? false };
+  }
+}
+</script>
+</body>
+</html>

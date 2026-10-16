@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Tu perfil</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./kitom.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+</style>
+</helmet>
+<div class="app">
+  <div class="scr" style="gap: 22px">
+    <div class="top"><span style="width: 44px"></span><div class="dots" role="img" aria-label="Paso 1 de 3"><i class="on"></i><i></i><i></i></div><span style="width: 44px"></span></div>
+    <div class="col" style="gap: 8px">
+      <h1 class="t1">¿Cómo te llamamos?</h1>
+      <p class="muted">Lo usamos para saludarte. Puedes cambiarlo cuando quieras.</p>
+    </div>
+    <div class="field">
+      <label for="nm">Tu nombre</label>
+      <input id="nm" class="input focus" type="text" value="David" autocomplete="given-name">
+      <p class="help">Lo hemos tomado de tu cuenta de Google.</p>
+    </div>
+    <div class="list">
+      <a class="li" href="Idioma.dc.html"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span><span class="col grow" style="gap: 0"><span class="strong">Idioma</span><span class="cap muted">El de tu móvil</span></span><span class="muted" style="font-size: 14px">Español</span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+      <div class="li"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span><span class="col grow" style="gap: 0"><span class="strong">Zona horaria</span><span class="cap muted">Para saber cuándo empieza el día de tu mascota</span></span><span class="muted" style="font-size: 14px">Madrid</span></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn primary" href="Aviso.dc.html">Continuar</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
