@@ -1,8 +1,9 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { Chip } from '@/components/ui/chip';
+import { Text } from '@/components/ui/text';
+import { FieldError } from '@/components/ui/text-field';
+import { spacing } from '@/theme/tokens';
 
 export type Option<T extends string> = { value: T; label: string };
 
@@ -14,64 +15,37 @@ type OptionGroupProps<T extends string> = {
   error?: string | null;
 };
 
-/** Selección única entre pocas opciones (botones tipo radio). */
-export function OptionGroup<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-  error,
-}: OptionGroupProps<T>) {
-  const theme = useTheme();
-
+/**
+ * Selección única entre opciones que no caben en un control segmentado (texto largo o más de 4):
+ * chips con rol de radio. Para 2–4 opciones cortas, `SegmentedControl`.
+ */
+export function OptionGroup<T extends string>({ label, options, value, onChange, error }: OptionGroupProps<T>) {
   return (
     <View style={styles.container}>
-      <ThemedText type="smallBold">{label}</ThemedText>
+      <Text variant="label">{label}</Text>
       <View style={styles.options} accessibilityRole="radiogroup" accessibilityLabel={label}>
-        {options.map((option) => {
-          const isSelected = option.value === value;
-          return (
-            <Pressable
-              key={option.value}
-              accessibilityRole="radio"
-              accessibilityLabel={option.label}
-              accessibilityState={{ checked: isSelected }}
-              onPress={() => onChange(option.value)}
-              style={[
-                styles.option,
-                {
-                  borderColor: isSelected ? theme.tint : theme.border,
-                  backgroundColor: isSelected ? theme.backgroundSelected : theme.backgroundElement,
-                },
-              ]}>
-              <ThemedText type={isSelected ? 'smallBold' : 'small'}>{option.label}</ThemedText>
-            </Pressable>
-          );
-        })}
+        {options.map((option) => (
+          <Chip
+            key={option.value}
+            accessibilityRole="radio"
+            label={option.label}
+            selected={option.value === value}
+            onPress={() => onChange(option.value)}
+          />
+        ))}
       </View>
-      {error ? (
-        <ThemedText type="small" style={{ color: theme.danger }} accessibilityLiveRegion="polite">
-          {error}
-        </ThemedText>
-      ) : null}
+      {error ? <FieldError message={error} /> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.one,
+    gap: spacing['2'],
   },
   options: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  option: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Spacing.two,
+    gap: spacing['2'],
   },
 });

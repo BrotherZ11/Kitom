@@ -1,23 +1,15 @@
-import { ThemedText } from '@/components/themed-text';
-import { useTheme } from '@/hooks/use-theme';
+import { Alert } from '@/components/ui/alert';
 
 type FormMessageProps = {
   message: string | null;
   tone?: 'error' | 'success';
 };
 
-/** Mensaje de resultado de un formulario; se anuncia a lectores de pantalla. */
+/**
+ * Resultado de un formulario o una acción (no de un campo concreto: para eso, `error` del campo).
+ * Alerta de error o de éxito; se anuncia a lectores de pantalla.
+ */
 export function FormMessage({ message, tone = 'error' }: FormMessageProps) {
-  const theme = useTheme();
   if (!message) return null;
-
-  return (
-    <ThemedText
-      type="small"
-      accessibilityRole="alert"
-      accessibilityLiveRegion="polite"
-      style={{ color: tone === 'error' ? theme.danger : theme.success }}>
-      {message}
-    </ThemedText>
-  );
+  return <Alert tone={tone} message={message} />;
 }

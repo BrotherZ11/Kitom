@@ -30,7 +30,7 @@ export function UnsyncedDailyLogsEntry() {
 
   return (
     <View
-      style={[styles.card, { borderColor: needsAttention || view.state === 'error' ? theme.danger : theme.border }]}
+      style={[styles.card, { borderColor: needsAttention || view.state === 'error' ? theme.dangerInk : theme.border }]}
       accessibilityLiveRegion="polite">
       <ThemedText type="smallBold">
         {count === null ? t('dailyLogs.unsynced.title') : `${t('dailyLogs.unsynced.title')} (${count})`}

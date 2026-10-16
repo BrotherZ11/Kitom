@@ -61,7 +61,7 @@ export default function ForgotPasswordScreen() {
         onPress={handleSubmit}
       />
       <Button
-        variant="link"
+        variant="ghost"
         label={t('auth.forgotPassword.backToLogin')}
         onPress={() => router.replace('/login')}
       />

@@ -96,14 +96,14 @@ export default function PetDetailScreen() {
 
       {isOwner && !isConfirmingDelete ? (
         <Button
-          variant="link"
+          variant="ghost"
           label={t('pets.detail.delete')}
           onPress={() => setIsConfirmingDelete(true)}
         />
       ) : null}
 
       {isOwner && isConfirmingDelete ? (
-        <View style={[styles.confirm, { borderColor: theme.danger }]}>
+        <View style={[styles.confirm, { borderColor: theme.dangerInk }]}>
           <ThemedText type="smallBold">{t('pets.detail.deleteConfirmTitle')}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             {t('pets.detail.deleteConfirmDescription')}
@@ -115,7 +115,7 @@ export default function PetDetailScreen() {
             onPress={handleDelete}
           />
           <Button
-            variant="link"
+            variant="ghost"
             label={t('common.cancel')}
             disabled={deletePet.isPending}
             onPress={() => setIsConfirmingDelete(false)}

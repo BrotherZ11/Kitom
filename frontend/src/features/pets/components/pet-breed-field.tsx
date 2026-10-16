@@ -86,7 +86,7 @@ export function PetBreedField({ speciesId, value, onChange, errors }: PetBreedFi
             error={errors.breedText}
           />
           <Button
-            variant="link"
+            variant="ghost"
             label={t('pets.breedPicker.backToCatalog')}
             onPress={() => onChange({ ...value, breedSource: 'catalog', breedText: '' })}
           />
@@ -95,7 +95,7 @@ export function PetBreedField({ speciesId, value, onChange, errors }: PetBreedFi
 
       {value.breedStatus !== null ? (
         <Button
-          variant="link"
+          variant="ghost"
           label={t('pets.breedPicker.clear')}
           onPress={() => onChange(UNANSWERED)}
         />

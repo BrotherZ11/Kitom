@@ -20,7 +20,7 @@ export function DeviceDailyLogs() {
   const theme = useTheme();
   const { state, refetch } = useDeviceDailyLogPets();
 
-  if (state.status === 'loading') return <LoadingState />;
+  if (state.status === 'loading') return <LoadingState variant="inline" />;
   if (state.status === 'error') return <ErrorState message={t('dailyLogs.errors.local_read_failed')} onRetry={refetch} />;
 
   return (

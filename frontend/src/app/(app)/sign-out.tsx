@@ -59,7 +59,7 @@ export default function SignOutScreen() {
       ) : (
         <>
           <ThemedText type="smallBold">{t('signOut.intro')}</ThemedText>
-          <View style={[styles.counts, { borderColor: theme.danger }]} accessibilityLiveRegion="polite">
+          <View style={[styles.counts, { borderColor: theme.dangerInk }]} accessibilityLiveRegion="polite">
             {(['pending', 'conflict', 'failed'] as const).map((status) => (
               <ThemedText key={status} type="small">
                 {`${t(`signOut.counts.${status}`)}: ${summary[status]}`}
@@ -115,7 +115,7 @@ export default function SignOutScreen() {
           </ThemedText>
 
           <Button
-            variant="link"
+            variant="ghost"
             label={t('signOut.review')}
             disabled={busy}
             onPress={() => router.push('/daily-logs/unsynced')}
@@ -124,7 +124,7 @@ export default function SignOutScreen() {
       )}
 
       {/* Cancelar también vale durante un intento de sincronización (no espera a la red). */}
-      <Button variant="link" label={t('signOut.cancel')} disabled={state === 'signing_out'} onPress={cancel} />
+      <Button variant="ghost" label={t('signOut.cancel')} disabled={state === 'signing_out'} onPress={cancel} />
     </Screen>
   );
 }

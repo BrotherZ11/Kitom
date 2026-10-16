@@ -57,7 +57,7 @@ export function HistoryListItem({ log, withYear, isToday, syncStatus, onPress }:
         <ThemedText
           type="small"
           themeColor={needsAttention ? undefined : 'textSecondary'}
-          style={needsAttention ? { color: theme.danger } : undefined}>
+          style={needsAttention ? { color: theme.dangerInk } : undefined}>
           {syncLabel}
         </ThemedText>
       ) : null}

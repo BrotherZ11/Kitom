@@ -62,7 +62,7 @@ export function TodayLogCard({ petId, canEdit }: TodayLogCardProps) {
         onPress={() => router.push({ pathname: '/pets/[id]/daily-log', params: { id: petId } })}
       />
       <Button
-        variant="link"
+        variant="ghost"
         label={t('dailyLogs.card.history')}
         onPress={() => router.push({ pathname: '/pets/[id]/daily-logs', params: { id: petId } })}
       />

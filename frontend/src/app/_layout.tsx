@@ -1,24 +1,29 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { ToastProvider } from '@/components/ui/toast';
 import { AuthProvider, useAuth } from '@/features/auth/auth-context';
+import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
 import { queryClient } from '@/lib/query-client';
+import { brandFonts } from '@/theme/fonts';
+import { AppThemeProvider } from '@/theme/theme-provider';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <RootNavigator />
-        </ThemeProvider>
+        <AppThemeProvider>
+          <ToastProvider>
+            <RootNavigator />
+          </ToastProvider>
+        </AppThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
@@ -30,19 +35,25 @@ export default function RootLayout() {
  * inicial se evalúa ya con la sesión correcta). En móvil el splash nativo sigue visible.
  */
 function RootNavigator() {
+  const theme = useTheme();
   const { user, isLoading, isRecoveringPassword } = useAuth();
+  // Si las fuentes de marca no cargan, la app sigue con las del sistema (no se bloquea el arranque).
+  const [fontsLoaded, fontsError] = useFonts(brandFonts);
+  const isReady = !isLoading && (fontsLoaded || fontsError !== null);
   // Con sesión utilizable o, sin conexión, con la sesión guardada de un usuario identificado
   // (`status: 'offline'`): en ese caso solo se ven sus datos locales y no se envía nada.
   const isSignedIn = user !== null;
 
   useEffect(() => {
-    if (!isLoading) SplashScreen.hideAsync();
-  }, [isLoading]);
+    if (isReady) SplashScreen.hideAsync();
+  }, [isReady]);
 
-  if (isLoading) {
+  if (!isReady) {
     return (
-      <View style={styles.loading} accessibilityLabel={t('common.loading')}>
-        <ActivityIndicator />
+      <View
+        style={[styles.loading, { backgroundColor: theme.bg }]}
+        accessibilityLabel={t('common.loading')}>
+        <ActivityIndicator color={theme.primary} />
       </View>
     );
   }
@@ -59,6 +70,10 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="(auth)" />
+      </Stack.Protected>
+      {/* Galería del sistema de diseño: solo en desarrollo, con o sin sesión. */}
+      <Stack.Protected guard={__DEV__}>
+        <Stack.Screen name="dev-components" options={{ headerShown: true }} />
       </Stack.Protected>
     </Stack>
   );

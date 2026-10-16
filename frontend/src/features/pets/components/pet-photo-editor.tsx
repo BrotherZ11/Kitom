@@ -113,7 +113,7 @@ export function PetPhotoEditor({ pet, canEdit }: PetPhotoEditorProps) {
         </ThemedText>
         <Button label={t('pets.photo.save')} loading={upload.isPending} onPress={handleSave} />
         <Button
-          variant="link"
+          variant="ghost"
           label={t('common.cancel')}
           disabled={upload.isPending}
           onPress={() => {
@@ -130,7 +130,7 @@ export function PetPhotoEditor({ pet, canEdit }: PetPhotoEditorProps) {
       <>
         {sourceButtons}
         <Button
-          variant="link"
+          variant="ghost"
           label={t('common.cancel')}
           disabled={isBusy}
           onPress={() => setMode('idle')}
@@ -145,7 +145,7 @@ export function PetPhotoEditor({ pet, canEdit }: PetPhotoEditorProps) {
         </ThemedText>
         <Button label={t('pets.photo.removeConfirm')} loading={remove.isPending} onPress={handleRemove} />
         <Button
-          variant="link"
+          variant="ghost"
           label={t('common.cancel')}
           disabled={remove.isPending}
           onPress={() => setMode('idle')}
@@ -165,7 +165,7 @@ export function PetPhotoEditor({ pet, canEdit }: PetPhotoEditorProps) {
           }}
         />
         <Button
-          variant="link"
+          variant="ghost"
           label={t('pets.photo.remove')}
           disabled={isBusy}
           onPress={() => {
@@ -193,7 +193,7 @@ export function PetPhotoEditor({ pet, canEdit }: PetPhotoEditorProps) {
       {photoUrl.isError && !preview ? (
         <View style={styles.actions}>
           <FormMessage message={petErrorMessage(photoUrl.error)} />
-          <Button variant="link" label={t('common.retry')} onPress={() => photoUrl.refetch()} />
+          <Button variant="ghost" label={t('common.retry')} onPress={() => photoUrl.refetch()} />
         </View>
       ) : null}
 
@@ -204,7 +204,7 @@ export function PetPhotoEditor({ pet, canEdit }: PetPhotoEditorProps) {
           <FormMessage message={petErrorMessage(error)} />
           {needsSettings ? (
             <Button
-              variant="link"
+              variant="ghost"
               label={t('pets.photo.openSettings')}
               onPress={() => Linking.openSettings()}
             />

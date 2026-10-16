@@ -84,12 +84,12 @@ export default function LoginScreen() {
         onPress={handleGoogle}
       />
       <Button
-        variant="link"
+        variant="ghost"
         label={t('auth.login.goToForgotPassword')}
         onPress={() => router.push('/forgot-password')}
       />
       <Button
-        variant="link"
+        variant="ghost"
         label={t('auth.login.goToRegister')}
         onPress={() => router.push('/register')}
       />

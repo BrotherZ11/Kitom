@@ -8,6 +8,13 @@ export const es = {
     no: 'No',
     unknown: 'No lo sé',
     notSpecified: 'Sin indicar',
+    close: 'Cerrar',
+  },
+  /** Textos propios de los componentes compartidos (`components/ui/`). */
+  ui: {
+    optional: 'opcional',
+    showPassword: 'Mostrar contraseña',
+    hidePassword: 'Ocultar contraseña',
   },
   auth: {
     fields: {

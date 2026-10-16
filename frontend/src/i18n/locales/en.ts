@@ -10,6 +10,12 @@ export const en: Translations = {
     no: 'No',
     unknown: "I don't know",
     notSpecified: 'Not specified',
+    close: 'Close',
+  },
+  ui: {
+    optional: 'optional',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
   },
   auth: {
     fields: {

@@ -20,7 +20,7 @@ export function OfflineSessionNotice() {
   if (status !== 'offline') return null;
 
   return (
-    <View style={[styles.card, { borderColor: theme.danger }]} accessibilityLiveRegion="polite">
+    <View style={[styles.card, { borderColor: theme.dangerInk }]} accessibilityLiveRegion="polite">
       <ThemedText type="smallBold">{t('offlineSession.title')}</ThemedText>
       <ThemedText type="small">{t('offlineSession.description')}</ThemedText>
       <Button

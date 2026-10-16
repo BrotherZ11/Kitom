@@ -348,7 +348,7 @@ function Comparison({
       {differing.map((item) => (
         <View
           key={item.unit}
-          style={[styles.card, { borderColor: item.change === 'conflict' ? theme.danger : theme.border }]}
+          style={[styles.card, { borderColor: item.change === 'conflict' ? theme.dangerInk : theme.border }]}
           accessible
           accessibilityLabel={[
             t(FIELD_LABELS[item.unit]),

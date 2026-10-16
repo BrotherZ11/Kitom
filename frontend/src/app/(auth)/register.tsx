@@ -89,7 +89,7 @@ export default function RegisterScreen() {
         onPress={handleGoogle}
       />
       <Button
-        variant="link"
+        variant="ghost"
         label={t('auth.register.goToLogin')}
         onPress={() => router.replace('/login')}
       />

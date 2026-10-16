@@ -87,12 +87,12 @@ export function SyncStatus({ status, record, onRetry, onResolve }: SyncStatusPro
     <View
       style={[
         styles.container,
-        needsAttention && { borderColor: theme.danger, borderWidth: 1, padding: Spacing.three },
+        needsAttention && { borderColor: theme.dangerInk, borderWidth: 1, padding: Spacing.three },
       ]}
       accessibilityLiveRegion="polite">
       <ThemedText
         type="smallBold"
-        style={needsAttention ? { color: theme.danger } : undefined}
+        style={needsAttention ? { color: theme.dangerInk } : undefined}
         themeColor={needsAttention ? undefined : 'textSecondary'}>
         {syncStatusLabel(status)}
       </ThemedText>

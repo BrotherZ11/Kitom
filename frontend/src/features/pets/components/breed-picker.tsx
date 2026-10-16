@@ -49,7 +49,7 @@ export function BreedPicker({
         </ThemedText>
         <ThemedText type="smallBold">{name}</ThemedText>
         <Button
-          variant="link"
+          variant="ghost"
           label={t('pets.breedPicker.change')}
           onPress={() => {
             setQuery('');
@@ -60,7 +60,7 @@ export function BreedPicker({
     );
   }
 
-  if (breeds.isPending) return <LoadingState />;
+  if (breeds.isPending) return <LoadingState variant="inline" />;
   if (breeds.isError) {
     return <ErrorState message={petErrorMessage(breeds.error)} onRetry={() => breeds.refetch()} />;
   }
@@ -111,7 +111,7 @@ export function BreedPicker({
         </ThemedText>
       ) : null}
 
-      <Button variant="link" label={t('pets.breedPicker.other')} onPress={onChooseOther} />
+      <Button variant="ghost" label={t('pets.breedPicker.other')} onPress={onChooseOther} />
     </View>
   );
 }

@@ -3,14 +3,16 @@ import { Stack } from 'expo-router';
 import { DailyLogSyncProvider } from '@/features/daily-logs/sync/daily-log-sync-provider';
 import { useProfileTimeZoneSync } from '@/features/profile/hooks/use-profile-timezone-sync';
 import { t } from '@/i18n';
+import { useStackScreenOptions } from '@/theme/theme-provider';
 
 export default function AppLayout() {
   // Solo se monta con sesión activa (Stack.Protected en el layout raíz).
   useProfileTimeZoneSync();
+  const screenOptions = useStackScreenOptions();
 
   return (
     <DailyLogSyncProvider>
-      <Stack>
+      <Stack screenOptions={screenOptions}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="pets/index" options={{ title: t('pets.list.title') }} />
         <Stack.Screen name="pets/new" options={{ title: t('pets.new.title') }} />

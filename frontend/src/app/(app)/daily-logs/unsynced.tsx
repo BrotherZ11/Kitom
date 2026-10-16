@@ -54,7 +54,7 @@ export default function UnsyncedDailyLogsScreen() {
               }
               style={[
                 styles.item,
-                { borderColor: syncStatus === 'conflict' || syncStatus === 'failed' ? theme.danger : theme.border },
+                { borderColor: syncStatus === 'conflict' || syncStatus === 'failed' ? theme.dangerInk : theme.border },
               ]}>
               <ThemedText type="smallBold">{name}</ThemedText>
               <ThemedText type="small">{date}</ThemedText>

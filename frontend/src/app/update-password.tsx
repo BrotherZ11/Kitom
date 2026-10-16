@@ -52,7 +52,7 @@ export default function UpdatePasswordScreen() {
         loading={isSubmitting}
         onPress={handleSubmit}
       />
-      <Button variant="link" label={t('auth.updatePassword.cancel')} onPress={signOut} />
+      <Button variant="ghost" label={t('auth.updatePassword.cancel')} onPress={signOut} />
     </Screen>
   );
 }
