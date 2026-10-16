@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
 import { useAuth } from '@/features/auth/auth-context';
+import { DeviceDailyLogs } from '@/features/daily-logs/components/device-logs';
 import { PetListItem } from '@/features/pets/components/pet-list-item';
 import { usePets } from '@/features/pets/hooks/use-pets';
 import { useSpecies } from '@/features/pets/hooks/use-species';
-import { petErrorMessage } from '@/features/pets/pet-errors';
+import { petErrorMessage, toPetError } from '@/features/pets/pet-errors';
 import { t } from '@/i18n';
 
 export default function PetsListScreen() {
@@ -25,7 +26,11 @@ export default function PetsListScreen() {
       {pets.isPending ? (
         <LoadingState />
       ) : pets.isError ? (
-        <ErrorState message={petErrorMessage(pets.error)} onRetry={() => pets.refetch()} />
+        <>
+          <ErrorState message={petErrorMessage(pets.error)} onRetry={() => pets.refetch()} />
+          {/* Sin conexión (Pets aún no funciona sin ella): acceso a los registros del dispositivo. */}
+          {toPetError(pets.error).code === 'network' ? <DeviceDailyLogs /> : null}
+        </>
       ) : pets.data.length === 0 ? (
         <EmptyState
           title={t('pets.list.emptyTitle')}

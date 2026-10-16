@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
 
 import { secureSessionStorage } from '@/lib/secure-session-storage';
+import { createUserTokenFetch } from '@/lib/user-token-fetch';
 import type { Database } from '@/types/database.types';
 
 // Solo claves públicas (EXPO_PUBLIC_*): se incrustan en el bundle. La protección real de los datos
@@ -19,10 +20,26 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Renderizado estático web (Node): no hay sesión que persistir ni refrescar.
 const isServer = Platform.OS === 'web' && typeof window === 'undefined';
 
+/**
+ * Clave de la sesión en `secureSessionStorage`. Es la que supabase-js usa por defecto
+ * (`sb-<subdominio>-auth-token`), fijada aquí para poder leer la sesión guardada sin red
+ * (`features/auth/persisted-session.ts`). Cambiarla cerraría la sesión de todos los usuarios.
+ */
+export const AUTH_STORAGE_KEY = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`;
+
 /** Cliente único de Supabase para toda la app. */
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  global: {
+    // Ninguna petición de datos sale sin el token de un usuario (`user-token-fetch.ts`).
+    fetch: createUserTokenFetch({
+      fetch: (input, init) => fetch(input, init),
+      supabaseUrl,
+      anonKey: supabaseAnonKey,
+    }),
+  },
   auth: {
     storage: secureSessionStorage,
+    storageKey: AUTH_STORAGE_KEY,
     persistSession: !isServer,
     autoRefreshToken: !isServer,
     // PKCE: los enlaces de email y el retorno de OAuth traen un `code` de un solo uso, inútil sin

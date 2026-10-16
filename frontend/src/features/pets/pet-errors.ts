@@ -47,8 +47,9 @@ export class PetPhotoPermissionError extends PetError {
 
 type PostgrestLikeError = { code?: string; message?: string };
 
+/** Sin conexión, o petición retenida por no haber sesión utilizable (`lib/user-token-fetch.ts`). */
 function isNetworkFailure(message: string): boolean {
-  return /network request failed|failed to fetch|fetch failed/i.test(message);
+  return /network request failed|failed to fetch|fetch failed|session_unavailable/i.test(message);
 }
 
 /** Traduce un error de PostgREST/Postgres a un código de UI. */

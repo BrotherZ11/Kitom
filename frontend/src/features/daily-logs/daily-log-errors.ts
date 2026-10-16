@@ -28,8 +28,9 @@ export class DailyLogError extends Error {
 
 type PostgrestLikeError = { code?: string; message?: string; hint?: string | null };
 
+/** Sin conexión, o petición retenida por no haber sesión utilizable (`lib/user-token-fetch.ts`). */
 function isNetworkFailure(message: string): boolean {
-  return /network request failed|failed to fetch|fetch failed/i.test(message);
+  return /network request failed|failed to fetch|fetch failed|session_unavailable/i.test(message);
 }
 
 /** Traduce un error de PostgREST/Postgres (RPC `save_daily_log`, lecturas de `daily_logs`). */

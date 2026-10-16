@@ -15,6 +15,7 @@ import {
   type ConflictResolutionInput,
 } from '@/features/daily-logs/offline/daily-log-sync-engine';
 import {
+  groupDeviceLogsByPet,
   resolveDailyLogDetail,
   resolveDailyLogHistory,
   resolveUnsyncedList,
@@ -24,6 +25,7 @@ import {
 import type { LocalDailyLog } from '@/features/daily-logs/offline/local-daily-log';
 import { dailyLogKeys } from '@/features/daily-logs/query-keys';
 import { useDailyLogSync, useSyncingKey } from '@/features/daily-logs/sync/daily-log-sync-provider';
+import { useAuth } from '@/features/auth/auth-context';
 import { useIsOnline } from '@/hooks/use-is-online';
 
 /** Cuánto espera el formulario a la versión del servidor antes de abrirse con la copia local. */
@@ -61,7 +63,8 @@ function useTimeoutElapsed(active: boolean, ms: number): boolean {
 /**
  * Registro de una mascota en un día, combinado. Sin fecha, `loading`. La lectura del servidor pasa
  * por el almacén local (`readDailyLogThroughRepository`): actualiza la copia local sin tocar nunca
- * una operación pendiente y sin retroceder a una versión anterior.
+ * una operación pendiente y sin retroceder a una versión anterior (y solo si la sesión sigue siendo
+ * la del usuario: `ownerScopedSnapshots`).
  *
  * `waitForRemote` (formularios): con conexión y sin cambios pendientes, espera a la versión del
  * servidor hasta `REMOTE_WAIT_MS` antes de usar la copia local; sin conexión, no espera.
@@ -71,12 +74,13 @@ export function useDailyLog(
   logDate: string | null,
   { allowOfflineCreate = false, waitForRemote = false }: { allowOfflineCreate?: boolean; waitForRemote?: boolean } = {}
 ) {
-  const { repository } = useDailyLogSync();
+  const { userId, snapshots } = useDailyLogSync();
+  const { serverCall } = useAuth();
   const remote = useQuery({
-    queryKey: dailyLogKeys.detail(petId, logDate ?? ''),
+    queryKey: dailyLogKeys.detail(userId, petId, logDate ?? ''),
     queryFn: () =>
       logDate
-        ? readDailyLogThroughRepository(repository, petId, logDate, () => fetchDailyLog(petId, logDate))
+        ? readDailyLogThroughRepository(snapshots, petId, logDate, () => serverCall(() => fetchDailyLog(petId, logDate)))
         : Promise.resolve(null),
     enabled: logDate !== null,
     ...dailyLogDetailQueryOptions,
@@ -109,13 +113,14 @@ export function useDailyLog(
 
 /** Historial de una mascota (páginas del servidor + cambios pendientes del dispositivo). */
 export function useDailyLogHistory(petId: string) {
-  const { userId, repository } = useDailyLogSync();
+  const { userId, repository, snapshots } = useDailyLogSync();
+  const { serverCall } = useAuth();
   const remote = useInfiniteQuery({
-    queryKey: dailyLogKeys.history(petId),
+    queryKey: dailyLogKeys.history(userId, petId),
     // Cada fila deja copia local (para verla sin conexión) y se sustituye por la versión más
     // reciente conocida: una página que llega tarde no hace retroceder un registro ya confirmado.
     queryFn: ({ pageParam }) =>
-      readHistoryPageThroughRepository(repository, petId, () => fetchDailyLogHistory(petId, pageParam)),
+      readHistoryPageThroughRepository(snapshots, petId, () => serverCall(() => fetchDailyLogHistory(petId, pageParam))),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
@@ -174,6 +179,17 @@ export function useUnsyncedDailyLogs(pets?: readonly { id: string; name: string 
     view: resolveUnsyncedList({ local: toLocalState(local, []), pets, syncingKey }),
     refetch: () => void local.refetch(),
   };
+}
+
+/** Mascotas con registros guardados en el dispositivo (para llegar a ellos sin conexión). */
+export function useDeviceDailyLogPets() {
+  const { userId, repository } = useDailyLogSync();
+  const local = useQuery({
+    queryKey: dailyLogKeys.localAll(userId),
+    queryFn: async () => groupDeviceLogsByPet(await repository.list()),
+    ...localQueryOptions,
+  });
+  return { state: toLocalState(local, []), refetch: () => void local.refetch() };
 }
 
 /** Descarta los cambios locales de un registro fallido o en conflicto (solo en el dispositivo). */

@@ -30,8 +30,10 @@ export default function RootLayout() {
  * inicial se evalúa ya con la sesión correcta). En móvil el splash nativo sigue visible.
  */
 function RootNavigator() {
-  const { session, isLoading, isRecoveringPassword } = useAuth();
-  const isSignedIn = session !== null;
+  const { user, isLoading, isRecoveringPassword } = useAuth();
+  // Con sesión utilizable o, sin conexión, con la sesión guardada de un usuario identificado
+  // (`status: 'offline'`): en ese caso solo se ven sus datos locales y no se envía nada.
+  const isSignedIn = user !== null;
 
   useEffect(() => {
     if (!isLoading) SplashScreen.hideAsync();

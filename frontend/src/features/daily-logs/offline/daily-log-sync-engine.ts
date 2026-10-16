@@ -36,6 +36,8 @@ import { classifySyncError } from './sync-errors.ts';
  * - 401 (sesión no válida): no se envía nada más hasta que haya una sesión nueva o renovada
  *   (`setSessionUserId`); volver a primer plano o recuperar la red no basta.
  * - Descartar cambios locales (`discardLocalChanges`) es solo local: nunca llama al servidor.
+ * - Solo se envían registros del dueño del almacén (`log.userId === repository.userId`); el remoto,
+ *   además, autoriza cada petición con el token de la sesión del dueño (`daily-log-remote.ts`).
  */
 
 export type DailyLogSyncEngineDeps = {
@@ -80,6 +82,16 @@ export type ConflictResolutionOutcome = 'synced' | 'pending' | 'conflict' | 'fai
 /** Resultado de descartar los cambios locales (ver `discardLocalChanges` en `local-daily-log.ts`). */
 export type DiscardOutcome = 'discarded' | 'not_discardable' | 'remote_unknown';
 
+/**
+ * Resultado de `syncNow`. No dice qué quedó sincronizado (eso se lee del almacén): solo si la pasada
+ * terminó, si se agotó el tiempo (la pasada sigue en segundo plano y lo que esté en vuelo se aplicará
+ * al terminar) o si no se pudo empezar.
+ */
+export type SyncNowOutcome =
+  | { status: 'completed' }
+  | { status: 'timed_out' }
+  | { status: 'unavailable'; reason: 'offline' | 'session' | 'stopped' };
+
 export type DailyLogSyncEngine = {
   /** Guarda la edición en el dispositivo (una operación por registro) y pide sincronizar. */
   saveLocal(input: LocalSaveInput): Promise<LocalDailyLog>;
@@ -106,6 +118,14 @@ export type DailyLogSyncEngine = {
   discardLocalChanges(petId: string, logDate: string): Promise<DiscardOutcome>;
   /** Reintento pedido por el usuario: fallida → pendiente, espera anulada, conflicto → volver a leer. */
   retry(petId: string, logDate: string): Promise<void>;
+  /**
+   * Pasada pedida por el usuario sobre **todos** sus registros sin sincronizar (p. ej. antes de cerrar
+   * sesión), con un límite de tiempo: como `retry` en cada uno y una pasada. Sin conectividad, sin
+   * sesión del dueño (o tras un 401) o con el motor parado no cambia nada y devuelve `unavailable`.
+   * Nunca descarta ni da por sincronizado nada: solo el servidor (o una lectura con el mismo
+   * contenido) confirma.
+   */
+  syncNow(options: { timeoutMs: number }): Promise<SyncNowOutcome>;
   /** Registro que se está enviando ahora (`petId/logDate`), o `null`. */
   getSyncingKey(): string | null;
   /** Avisa cuando cambia `getSyncingKey()`. */
@@ -124,6 +144,13 @@ export function syncKey(petId: string, logDate: string): string {
 }
 
 type Outcome = 'continue' | 'stop';
+
+/** Reintento pedido por el usuario: fallida → pendiente, espera anulada, conflicto → volver a leer. */
+function retryTransition(log: LocalDailyLog): LocalDailyLog {
+  if (log.status === 'failed') return retryFailedSync(log);
+  if (log.status === 'conflict') return refetchConflictRemote(log);
+  return allowImmediateSync(log);
+}
 
 function needsReconcile(log: LocalDailyLog): boolean {
   return log.status === 'conflict' && log.conflict?.remote.status === 'not_fetched';
@@ -151,6 +178,14 @@ export function createDailyLogSyncEngine(deps: DailyLogSyncEngineDeps): DailyLog
 
   const canSend = () =>
     active && deps.isOnline() && sessionUserId === repository.userId && authBlockedEpoch !== sessionEpoch;
+
+  /** Por qué no se puede enviar ahora (`null` = sí se puede). */
+  const unavailableReason = (): 'offline' | 'session' | 'stopped' | null => {
+    if (!active) return 'stopped';
+    if (sessionUserId !== repository.userId || authBlockedEpoch === sessionEpoch) return 'session';
+    if (!deps.isOnline()) return 'offline';
+    return null;
+  };
 
   /** Tras un fallo: si fue un 401, no se vuelve a enviar con esa sesión. */
   const noteFailure = (policy: string, epoch: number) => {
@@ -233,6 +268,8 @@ export function createDailyLogSyncEngine(deps: DailyLogSyncEngineDeps): DailyLog
       // Primero lo que menos ha fallado y, a igualdad, lo más antiguo: un registro que falla una y
       // otra vez no se queda delante del resto de la cola.
       const next = records
+        // Defensa: el almacén ya solo devuelve registros de su usuario (`matchesKey`).
+        .filter((log) => log.userId === repository.userId)
         .filter((log) => !handled.has(syncKey(log.petId, log.logDate)))
         .filter((log) => isSyncDue(log, now) || needsReconcile(log))
         .sort(
@@ -364,13 +401,24 @@ export function createDailyLogSyncEngine(deps: DailyLogSyncEngineDeps): DailyLog
     },
 
     async retry(petId, logDate) {
-      await repository.update(petId, logDate, (current) => {
-        if (!current) return current;
-        if (current.status === 'failed') return retryFailedSync(current);
-        if (current.status === 'conflict') return refetchConflictRemote(current);
-        return allowImmediateSync(current);
-      });
+      await repository.update(petId, logDate, (current) => (current ? retryTransition(current) : current));
       await requestSync();
+    },
+
+    async syncNow({ timeoutMs }) {
+      const unavailable = unavailableReason();
+      if (unavailable) return { status: 'unavailable', reason: unavailable };
+      for (const log of await repository.list()) {
+        if (log.status === 'synced' || log.userId !== repository.userId) continue;
+        await repository.update(log.petId, log.logDate, (current) => (current ? retryTransition(current) : current));
+      }
+      let handle: unknown = null;
+      const timedOut = new Promise<'timed_out'>((resolve) => {
+        handle = setTimer(() => resolve('timed_out'), timeoutMs);
+      });
+      const finished = await Promise.race([requestSync().then(() => 'completed' as const), timedOut]);
+      clearTimer(handle);
+      return { status: finished };
     },
 
     getSyncingKey: () => syncingKey,

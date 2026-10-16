@@ -289,6 +289,26 @@ export function resolveUnsyncedList(input: {
   return { state: 'ready', items };
 }
 
+/** Registros guardados en el dispositivo de una mascota (sin conexión no se conoce su nombre). */
+export type DeviceLogsPet = { petId: string; count: number; latestDate: string };
+
+/**
+ * Mascotas con registros en el dispositivo, la del registro más reciente primero. Sale solo del
+ * almacén local del usuario: es la forma de llegar a sus registros sin conexión cuando la lista de
+ * mascotas (del servidor) no se puede cargar.
+ */
+export function groupDeviceLogsByPet(records: readonly LocalDailyLog[]): DeviceLogsPet[] {
+  const byPet = new Map<string, DeviceLogsPet>();
+  for (const { petId, logDate } of records) {
+    const item = byPet.get(petId);
+    if (!item) byPet.set(petId, { petId, count: 1, latestDate: logDate });
+    else byPet.set(petId, { petId, count: item.count + 1, latestDate: logDate > item.latestDate ? logDate : item.latestDate });
+  }
+  return [...byPet.values()].sort((a, b) =>
+    a.latestDate === b.latestDate ? (a.petId < b.petId ? -1 : 1) : a.latestDate < b.latestDate ? 1 : -1
+  );
+}
+
 export type ConflictSummary = {
   /** Fila del servidor: sin leer todavía, borrada o presente. */
   remote: 'not_fetched' | 'absent' | 'present';

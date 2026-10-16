@@ -24,6 +24,7 @@ export default function AppLayout() {
           options={{ title: t('dailyLogs.resolve.title') }}
         />
         <Stack.Screen name="daily-logs/unsynced" options={{ title: t('dailyLogs.unsynced.title') }} />
+        <Stack.Screen name="sign-out" options={{ title: t('signOut.title') }} />
       </Stack>
     </DailyLogSyncProvider>
   );

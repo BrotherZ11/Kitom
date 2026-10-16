@@ -1,5 +1,6 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 
+import type { UnsyncedSummary } from '@/features/auth/sign-out-flow';
 import type { DailyLogHistoryPage } from '@/features/daily-logs/daily-log-history';
 import type { DailyLog } from '@/features/daily-logs/types';
 
@@ -28,6 +29,30 @@ type CacheClient = Pick<QueryClient, 'setQueryData' | 'getQueryData' | 'invalida
 /** ¿El registro tiene cambios sin confirmar por el servidor (pendiente, fallido o en conflicto)? */
 export function isUnsynced(record: LocalDailyLog | null | undefined): boolean {
   return record != null && record.status !== 'synced';
+}
+
+/** Cuántos registros hay pendientes, fallidos y en conflicto (p. ej. para decidir al cerrar sesión). */
+export function summarizeUnsynced(records: readonly LocalDailyLog[]): UnsyncedSummary {
+  const summary: UnsyncedSummary = { pending: 0, failed: 0, conflict: 0 };
+  for (const record of records) if (record.status !== 'synced') summary[record.status] += 1;
+  return summary;
+}
+
+/**
+ * El almacén visto por las lecturas del servidor (queries del día y del historial): la fila leída solo
+ * se copia en el dispositivo si, al terminar la lectura, la sesión sigue siendo la del dueño del
+ * almacén. Una lectura que termina después de cambiar de cuenta pudo salir con el token de la cuenta
+ * nueva: no se copia (se devuelve tal cual; su query ya no es de la cuenta activa).
+ */
+export function ownerScopedSnapshots(
+  repository: Pick<DailyLogRepository, 'snapshotMark' | 'refreshSnapshot'>,
+  isOwnerSession: () => boolean
+): Pick<DailyLogRepository, 'snapshotMark' | 'refreshSnapshot'> {
+  return {
+    snapshotMark: () => repository.snapshotMark(),
+    refreshSnapshot: (petId, logDate, row, since) =>
+      isOwnerSession() ? repository.refreshSnapshot(petId, logDate, row, since) : Promise.resolve(row),
+  };
 }
 
 /**
@@ -100,17 +125,21 @@ export function applyLocalChangeToCache(client: CacheClient, userId: string, cha
   if (isUnsynced(record) || isUnsynced(previous)) {
     void client.invalidateQueries({ queryKey: dailyLogKeys.unsynced(userId) });
   }
+  // El resumen por mascota solo cambia si un registro aparece o desaparece del dispositivo.
+  if ((record === null) !== (previous === null)) {
+    void client.invalidateQueries({ queryKey: dailyLogKeys.localAll(userId) });
+  }
 
   const row = record?.status === 'synced' ? record.serverRow : null;
   if (!row) return;
 
-  const detailKey = dailyLogKeys.detail(petId, logDate);
+  const detailKey = dailyLogKeys.detail(userId, petId, logDate);
   const cached = client.getQueryData<DailyLog | null>(detailKey);
   if (!cached || isNewerVersion(row.updated_at, cached.updated_at)) {
     client.setQueryData<DailyLog | null>(detailKey, row);
   }
 
-  const historyKey = dailyLogKeys.history(petId);
+  const historyKey = dailyLogKeys.history(userId, petId);
   const history = client.getQueryData<InfiniteData<DailyLogHistoryPage, string | null>>(historyKey);
   if (!history) return;
   const shown = flattenHistory(history.pages).find((item) => item.log_date === logDate);

@@ -7,22 +7,25 @@ import { FormMessage } from '@/components/ui/form-message';
 import { Screen } from '@/components/ui/screen';
 import { useAuth } from '@/features/auth/auth-context';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
+import { OfflineSessionNotice } from '@/features/auth/components/offline-session-notice';
 import { UnsyncedDailyLogsEntry } from '@/features/daily-logs/components/unsynced-entry';
+import { useSignOutFlow } from '@/features/daily-logs/sync/daily-log-sync-provider';
 import { t } from '@/i18n';
 
 /** Pantalla temporal: confirma que la sesión está activa. Se sustituirá por la Home real. */
 export default function HomeScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const { flow, state } = useSignOutFlow();
   const [error, setError] = useState<AuthErrorCode | null>(null);
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
-    setIsSigningOut(true);
-    // La sesión local se borra siempre; la protección de rutas lleva a (auth).
-    const result = await signOut();
-    setIsSigningOut(false);
-    setError(result.error);
+    setError(null);
+    // Sin cambios sin sincronizar, cierra sesión como siempre (la sesión local se borra siempre y la
+    // protección de rutas lleva a (auth)). Con ellos, o si no se pueden comprobar, se decide antes.
+    const outcome = await flow.request();
+    if (outcome.status === 'signed_out') setError(outcome.error);
+    if (outcome.status === 'needs_decision') router.push('/sign-out');
   };
 
   return (
@@ -31,6 +34,8 @@ export default function HomeScreen() {
       <ThemedText themeColor="textSecondary">{t('home.signedInAs')}</ThemedText>
       <ThemedText type="smallBold">{user?.email}</ThemedText>
       <ThemedText themeColor="textSecondary">{t('home.placeholder')}</ThemedText>
+      {/* Sesión guardada sin comprobar (arranque sin conexión con el token caducado). */}
+      <OfflineSessionNotice />
 
       <FormMessage message={error ? authErrorMessage(error) : null} />
 
@@ -40,7 +45,7 @@ export default function HomeScreen() {
       <Button
         variant="secondary"
         label={t('home.signOut')}
-        loading={isSigningOut}
+        loading={state !== 'idle'}
         onPress={handleSignOut}
       />
     </Screen>

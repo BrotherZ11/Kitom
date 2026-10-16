@@ -16,7 +16,9 @@ import { compareVersions, isNewerVersion, isOlderVersion } from './daily-log-ver
  * otra se cuele en medio) y avisa a los suscriptores.
  *
  * Datos ilegibles: un registro corrupto cuenta como ausente (se puede sobrescribir guardando de
- * nuevo); uno de una versión desconocida (lo escribió otra versión de la app) no se sobrescribe.
+ * nuevo); uno de una versión desconocida (lo escribió otra versión de la app) no se sobrescribe. Uno
+ * cuyo dueño no coincide con la clave (`key_mismatch`: no se puede verificar de quién es) tampoco:
+ * no se lista (nunca se envía), no se sobrescribe y se conserva tal cual para recuperarlo.
  *
  * Lecturas tardías del servidor: quien lee anota una marca (`snapshotMark`) antes de pedir la fila
  * y la pasa a `refreshSnapshot`. Si el registro se escribió en el dispositivo después de la marca
@@ -36,10 +38,12 @@ export type LocalDailyLogChange = {
 /** Momento (en escrituras locales) en que empezó una lectura del servidor. */
 export type SnapshotMark = number;
 
-export class DailyLogRepositoryError extends Error {
-  readonly code: 'unknown_version';
+export type DailyLogRepositoryErrorCode = 'unknown_version' | 'ownership_unverified';
 
-  constructor(code: 'unknown_version') {
+export class DailyLogRepositoryError extends Error {
+  readonly code: DailyLogRepositoryErrorCode;
+
+  constructor(code: DailyLogRepositoryErrorCode) {
     super(code);
     this.name = 'DailyLogRepositoryError';
     this.code = code;
@@ -96,8 +100,12 @@ export function createDailyLogRepository(store: LocalStore): DailyLogRepository 
 
   const readEntry = async (petId: string, logDate: string) => {
     const result = await store.read(localDailyLogs, localDailyLogId(petId, logDate));
-    if (result.status === 'found') return { record: result.value, writable: true };
-    return { record: null, writable: result.status !== 'unknown_version' };
+    if (result.status === 'found') return { record: result.value, protection: null };
+    if (result.status === 'unknown_version') return { record: null, protection: 'unknown_version' as const };
+    if (result.status === 'corrupt' && result.reason === 'key_mismatch') {
+      return { record: null, protection: 'ownership_unverified' as const };
+    }
+    return { record: null, protection: null };
   };
 
   const repository: DailyLogRepository = {
@@ -120,10 +128,10 @@ export function createDailyLogRepository(store: LocalStore): DailyLogRepository 
 
     update(petId, logDate, change) {
       return exclusive(async () => {
-        const { record: current, writable } = await readEntry(petId, logDate);
+        const { record: current, protection } = await readEntry(petId, logDate);
         const next = change(current);
         if (next === current) return current;
-        if (!writable) throw new DailyLogRepositoryError('unknown_version');
+        if (protection) throw new DailyLogRepositoryError(protection);
 
         const id = localDailyLogId(petId, logDate);
         if (next === null) {

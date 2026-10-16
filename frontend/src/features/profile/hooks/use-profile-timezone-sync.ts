@@ -16,8 +16,9 @@ const attemptedUserIds = new Set<string>();
  */
 export function useProfileTimeZoneSync() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const userId = user?.id ?? null;
+  const { user, canUseServer } = useAuth();
+  // Solo con una sesión utilizable: sin ella (`offline`) no se escribe nada en el servidor.
+  const userId = canUseServer ? (user?.id ?? null) : null;
 
   useEffect(() => {
     if (!userId || attemptedUserIds.has(userId)) return;

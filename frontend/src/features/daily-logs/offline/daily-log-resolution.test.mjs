@@ -428,6 +428,7 @@ describe('createDailyLogRemote', () => {
     const builder = (kind) => {
       const chain = {
         signal: null,
+        setHeader: (name) => (log.push(`${kind}.setHeader(${name})`), chain),
         retry: (value) => (log.push(`${kind}.retry(${value})`), chain),
         abortSignal: (signal) => ((chain.signal = signal), chain),
         select: () => chain,
@@ -439,6 +440,8 @@ describe('createDailyLogRemote', () => {
     };
     return { log, rpc: () => builder('rpc'), from: () => builder('from') };
   }
+  /** Sesión del propietario siempre disponible (la comprobación de la sesión se prueba en `daily-log-session.test.mjs`). */
+  const owner = { accessToken: async () => ({ status: 'ok', token: 'owner-token' }) };
   const row = { ...argsFor(), id: 'r1', pet_id: PET, log_date: DATE, logged_by: USER, last_edited_by: null, created_at: 'c', updated_at: 'u' };
   const serverRow = { id: 'r1', pet_id: PET, log_date: DATE, logged_by: USER, last_edited_by: null, ...content(), created_at: '2026-10-15T08:00:00.1+00:00', updated_at: '2026-10-15T09:00:00.25+00:00' };
 
@@ -451,40 +454,41 @@ describe('createDailyLogRemote', () => {
           )
         )
     );
-    const remote = createDailyLogRemote(client, { timeoutMs: 10 });
+    const remote = createDailyLogRemote(client, { ...owner, timeoutMs: 10 });
     const result = await remote.save({ ...argsFor(), p_expect_absent: true });
     assert.equal(result.ok, false);
     assert.equal(result.status, null);
     assert.equal(classifySyncError(result.error, result.status).kind, 'network');
-    assert.deepEqual(client.log, ['rpc.retry(false)']); // sin reintentos propios de supabase-js
+    // Con el token del propietario en la cabecera y sin reintentos propios de supabase-js.
+    assert.deepEqual(client.log, ['rpc.setHeader(Authorization)', 'rpc.retry(false)']);
   });
 
   it('respuesta sin estado (fetch falló) → status null; respuesta HTTP → su estado', async () => {
-    const offline = createDailyLogRemote(fakeClient(async () => ({ data: null, error: { message: 'TypeError: Network request failed', code: '' }, status: 0 })));
+    const offline = createDailyLogRemote(fakeClient(async () => ({ data: null, error: { message: 'TypeError: Network request failed', code: '' }, status: 0 })), owner);
     assert.deepEqual(await offline.fetch(PET, DATE), {
       ok: false,
       error: { message: 'TypeError: Network request failed', code: '' },
       status: null,
     });
-    const forbidden = createDailyLogRemote(fakeClient(async () => ({ data: null, error: { code: '42501' }, status: 403 })));
+    const forbidden = createDailyLogRemote(fakeClient(async () => ({ data: null, error: { code: '42501' }, status: 403 })), owner);
     assert.equal((await forbidden.save({ ...argsFor(), p_expect_absent: true })).status, 403);
   });
 
   it('una fila válida se devuelve; una respuesta que no es una fila no se toma por éxito', async () => {
-    const ok = createDailyLogRemote(fakeClient(async () => ({ data: serverRow, error: null, status: 200 })));
+    const ok = createDailyLogRemote(fakeClient(async () => ({ data: serverRow, error: null, status: 200 })), owner);
     assert.deepEqual(await ok.save({ ...argsFor(), p_expect_absent: true }), { ok: true, data: serverRow });
-    const broken = createDailyLogRemote(fakeClient(async () => ({ data: { ...row, energy_level: 'x' }, error: null, status: 200 })));
+    const broken = createDailyLogRemote(fakeClient(async () => ({ data: { ...row, energy_level: 'x' }, error: null, status: 200 })), owner);
     const result = await broken.save({ ...argsFor(), p_expect_absent: true });
     assert.equal(result.ok, false);
     assert.equal(result.error.code, 'invalid_response');
-    const empty = createDailyLogRemote(fakeClient(async () => ({ data: null, error: null, status: 200 })));
+    const empty = createDailyLogRemote(fakeClient(async () => ({ data: null, error: null, status: 200 })), owner);
     assert.deepEqual(await empty.fetch(PET, DATE), { ok: true, data: null });
   });
 
   it('si la petición lanza, no se propaga: error con status null', async () => {
     const remote = createDailyLogRemote(fakeClient(async () => {
       throw new TypeError('Failed to fetch');
-    }));
+    }), owner);
     const result = await remote.fetch(PET, DATE);
     assert.equal(result.ok, false);
     assert.equal(result.status, null);

@@ -176,11 +176,15 @@ describe('páginas y caché', () => {
     assert.equal(replaceLogInHistory(data, log('2026-10-01', { pet_id: OTHER_PET })), data);
   });
 
-  it('al guardar se invalidan el registro de ese día y el historial de esa mascota', () => {
-    const keys = dailyLogKeysAfterSave(log('2026-09-15'));
-    assert.deepEqual(keys.detail, ['daily-logs', 'detail', PET, '2026-09-15']);
-    assert.deepEqual(keys.history, ['daily-logs', 'history', PET]);
-    assert.deepEqual(dailyLogKeys.history(OTHER_PET), ['daily-logs', 'history', OTHER_PET]);
+  it('al guardar se invalidan el registro de ese día y el historial de esa mascota (del usuario)', () => {
+    const USER = 'a0000000-0000-4000-8000-000000000001';
+    const OTHER_USER = 'a0000000-0000-4000-8000-000000000002';
+    const keys = dailyLogKeysAfterSave(USER, log('2026-09-15'));
+    assert.deepEqual(keys.detail, ['daily-logs', 'detail', USER, PET, '2026-09-15']);
+    assert.deepEqual(keys.history, ['daily-logs', 'history', USER, PET]);
+    assert.deepEqual(dailyLogKeys.history(USER, OTHER_PET), ['daily-logs', 'history', USER, OTHER_PET]);
+    // Otra cuenta, otras queries: lo leído por una sesión nunca lo ve la siguiente.
+    assert.notDeepEqual(dailyLogKeys.detail(OTHER_USER, PET, '2026-09-15'), keys.detail);
   });
 });
 

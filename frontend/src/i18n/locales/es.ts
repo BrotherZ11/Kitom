@@ -72,6 +72,44 @@ export const es = {
     goToPets: 'Mis mascotas',
     signOut: 'Cerrar sesión',
   },
+  offlineSession: {
+    title: 'Sesión sin comprobar',
+    description:
+      'No se ha podido comprobar tu sesión con el servidor (sin conexión o sesión caducada). Ves lo guardado en este dispositivo; no se sincroniza nada hasta poder renovarla.',
+    retry: 'Volver a comprobar',
+  },
+  signOut: {
+    title: 'Cerrar sesión',
+    intro: 'Hay registros diarios con cambios que todavía no están guardados en el servidor.',
+    localOnly:
+      'Estos cambios solo existen en este dispositivo. Si cierras sesión sin sincronizarlos, no estarán en el servidor ni en otros dispositivos.',
+    checkFailed:
+      'No se ha podido comprobar si hay cambios guardados solo en este dispositivo. Puede que los haya.',
+    allSynced: 'Ya no quedan cambios sin sincronizar.',
+    counts: {
+      pending: 'Pendientes de sincronizar',
+      conflict: 'En conflicto',
+      failed: 'No se pudieron sincronizar',
+    },
+    needsReview:
+      'Los registros en conflicto o que no se pudieron sincronizar necesitan que los revises: sincronizar no los resuelve solo.',
+    syncAndSignOut: 'Intentar sincronizar y cerrar sesión',
+    syncExplanation:
+      'Se intenta enviar todo durante unos segundos. Solo se cierra la sesión si no queda nada pendiente.',
+    keepAndSignOut: 'Conservar en este dispositivo y cerrar sesión',
+    keepExplanation:
+      'Los cambios se quedan guardados en este dispositivo, ocultos y sin enviarse mientras no vuelvas a entrar. Si vuelves a iniciar sesión en este dispositivo con esta misma cuenta, se recuperan y se sincronizan. No están guardados en el servidor: no los verás en otros dispositivos ni con otra cuenta.',
+    cancel: 'Cancelar y seguir con la sesión',
+    review: 'Revisar registros sin sincronizar',
+    result: {
+      incomplete: 'No se han podido sincronizar todos los registros. Siguen guardados en este dispositivo.',
+      timed_out:
+        'La sincronización está tardando demasiado y sigue en segundo plano. Tus cambios siguen guardados en este dispositivo.',
+      offline: 'Sin conexión no se puede sincronizar. Tus cambios siguen guardados en este dispositivo.',
+      session:
+        'Ahora mismo la sesión no permite sincronizar (puede haber caducado). Tus cambios siguen guardados en este dispositivo.',
+    },
+  },
   pets: {
     list: {
       title: 'Mis mascotas',
@@ -285,6 +323,22 @@ export const es = {
       message:
         'Hay otra versión de este registro (del servidor o de una resolución). Lo que has escrito se mantiene; si lo guardas, podrás comparar las dos versiones.',
       load: 'Descartar lo que he escrito y cargar esa versión',
+    },
+    offlinePet: {
+      unavailable: 'Información de la mascota no disponible sin conexión',
+      permissionUnknown:
+        'Sin conexión no se puede comprobar si puedes editar esta mascota. Lo que guardes queda en este dispositivo y el servidor decidirá al sincronizar.',
+    },
+    deviceLogs: {
+      title: 'Registros guardados en este dispositivo',
+      description:
+        'Sin conexión no se puede cargar la lista de mascotas. Puedes abrir los registros diarios guardados en este dispositivo.',
+      pet: 'Mascota (información no disponible sin conexión)',
+      count: 'Registros en el dispositivo',
+      latest: 'Último',
+      today: 'Registro de hoy',
+      history: 'Historial',
+      none: 'No hay registros diarios guardados en este dispositivo.',
     },
     unsynced: {
       title: 'Registros sin sincronizar',

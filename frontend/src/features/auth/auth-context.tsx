@@ -1,28 +1,63 @@
 import type { Session, User } from '@supabase/supabase-js';
-import { useQueryClient } from '@tanstack/react-query';
+import { onlineManager, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
-import { createContext, use, useEffect, useRef, useState, type PropsWithChildren } from 'react';
-import { Platform } from 'react-native';
+import { createContext, use, useEffect, useState, type PropsWithChildren } from 'react';
+import { AppState, Platform } from 'react-native';
 
 import { toAuthErrorCode, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { completeAuthRedirect, getAuthRedirectUrl } from '@/features/auth/auth-redirect';
-import { supabase } from '@/lib/supabase';
+import { createAuthSessionController } from '@/features/auth/auth-session-controller';
+import { authUserId, type AuthState } from '@/features/auth/auth-state';
+import { secureSessionStorage } from '@/lib/secure-session-storage';
+import { AUTH_STORAGE_KEY, supabase } from '@/lib/supabase';
 
 export type AuthResult = { error: AuthErrorCode | null };
 export type SignUpResult = AuthResult & { needsEmailConfirmation: boolean };
 
 type AuthContextValue = {
+  /**
+   * `signed_in`: sesión utilizable. `offline`: sesión guardada en el dispositivo cuyo usuario se conoce,
+   * pero que Supabase Auth no ha podido renovar ni comprobar (sin conexión, token caducado o arranque
+   * lento): se muestran sus datos locales y no se envía ni se lee nada del servidor. Ver `auth-state.ts`.
+   */
+  status: AuthState<Session>['status'];
+  /** Solo con `status === 'signed_in'`. */
   session: Session | null;
+  /**
+   * Usuario de la sesión (`signed_in`) o, en `offline`, el guardado en el dispositivo con esa sesión
+   * (no comprobado en el servidor: solo para identificar de quién son los datos locales).
+   */
   user: User | null;
-  /** true hasta que Supabase ha resuelto la sesión persistida (evento INITIAL_SESSION). */
+  /** `true` si se puede usar el servidor como este usuario (`signed_in`). */
+  canUseServer: boolean;
+  /** true hasta resolver la sesión: `INITIAL_SESSION` o, como mucho, `AUTH_STARTUP_TIMEOUT_MS`. */
   isLoading: boolean;
+  /** En `offline`, intenta renovar la sesión ahora (además de al volver la red o el primer plano). */
+  recoverSession: () => Promise<void>;
+  /**
+   * Ejecuta una llamada al servidor solo si **en ese momento** hay una sesión utilizable; si no, falla
+   * al instante con `SessionUnavailableError` («sin conexión»). Sin ella, supabase-js haría esperar la
+   * petición a su inicialización (hasta ~30 s sin red). Función estable: usar en `queryFn`/`mutationFn`.
+   */
+  serverCall: <T>(call: () => Promise<T>) => Promise<T>;
   /** Sesión abierta desde un enlace de recuperación: hay que fijar una contraseña nueva. */
   isRecoveringPassword: boolean;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   /** Cancelar el navegador no es un error: devuelve `{ error: null }` sin sesión. */
   signInWithGoogle: () => Promise<AuthResult>;
   signUp: (email: string, password: string) => Promise<SignUpResult>;
+  /**
+   * Cierra la sesión sin más comprobaciones (función estable). Llamadas simultáneas comparten el
+   * mismo cierre. En la zona autenticada no se llama directamente: el cierre con cambios sin
+   * sincronizar pasa por `useSignOutFlow` (`features/daily-logs/sync/`).
+   */
   signOut: () => Promise<AuthResult>;
+  /**
+   * ¿`userId` es el usuario de la sesión vigente? Se actualiza en el mismo instante del evento de
+   * Supabase Auth, antes de que React vuelva a pintar: sirve para descartar respuestas tardías de una
+   * sesión anterior. Función estable.
+   */
+  isCurrentUser: (userId: string) => boolean;
   resetPassword: (email: string) => Promise<AuthResult>;
   updatePassword: (password: string) => Promise<AuthResult>;
 };
@@ -45,38 +80,57 @@ async function runAuthAction(action: () => Promise<{ error: unknown }>): Promise
 }
 
 /**
- * Sesión de la app. La fuente de verdad es Supabase Auth: el estado solo se actualiza desde
- * onAuthStateChange, nunca a mano tras signIn/signOut.
+ * Sesión de la app. La fuente de verdad es Supabase Auth (`onAuthStateChange`) más la sesión guardada
+ * en el dispositivo cuando Supabase no puede darla sin red (`auth-session-controller.ts`); el estado
+ * nunca se cambia a mano tras signIn/signOut.
  */
 export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [controller] = useState(() =>
+    createAuthSessionController<Session>({
+      auth: supabase.auth,
+      storage: secureSessionStorage,
+      storageKey: AUTH_STORAGE_KEY,
+      subscribeOnline: (listener) => onlineManager.subscribe(listener),
+      subscribeForeground: (listener) => {
+        const subscription = AppState.addEventListener('change', (state) => {
+          if (state === 'active') listener();
+        });
+        return () => subscription.remove();
+      },
+    })
+  );
+  const [state, setState] = useState(controller.getState);
   const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
-  const userIdRef = useRef<string | null>(null);
+  // Un solo cierre a la vez; el controlador garantiza que la sesión sale del dispositivo.
+  const [signOut] = useState(() => () => runAuthAction(() => controller.signOut()));
+  const [recoverSession] = useState(() => () => controller.recover());
 
   useEffect(() => {
-    // Supabase emite INITIAL_SESSION al suscribirse, una vez leída (y refrescada si hace falta) la
-    // sesión persistida. Usarlo como única señal de inicio evita carreras con un getSession()
-    // paralelo. El callback no debe llamar a otros métodos de supabase.auth (bloquearía su lock).
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      const nextUserId = nextSession?.user.id ?? null;
-      if (userIdRef.current !== nextUserId) {
-        // Logout o cambio de cuenta: no reutilizar datos cacheados de otro usuario.
-        if (userIdRef.current !== null) queryClient.clear();
-        userIdRef.current = nextUserId;
+    // El aviso llega en el mismo instante del cambio, antes de que React vuelva a pintar.
+    const unsubscribe = controller.subscribe((next, previous, cause) => {
+      const nextUserId = authUserId(next);
+      const previousUserId = authUserId(previous);
+      // Logout o cambio de cuenta: no reutilizar datos cacheados de otro usuario.
+      if (previousUserId !== null && previousUserId !== nextUserId) queryClient.clear();
+      // Sesión recuperada (misma cuenta): lo que falló sin sesión se vuelve a pedir.
+      if (previous.status === 'offline' && next.status === 'signed_in' && previousUserId === nextUserId) {
+        void queryClient.invalidateQueries();
       }
-
-      setSession(nextSession);
-      if (event === 'PASSWORD_RECOVERY') setIsRecoveringPassword(true);
-      if (event === 'SIGNED_OUT') setIsRecoveringPassword(false);
-      if (event === 'INITIAL_SESSION') setIsLoading(false);
+      if (cause === 'PASSWORD_RECOVERY') setIsRecoveringPassword(true);
+      if (next.status === 'signed_out') setIsRecoveringPassword(false);
+      setState(next);
     });
+    const stop = controller.start();
+    return () => {
+      stop();
+      unsubscribe();
+    };
+  }, [controller, queryClient]);
 
-    return () => subscription.unsubscribe();
-  }, [queryClient]);
+  const session = state.status === 'signed_in' ? state.session : null;
+  // La copia guardada del usuario (misma forma que `session.user`); su id coincide con el token.
+  const user = session?.user ?? (state.status === 'offline' ? (state.user as unknown as User) : null);
 
   const signIn = (email: string, password: string) =>
     runAuthAction(() => supabase.auth.signInWithPassword({ email: email.trim(), password }));
@@ -124,10 +178,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   };
 
-  // supabase-js borra la sesión local aunque falle la llamada al servidor, así que el usuario
-  // siempre sale; el error solo es informativo.
-  const signOut = () => runAuthAction(() => supabase.auth.signOut());
-
   // El enlace del email vuelve a /auth-callback, que abre una sesión de recuperación
   // (PASSWORD_RECOVERY) y la protección de rutas lleva a /update-password.
   const resetPassword = (email: string) =>
@@ -144,14 +194,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
   };
 
   const value: AuthContextValue = {
+    status: state.status,
     session,
-    user: session?.user ?? null,
-    isLoading,
+    user,
+    canUseServer: state.status === 'signed_in',
+    isLoading: state.status === 'loading',
+    recoverSession,
+    serverCall: controller.serverCall,
     isRecoveringPassword,
     signIn,
     signInWithGoogle,
     signUp,
     signOut,
+    isCurrentUser: controller.isCurrentUser,
     resetPassword,
     updatePassword,
   };

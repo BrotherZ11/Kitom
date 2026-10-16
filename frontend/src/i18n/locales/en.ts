@@ -74,6 +74,39 @@ export const en: Translations = {
     goToPets: 'My pets',
     signOut: 'Sign out',
   },
+  offlineSession: {
+    title: 'Session not verified',
+    description:
+      'Your session could not be checked with the server (offline or expired). You are seeing what is saved on this device; nothing is synced until it can be renewed.',
+    retry: 'Check again',
+  },
+  signOut: {
+    title: 'Sign out',
+    intro: 'Some daily logs have changes that are not saved on the server yet.',
+    localOnly:
+      'These changes only exist on this device. If you sign out without syncing them, they will not be on the server or on other devices.',
+    checkFailed: 'We could not check whether there are changes saved only on this device. There may be some.',
+    allSynced: 'There are no unsynced changes left.',
+    counts: {
+      pending: 'Waiting to sync',
+      conflict: 'In conflict',
+      failed: 'Could not be synced',
+    },
+    needsReview: 'Logs in conflict or that could not be synced need your review: syncing does not resolve them on its own.',
+    syncAndSignOut: 'Try to sync and sign out',
+    syncExplanation: 'We try to send everything for a few seconds. You are only signed out if nothing is left pending.',
+    keepAndSignOut: 'Keep on this device and sign out',
+    keepExplanation:
+      'The changes stay saved on this device, hidden and unsent until you sign in again. If you sign in again on this device with this same account, they are recovered and synced. They are not saved on the server: you will not see them on other devices or with another account.',
+    cancel: 'Cancel and stay signed in',
+    review: 'Review unsynced logs',
+    result: {
+      incomplete: 'Not every log could be synced. They are still saved on this device.',
+      timed_out: 'Syncing is taking too long and continues in the background. Your changes are still saved on this device.',
+      offline: 'You are offline, so nothing can be synced. Your changes are still saved on this device.',
+      session: 'Your session cannot sync right now (it may have expired). Your changes are still saved on this device.',
+    },
+  },
   pets: {
     list: {
       title: 'My pets',
@@ -286,6 +319,21 @@ export const en: Translations = {
       message:
         "There is another version of this log (from the server or a resolution). What you typed is kept; if you save it, you'll be able to compare both versions.",
       load: 'Discard what I typed and load that version',
+    },
+    offlinePet: {
+      unavailable: 'Pet information not available offline',
+      permissionUnknown:
+        'Offline, we cannot check whether you can edit this pet. What you save stays on this device and the server decides when syncing.',
+    },
+    deviceLogs: {
+      title: 'Logs saved on this device',
+      description: 'The pet list cannot be loaded offline. You can open the daily logs saved on this device.',
+      pet: 'Pet (information not available offline)',
+      count: 'Logs on this device',
+      latest: 'Latest',
+      today: "Today's log",
+      history: 'History',
+      none: 'There are no daily logs saved on this device.',
     },
     unsynced: {
       title: 'Unsynced logs',

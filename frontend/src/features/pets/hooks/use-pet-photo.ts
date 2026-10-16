@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { useAuth } from '@/features/auth/auth-context';
 import { fetchPetPhotoUrl, removePetPhoto, uploadPetPhoto } from '@/features/pets/api/pet-photos-api';
 import { PET_PHOTO_SIGNED_URL_TTL_SECONDS, type PreparedPetPhoto } from '@/features/pets/pet-photo';
 import { petKeys } from '@/features/pets/query-keys';
@@ -15,9 +16,10 @@ const SIGNED_URL_REFRESH_MS = SIGNED_URL_TTL_MS - 10 * 60 * 1000;
  * antes de caducar, no en cada render.
  */
 export function usePetPhotoUrl(photoPath: string | null) {
+  const { serverCall } = useAuth();
   return useQuery({
     queryKey: petKeys.photo(photoPath ?? ''),
-    queryFn: () => fetchPetPhotoUrl(photoPath ?? ''),
+    queryFn: () => serverCall(() => fetchPetPhotoUrl(photoPath ?? '')),
     enabled: photoPath !== null,
     staleTime: SIGNED_URL_REFRESH_MS,
     refetchInterval: SIGNED_URL_REFRESH_MS,
@@ -39,19 +41,21 @@ function useApplyPetPhotoChange() {
 
 export function useUploadPetPhoto(petId: string) {
   const applyChange = useApplyPetPhotoChange();
+  const { serverCall } = useAuth();
 
   return useMutation({
     mutationFn: ({ photo, previousPath }: { photo: PreparedPetPhoto; previousPath: string | null }) =>
-      uploadPetPhoto(petId, photo, previousPath),
+      serverCall(() => uploadPetPhoto(petId, photo, previousPath)),
     onSuccess: (pet, { previousPath }) => applyChange(pet, previousPath),
   });
 }
 
 export function useRemovePetPhoto(petId: string) {
   const applyChange = useApplyPetPhotoChange();
+  const { serverCall } = useAuth();
 
   return useMutation({
-    mutationFn: (photoPath: string) => removePetPhoto(petId, photoPath),
+    mutationFn: (photoPath: string) => serverCall(() => removePetPhoto(petId, photoPath)),
     onSuccess: (pet, photoPath) => applyChange(pet, photoPath),
   });
 }

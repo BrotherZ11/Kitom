@@ -173,11 +173,11 @@ describe('M1: una lectura tardía no hace retroceder la copia local (D1)', () =>
 describe('M1: la caché de TanStack no retrocede (D2, D2b)', () => {
   it('D2: una copia local anterior no sustituye la fila del día ni la del historial', () => {
     const client = new QueryClient();
-    client.setQueryData(dailyLogKeys.detail(PET, DATE), row(V3, { notes: 'nueva' }));
-    client.setQueryData(dailyLogKeys.history(PET), { pages: [{ logs: [row(V3)], nextCursor: null }], pageParams: [null] });
+    client.setQueryData(dailyLogKeys.detail(USER, PET, DATE), row(V3, { notes: 'nueva' }));
+    client.setQueryData(dailyLogKeys.history(USER, PET), { pages: [{ logs: [row(V3)], nextCursor: null }], pageParams: [null] });
     applyLocalChangeToCache(client, USER, { petId: PET, logDate: DATE, record: synced(V2), previous: null });
-    assert.equal(client.getQueryData(dailyLogKeys.detail(PET, DATE)).updated_at, V3);
-    assert.equal(client.getQueryData(dailyLogKeys.history(PET)).pages[0].logs[0].updated_at, V3);
+    assert.equal(client.getQueryData(dailyLogKeys.detail(USER, PET, DATE)).updated_at, V3);
+    assert.equal(client.getQueryData(dailyLogKeys.history(USER, PET)).pages[0].logs[0].updated_at, V3);
   });
 
   it('D2b: una lectura en vuelo antes de que el motor confirme no pisa la fila confirmada', async () => {
@@ -189,17 +189,17 @@ describe('M1: la caché de TanStack no retrocede (D2, D2b)', () => {
 
     const response = deferred(); // la petición GET del registro del día, todavía sin respuesta
     const fetching = client.fetchQuery({
-      queryKey: dailyLogKeys.detail(PET, DATE),
+      queryKey: dailyLogKeys.detail(USER, PET, DATE),
       queryFn: () => readDailyLogThroughRepository(phone.repository, PET, DATE, () => response.promise),
       ...dailyLogDetailQueryOptions,
     });
     await phone.save({ notes: 'confirmada' }, v1); // el motor envía y el servidor confirma v2
     const confirmed = server.row(PET, DATE);
-    assert.equal(client.getQueryData(dailyLogKeys.detail(PET, DATE)).updated_at, confirmed.updated_at);
+    assert.equal(client.getQueryData(dailyLogKeys.detail(USER, PET, DATE)).updated_at, confirmed.updated_at);
 
     response.resolve({ ...v1 }); // llega la respuesta antigua
     await fetching;
-    assert.equal(client.getQueryData(dailyLogKeys.detail(PET, DATE)).notes, 'confirmada');
+    assert.equal(client.getQueryData(dailyLogKeys.detail(USER, PET, DATE)).notes, 'confirmada');
     assert.equal((await phone.read()).baseVersion, confirmed.updated_at);
   });
 
@@ -208,14 +208,14 @@ describe('M1: la caché de TanStack no retrocede (D2, D2b)', () => {
     const response = deferred();
     const broken = { snapshotMark: () => 0, refreshSnapshot: () => Promise.reject(new Error('disco')) };
     const fetching = client.fetchQuery({
-      queryKey: dailyLogKeys.detail(PET, DATE),
+      queryKey: dailyLogKeys.detail(USER, PET, DATE),
       queryFn: () => readDailyLogThroughRepository(broken, PET, DATE, () => response.promise),
       ...dailyLogDetailQueryOptions,
     });
-    client.setQueryData(dailyLogKeys.detail(PET, DATE), row(V3));
+    client.setQueryData(dailyLogKeys.detail(USER, PET, DATE), row(V3));
     response.resolve(row(V1));
     await fetching;
-    assert.equal(client.getQueryData(dailyLogKeys.detail(PET, DATE)).updated_at, V3);
+    assert.equal(client.getQueryData(dailyLogKeys.detail(USER, PET, DATE)).updated_at, V3);
   });
 
   it('una página del historial que llega tarde muestra la versión confirmada, no la antigua', async () => {

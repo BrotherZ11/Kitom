@@ -282,8 +282,8 @@ describe('toDisplayRow y describeConflict', () => {
 describe('applyLocalChangeToCache: queries de hoy e historial coherentes', () => {
   function cache() {
     const client = new QueryClient();
-    client.setQueryData(dailyLogKeys.detail(PET, TODAY), null);
-    client.setQueryData(dailyLogKeys.history(PET), {
+    client.setQueryData(dailyLogKeys.detail(USER, PET, TODAY), null);
+    client.setQueryData(dailyLogKeys.history(USER, PET), {
       pages: [{ logs: [row('2026-10-14', { notes: 'antes' })], nextCursor: null }],
       pageParams: [null],
     });
@@ -296,8 +296,8 @@ describe('applyLocalChangeToCache: queries de hoy e historial coherentes', () =>
     const record = pending(TODAY, { notes: 'sin enviar' });
     applyLocalChangeToCache(client, USER, { petId: PET, logDate: TODAY, record });
     assert.deepEqual(client.getQueryData(dailyLogKeys.local(USER, PET, TODAY)), record);
-    assert.equal(client.getQueryData(dailyLogKeys.detail(PET, TODAY)), null);
-    assert.equal(invalidated(client, dailyLogKeys.history(PET)), false);
+    assert.equal(client.getQueryData(dailyLogKeys.detail(USER, PET, TODAY)), null);
+    assert.equal(invalidated(client, dailyLogKeys.history(USER, PET)), false);
   });
 
   it('confirmado por el servidor: la fila pasa al registro del día y al historial', () => {
@@ -307,17 +307,17 @@ describe('applyLocalChangeToCache: queries de hoy e historial coherentes', () =>
       row('2026-10-14', { notes: 'después', updated_at: '2026-10-15T11:00:00.75+00:00' })
     );
     applyLocalChangeToCache(client, USER, { petId: PET, logDate: '2026-10-14', record: confirmed });
-    assert.equal(client.getQueryData(dailyLogKeys.detail(PET, '2026-10-14')).notes, 'después');
-    assert.equal(client.getQueryData(dailyLogKeys.history(PET)).pages[0].logs[0].notes, 'después');
-    assert.equal(invalidated(client, dailyLogKeys.history(PET)), false);
+    assert.equal(client.getQueryData(dailyLogKeys.detail(USER, PET, '2026-10-14')).notes, 'después');
+    assert.equal(client.getQueryData(dailyLogKeys.history(USER, PET)).pages[0].logs[0].notes, 'después');
+    assert.equal(invalidated(client, dailyLogKeys.history(USER, PET)), false);
   });
 
   it('un día nuevo confirmado que no estaba en el historial lo revalida para que aparezca', () => {
     const client = cache();
     const confirmed = createSyncedLocalDailyLog({ userId: USER, petId: PET, logDate: TODAY }, row(TODAY));
     applyLocalChangeToCache(client, USER, { petId: PET, logDate: TODAY, record: confirmed });
-    assert.equal(client.getQueryData(dailyLogKeys.detail(PET, TODAY)).id, `id-${TODAY}`);
-    assert.equal(invalidated(client, dailyLogKeys.history(PET)), true);
+    assert.equal(client.getQueryData(dailyLogKeys.detail(USER, PET, TODAY)).id, `id-${TODAY}`);
+    assert.equal(invalidated(client, dailyLogKeys.history(USER, PET)), true);
   });
 
   it('la lista local de la mascota se revalida con cada cambio', () => {

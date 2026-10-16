@@ -9,6 +9,7 @@ import { after, before, describe, it } from 'node:test';
 
 import { createClient } from '@supabase/supabase-js';
 
+import { createOwnerAccessToken } from '../../auth/owner-session.ts';
 import { createLocalStore } from '../../../lib/local-store/local-store.ts';
 import { createMemoryStorage } from '../../../lib/local-store/memory-storage.ts';
 import { readDailyLogThroughRepository } from './daily-log-cache.ts';
@@ -53,8 +54,12 @@ async function signUp() {
   return { supabase, userId: data.user.id };
 }
 
+/** Remoto autorizado con la sesión del propietario `user` (la del cliente `supabase`, por defecto el suyo). */
+const remoteOf = (user, supabase = user.supabase) =>
+  createDailyLogRemote(supabase, { accessToken: createOwnerAccessToken(supabase.auth, user.userId) });
+
 /** Un dispositivo: almacén en memoria y motor con el cliente (y la sesión) de `user`. */
-function device(user, { remote = createDailyLogRemote(user.supabase) } = {}) {
+function device(user, { remote = remoteOf(user) } = {}) {
   const net = { online: true };
   const repository = createDailyLogRepository(createLocalStore(createMemoryStorage(), user.userId));
   const engine = createDailyLogSyncEngine({
@@ -202,7 +207,7 @@ describe('sincronización contra el Supabase local', { skip }, () => {
   it('respuesta perdida: el servidor guardó, el cliente no lo supo; se reconcilia leyendo la fila', async () => {
     const petId = await newPet();
     const date = daysAgo(5);
-    const real = createDailyLogRemote(userA.supabase);
+    const real = remoteOf(userA);
     let drop = true;
     const lossy = {
       ...real,
@@ -288,7 +293,7 @@ describe('sincronización contra el Supabase local', { skip }, () => {
   it('carrera durante el guardado de la resolución: otro guardado entre la lectura y el envío → conflicto otra vez', async () => {
     const petId = await newPet();
     const date = daysAgo(4);
-    const real = createDailyLogRemote(userA.supabase);
+    const real = remoteOf(userA);
     let race = null;
     const racing = {
       ...real,
@@ -328,8 +333,8 @@ describe('sincronización contra el Supabase local', { skip }, () => {
   it('sin sesión válida en el cliente (token caducado o cerrado): espera, sin gastar intentos', async () => {
     const petId = await newPet();
     const date = daysAgo(1);
-    // El motor cree que la sesión es la de A, pero el cliente ya no tiene token (como uno caducado).
-    const phone = device(userA, { remote: createDailyLogRemote(client()) });
+    // El motor cree que la sesión es la de A, pero el cliente ya no tiene sesión: no sale ninguna petición.
+    const phone = device(userA, { remote: remoteOf(userA, client()) });
     const local = await phone.save(petId, date, { notes: 'esperando sesión' });
     assert.equal(local.status, 'pending');
     assert.equal(local.error.kind, 'auth');
@@ -351,7 +356,8 @@ describe('sincronización contra el Supabase local', { skip }, () => {
   it('401 real: más disparadores con la misma sesión no reenvían nada', async () => {
     const petId = await newPet();
     const date = daysAgo(1);
-    const { calls, remote } = counting(createDailyLogRemote(client()));
+    // Token que el servidor rechaza (como uno caducado): 401 de PostgREST.
+    const { calls, remote } = counting(createDailyLogRemote(client(), { accessToken: async () => ({ status: 'ok', token: 'caducado' }) }));
     const phone = device(userA, { remote });
     await phone.save(petId, date, { notes: 'esperando sesión' });
     assert.deepEqual(calls, ['save']);
@@ -387,7 +393,7 @@ describe('sincronización contra el Supabase local', { skip }, () => {
     const date = daysAgo(0);
     const owner = device(userA);
     const existing = (await owner.save(petId, date, { notes: 'del dueño' })).serverRow;
-    const { calls, remote } = counting(createDailyLogRemote(userB.supabase));
+    const { calls, remote } = counting(remoteOf(userB));
     const intruder = device(userB, { remote });
     // B no puede ver ni editar la mascota: su edición falla con permisos.
     const failed = await intruder.save(petId, date, { notes: 'de B' }, existing);
