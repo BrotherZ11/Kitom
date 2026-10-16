@@ -27,7 +27,13 @@ implementada salvo lo que ya exista en `frontend/` (ver `CLAUDE.md` › «Estado
 | `componentes/` | Reglas por componente + `bundle.css` de referencia. |
 | `prototipo/` | Fuentes del lienzo: 92 tableros `*.dc.html`, `kitom.css` (los estilos de todas las pantallas) y `canvas.json` (orden, títulos y notas de cada sección). Necesitan el visor del lienzo para verse; para leerlos basta un editor. |
 | `fuente/` | Generadores en Python 3 sin dependencias: `brand.py` es la fuente única de color y tipografía; `gen_tokens.py` escribe `out/tokens/*` y `ds/` (copiar a `tokens/`); `gen_logos.py`, `gen_page.py`, `gen_ds.py`. `fuente/prototipo/build.py` regenera `prototipo/` entero. |
-| `../../frontend/assets/brand/` | Logotipos y símbolo en SVG (color, inverso, mono) e iconos de app (iOS, Android adaptativo, notificación, splash, favicon) en SVG y PNG. Todavía no están enlazados en `app.json`. |
+| `../../frontend/assets/brand/` | Logotipos y símbolo en SVG (color, inverso, mono) e iconos de app (iOS, Android adaptativo, notificación, splash, favicon) en SVG y PNG, enlazados en `app.json`. Los SVG son la referencia. |
+
+**PNG de los iconos de app.** `gen_logos.py` rasteriza con Chrome sin cabeza y `--window-size`, que
+recorta el lienzo: `app-icon-ios`, `android-adaptive-background`, `favicon` y `android-notification`
+salieron con una franja transparente o vacíos. El 16 oct 2026 se regeneraron desde sus SVG con un
+viewport exacto y fondo transparente (comprobados: tamaño, área opaca y colores `#0E3B39`/`#F2F5F3`;
+el icono de iOS, sin canal alfa). No volver a generarlos con `gen_logos.py` sin corregir ese paso.
 
 ## Convenciones del prototipo
 

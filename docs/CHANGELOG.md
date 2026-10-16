@@ -5,6 +5,14 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-16
 
+- Marca en la app: nombre visible «Kitom», icono de iOS, icono adaptativo de Android (con monocromo),
+  splash y favicon de `frontend/assets/brand/app-icon/` (`slug` y esquema `kitom` sin cambiar).
+  Regenerados desde sus SVG los PNG que estaban mal rasterizados (icono de iOS, fondo adaptativo,
+  favicon y notificación). Eliminados los recursos de la plantilla de Expo (`assets/images/`,
+  `assets/expo.icon/`). Se ven en una build nativa; Expo Go muestra los suyos.
+- Nuevo `npm run start:local`: arranca la app contra el Supabase local sin tocar `.env`, comprobando
+  antes que el endpoint efectivo es local y responde (si no, no arranca). Uso en `frontend/CLAUDE.md`.
+
 - Diseño v2, F1 (componentes): componentes de marca en `src/components/ui/` según los tableros y las
   fichas de `docs/design/componentes/` (botones, campos, selectores, escala de pasos, interruptor,
   tarjetas, listas, alertas, bandas, etiquetas, avatar, estados de carga/vacío/error, diálogo, hoja

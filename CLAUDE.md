@@ -55,8 +55,10 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   F0 (tokens en `frontend/src/theme/`, tema claro/oscuro, fuentes de marca, capa de compatibilidad) y
   F1 (componentes de `frontend/src/components/ui/`) hechas (`frontend/CLAUDE.md` › «Tema y diseño»).
   Pendientes: pantallas (F2–F4), barra de pestañas y Hoy (F5) según `docs/design/PLAN_DESARROLLO.md`.
-  `frontend/assets/brand/` todavía no está enlazado en `app.json`: varios PNG de icono están mal
-  rasterizados (franja transparente inferior, favicon y notificación vacíos); pendiente de corregir.
+  Marca enlazada en `app.json` (nombre «Kitom», icono iOS/Android, splash y favicon desde
+  `frontend/assets/brand/app-icon/`); `slug` (`frontend`) y esquema (`kitom`) sin cambiar. Sin build
+  nativa propia todavía (se prueba en Expo Go, que no muestra icono ni splash propios) y sin
+  `android.package`/`ios.bundleIdentifier` definidos.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 
@@ -80,6 +82,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 
 - Desde `frontend/`: `npx expo start` · `npx expo lint` · `npx tsc --noEmit` · `npx expo-doctor` · `npm test`
   · `npm run test:integration` (solo contra el Supabase local; se niega si la URL no es local)
+  · `npm run start:local` (app contra el Supabase local sin tocar `.env`; ver `frontend/CLAUDE.md`)
 - Pruebas de BD (solo local): `supabase/tests/database/*.test.sql` (pgTAP) y
   `supabase/tests/concurrency/*.sh` (sesiones simultáneas); ver `supabase/CLAUDE.md`.
 - Desde la raíz: Supabase CLI siempre como `npx supabase ...` (no hay instalación global).

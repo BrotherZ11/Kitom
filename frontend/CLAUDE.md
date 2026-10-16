@@ -136,7 +136,30 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
 - Galería de componentes **solo de desarrollo**: ruta `/dev-components` (`src/app/dev-components.tsx`,
   protegida con `__DEV__` en el layout raíz). Es la única excepción a «ningún texto fuera de i18n»
   (contenido de muestra del prototipo, nunca visible para usuarios). Útil para revisar cambios de
-  componentes en dispositivo.
+  componentes en dispositivo. Comprobado en un export de producción: la ruta redirige al login y no
+  hace peticiones, pero su código va en el bundle y `expo export` genera `dev-components.html` (sin la
+  galería). Antes de la entrega final se decide excluirla del build o retirarla.
+- Marca (`app.json`): icono, icono adaptativo de Android (fondo `#0E3B39`, monocromo), splash
+  (`splash-icon.png` sobre `#F2F5F3`, `imageWidth` 230 ≈ 84 dp de símbolo, como el tablero 1.0) y
+  favicon desde `assets/brand/app-icon/`. Expo Go no muestra icono ni splash propios: se ven en una
+  build nativa (pendiente) y el favicon en web. iOS usa el `icon` general (PNG): en SDK 57 `ios.icon`
+  solo admite un directorio `.icon` de Icon Composer (iOS 26); crearlo requiere macOS (pendiente).
+
+## Probar contra el Supabase local (`npm run start:local`)
+
+- `npm run start:local` (o `npm run start:local -- --web --port 8091`; los argumentos van a
+  `expo start`). Requiere el Supabase local arrancado (`npx supabase start` desde la raíz).
+- No modifica `.env`: pasa la URL y la clave **anónima** locales (de `npx supabase status`) como
+  variables del proceso, que tienen prioridad sobre los `.env*`. Antes de arrancar Metro comprueba que
+  la API es `http://127.0.0.1`/`localhost`, que el endpoint efectivo tras cargar los `.env*` con
+  `@expo/env` (el cargador de Expo) sigue siendo el local y que la API responde; si algo falla, termina
+  sin arrancar. Nunca imprime claves. Siempre con `--clear` (Metro incrusta los `EXPO_PUBLIC_*`).
+- Emulador Android: dentro del emulador `127.0.0.1` es el propio emulador; para llegar al Supabase
+  local, `adb reverse tcp:54321 tcp:54321` (y `adb reverse tcp:8081 tcp:8081` para Metro). Un móvil
+  físico no puede usar `start:local` (necesitaría la IP de la red local, que el script rechaza).
+- Cuentas de prueba: crearlas desde la propia app (el Supabase local no pide confirmar el email).
+- Si ya hay otro Metro en el puerto 8081 (p. ej. un `npx expo start` normal, que usa el `.env`
+  remoto), usar otro puerto (`-- --port 8083`) y no abrir Expo Go contra el 8081.
 
 ## Tipos de Supabase
 

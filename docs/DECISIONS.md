@@ -3,6 +3,20 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-16 — Pruebas contra el Supabase local sin tocar `.env`
+
+**Contexto.** Para validar pantallas con sesión hace falta un backend; usar `kitom-dev` arriesga
+escrituras en el remoto. `frontend/.env` apunta al remoto y no se debe modificar.
+
+**Decisión.** `npm run start:local` pasa la URL y la clave anónima del Supabase local como variables
+del proceso (prioridad sobre `.env*` en Expo) y, antes de arrancar Metro, verifica con `@expo/env` el
+endpoint efectivo, que sea `127.0.0.1`/`localhost` y que responda; ante cualquier duda termina sin
+arrancar. Siempre con `--clear`. Se descartó un `.env.local` (lo cargaría también `npx expo start`
+normal y un descuido lo haría persistente) y cambiar `.env` (prohibido).
+
+**Consecuencias.** Las cuentas de prueba se crean en local desde la app. En el emulador Android hace
+falta `adb reverse` para llegar al Supabase local; en un móvil físico no se puede usar.
+
 ## 2026-10-16 — Diseño v2, F1: componentes de marca
 
 **Contexto.** F1 crea los componentes compartidos que usarán las pantallas de acceso, mascotas y

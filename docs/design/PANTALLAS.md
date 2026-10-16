@@ -44,7 +44,7 @@ Ruta: «existe» = está en `frontend/src/app/`; «prop.» = nombre sugerido den
 
 | # | Pantalla (archivo) | Ruta | Datos | Notas |
 |---|---|---|---|---|
-| 1.0 | Splash (`Splash`) | — | sesión | Símbolo sobre `surface-inverse`. |
+| 1.0 | Splash (`Splash`) | — | sesión | Símbolo `laguna-900` sobre `bg` (como el tablero y la guía de marca). |
 | 1.1 | Bienvenida (`Main`) | prop. `(auth)/welcome` | — | «Ya tengo cuenta» → 1.5. |
 | 1.2 | Cómo funciona (`Onboarding`) | prop. `(auth)/onboarding` | — | Tres ideas; «Saltar» → crear cuenta. |
 | 1.3 | Crear cuenta · error (`Cuenta`) | `(auth)/register` existe | Supabase Auth | Error en el propio campo. |
