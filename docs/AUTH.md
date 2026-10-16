@@ -105,6 +105,15 @@ cuando el email está verificado.
   ajustes está pendiente).
 - **Enlace abierto con sesión ya iniciada**: `/auth-callback` solo está disponible sin sesión, así
   que el enlace se ignora.
+- **Cerrar sesión con registros diarios sin sincronizar**: no se cierra sin decidir (intentar
+  sincronizar, conservar en el dispositivo o cancelar); los conservados se recuperan al volver a entrar
+  con la misma cuenta en ese dispositivo. Una sesión caducada o revocada sale sin preguntar y conserva
+  los datos igual. Detalle: `FRONTEND_ARCHITECTURE.md` §5 «Sesión y cierre de sesión».
+- **Abrir la app sin conexión**: con el token vigente, la sesión se usa sin comprobarla en el servidor.
+  Con el token caducado no se puede renovar: la app abre (en 4 s como máximo) con los datos guardados
+  en el dispositivo y el aviso «Sesión sin comprobar», sin enviar ni leer nada del servidor hasta
+  renovarla; no es un cierre de sesión. Cerrar sesión en ese estado la borra del dispositivo (el
+  servidor no se entera). Detalle: `FRONTEND_ARCHITECTURE.md` §5 «Arranque en frío sin conexión».
 - **Cancelar el navegador de Google** no es un error: la app vuelve al formulario sin mensaje.
 - **Google sin configurar**: el navegador muestra el error de Supabase (proveedor no habilitado); al
   cerrarlo, la app sigue en login.
@@ -118,6 +127,13 @@ cuando el email está verificado.
    Logout y login con la contraseña nueva.
 4. Enlace caducado o ya usado → mensaje de enlace no válido.
 5. «Continuar con Google» → elegir cuenta → entra. Repetir y cancelar → vuelve a login sin error.
+6. Sin conexión, guardar un registro diario → «Cerrar sesión» → pantalla con «Pendientes de
+   sincronizar: 1». «Intentar sincronizar…» → «Sin conexión…» y sigue la sesión. «Conservar…» → login.
+   Entrar con otra cuenta → no aparece. Volver a entrar con la primera (con red) → se sincroniza.
+7. Cerrar la app del todo, esperar a que caduque el token (1 h) y abrirla en modo avión → inicio con
+   «Sesión sin comprobar». Mis mascotas → «Registros guardados en este dispositivo» → «Registro de
+   hoy» → editar y guardar (pendiente). Quitar el modo avión → en ≤ 90 s desaparece el aviso y se
+   sincroniza.
 
 ## 7. Entorno local (`supabase/config.toml`)
 

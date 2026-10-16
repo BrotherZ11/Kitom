@@ -3,6 +3,31 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-16
+
+- Daily Logs offline, fase 6 (arranque en frío sin conexión): abrir la app sin red con la sesión
+  caducada ya no lleva al login tras ~25 s de espera: en 4 s como máximo se abre con los datos guardados
+  en el dispositivo del usuario de esa sesión y el aviso «Sesión sin comprobar» («Volver a comprobar»).
+  No se envía ni se lee nada del servidor hasta renovar la sesión (al volver la red, al volver a primer
+  plano o cada 30 s); entonces se sincroniza con precondición. Sin conexión, la lista de mascotas ofrece
+  «Registros guardados en este dispositivo» y el registro de hoy y el historial se abren sin la mascota
+  en caché («Información de la mascota no disponible sin conexión»). Corregido: cerrar sesión sin red con
+  el token caducado no la cerraba; las peticiones de datos sin sesión salían como `anon` (respuestas
+  vacías) y esperaban hasta ~25 s. Sin cambios de BD. Contrato en `FRONTEND_ARCHITECTURE.md` §5
+  «Arranque en frío sin conexión»; decisión en `DECISIONS.md`.
+
+- Daily Logs offline, fase 5 (sesión y cierre de sesión): cerrar sesión con registros pendientes, en
+  conflicto o fallidos ya no cierra sin preguntar: nueva pantalla con cuántos hay y tres opciones
+  (intentar sincronizar y cerrar, solo si no queda nada; conservar en este dispositivo y cerrar;
+  cancelar). Sin pendientes, todo sigue igual. Los cambios conservados se recuperan al volver a entrar
+  con la misma cuenta en este dispositivo; otra cuenta nunca los ve ni los envía. Corregido: una
+  operación podía enviarse con la sesión de otra cuenta si la sesión cambiaba justo antes del envío
+  (ahora cada petición lleva el token del dueño o no sale). Query keys de Daily Logs con el usuario,
+  respuestas tardías fuera de la caché de la cuenta nueva, una sola instancia de motor por cuenta,
+  cierre de sesión sin dobles ejecuciones y registros de dueño no verificable protegidos. Sin cambios
+  de BD. Contrato en `FRONTEND_ARCHITECTURE.md` §5 «Sesión y cierre de sesión»; decisión en
+  `DECISIONS.md`.
+
 ## 2026-10-15
 
 - Daily Logs offline, fase 4 (endurecimiento): una lectura del servidor que llega tarde ya no hace

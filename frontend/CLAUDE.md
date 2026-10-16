@@ -19,10 +19,17 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   `api/pet-photos-api.ts`, `hooks/use-pet-photo.ts`, `components/pet-photo-editor.tsx` (§4 «Pets: fotos»).
   Patrón a seguir en nuevas features: el acceso a datos solo en `api/`, los componentes nunca llaman a
   `supabase` directamente, y las escrituras envían únicamente columnas editables explícitas.
-- `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`).
+- `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`,
+  clave `AUTH_STORAGE_KEY` = la de supabase-js por defecto: no cambiarla). Su `fetch` es
+  `src/lib/user-token-fetch.ts`: ninguna petición de datos sale como `anon`.
 - `src/lib/query-client.ts` — QueryClient único; AuthProvider lo vacía al cerrar sesión o cambiar de usuario.
 - `src/features/auth/` — `AuthProvider`/`useAuth`, mapeo de errores (`auth-errors.ts`), validación,
   deep links de Auth (`auth-redirect.ts`, flujo PKCE). Guía y configuración de Supabase/Google: `docs/AUTH.md`.
+  Estado de la sesión (fase 6): `auth-state.ts` + `auth-session-controller.ts` (puros) y
+  `persisted-session.ts` (identidad local sin red). `status`: `loading` | `signed_in` | `offline` |
+  `signed_out`; en `offline` hay `user` pero no `session` ni servidor. Toda query/mutación de servidor
+  pasa por `serverCall` de `useAuth()` (falla al instante sin sesión utilizable); nunca comprobar
+  `session` para decidir si hay usuario (usar `user`), ni dar por válida una sesión `offline`.
 - Rutas de Auth: `(auth)/auth-callback.tsx` recibe los enlaces de email y el retorno de Google;
   `update-password.tsx` solo es accesible con una sesión de recuperación.
 - `src/app/_layout.tsx` — único punto de protección de rutas (`Stack.Protected`); nunca comprobar la
@@ -49,7 +56,13 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   concatenar notas sin que el usuario revise el texto. Fase 4: `daily-log-version.ts` (orden de
   `updated_at`), marca de lectura en `refreshSnapshot` (nunca retroceder), lecturas a través del
   almacén, `engine.discardLocalChanges` (solo local) y `(app)/daily-logs/unsynced`. Una versión nueva
-  no sustituye lo que el usuario está escribiendo (`decideSourceChange`). Ayudantes de pruebas del motor:
+  no sustituye lo que el usuario está escribiendo (`decideSourceChange`). Fase 5 (sesión): cada
+  petición del motor lleva el token del dueño (`features/auth/owner-session.ts`, obligatorio en
+  `createDailyLogRemote`; nunca la sesión vigente del cliente compartido); una instancia de almacén y
+  motor por usuario (`daily-log-sync-sessions.ts`); todas las query keys de Daily Logs llevan `userId`;
+  caché y copias de lecturas solo si `isCurrentUser` (AuthProvider). Cerrar sesión en la zona
+  autenticada siempre con `useSignOutFlow` (`features/auth/sign-out-flow.ts`, pantalla `(app)/sign-out`),
+  nunca `signOut` directo. Ayudantes de pruebas del motor:
   `offline/sync-test-helpers.mjs` y `fake-daily-log-server.mjs`. `updated_at` siempre como la cadena del servidor (nunca por `Date`).
   Contrato: `docs/FRONTEND_ARCHITECTURE.md` §5.
 - `src/lib/local-store/` — `createLocalStore(storage, userId)`: datos locales por usuario, validados
@@ -64,6 +77,7 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   en móvil `networkMode: 'always'` (conserva el comportamiento previo a la señal); no cambiarlo ni
   fijar otro por feature sin revisar `docs/DECISIONS.md` (2026-10-13).
 - `src/lib/submit-guard.ts` — evita envíos dobles (toques antes de que el botón se deshabilite).
+  `src/lib/single-flight.ts` — llamadas simultáneas comparten una ejecución (`signOut` de AuthProvider).
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
   `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`

@@ -3,6 +3,76 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-16 — Daily logs offline, fase 6: arranque en frío sin conexión
+
+**Contexto.** Con el token de acceso caducado y sin red, supabase-js 2.117 reintenta la renovación ~25 s,
+conserva la sesión guardada y emite `INITIAL_SESSION` sin sesión: la app mostraba el login tras hasta
+25 s de splash, sin acceso a los registros guardados. Además `signOut()` en ese estado no borra la
+sesión, cada petición de datos espera a la inicialización de supabase-js y, sin sesión utilizable, las
+peticiones salían como `anon` (RLS devuelve «vacío», que podía pisar la copia local).
+
+**Decisión.**
+- Estado explícito `offline` (`auth-state.ts`): la sesión sigue guardada y su usuario se identifica en
+  local (forma de la sesión y `sub` del JWT = `user.id`); se abre su almacén y nada más. Un
+  `INITIAL_SESSION` sin sesión solo es cierre si el almacenamiento ya no la tiene. Tope de arranque de
+  4 s. No se afirma que la sesión sea válida en el servidor.
+- Se lee la sesión con la misma clave que supabase-js (`AUTH_STORAGE_KEY`, fijada con su valor por
+  defecto: ningún usuario pierde la sesión). Se descartó guardar una copia propia de la identidad (otro
+  dato que mantener coherente y otra fuente de verdad).
+- Nada sale sin sesión utilizable: `serverCall` en las queries/mutaciones (falla al instante) y una
+  guardia en el `fetch` del cliente que impide peticiones de datos como `anon` (con `ABORT_ERR` para
+  que postgrest-js no las reintente). Se descartó desactivar las queries (`enabled: false` las deja
+  cargando para siempre).
+- Recuperación con `getSession()` al volver la red, al volver a primer plano, a petición y cada 30 s
+  solo en `offline`; cerrar sesión en `offline` borra la sesión del dispositivo.
+- Sin Pets offline: las pantallas de un registro funcionan sin la mascota en caché («Información de la
+  mascota no disponible sin conexión») y se llega a ellas desde «Registros guardados en este
+  dispositivo». Con el permiso desconocido se permite editar (RLS decide al sincronizar).
+
+**Consecuencias.**
+- Tras recuperar la red, la sesión puede tardar hasta ~60-90 s en renovarse (margen de supabase-js +
+  reintento cada 30 s); hasta entonces no se sincroniza nada.
+- Un arranque lento con red (renovación de más de 4 s) abre la app en `offline` unos segundos.
+- Depende de detalles de supabase-js 2.117 (clave por defecto, conservación de la sesión ante errores
+  reintentables, reintentos de postgrest-js): las pruebas con el supabase-js real lo vigilan; revisar al
+  actualizarlo.
+
+## 2026-10-16 — Daily logs offline, fase 5: ciclo de vida de la sesión y cierre de sesión
+
+**Contexto.** El motor comprobaba que su sesión fuera la del dueño antes de cada envío, pero la
+petición salía por el cliente compartido de Supabase con el token que tuviera **en ese instante**: si
+la sesión cambiaba entre la comprobación y el `fetch`, una operación de A podía guardarse como B
+(reproducido en `daily-log-session.test.mjs` quitando la protección). Además: un motor y un almacén
+nuevos en cada montaje (dos instancias de la misma cuenta sin serializar sus escrituras), query keys
+del servidor sin usuario, respuestas tardías que podían escribir en la caché entre el evento de Auth y
+el desmontaje, y cerrar sesión sin avisar de los cambios que solo están en el dispositivo.
+
+**Decisión.**
+- Cada petición del motor lleva el token de la sesión del dueño, comprobado (sesión y `sub` del JWT)
+  justo antes de enviarla y fijado en `Authorization`; sin él, no sale (401 local
+  `owner_session_required`, política `wait_for_auth`). Se descartó un cliente de Supabase por usuario
+  (más instancias de GoTrue y de su almacenamiento de sesión) y comprobar solo antes del envío (deja la
+  ventana).
+- Una instancia de almacén y motor por usuario y proceso; activar una para las demás.
+- Todas las query keys de Daily Logs llevan el usuario; caché y copias de lecturas del servidor solo
+  si `isCurrentUser(userId)` (síncrono con el evento de Auth). El proveedor no pinta nada sin usuario.
+- Cerrar sesión con pendientes, conflictos o fallos (o sin poder comprobarlo) pide decidir: intentar
+  sincronizar (pasada acotada de 15 s; cierra solo si no queda nada), conservar en el dispositivo y
+  cerrar, o cancelar. Ninguna opción borra datos; sin descarte masivo. Una operación a la vez.
+- Los datos locales de otras cuentas no se borran ni se migran: se aíslan y esperan a que vuelva su
+  dueño. Un registro con dueño no verificable (`key_mismatch`) se protege como uno de versión
+  desconocida.
+
+**Consecuencias.**
+- Una cuenta que no vuelve a entrar deja sus datos en el dispositivo (sin cifrar) indefinidamente;
+  limpiarlos exige una decisión de producto (p. ej. al borrar la cuenta o con confirmación explícita).
+- Una sesión caducada o revocada sale sin pantalla de decisión (no queda sesión con la que preguntar):
+  equivale a «Conservar».
+- El intento de sincronizar reintenta también los fallidos y vuelve a leer los conflictos (como
+  «Reintentar»): un fallido por permisos vuelve a fallar sin pérdida; un pendiente que se queda a medias
+  sigue pendiente con su backoff.
+- Pets y el resto de queries conservan su aislamiento (vaciar la caché al cambiar de usuario).
+
 ## 2026-10-15 — Daily logs offline, fase 4: endurecimiento
 
 **Contexto.** La auditoría de la fase 3 encontró que una lectura tardía podía hacer retroceder la

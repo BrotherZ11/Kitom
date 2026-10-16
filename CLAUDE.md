@@ -41,8 +41,11 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   aplicada en `kitom-dev` y tipos regenerados. El frontend la usa siempre con precondición.
 - Daily Logs offline: guardado local + motor de sincronización integrados en el registro de hoy y el
   historial, con pantalla de resolución de conflictos, descarte de la copia local y «Registros sin
-  sincronizar» en inicio (`docs/FRONTEND_ARCHITECTURE.md` §5). Pendiente: arranque en frío sin conexión,
-  logout con pendientes, limpieza de datos al cambiar de usuario y Pets offline.
+  sincronizar» en inicio (`docs/FRONTEND_ARCHITECTURE.md` §5). Fase 5: cierre de sesión con pendientes
+  (sincronizar / conservar / cancelar) y aislamiento entre cuentas (cada envío con el token del dueño).
+  Fase 6: arranque en frío sin conexión (estado de sesión `offline`: datos locales del usuario de la
+  sesión guardada, nada se envía ni se lee del servidor hasta renovarla). Pendiente: Pets offline y la
+  limpieza (no automática) de datos locales de cuentas que no vuelven.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 

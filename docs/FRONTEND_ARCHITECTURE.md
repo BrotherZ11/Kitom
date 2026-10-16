@@ -36,6 +36,11 @@ APP (tabs, sesión activa, onboarding completo)
 
 ## 2. Estados de Auth
 
+**Implementado (sesión):** `loading` → `signed_in` | `offline` | `signed_out` (`features/auth/auth-state.ts`).
+`offline` = sesión guardada de un usuario identificado que Supabase no ha podido renovar ni comprobar
+(sin conexión): se ve la app con sus datos locales y no se usa el servidor. Detalle: §5 «Arranque en
+frío sin conexión». El onboarding sigue pendiente.
+
 ```
 loading                 -> splash, comprobando sesión
 unauthenticated          -> stack AUTH
@@ -207,7 +212,9 @@ ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/featur
   está desactivado).
 - **Permisos (UX):** `can_edit_pet` (`useCanEditPet`). Sin permiso: formulario de solo lectura (o
   «Todavía no hay registro de hoy»), sin botones de guardar. RLS/RPC siguen siendo la autoridad.
-- **Query keys:** `['daily-logs','detail',petId,logDate]` (`null` = no existe), `['profile','timezone']`.
+- **Query keys:** `['daily-logs','detail',userId,petId,logDate]` (`null` = no existe; historial:
+  `['daily-logs','history',userId,petId]`; todas las de Daily Logs llevan el usuario, ver §5 «Sesión»),
+  `['profile','timezone']`.
 - **READ:** `pets`, `daily_logs` (del día, si existe, para precargar el formulario). `SELECT`: miembros
   (`is_pet_member`, incluye `viewer`).
 - **WRITE (crear y editar):** solo `rpc('save_daily_log', { p_pet_id, p_log_date, p_energy_level,
@@ -399,7 +406,8 @@ test:integration` (motor contra el Supabase **local**: Postgres real, RLS y prec
   (`['daily-logs','local',userId,petId,logDate]`) y la lista local; una fila confirmada pasa al
   registro del día y al historial. La caché nunca se persiste.
 - `features/daily-logs/sync/daily-log-sync-provider.tsx`: crea almacén y motor por usuario (en
-  `(app)/_layout.tsx`); al cambiar de usuario se crean otros y el anterior se para.
+  `(app)/_layout.tsx`): una instancia por usuario y proceso; solo está activa la del usuario con
+  sesión (fase 5, «Sesión y cierre de sesión»).
 
 **Reglas de datos.**
 - Crear: sin fila remota conocida → `p_expect_absent`. Si ya existe (`row_exists`), se lee la fila y
@@ -421,9 +429,11 @@ test:integration` (motor contra el Supabase **local**: Postgres real, RLS y prec
 local): sin conexión no queda en pausa ni TanStack la reenvía al reconectar. El resto de la app
 conserva su configuración (`query-defaults.ts`). Las queries locales también usan `always`.
 
-**Pendiente:** sesión offline en arranque en frío; cerrar sesión con pendientes; limpiar datos locales
-al cambiar de usuario; borrar registros (local y remoto); Pets y Pet Photos sin conexión. Con la app recién abierta sin conexión, la ficha de la mascota no carga (Pets no
-es offline), así que el registro de hoy solo se puede abrir si la mascota estaba ya en caché.
+**Pendiente:** borrar registros (local y remoto); Pets y Pet Photos sin conexión. Cerrar sesión con
+pendientes y el aislamiento al cambiar de cuenta están en la fase 5 («Sesión y cierre de sesión»); el
+arranque en frío sin conexión, en la fase 6 («Arranque en frío sin conexión»). Los datos locales de
+otras cuentas no se borran solos. Sin conexión, la ficha de la mascota sigue sin cargar (Pets no es
+offline): a sus registros se llega desde «Registros guardados en este dispositivo» (lista de mascotas).
 
 ### Resolución de conflictos (fase 3)
 
@@ -530,6 +540,156 @@ servidor lo confirmó o ya tenía ese contenido; si desaparece mientras tanto, `
 **Detalle sin conexión.** Si la fila remota de un conflicto no se ha leído: sin conexión se dice y
 quedan los datos para copiar; con conexión se lee sola; si falla, «No se ha podido comprobar» y
 «Reintentar».
+
+### Sesión y cierre de sesión (fase 5)
+
+Decisiones: `DECISIONS.md` (2026-10-16, fase 5). Pruebas: `features/auth/sign-out-flow.test.mjs`,
+`features/auth/owner-session.test.mjs`, `offline/daily-log-session.test.mjs` (motor real, cliente de
+Supabase falso que actúa como el usuario del token) y `offline/daily-log-session.integration.test.mjs`
+(Supabase **local**, un cliente compartido que cambia de cuenta de verdad).
+
+**Qué garantiza el aislamiento entre cuentas.**
+- **Escrituras.** Cada petición del motor (`save_daily_log` y la lectura de reconciliación) se
+  autoriza con el token de la sesión del **dueño** de la operación, pedido justo antes de enviarla
+  (`features/auth/owner-session.ts`: la sesión y el `sub` del JWT deben ser del dueño) y fijado en la
+  cabecera `Authorization` (`daily-log-remote.ts`). Si la sesión ya es de otra cuenta, o no hay, la
+  petición **no sale** (401 local `owner_session_required`: espera a una sesión nueva sin contar el
+  intento). Lo que ya salió va con el token del dueño aunque la sesión cambie después. Además el motor
+  solo envía registros con `userId` igual al de su almacén y solo si su sesión es la del dueño.
+- **Datos locales.** Cada cuenta tiene su almacén (claves `kitom:v1:<userId>:…`). Un registro cuyo
+  dueño no coincide con su clave (`key_mismatch`) no se lista, no se envía y no se sobrescribe
+  (`ownership_unverified`): se conserva para recuperarlo.
+- **Instancias.** `offline/daily-log-sync-sessions.ts`: un almacén y un motor por usuario mientras
+  dure el proceso; activar uno para y deja sin sesión a los demás. Si la misma cuenta sale y vuelve con
+  una petición en vuelo, se reutilizan (las escrituras siguen siendo de una en una y la pasada en curso
+  se junta con la siguiente).
+- **Caché e interfaz.** Todas las query keys de Daily Logs llevan el usuario; AuthProvider vacía la
+  caché al cambiar de usuario; la suscripción del almacén a la caché y la copia de lecturas del servidor
+  en el almacén (`ownerScopedSnapshots`) solo actúan si `isCurrentUser(userId)` (que cambia en el mismo
+  instante del evento de Supabase Auth, antes de que React vuelva a pintar). Sin usuario, el proveedor
+  no pinta la zona autenticada; al cambiar de usuario, toda ella se vuelve a montar (`key`).
+- **Respuestas tardías.** Una respuesta que llega después de cambiar de cuenta se aplica al almacén de
+  su dueño (es lo que el servidor guardó para él) y no toca la caché ni la interfaz de la cuenta nueva.
+  Nunca se marca nada como sincronizado sin la confirmación del servidor o una lectura con el mismo
+  contenido; una respuesta perdida se reconcilia como siempre (precondición → conflicto → lectura).
+
+**Cerrar sesión** (`features/auth/sign-out-flow.ts`, `useSignOutFlow`, pantalla `(app)/sign-out`).
+«Cerrar sesión» en inicio lee del dispositivo los registros pendientes, en conflicto o fallidos:
+- Ninguno: cierra sesión como siempre.
+- Alguno, o no se pudo leer el dispositivo: no cierra y abre la pantalla de decisión, con cuántos hay
+  de cada tipo, que esos cambios solo existen en este dispositivo y el acceso a «Registros sin
+  sincronizar» (resolver, copiar o descartar uno a uno, como siempre). No hay descarte masivo.
+  - **A. Intentar sincronizar y cerrar sesión** (`engine.syncNow`, 15 s como máximo): como
+    «Reintentar» en cada registro (fallido → pendiente, espera del backoff anulada, conflicto → volver a
+    leer el servidor) y una pasada. Cierra sesión solo si después el dispositivo no tiene nada sin
+    sincronizar. Si no, vuelve a mostrar las opciones con lo que queda y el motivo: quedan cambios,
+    tiempo agotado (la pasada sigue en segundo plano y nunca cierra la sesión sola), sin conexión (no se
+    espera a la red) o la sesión no permite enviar (p. ej. tras un 401).
+  - **B. Conservar en este dispositivo y cerrar sesión**: cierra sesión sin tocar nada. Los cambios
+    quedan en el almacén de esa cuenta, ocultos (la interfaz solo lee el almacén de la cuenta activa) y
+    sin enviarse (no hay sesión del dueño). Al volver a entrar **en este dispositivo con la misma
+    cuenta** se recuperan y el motor los envía con precondición. No están en el servidor ni en otros
+    dispositivos.
+  - **C. Cancelar** (o salir de la pantalla): la sesión sigue y no cambia nada; si había un intento de
+    A en curso, sigue en segundo plano pero ya no cierra la sesión al terminar.
+- Una operación a la vez (`busy` para dobles toques o dos pantallas) y `signOut` de AuthProvider
+  compartido entre llamadas simultáneas (`lib/single-flight.ts`).
+
+**Ciclo de vida.**
+- **Inicio de sesión / reapertura con sesión persistida:** se activa la instancia de esa cuenta, que
+  vuelve a leer sus operaciones del dispositivo y las envía (`INITIAL_SESSION` / `SIGNED_IN`).
+- **Renovación del token:** `TOKEN_REFRESHED` cuenta como sesión renovada (desbloquea tras un 401). Si
+  la renovación falla sin conexión, no hay token (`unavailable`) y se espera a la siguiente.
+- **Sesión revocada** (el servidor rechaza el token de renovación): Supabase Auth cierra la sesión sin
+  pasar por la pantalla de decisión: equivale a B (nada se borra; se recupera al volver a entrar con esa
+  cuenta). El cierre desde `update-password` (sesión de recuperación, fuera de la zona autenticada)
+  también. Un token caducado que **no se puede renovar por falta de red no es un cierre**: estado
+  `offline` (fase 6).
+- **Otra cuenta en el mismo dispositivo:** no ve, no lista y no envía nada de la anterior; tampoco se
+  migran ni se borran sus datos.
+- **Cierre de la app** durante la pantalla de decisión o con un intento en vuelo: no se ha cerrado la
+  sesión ni cambiado nada; al reiniciar la sesión sigue y las operaciones se reconcilian (si el
+  servidor ya la tenía: conflicto `row_exists` o `version_mismatch` → lectura → mismo contenido →
+  sincronizado, sin otra escritura).
+
+**Límites.** Los datos que se conservan siguen sin cifrar (AsyncStorage / `localStorage`, ver
+«Infraestructura»); los de una cuenta que no vuelve a entrar en este dispositivo se quedan ahí (no
+hay limpieza automática). En web, dos pestañas comparten `localStorage` y la sesión: el aislamiento
+entre cuentas se mantiene, pero dos pestañas de la misma cuenta no coordinan su cola. Pets y el resto
+de queries mantienen el aislamiento previo (caché vaciada al cambiar de usuario, claves sin usuario).
+
+### Arranque en frío sin conexión (fase 6)
+
+Decisiones: `DECISIONS.md` (2026-10-16, fase 6). Pruebas: `features/auth/auth-session-controller.test.mjs`
+(con `fake-supabase-auth.mjs`, que reproduce supabase-js 2.117), `lib/user-token-fetch.test.mjs` (con
+el supabase-js real), `daily-logs/daily-log-pet-context.test.mjs`, `offline/daily-log-cold-start.test.mjs`
+(reinicios sobre el mismo disco) y `offline/daily-log-cold-start.integration.test.mjs` (Supabase
+**local**, supabase-js real, red cortada o colgada).
+
+**Qué hace supabase-js al arrancar** (2.117, comprobado en `GoTrueClient`):
+- Token de acceso vigente (a más de 90 s de caducar): entrega la sesión guardada **sin red** (no la
+  comprueba en el servidor).
+- Token caducado: intenta renovarlo, con reintentos durante ~25 s. Sin red (error reintentable)
+  **conserva la sesión guardada** pero emite `INITIAL_SESSION` sin sesión; después, durante 60 s,
+  devuelve ese mismo fallo sin volver a pedir nada. Token de renovación rechazado: borra la sesión y
+  emite `SIGNED_OUT`.
+- `signOut()` con el token caducado y sin red: devuelve el error de renovación **sin borrar** la sesión.
+- Mientras se inicializa, cualquier petición de datos espera a que termine (hasta ~25 s sin red).
+
+**Estados de la sesión** (`features/auth/auth-state.ts`, `auth-session-controller.ts`, en AuthProvider
+como `status`, `canUseServer`, `recoverSession` y `serverCall`):
+
+| Estado | Cuándo | Qué se ve | Servidor |
+|---|---|---|---|
+| `loading` | hasta `INITIAL_SESSION`, **4 s como máximo** | splash | — |
+| `signed_in` | Supabase da una sesión utilizable (token vigente o renovado; no se sabe si el servidor la acepta hasta usarla) | la app | sí |
+| `offline` | Supabase no da sesión, pero sigue guardada y su usuario se identifica (`refresh_failed`), o no llegó `INITIAL_SESSION` en 4 s (`slow_start`) | la app con los datos locales de ese usuario y el aviso «Sesión sin comprobar» | **no**: ni envíos ni lecturas |
+| `signed_out` | no hay sesión guardada, o no se puede atribuir a un usuario | login, sin datos | — |
+
+- **Identidad local** (`persisted-session.ts`): la sesión guardada por supabase-js (misma clave,
+  `AUTH_STORAGE_KEY`, y mismo almacenamiento, `secure-session-storage.ts`), con forma válida y con el
+  `sub` del token igual a `user.id`. Si no, o si el almacenamiento falla al leer: `signed_out`. Solo
+  identifica de quién son los datos locales; nunca se usa para enviar.
+- **Un error de red al iniciar no es un cierre de sesión.** `INITIAL_SESSION` sin sesión solo lleva al
+  login si el almacenamiento ya no la tiene.
+- **Carreras:** cada evento invalida las lecturas del almacenamiento pedidas antes; un
+  `INITIAL_SESSION` que llega después del tope se aplica normalmente (p. ej. `offline` → `signed_in`).
+- **Recuperación** (`offline` → `signed_in`): `getSession()` (lo renueva si puede), una petición a la
+  vez y como mucho 10 s, al volver la conectividad, al volver a primer plano, con «Volver a comprobar» y
+  cada 30 s mientras dure `offline` (cubre el margen de 60 s de supabase-js y que en móvil su
+  temporizador de renovación no arranca hasta un cambio de `AppState`). Al recuperarla, se vuelven a
+  pedir las queries (`invalidateQueries`) y el motor recibe la sesión y envía.
+- **Cerrar sesión en `offline`:** la sesión se borra del dispositivo (Supabase no puede); también si con
+  sesión `signed_in` Supabase no la quita (token caducado sin red) o no responde en 10 s. Sin red el
+  servidor no se entera.
+
+**Nada sale sin sesión utilizable.**
+- `serverCall` (AuthProvider): todas las queries y mutaciones de Pets y las lecturas del servidor de
+  Daily Logs pasan por él; sin sesión utilizable fallan **al instante** con `SessionUnavailableError`
+  (que la app trata como «sin conexión»), sin esperar a la inicialización de supabase-js.
+- `lib/user-token-fetch.ts` (`global.fetch` del cliente): ninguna petición a PostgREST, Storage o Edge
+  Functions sale como `anon`. Sin ella, con la sesión sin renovar RLS respondería «vacío» (una lista sin
+  mascotas, un registro «que no existe») y eso podría pisar la copia local. El error lleva
+  `code: 'ABORT_ERR'` para que postgrest-js no lo reintente.
+- Motor: la sesión que recibe es `null` en `offline` y, además, el token del dueño
+  (`owner-session.ts`) no está disponible sin una sesión que Supabase entregue: doble barrera. Mantiene
+  precondiciones, respuestas perdidas, conflictos y 401 como siempre (los conflictos y los fallidos no
+  se reintentan solos).
+- «Hoy» sin sesión utilizable usa la zona del dispositivo (la del perfil no se pide); en los
+  formularios la fecha calculada al abrir se conserva aunque llegue después la del perfil.
+
+**Pantallas sin conexión (arranque en frío).**
+- Completas: inicio (aviso, «Registros sin sincronizar» con contador, cerrar sesión), «Registros sin
+  sincronizar», detalle/resolución de un registro (datos para copiar, descartar fallidos y conflictos
+  con la versión remota conocida; resolver necesita conexión, como antes), historial (lo guardado en el
+  dispositivo), registro de hoy y de un día (ver y editar lo guardado; crear el de hoy).
+- Con límites: la lista de mascotas muestra el error de conexión y, debajo, «Registros guardados en este
+  dispositivo» (por mascota, sin nombre: «Mascota (información no disponible sin conexión)»), con
+  acceso al registro de hoy y al historial. En el registro, sin la mascota en caché: «Información de la
+  mascota no disponible sin conexión» y, sin el permiso, se permite editar con el aviso de que el
+  servidor decidirá al sincronizar (`daily-log-pet-context.ts`; si no hay permiso, queda «No se pudo
+  sincronizar» con los datos intactos).
+- No disponibles: ficha, alta y edición de mascotas, fotos (necesitan el servidor).
 
 ### Infraestructura (fase 1 del frontend)
 
