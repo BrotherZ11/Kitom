@@ -102,7 +102,13 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
 ## Tema y diseño (diseño v2, `docs/design/`)
 
 - Referencia: `docs/design/PLAN_DESARROLLO.md` (fases), `PANTALLAS.md` (tablero de cada pantalla),
-  `GUIA-DE-MARCA.md` y `componentes/`. Implementación por fases F0–F5; F0 (base) y F1 (componentes) hechas.
+  `GUIA-DE-MARCA.md` y `componentes/`. Implementación por fases F0–F5; hechas F0 (base), F1
+  (componentes) y F2 (acceso: login, registro, recuperar, nueva contraseña y callback).
+- Pantallas adaptadas: sin cabecera nativa, con `TopBar` (atrás solo si hay historial), título
+  `title-1` + texto, botón principal en el `footer` de `Screen`. Errores de Auth en su campo según
+  `authErrorField` (`features/auth/auth-error-field.ts`, pura y probada) y el resto en una alerta sobre
+  el botón; los mensajes son los de `auth.errors`. Estados «Revisa tu correo», «Enlace enviado» y
+  callback con `EmptyState` (`icon`, `prominent`).
 - `src/theme/tokens.ts` — copia de `docs/design/tokens/tokens.ts` (generado: no editar a mano; se cambia
   `docs/design/fuente/brand.py`, se regenera y se vuelve a copiar). Colores, tipografía, espaciado,
   radios, elevación, movimiento y urgencias.
@@ -126,8 +132,9 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   (+ `FieldError`), `SegmentedControl`, `Chip`, `OptionGroup` (chips de selección única),
   `StepSelector`, `Switch`, `Card`, `ListItem`, `Alert`, `Banner`, `Tag`, `Avatar`, `KitomSymbol`,
   `Skeleton`, `LoadingState`/`ErrorState`/`EmptyState` (`query-state.tsx`), `FormMessage`, `Dialog`,
-  `BottomSheet`, `Toast` (`useToast`, proveedor en el layout raíz) y `Screen` (con `footer` para el
-  botón principal). Cabeceras de `Stack`: `useStackScreenOptions()`. Elevación: `useElevation()`
+  `BottomSheet`, `Toast` (`useToast`, proveedor en el layout raíz), `Screen` (con `footer` para el
+  botón principal) y `TopBar` (barra propia de pantallas sin cabecera nativa). `Button` admite
+  `leading` (p. ej. el logo de Google); `EmptyState`, `icon` propio y `prominent` (pantalla completa). Cabeceras de `Stack`: `useStackScreenOptions()`. Elevación: `useElevation()`
   (`boxShadow` en claro, filete en oscuro; nunca `shadow*`).
 - Movimiento: pulsación (`usePressFeedback`, 120 ms) y entradas de superposiciones (`motion.ts`,
   200 ms); todo con `ReduceMotion.System` o `useReducedMotion`. Sin gestos nuevos (las hojas se cierran

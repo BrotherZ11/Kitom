@@ -53,8 +53,11 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   limpieza (no automática) de datos locales de cuentas que no vuelven.
 - Diseño v2 (`docs/design/`): implementación en curso por fases (F0–F5, rama `feat/ui-brand-implementation`).
   F0 (tokens en `frontend/src/theme/`, tema claro/oscuro, fuentes de marca, capa de compatibilidad) y
-  F1 (componentes de `frontend/src/components/ui/`) hechas (`frontend/CLAUDE.md` › «Tema y diseño»).
-  Pendientes: pantallas (F2–F4), barra de pestañas y Hoy (F5) según `docs/design/PLAN_DESARROLLO.md`.
+  F1 (componentes de `frontend/src/components/ui/`) y F2 (pantallas de acceso) hechas
+  (`frontend/CLAUDE.md` › «Tema y diseño»). Pendientes: mascotas (F3), registro e historial (F4), barra
+  de pestañas y Hoy (F5) según `docs/design/PLAN_DESARROLLO.md`. Del diseño de acceso quedan sin
+  implementar (necesitan decisión o backend): teléfono, bienvenida, texto legal, reenviar el email,
+  repetir la contraseña y la regla visible de longitud (ver `docs/DECISIONS.md`, F2).
   Marca enlazada en `app.json` (nombre «Kitom», icono iOS/Android, splash y favicon desde
   `frontend/assets/brand/app-icon/`); `slug` (`frontend`) y esquema (`kitom`) sin cambiar. Sin build
   nativa propia todavía (se prueba en Expo Go, que no muestra icono ni splash propios) y sin

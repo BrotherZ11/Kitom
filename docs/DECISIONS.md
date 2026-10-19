@@ -3,6 +3,31 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-16 — Diseño v2, F2: pantallas de acceso
+
+**Contexto.** Los tableros 1.3–1.9 cambian la composición de login, registro, recuperar y nueva
+contraseña, y añaden elementos que hoy no tienen soporte. F2 no debía cambiar la lógica de sesión,
+los contratos de Supabase, la protección de rutas ni los enlaces de retorno.
+
+**Decisión.**
+
+- Misma lógica y mismos mensajes de error; cambian la composición y los textos de títulos, subtítulos
+  y botones (los del prototipo, en `es` y `en`). El error se muestra en su campo cuando es de un campo
+  (`authErrorField`); `missing_fields` y los de red o servidor, en una alerta sobre el botón.
+- Registro con confirmación pendiente y recuperación enviada pasan a un estado de pantalla completa
+  («Revisa tu correo», «Enlace enviado») en vez de un mensaje bajo el formulario; «Cambiar el email»
+  vuelve al formulario con los datos.
+- Sin cabecera nativa en `(auth)`: barra propia con «Volver» solo si hay historial. En nueva
+  contraseña, «atrás» es «Cancelar y cerrar sesión» (mismo efecto que el botón anterior).
+- No se implementa lo que no tiene soporte o cambiaría el comportamiento: acceso con teléfono (Auth
+  sin OTP), botón «atrás» del login a la bienvenida (no existe), texto legal con enlaces (no hay
+  páginas legales), «Reenviar enlace» y «Abrir mi correo» (sin API ni librería), repetir la contraseña
+  nueva y la regla visible «Mínimo 8 caracteres» (el mínimo real lo fija Supabase Auth: 6 en local,
+  sin confirmar en `kitom-dev`).
+
+**Consecuencias.** Los elementos omitidos quedan pendientes de decisión (y, algunos, de backend). Si se
+decide una longitud mínima, debe fijarse en Supabase Auth y mostrarse la misma en la app.
+
 ## 2026-10-16 — Pruebas contra el Supabase local sin tocar `.env`
 
 **Contexto.** Para validar pantallas con sesión hace falta un backend; usar `kitom-dev` arriesga

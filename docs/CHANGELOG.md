@@ -5,6 +5,13 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-16
 
+- Diseño v2, F2 (acceso): login, registro, recuperar contraseña, nueva contraseña y callback de Auth
+  con la composición, los textos y los componentes del diseño (Google con su logo, separador «o con tu
+  email», errores en su campo, acción principal abajo, «Revisa tu correo» y «Enlace enviado» como
+  estados propios). Misma lógica de sesión, mismos flujos y mensajes de error. Pendiente de decidir lo
+  que el diseño pide y la app no soporta (teléfono, texto legal, reenviar email, repetir contraseña,
+  longitud mínima visible). Decisión en `DECISIONS.md`.
+
 - Marca en la app: nombre visible «Kitom», icono de iOS, icono adaptativo de Android (con monocromo),
   splash y favicon de `frontend/assets/brand/app-icon/` (`slug` y esquema `kitom` sin cambiar).
   Regenerados desde sus SVG los PNG que estaban mal rasterizados (icono de iOS, fondo adaptativo,

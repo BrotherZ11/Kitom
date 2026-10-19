@@ -123,7 +123,7 @@ cuando el email está verificado.
 1. Registro con email nuevo → llega el email → abrir el enlace **en el móvil** → la app se abre y
    entra con sesión.
 2. Login con email/contraseña → entra; logout → vuelve a login.
-3. Recuperación → abrir el enlace en el móvil → pantalla «Nueva contraseña» → guardar → entra.
+3. Recuperación → abrir el enlace en el móvil → pantalla «Crea una contraseña nueva» → guardar → entra.
    Logout y login con la contraseña nueva.
 4. Enlace caducado o ya usado → mensaje de enlace no válido.
 5. «Continuar con Google» → elegir cuenta → entra. Repetir y cancelar → vuelve a login sin error.
