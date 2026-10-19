@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# visual:compare (capturas y perfil de Chrome de desarrollo)
+/.visual

@@ -1,0 +1,630 @@
+{
+  "$comment": "Escenas de `npm run visual:compare`. board: tablero de docs/design/prototipo; path: ruta de la app; hide: selectores del tablero que no corresponden al estado (ramas de sc-if); steps: fill {label, value|env}, click {name, role?}, waitText, wait, blur; login: true usa KITOM_VC_EMAIL/KITOM_VC_PASSWORD (cuenta LOCAL, nunca aquí); measure: elementos a comparar (board: {css}; app: {name, role?}).",
+  "statusBar": 44,
+  "tolerance": 4,
+  "scenes": [
+    {
+      "id": "welcome",
+      "title": "1.1 Bienvenida",
+      "board": "Main.dc.html",
+      "path": "/welcome",
+      "steps": [
+        {
+          "waitText": "Empezar"
+        }
+      ],
+      "measure": [
+        {
+          "name": "Titular",
+          "board": {
+            "css": "h1.display"
+          },
+          "app": {
+            "name": "Cuidar bien es una suma de días"
+          }
+        },
+        {
+          "name": "Empezar",
+          "board": {
+            "css": ".foot .btn:nth-child(1)"
+          },
+          "app": {
+            "name": "Empezar",
+            "role": "button"
+          }
+        },
+        {
+          "name": "Ya tengo cuenta",
+          "board": {
+            "css": ".foot .btn:nth-child(2)"
+          },
+          "app": {
+            "name": "Ya tengo cuenta",
+            "role": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "onboarding",
+      "title": "1.2 Cómo funciona",
+      "board": "Onboarding.dc.html",
+      "path": "/onboarding",
+      "steps": [
+        {
+          "waitText": "Crear mi cuenta"
+        }
+      ],
+      "measure": [
+        {
+          "name": "Título",
+          "board": {
+            "css": "h1.t1"
+          },
+          "app": {
+            "name": "Tres hábitos pequeños que suman mucho"
+          }
+        },
+        {
+          "name": "Crear mi cuenta",
+          "board": {
+            "css": ".foot .btn.primary"
+          },
+          "app": {
+            "name": "Crear mi cuenta",
+            "role": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "login-error",
+      "title": "1.5 Iniciar sesión (error)",
+      "board": "Login.dc.html",
+      "hide": ["sc-if[value='{{loading}}']"],
+      "path": "/login",
+      "steps": [
+        {
+          "waitText": "Hola de nuevo"
+        },
+        {
+          "fill": {
+            "label": "Email",
+            "value": "david@ejemplo.com"
+          }
+        },
+        {
+          "fill": {
+            "label": "Contraseña",
+            "value": "kika1234"
+          }
+        },
+        {
+          "click": {
+            "name": "Entrar",
+            "role": "button"
+          }
+        },
+        {
+          "waitText": "Email o contraseña incorrectos."
+        },
+        {
+          "blur": true
+        }
+      ],
+      "measure": [
+        {
+          "name": "Título",
+          "board": {
+            "css": "h1.t1"
+          },
+          "app": {
+            "name": "Hola de nuevo"
+          }
+        },
+        {
+          "name": "Google",
+          "board": {
+            "css": "button.btn.secondary"
+          },
+          "app": {
+            "name": "Continuar con Google",
+            "role": "button"
+          }
+        },
+        {
+          "name": "Enlace olvidé",
+          "board": {
+            "css": "a.link"
+          },
+          "app": {
+            "name": "He olvidado mi contraseña",
+            "role": "link"
+          }
+        },
+        {
+          "name": "Entrar",
+          "board": {
+            "css": ".foot .btn.primary"
+          },
+          "app": {
+            "name": "Entrar",
+            "role": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "register",
+      "title": "1.3 Crear cuenta",
+      "board": "Cuenta.dc.html",
+      "path": "/register",
+      "steps": [
+        {
+          "waitText": "Crea tu cuenta"
+        }
+      ],
+      "measure": [
+        {
+          "name": "Título",
+          "board": {
+            "css": "h1.t1"
+          },
+          "app": {
+            "name": "Crea tu cuenta"
+          }
+        },
+        {
+          "name": "Google",
+          "board": {
+            "css": ".btn.secondary"
+          },
+          "app": {
+            "name": "Continuar con Google",
+            "role": "button"
+          }
+        },
+        {
+          "name": "Crear cuenta",
+          "board": {
+            "css": ".foot .btn.primary"
+          },
+          "app": {
+            "name": "Crear cuenta",
+            "role": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "forgot",
+      "title": "1.8 Recuperar",
+      "board": "Recuperar.dc.html",
+      "hide": ["sc-if[value='{{sent}}']"],
+      "path": "/forgot-password",
+      "steps": [
+        {
+          "waitText": "Recupera tu contraseña"
+        },
+        {
+          "fill": {
+            "label": "Email",
+            "value": "david@ejemplo.com"
+          }
+        }
+      ],
+      "measure": [
+        {
+          "name": "Título",
+          "board": {
+            "css": "h1.t1"
+          },
+          "app": {
+            "name": "Recupera tu contraseña"
+          }
+        },
+        {
+          "name": "Enviar enlace",
+          "board": {
+            "css": ".foot .btn.primary"
+          },
+          "app": {
+            "name": "Enviar enlace",
+            "role": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hoy-hecho",
+      "title": "4.3 Hoy · día registrado",
+      "board": "HomeHecho.dc.html",
+      "login": true,
+      "hide": ["sc-if[value='{{voice}}']", "sc-if[value='{{synced}}']"],
+      "path": "/",
+      "steps": [
+        {
+          "waitText": "Hecho por hoy"
+        },
+        {
+          "wait": 600
+        }
+      ],
+      "measure": [
+        {
+          "name": "Título del día",
+          "board": {
+            "css": ".card h1.t2"
+          },
+          "app": {
+            "name": "Hecho por hoy"
+          }
+        },
+        {
+          "name": "Editar el de hoy",
+          "board": {
+            "css": ".card .btn.secondary"
+          },
+          "app": {
+            "name": "Editar el registro de hoy",
+            "role": "button"
+          }
+        },
+        {
+          "name": "Barra de pestañas",
+          "board": {
+            "css": "nav.tabbar"
+          },
+          "app": {
+            "name": "Principal",
+            "role": "tablist"
+          }
+        }
+      ]
+    },
+    {
+      "id": "registro-editar-hoy",
+      "title": "5.5 Editar el registro de hoy",
+      "board": "RegistroHoyEditar.dc.html",
+      "login": true,
+      "path": "/pets/{petId}/daily-log",
+      "steps": [
+        {
+          "waitText": "Energía"
+        },
+        {
+          "wait": 600
+        }
+      ],
+      "measure": [],
+      "$comment": "El tablero 5.5 importa 5.1 (dc-import): no expone selectores; solo diferencia de píxeles."
+    },
+    {
+      "id": "registro-detalles",
+      "title": "5.2 Registro · detalles",
+      "board": "RegistroDetalles.dc.html",
+      "login": true,
+      "path": "/pets/{petId}/daily-log",
+      "steps": [
+        {
+          "waitText": "Añadir detalles"
+        },
+        {
+          "click": {
+            "name": "Añadir detalles"
+          }
+        },
+        {
+          "waitText": "Etiquetas del día"
+        },
+        {
+          "wait": 400
+        }
+      ],
+      "measure": [
+        {
+          "name": "Sueño",
+          "board": {
+            "css": "h2.t3"
+          },
+          "app": {
+            "name": "Sueño"
+          }
+        },
+        {
+          "name": "Etiquetas del día",
+          "board": {
+            "css": ".chips"
+          },
+          "app": {
+            "name": "Etiquetas del día"
+          }
+        }
+      ]
+    },
+    {
+      "id": "historial-semana",
+      "title": "6.1 Historial · semana",
+      "board": "Tendencias.dc.html",
+      "login": true,
+      "path": "/history",
+      "steps": [
+        {
+          "waitText": "Día a día"
+        },
+        {
+          "wait": 800
+        }
+      ],
+      "measure": [
+        {
+          "name": "Título",
+          "board": {
+            "css": "h1.t1"
+          },
+          "app": {
+            "name": "Historial",
+            "role": "heading"
+          }
+        },
+        {
+          "name": "Periodo",
+          "board": {
+            "css": ".seg"
+          },
+          "app": {
+            "name": "Periodo",
+            "role": "radiogroup"
+          }
+        },
+        {
+          "name": "Barra de pestañas",
+          "board": {
+            "css": "nav.tabbar"
+          },
+          "app": {
+            "name": "Principal",
+            "role": "tablist"
+          }
+        }
+      ]
+    },
+    {
+      "id": "historial-mes",
+      "title": "6.2 Historial · mes",
+      "board": "HistorialMes.dc.html",
+      "login": true,
+      "path": "/history",
+      "steps": [
+        {
+          "waitText": "Día a día"
+        },
+        {
+          "click": {
+            "name": "Mes",
+            "role": "radio"
+          }
+        },
+        {
+          "waitText": "Este mes"
+        },
+        {
+          "wait": 800
+        }
+      ],
+      "measure": [
+        {
+          "name": "Periodo",
+          "board": {
+            "css": ".seg"
+          },
+          "app": {
+            "name": "Periodo",
+            "role": "radiogroup"
+          }
+        },
+        {
+          "name": "Mes anterior",
+          "board": {
+            "css": "a.ib[aria-label='Mes anterior']"
+          },
+          "app": {
+            "name": "Mes anterior",
+            "role": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dia-detalle",
+      "title": "6.3 Detalle del día",
+      "board": "DiaDetalle.dc.html",
+      "login": true,
+      "path": "/pets/{petId}/daily-logs/2026-10-17",
+      "steps": [
+        {
+          "waitText": "Editar este día"
+        },
+        {
+          "wait": 800
+        }
+      ],
+      "measure": [
+        {
+          "name": "Tarjeta de escalas",
+          "board": {
+            "css": ".card"
+          },
+          "app": {
+            "name": "Energía: Como siempre"
+          }
+        }
+      ]
+    },
+    {
+      "id": "perfil",
+      "title": "3.6 Perfil de mascota",
+      "board": "PerfilMascota.dc.html",
+      "login": true,
+      "hide": ["sc-if[value='{{saved}}']"],
+      "path": "/profile",
+      "steps": [
+        {
+          "waitText": "Historial de registros"
+        },
+        {
+          "wait": 800
+        }
+      ],
+      "measure": [
+        {
+          "name": "Nombre",
+          "board": {
+            "css": "h1.t1"
+          },
+          "app": {
+            "name": "Kika",
+            "role": "heading"
+          }
+        },
+        {
+          "name": "Editar",
+          "board": {
+            "css": ".between .btn.secondary"
+          },
+          "app": {
+            "name": "Editar",
+            "role": "button"
+          }
+        },
+        {
+          "name": "Barra de pestañas",
+          "board": {
+            "css": "nav.tabbar"
+          },
+          "app": {
+            "name": "Principal",
+            "role": "tablist"
+          }
+        }
+      ]
+    },
+    {
+      "id": "perfil-editar",
+      "title": "3.8 Editar perfil",
+      "board": "CompletarPerfil.dc.html",
+      "login": true,
+      "path": "/pets/{petId}/edit",
+      "steps": [
+        {
+          "waitText": "Guardar cambios"
+        },
+        {
+          "wait": 800
+        }
+      ],
+      "measure": [
+        {
+          "name": "Guardar cambios",
+          "board": {
+            "css": ".foot .btn.primary"
+          },
+          "app": {
+            "name": "Guardar cambios",
+            "role": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mascota-nueva",
+      "title": "3.1 Nueva mascota",
+      "board": "MascotaNueva.dc.html",
+      "login": true,
+      "hide": ["sc-if[value='{{other}}']"],
+      "path": "/pets/new",
+      "steps": [
+        {
+          "waitText": "¿A quién vas a cuidar?"
+        },
+        {
+          "wait": 600
+        }
+      ],
+      "measure": [
+        {
+          "name": "Título",
+          "board": {
+            "css": "h1.t1"
+          },
+          "app": {
+            "name": "¿A quién vas a cuidar?"
+          }
+        }
+      ]
+    },
+    {
+      "id": "agenda",
+      "title": "8.6 Agenda (próximamente)",
+      "board": "AgendaVacia.dc.html",
+      "login": true,
+      "path": "/agenda",
+      "steps": [
+        {
+          "waitText": "La agenda llegará pronto"
+        },
+        {
+          "wait": 400
+        }
+      ],
+      "measure": [
+        {
+          "name": "Título",
+          "board": {
+            "css": "h1.t1"
+          },
+          "app": {
+            "name": "Agenda",
+            "role": "heading"
+          }
+        },
+        {
+          "name": "Barra de pestañas",
+          "board": {
+            "css": "nav.tabbar"
+          },
+          "app": {
+            "name": "Principal",
+            "role": "tablist"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ajustes",
+      "title": "10.1 Tu cuenta (mínima)",
+      "board": "Ajustes.dc.html",
+      "login": true,
+      "path": "/settings",
+      "steps": [
+        {
+          "waitText": "Cerrar sesión"
+        },
+        {
+          "wait": 400
+        }
+      ],
+      "measure": [
+        {
+          "name": "Título",
+          "board": {
+            "css": ".top .strong"
+          },
+          "app": {
+            "name": "Tu cuenta"
+          }
+        }
+      ]
+    }
+  ]
+}

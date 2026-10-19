@@ -54,7 +54,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "node --test --test-timeout=30000 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \"src/**/*.test.mjs\"",
-    "test:integration": "node scripts/test-integration.mjs"
+    "test:integration": "node scripts/test-integration.mjs",
+    "visual:compare": "node scripts/visual-compare.mjs"
   },
   "private": true
 }
