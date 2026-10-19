@@ -3,6 +3,40 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-19
+
+- Diseño v2, F2 (bienvenida): pantalla de bienvenida (1.1) como entrada sin sesión y «Cómo funciona»
+  (1.2); «Ya tengo cuenta» lleva al login y el «atrás» del login vuelve a la bienvenida.
+- Diseño v2, F5 (navegación y Hoy): barra Hoy · Historial · Registrar · Agenda · Perfil; Hoy con la
+  semana de la mascota activa (anillo, mensaje, valores del día, evolución o «Su semana»), selector de
+  mascota, avisos de conexión, de sesión y de registros sin sincronizar, y aviso al subirse el de hoy.
+  Agenda «Próximamente». «Tu cuenta» mínima (email, mascotas, pendientes, zona horaria, cerrar sesión).
+- Diseño v2, F4 (registro e historial): registro en dos pasos con progreso, «Todo como siempre» de las
+  4 principales (obligatorias al crear), detalles de tres opciones (2/3/4, sin convertir los valores
+  anteriores), pantalla «Hecho», confirmación al salir con cambios y error con lo marcado intacto;
+  historial con semana (hasta 3 series), mes (calendario y una línea por serie), día a día con huecos,
+  estado sin datos suficientes y detalle del día de solo lectura con «Editar este día». Estados de
+  sincronización con icono y texto; resolución de conflictos, registros sin sincronizar y cierre de
+  sesión con pendientes con el nuevo diseño (misma lógica).
+- Diseño v2, F3 (mascotas): alta con foto, especie en tarjetas y datos opcionales; perfil con foto,
+  datos, «Completa el perfil» y racha (`pet_streaks`, solo lectura); edición con hoja de foto (permiso
+  denegado incluido), borrado con diálogo y aviso «Cambios guardados»; lista de mascotas renovada.
+- Editar mascota: la especie aparece bloqueada y se puede corregir con «¿Te has equivocado? Cambiar la
+  especie» (con confirmación: la raza elegida se borra).
+- Limpieza: retirada la capa de compatibilidad de F0 (`ThemedText`, `constants/theme.ts` y los nombres de
+  color antiguos de `useTheme()`), 21 textos sin uso y el paquete `expo-device`, que no se usaba.
+- Revisión de funcionalidad frente a `main`: la ficha `/pets/[id]` vuelve a tener el registro de hoy de
+  esa mascota, todos sus datos (también los no indicados) y el cambio de foto; el historial vuelve a
+  resumir todas las escalas de cada día; el registro vuelve a indicar «Sincronizado».
+- `npm run visual:compare` cubre Hoy, registro, detalles, historial (semana y mes), detalle del día,
+  perfil, edición, alta, agenda y ajustes (`KITOM_VC_PET_ID`, mascota de la cuenta local).
+
+- Acceso, correcciones de fidelidad (auditoría visual): el contenido de login, registro y recuperar
+  queda a la altura de los tableros (rejilla vertical de `Screen` y fila de la barra superior
+  reservada), «Enlace enviado» y «Revisa tu correo» arriba como en los tableros 1.8 y 1.4, enlace «He
+  olvidado mi contraseña» con 15/22 · 600 (`TextLink`) y sin el recuadro de foco del navegador en los
+  campos en web (el foco sigue marcado por el borde del campo). Sin cambios de comportamiento.
+
 ## 2026-10-16
 
 - Diseño v2, F2 (acceso): login, registro, recuperar contraseña, nueva contraseña y callback de Auth

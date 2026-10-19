@@ -4,6 +4,16 @@ Guía para que Claude Code implemente el diseño de `docs/design/` por fases. Ca
 (`feat/…`) con lint, tipos y docs al día. Las reglas de `CLAUDE.md` y `frontend/CLAUDE.md` mandan sobre
 este plan: si algo de aquí choca con ellas, se para y se pregunta.
 
+## Estado (2026-10-19)
+
+Implementado en `feat/ui-brand-implementation` por fases de trabajo F0–F5 (no coinciden una a una con
+las de este plan): base visual y componentes, bienvenida y acceso (1.1–1.5, 1.8, 1.9), mascotas (3.1–3.3,
+3.6–3.11), Hoy (4.1, 4.3, 4.6; sin señales ni agenda), registro (5.1–5.8, 5.10; el conflicto 5.9 como
+pantalla, no hoja), historial (6.1–6.3, 6.5), agenda «Próximamente», «Tu cuenta» mínima (10.1) y estados
+globales (12.1–12.3). Pendiente: 1.6–1.7 y 2.x (onboarding de perfil, aviso, privacidad), 3.4–3.5
+(recordatorio y permiso de avisos), 4.2/4.5 y 6.4 (señales), 6.6 (límite del plan), 7.x (IA), 8.x
+(agenda), 9.x (logros), 10.2–10.9, 11.x (Premium) y 12.4. Detalle: `docs/CHANGELOG.md` y `docs/DECISIONS.md`.
+
 ## Reglas para todas las fases
 
 - **Fuentes de verdad**: `supabase/migrations/` > `docs/FRONTEND_ARCHITECTURE.md` > este diseño. Antes

@@ -13,7 +13,10 @@ Gestor de paquetes: **npm** (hay `package-lock.json`). Dependencias nuevas con `
 
 Vertical base implementada: cliente Supabase, Auth (email/contraseña y Google), sesión, rutas
 protegidas y TanStack Query. Primera funcionalidad de producto: **Pets** (lista, alta, detalle,
-edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acceso a «Mis mascotas».
+edición, borrado), **Daily Logs** (con modo offline) y la navegación del diseño v2: `(app)/(tabs)`
+(Hoy `/`, `/history`, `/agenda`, `/profile`) con la mascota activa en `ActivePetProvider`
+(`features/pets/active-pet-context.tsx`); las pantallas de pestaña usan `ActivePetGate` para cargar,
+error y «sin mascotas».
 
 - `src/features/pets/` — `api/` (acceso a Supabase: `pets-api.ts`, `species-api.ts`), `hooks/`
   (TanStack Query), `components/`, `pet-form.ts` (valores, validación y conversión a columnas),
@@ -102,8 +105,8 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
 ## Tema y diseño (diseño v2, `docs/design/`)
 
 - Referencia: `docs/design/PLAN_DESARROLLO.md` (fases), `PANTALLAS.md` (tablero de cada pantalla),
-  `GUIA-DE-MARCA.md` y `componentes/`. Implementación por fases F0–F5; hechas F0 (base), F1
-  (componentes) y F2 (acceso: login, registro, recuperar, nueva contraseña y callback).
+  `GUIA-DE-MARCA.md` y `componentes/`. Implementación por fases F0–F5, todas hechas: F0 (base), F1
+  (componentes), F2 (bienvenida y acceso), F3 (mascotas), F4 (registro e historial) y F5 (pestañas y Hoy).
 - Pantallas adaptadas: sin cabecera nativa, con `TopBar` (atrás solo si hay historial), título
   `title-1` + texto, botón principal en el `footer` de `Screen`. Errores de Auth en su campo según
   `authErrorField` (`features/auth/auth-error-field.ts`, pura y probada) y el resto en una alerta sobre
@@ -117,13 +120,10 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
 - `src/theme/fonts.ts` — Hanken Grotesk 400/500/600 e IBM Plex Mono 500, importadas por peso; el
   layout raíz mantiene el splash hasta que cargan (si fallan, sigue con las del sistema). El peso va en
   `fontFamily` (tokens), nunca en `fontWeight`.
-- Código nuevo: colores de `useTheme()` por nombre de token (`ink`, `inkMuted`, `primary`, `surface`…),
-  texto con `Text` (`variant` de `typography`), espaciado y radios de los tokens. Ningún color fijo.
-- **Transitorio** (hasta adaptar cada pantalla, F2–F4): `useTheme()` también acepta los nombres
-  anteriores (`text`, `textSecondary`, `tint`, `border`…, mapeados a tokens en `hooks/use-theme.ts`;
-  ninguno puede llamarse como un token: lo comprueba el compilador),
-  `ThemedText` traduce sus `type` a la escala de marca y `constants/theme.ts` conserva `Spacing`. No
-  usarlos en código nuevo; se retiran cuando ninguna pantalla los use.
+- Colores: `useTheme()` devuelve solo los tokens del tema activo (`ink`, `inkMuted`, `primary`,
+  `surface`…); texto con `Text` (`variant` de `typography`), espaciado y radios de los tokens. Ningún
+  color fijo. La capa de compatibilidad de F0 (`ThemedText`, `constants/theme.ts`, nombres de color
+  antiguos) se retiró el 2026-10-19, cuando dejó de usarse.
 - Iconos: Lucide, **solo** desde `@/components/ui/icons` (uno a uno; importar la raíz de
   `lucide-react-native` mete ~1.900 iconos en el bundle y ESLint lo prohíbe) y con `<Icon>` (trazo 2,
   `iconSize`, oculto a lectores de pantalla). Gráficas y anillos: `react-native-svg`.
@@ -133,8 +133,17 @@ edición, borrado). `(app)/index.tsx` sigue siendo una pantalla temporal con acc
   `StepSelector`, `Switch`, `Card`, `ListItem`, `Alert`, `Banner`, `Tag`, `Avatar`, `KitomSymbol`,
   `Skeleton`, `LoadingState`/`ErrorState`/`EmptyState` (`query-state.tsx`), `FormMessage`, `Dialog`,
   `BottomSheet`, `Toast` (`useToast`, proveedor en el layout raíz), `Screen` (con `footer` para el
-  botón principal) y `TopBar` (barra propia de pantallas sin cabecera nativa). `Button` admite
-  `leading` (p. ej. el logo de Google); `EmptyState`, `icon` propio y `prominent` (pantalla completa). Cabeceras de `Stack`: `useStackScreenOptions()`. Elevación: `useElevation()`
+  botón principal; sin cabecera nativa deja 14 bajo el área segura, como el `.scr` del prototipo:
+  58 = 44 de barra de estado + 14), `TopBar` (barra propia de pantallas sin cabecera nativa; sin
+  `onBack` reserva la fila igualmente; `subtitle`, `backIcon` y `TopBarText` para «2/4»), `TextLink`
+  (enlace de texto 15/22 · 600), `TabBar`, `WeekRing` (anillo semanal; `caption`, `textSize`),
+  `ProgressBar`, `Sparkline`, `TrendChart`, `MonthCalendar` (geometría pura en `chart-geometry.ts`),
+  `Logotype`. `Dialog` (`icon`; `danger` pone «Cancelar» arriba; `onDismiss` para el velo),
+  `ListItem` (`trailing`, `plain`, `titleColor`, `chevron`), `Chip` (`marker`), `Tag` (`danger`). Salir
+  con cambios: `hooks/use-leave-confirmation.ts`. `Button` admite
+  `leading` (p. ej. el logo de Google); `EmptyState`, `icon` propio, `prominent` (pantalla completa,
+  48 arriba como el tablero 1.8) y `style` para el desfase de un tablero concreto. `TextField` quita en
+  web el contorno del navegador: el foco lo marca su borde de 2 px `primary`. Cabeceras de `Stack`: `useStackScreenOptions()`. Elevación: `useElevation()`
   (`boxShadow` en claro, filete en oscuro; nunca `shadow*`).
 - Movimiento: pulsación (`usePressFeedback`, 120 ms) y entradas de superposiciones (`motion.ts`,
   200 ms); todo con `ReduceMotion.System` o `useReducedMotion`. Sin gestos nuevos (las hojas se cierran

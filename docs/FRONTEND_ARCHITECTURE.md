@@ -34,9 +34,29 @@ APP (tabs, sesión activa, onboarding completo)
 └── Paywall                (modal, no tab — se abre desde cualquier punto bloqueado)
 ```
 
-Destinos lógicos. La barra inferior del diseño v2 (Hoy · Historial · Registrar · Agenda · Perfil, con
-«Registrar» como acción central y la orientación con IA fuera de las pestañas) está en
-`docs/design/PANTALLAS.md` §1 y `docs/DECISIONS.md` (2026-10-16); todavía no está implementada.
+Destinos lógicos. **Implementado (diseño v2, F2–F5)** con Expo Router; las URL anteriores no cambian:
+
+```
+(auth)  welcome · onboarding · login · register · forgot-password · auth-callback   (+ update-password)
+(app)   Stack, sin cabecera nativa (cada pantalla lleva su TopBar)
+├── (tabs)  barra Hoy · Historial · [Registrar] · Agenda · Perfil
+│   ├── index        /            Hoy (mascota activa)
+│   ├── history      /history     Historial de la mascota activa
+│   ├── agenda       /agenda      «Próximamente» (sin recordatorios todavía)
+│   └── profile      /profile     Perfil de la mascota activa
+├── pets/index, pets/new, pets/[id] (perfil), pets/[id]/edit
+├── pets/[id]/daily-log                 registro de hoy (modal a pantalla completa)
+├── pets/[id]/daily-logs                historial de esa mascota
+├── pets/[id]/daily-logs/[date]         detalle del día; `?edit=1` lo edita
+├── pets/[id]/daily-logs/resolve/[date] · daily-logs/unsynced · sign-out
+└── settings                             Tu cuenta (mínima)
+```
+
+«Registrar» es una acción, no una pestaña: abre `pets/[id]/daily-log` de la mascota activa (punto sol si
+hoy falta; «Hecho» si ya está). La mascota activa es un React Context (`features/pets/active-pet-context.tsx`)
+que se recuerda por usuario en el dispositivo; si ya no es visible, se usa la primera.
+`unstable_settings.initialRouteName = '(tabs)'`: un enlace directo deja las pestañas debajo. Decisión:
+`DECISIONS.md` (2026-10-19).
 
 ## 2. Estados de Auth
 
@@ -95,7 +115,21 @@ No se introduce Redux ni una capa de estado global adicional — con React Query
 - **Storage:** `pet-photos` (insert, path `{pet_id}/{uuid}.jpg`; ver «Pets: fotos»)
 
 ### Pets: lista, alta, detalle, edición y borrado (implementado)
-Rutas: `(app)/pets/index`, `pets/new`, `pets/[id]/index`, `pets/[id]/edit`. Código: `frontend/src/features/pets/`.
+Rutas: `(app)/pets/index`, `pets/new`, `pets/[id]/index`, `pets/[id]/edit` y la pestaña `/profile`.
+Código: `frontend/src/features/pets/`. La ficha `/pets/[id]` es el perfil (`PetProfile`) con, además, el
+registro de hoy de esa mascota (`TodayLogCard`, aunque no sea la activa), todos sus datos (`PetDetails`,
+también los no indicados) y el cambio de foto desde la cabecera. Diseño v2 (tableros 3.1–3.3, 3.6–3.11): alta con nombre y especie
+obligatorios y el resto opcional ya al crear («Otro» explica que, por ahora, perros y gatos; la foto se
+elige antes y se sube al crear, porque el path necesita el id); perfil con foto, datos, «Completa el
+perfil» (9 datos opcionales, `pet-profile.ts`) y racha; edición con hoja de foto, borrado con diálogo y
+aviso «Cambios guardados». En la edición la especie se muestra bloqueada; «¿Te has equivocado? Cambiar
+la especie» pide confirmación (la raza concreta se borra al cambiarla, como ya hacía el formulario) y
+muestra las especies; nada se guarda hasta «Guardar cambios». La BD lo permite (`species_id` tiene GRANT
+de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La mascota creada pasa a ser la activa.
+- **Racha (READ, solo lectura):** `pet_streaks` (`current_streak`, `longest_streak`, `last_log_date`;
+  RLS `pet_streaks: select members`). La calcula el servidor al guardar registros y no la pone a 0 si
+  pasan días sin registrar: el cliente la da por terminada si `last_log_date` es anterior a ayer
+  (`currentStreak`). Query key `['pets','detail',petId,'streak']`.
 - **READ:** `pets` con columnas explícitas y **sin filtrar por `owner_id`**: RLS (`is_pet_member`) devuelve
   las propias y las compartidas con `pet_co_owners.status = 'accepted'`. Especies: `species` (todas, para
   poder mostrar una ya desactivada) + `catalog_translations` (`entity_type='species'`, `field='name'`,
@@ -174,21 +208,46 @@ validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use
   mascota; el flujo de análisis puede reutilizar `pickPetPhoto` y subir con la misma convención.
 
 ### Home / PetOverview
-- **READ:** `pets` (mascotas del usuario), `pet_streaks`, `daily_logs` (último registro), `reminders` (próximos)
-- **WRITE:** —
-- **RPC:** ninguno
+**Hoy implementado** (`(app)/(tabs)/index.tsx`, tableros 4.1–4.6, 5.8, 5.10, 12.1/12.2):
+- **READ:** `pets` (vía `ActivePetGate`), la primera página del historial combinado
+  (`useWeekOverview` → `computeWeekOverview`, `features/daily-logs/week-overview.ts`: los 7 días que
+  terminan hoy, servidor + pendientes del dispositivo sin duplicar), `can_edit_pet` y el nombre del
+  perfil (saludo del primer día). La racha de Hoy sale de esos registros y solo se dice si se puede
+  afirmar con lo cargado (`streak: null` si llega al registro más antiguo y hay más páginas).
+- **Muestra:** cabecera con selector de mascota (hoja 3.9), tarjeta del día (anillo, mensaje, valores de
+  hoy, crear/editar), «Así verás su evolución» con menos de 3 registros o «Su semana» (energía, apetito
+  y ánimo; último valor tal cual) desde 3. Avisos: sin conexión, sesión sin comprobar y registros sin
+  sincronizar. Aviso «El registro de hoy ya está subido» cuando, con la pantalla abierta, pasa de
+  pendiente a sincronizado. Sin mascotas: tablero 3.10.
+- **No se muestra** (sin datos o sin servicio): señales/alertas, «Consultar», voz de la mascota, idea del
+  día y «Próximo» de la agenda.
+- **WRITE:** — · **RPC:** ninguno
 
 ### DailyLogScreen
 Backend: migraciones `20261008150202_daily_logs_fixes.sql` y
 `20261010160332_daily_logs_concurrency.sql`. Frontend: registro de hoy e historial, con guardado
 local y sincronización (§5 «Integración»). Decisiones: `DECISIONS.md`.
 
-**Implementación (fase 1).** Ruta `(app)/pets/[id]/daily-log` (registro de **hoy**); entrada desde la
-ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/features/daily-logs/`:
-`api/daily-logs-api.ts`, `hooks/use-daily-log.ts`, `hooks/use-today-log-date.ts`, `log-date.ts`,
-`daily-log-form.ts` (valores, validación, payload y estado del editor), `daily-log-errors.ts`,
-`query-keys.ts`, `types.ts`, `components/` (`DailyLogEditor`, `ScaleSelector`, `TagSelector`,
-`TodayLogCard`). Pruebas: `*.test.mjs` (`npm test`).
+**Implementación.** Ruta `(app)/pets/[id]/daily-log` (registro de **hoy**, modal a pantalla completa);
+se abre con «Registrar» de la barra, la tarjeta del día de Hoy o «Registrar hoy» del historial. Código:
+`frontend/src/features/daily-logs/`: `api/daily-logs-api.ts`, `hooks/use-daily-log.ts`,
+`hooks/use-today-log-date.ts`, `hooks/use-week-overview.ts`, `log-date.ts`, `daily-log-form.ts` (valores,
+validación, payload y estado del editor), `scale-labels.ts` (textos de las escalas), `daily-log-errors.ts`,
+`query-keys.ts`, `types.ts`, `components/` (`DailyLogEditor`, `PrimaryScaleSelector`/`DetailScaleSelector`,
+`TagSelector`, `DailyLogSavedScreen`, `DayDetail`, `SyncStatus`). Pruebas: `*.test.mjs` (`npm test`).
+- **Pantallas (diseño v2):** 5.1 escalas principales (progreso «n/4», «Todo como siempre» solo al
+  crear), 5.2 «Añadir detalles» (sueño, vocalizaciones, con personas y otros animales, algo fuera de lo
+  habitual, etiquetas y nota), 5.3 «Hecho» tras crear el de hoy, aviso «Cambios guardados» tras editar,
+  5.6 error de guardado con lo marcado intacto y 5.7 «¿Salir sin guardar?» con cambios (X, «atrás»
+  del sistema o gesto: `hooks/use-leave-confirmation.ts`).
+- **Validación:** al **crear** (no hay nada de ese día ni en el servidor ni en el dispositivo) son
+  obligatorias las 4 principales (energía, apetito, ánimo, actividad; error `primary_required`). Al
+  **editar** se mantiene «no vacío». Los detalles nunca bloquean guardar. Son reglas del cliente: la BD
+  sigue exigiendo solo `daily_logs_not_empty_check`.
+- **Detalles con 3 opciones:** sueño «Peor / Normal / Mejor», vocalizaciones y con personas y otros
+  animales «Menos / Normal / Más», guardadas como **2/3/4** (mismas columnas y rango 1–5). Un 1 o un 5
+  guardado antes no se convierte: no se marca ninguna opción, se dice cuál era y se conserva si no se
+  elige otra; en el historial y el detalle se muestra con su texto de 5 niveles.
 - **"Hoy":** solo `useTodayLogDate()` / `todayLogDate()`: día del calendario (`Intl`, nunca
   `toISOString`) en la zona del **perfil** → la del **dispositivo** si es `NULL`/no válida → `UTC`. La
   pantalla fija la fecha al abrirse (el registro que se rellena no cambia de día); la tarjeta de la
@@ -210,8 +269,8 @@ ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/featur
   reconciliación demostró que ya tiene ese contenido.
 - **Tipos:** los generados marcan todos los parámetros de la RPC como no nulos; `SaveDailyLogArgs`
   (`types.ts`) admite `null` en niveles y notas y se convierte al tipo generado solo en la API.
-- **«Todo como siempre»:** pone las 7 escalas en 3 en el formulario; no guarda ni toca lo opcional.
-  Tocar una opción ya elegida la deja en `null`.
+- **«Todo como siempre»:** pone las 4 escalas principales en 3 en el formulario; no guarda ni toca
+  los detalles ni lo opcional. Tocar una opción ya elegida la deja en `null`.
 - **Comportamiento inusual:** la nota solo se envía con el interruptor activado (el campo no se ve si
   está desactivado).
 - **Permisos (UX):** `can_edit_pet` (`useCanEditPet`). Sin permiso: formulario de solo lectura (o
@@ -269,11 +328,19 @@ ficha con `TodayLogCard` (estado de hoy + botón). Código: `frontend/src/featur
 - **Storage:** ninguno
 
 ### HistoryScreen
-**Historial implementado** (lista y consulta/edición de registros anteriores; sin calendario, gráficos
-ni borrado). `pet_streaks` todavía no se muestra.
-- **Rutas:** `(app)/pets/[id]/daily-logs` (lista) y `(app)/pets/[id]/daily-logs/[date]` (un registro,
-  `date` = `YYYY-MM-DD` validada con `parseLogDateParam`). Entrada: «Ver historial» en `TodayLogCard`
-  (ficha de la mascota).
+**Historial implementado** (diseño v2, tableros 6.1, 6.2, 6.3, 6.5 y 12.3; sin borrado, alertas ni
+límite del plan). Componente `PetHistory` (`features/daily-logs/components/pet-history.tsx`), lógica pura
+en `history-view.ts`.
+- **Rutas:** pestaña `/history` (mascota activa), `(app)/pets/[id]/daily-logs` (una mascota) y
+  `(app)/pets/[id]/daily-logs/[date]` (detalle del día, `date` = `YYYY-MM-DD` validada con
+  `parseLogDateParam`; `?edit=1` abre su edición).
+- **Semana:** 5 series (energía, apetito, ánimo, actividad, sueño) con color y trazo propios, como mucho
+  3 a la vez; los 7 días que terminan hoy, con huecos sin interpolar. «Día a día»: los 7 días (los que
+  faltan, «Sin registro»; hoy, con «Registrar hoy») y después el resto de registros cargados.
+- **Mes:** calendario (días con registro, hoy) y una línea por serie con los días del mes hasta hoy;
+  carga sola las páginas que falten hasta el día 1 (`needsOlderPages`). Sin conexión, solo lo del
+  dispositivo.
+- **Menos de 3 registros:** «Su evolución aparecerá aquí» (6.5) con la lista de lo que hay.
 - **READ (lista):** `daily_logs` filtrado solo por `pet_id` (RLS `is_pet_member` decide el acceso:
   owner y co-tutores aceptados; pendientes y ajenos reciben una lista vacía), `order(log_date desc)`,
   **paginación por cursor**: `lt('log_date', cursor)` + `limit(HISTORY_PAGE_SIZE + 1)` (20 por página; la
@@ -290,9 +357,11 @@ ni borrado). `pet_streaks` todavía no se muestra.
   local, error (nunca una lista vacía engañosa). Al cargar páginas se guarda una copia local de cada
   fila sin cambios pendientes.
 - **Un registro:** vista combinada por (`pet_id`, `log_date`). Si no existe, «No hay registro de este
-  día» (nunca crea; sin conexión y sin copia local, error). Si existe, `DailyLogEditor` con la fecha
-  de la ruta: editable si `can_edit_pet`, solo lectura si no (`resolveHistoryLogView`). Guardar =
-  igual que hoy (local + motor), con la fecha original (la RPC edita sin límite de antigüedad).
+  día» (nunca crea; sin conexión y sin copia local, error). Si existe, detalle de solo lectura
+  (`DayDetail`: escalas con 5 marcas y texto, detalles, nota, etiquetas, quién y a qué hora lo
+  registró según `logged_by`/`created_at`/`updated_at`) y, si `can_edit_pet`, «Editar este día» →
+  `?edit=1` con `DailyLogEditor` (aviso de día anterior). Guardar = igual que hoy (local + motor), con
+  la fecha original (la RPC edita sin límite de antigüedad).
 - **Tras sincronizar** (hoy o histórico): la fila confirmada pasa a la caché del registro y a la del
   historial (`applyLocalChangeToCache`); si ese día no estaba cargado, se revalida el historial.
 - **Errores:** primera página → `ErrorState` con reintento; «cargar más» → mensaje bajo la lista sin
@@ -335,6 +404,10 @@ ni borrado). `pet_streaks` todavía no se muestra.
 - **Storage:** `shared-reports` (solo lectura vía signed URL)
 
 ### SettingsScreen
+**Versión mínima implementada** (`(app)/settings.tsx`, tablero 10.1): nombre y email, «Mis mascotas»,
+«Registros sin sincronizar», zona horaria del perfil (solo lectura) y cerrar sesión (mismo flujo con
+pendientes, §5 «Sesión»). El resto del tablero (idioma, tema, notificaciones, seguridad, privacidad,
+fotos, exportar, suscripción, eliminar cuenta) no se muestra hasta tener servicio.
 - **READ:** `profiles`, `notification_preferences`, `push_tokens`
 - **WRITE:** `profiles` (columnas permitidas), `notification_preferences`, `push_tokens`
 - **RPC:** `register_push_token(token, platform, device_id, app_version, os_version)` — llamar en login, en app launch y en cada refresh de token (ver sección 10)

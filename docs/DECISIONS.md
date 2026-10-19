@@ -3,6 +3,53 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-19 — Especie bloqueada al editar y limpieza de lo que no se usa
+
+**Contexto.** El tablero 3.8 pide la especie bloqueada al editar una mascota, pero el usuario puede
+haberse equivocado al crearla. Tras F3–F5 quedaban sin uso la capa de compatibilidad de F0, 21 textos y
+el paquete `expo-device` (de la plantilla de Expo; no lo importa nada ni lo necesita otro paquete).
+
+**Decisión.**
+
+- La especie se muestra bloqueada y se puede corregir con «¿Te has equivocado? Cambiar la especie»,
+  tras una confirmación que explica que la raza elegida se borra. Solo cambia la presentación: la
+  escritura es la misma (`species_id` en el update de `pets`).
+- Se retiran `components/themed-text.tsx`, `constants/theme.ts`, los nombres de color antiguos de
+  `useTheme()`, las claves de i18n sin uso y `expo-device`. Se conservan los originales SVG del kit de
+  marca (`frontend/assets/brand/`, fuente de los PNG y del futuro icono de notificación) y las
+  dependencias que pide `expo-router` (`@expo/ui`, `expo-glass-effect`, `expo-symbols`) o que usan web,
+  el router y Reanimated sin importarse directamente.
+
+**Consecuencias.** `useTheme()` devuelve solo tokens. Para volver a usar `expo-device` (p. ej. con los
+avisos push) hay que instalarlo de nuevo con `npx expo install`.
+
+## 2026-10-19 — Diseño v2, F3–F5: navegación, Hoy, mascotas, registro e historial
+
+**Contexto.** Los tableros 3–6 y 10.1 piden una barra de cinco posiciones, Hoy con la semana, el
+registro en dos pasos con detalles de tres opciones, historial con gráficos y perfil de mascota. Había
+que hacerlo sin cambiar URL, contratos de Supabase ni el modo offline, y sin mostrar datos o acciones
+que no existen.
+
+**Decisión.**
+
+- Navegación: grupo `(app)/(tabs)` con `Tabs` de `expo-router/js-tabs` y barra propia (`TabBar`). Hoy
+  sigue en `/`; nuevas `/history`, `/agenda`, `/profile` y `/settings`. «Registrar» es una acción que
+  abre el registro de hoy como modal. Las rutas de `pets/...` no cambian.
+- Mascota activa en React Context, recordada por usuario en el dispositivo (`local-store`); si ya no es
+  visible, la primera. No se guarda en el servidor.
+- Registro: al crear, las 4 principales son obligatorias; al editar, «no vacío» como antes. Detalles con
+  tres opciones guardadas como 2/3/4, sin convertir los 1/5 ya guardados (aprobado por el usuario).
+- Sin backend o sin decisión, no se muestra o se marca «Próximamente» sin acción: Agenda, señales y
+  alertas, «Consultar», voz de la mascota, idea del día, logros/insignias, co-tutores, informe,
+  límites del plan y la mayor parte de los ajustes.
+- La racha del perfil sale de `pet_streaks` (servidor); la de Hoy, de los registros cargados
+  (servidor + dispositivo), para que cuente lo guardado sin conexión. Ninguna se rellena ni se estima.
+- Confirmación de salir sin guardar con `beforeRemove` (`useLeaveConfirmation`), sin dependencias.
+
+**Consecuencias.** Las pestañas Agenda y Perfil quedan preparadas para recordatorios, logros y
+consultas cuando existan sus servicios. En web, sin conexión las consultas se pausan (`query-defaults.ts`),
+así que el flujo sin conexión del registro solo se puede validar en nativo.
+
 ## 2026-10-16 — Diseño v2, F2: pantallas de acceso
 
 **Contexto.** Los tableros 1.3–1.9 cambian la composición de login, registro, recuperar y nueva
