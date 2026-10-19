@@ -15,6 +15,14 @@ export async function fetchProfileTimeZone(userId: string): Promise<string | nul
   return data?.timezone ?? null;
 }
 
+/** Nombre del perfil (`full_name`; `null` si no lo ha indicado: p. ej. registro con email). */
+export async function fetchProfileName(userId: string): Promise<string | null> {
+  const { data, error } = await supabase.from('profiles').select('full_name').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  const name = data?.full_name?.trim();
+  return name ? name : null;
+}
+
 /**
  * Guarda la zona horaria solo si el perfil todavía no tiene (`timezone is null` en la propia
  * consulta: atómico, sin leer antes y sin pisar un valor existente). Repetirla es un no-op.

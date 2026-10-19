@@ -1,15 +1,16 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { Card } from '@/components/ui/card';
+import { CloudUpload } from '@/components/ui/icons';
+import { ListItem } from '@/components/ui/list-item';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
-import { Spacing } from '@/constants/theme';
-import { syncStatusLabel } from '@/features/daily-logs/components/sync-status';
+import { Text } from '@/components/ui/text';
+import { TopBar } from '@/components/ui/top-bar';
+import { SyncStatusTag } from '@/features/daily-logs/components/sync-status';
 import { useUnsyncedDailyLogs } from '@/features/daily-logs/hooks/use-daily-log';
-import { formatLogDateLabel } from '@/features/daily-logs/log-date';
+import { capitalizeFirst, formatLogDateLabel } from '@/features/daily-logs/log-date';
 import { usePets } from '@/features/pets/hooks/use-pets';
-import { useTheme } from '@/hooks/use-theme';
 import { getLocale, t } from '@/i18n';
 
 /**
@@ -20,7 +21,6 @@ import { getLocale, t } from '@/i18n';
  */
 export default function UnsyncedDailyLogsScreen() {
   const router = useRouter();
-  const theme = useTheme();
   // Solo para poner nombres; sin conexión o sin acceso, la lista funciona igual.
   const pets = usePets();
   const { view, refetch } = useUnsyncedDailyLogs(pets.data);
@@ -30,56 +30,40 @@ export default function UnsyncedDailyLogsScreen() {
     if (view.state === 'error') {
       return <ErrorState message={t('dailyLogs.errors.local_read_failed')} onRetry={refetch} />;
     }
-    if (view.items.length === 0) return <EmptyState title={t('dailyLogs.unsynced.none')} />;
+    if (view.items.length === 0) return <EmptyState icon={CloudUpload} title={t('dailyLogs.unsynced.none')} />;
 
     return (
       <>
-        <ThemedText type="small" themeColor="textSecondary">
-          {t('dailyLogs.unsynced.description')}
-        </ThemedText>
-        {view.items.map(({ record, petName, syncStatus }) => {
-          const name = petName ?? t('dailyLogs.unsynced.unknownPet');
-          const date = formatLogDateLabel(record.logDate, getLocale(), { withYear: true });
-          const status = syncStatusLabel(syncStatus);
-          return (
-            <Pressable
-              key={`${record.petId}/${record.logDate}`}
-              accessibilityRole="button"
-              accessibilityLabel={`${name}. ${date}. ${status}`}
-              onPress={() =>
-                router.push({
-                  pathname: '/pets/[id]/daily-logs/resolve/[date]',
-                  params: { id: record.petId, date: record.logDate },
-                })
-              }
-              style={[
-                styles.item,
-                { borderColor: syncStatus === 'conflict' || syncStatus === 'failed' ? theme.dangerInk : theme.border },
-              ]}>
-              <ThemedText type="smallBold">{name}</ThemedText>
-              <ThemedText type="small">{date}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {status}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
+        <Text color="inkMuted">{t('dailyLogs.unsynced.description')}</Text>
+        <Card flush>
+          {view.items.map(({ record, petName, syncStatus }, index) => {
+            const name = petName ?? t('dailyLogs.unsynced.unknownPet');
+            const date = capitalizeFirst(formatLogDateLabel(record.logDate, getLocale(), { withYear: true }), getLocale());
+            return (
+              <ListItem
+                key={`${record.petId}/${record.logDate}`}
+                title={date}
+                subtitle={name}
+                trailing={<SyncStatusTag status={syncStatus} />}
+                divider={index < view.items.length - 1}
+                onPress={() =>
+                  router.push({
+                    pathname: '/pets/[id]/daily-logs/resolve/[date]',
+                    params: { id: record.petId, date: record.logDate },
+                  })
+                }
+              />
+            );
+          })}
+        </Card>
       </>
     );
   };
 
   return (
-    <Screen align="top" edges={['bottom', 'left', 'right']}>
+    <Screen align="top">
+      <TopBar onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))} title={t('dailyLogs.unsynced.title')} />
       {content()}
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  item: {
-    gap: Spacing.half,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-  },
-});

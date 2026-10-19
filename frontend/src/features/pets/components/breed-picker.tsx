@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/query-state';
+import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
-import { Spacing } from '@/constants/theme';
 import { MAX_BREED_RESULTS, searchBreeds } from '@/features/pets/breed-search';
 import { useBreed, useBreeds } from '@/features/pets/hooks/use-breeds';
 import { petErrorMessage } from '@/features/pets/pet-errors';
 import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
+import { radius, spacing } from '@/theme/tokens';
 
 type BreedPickerProps = {
   speciesId: string;
@@ -44,12 +44,13 @@ export function BreedPicker({
     const name = selectedInList?.name ?? selectedOutsideList.data?.name ?? t('common.loading');
     return (
       <View style={styles.container}>
-        <ThemedText type="small" themeColor="textSecondary">
+        <Text variant="caption" color="inkMuted">
           {t('pets.breedPicker.selected')}
-        </ThemedText>
-        <ThemedText type="smallBold">{name}</ThemedText>
+        </Text>
+        <Text variant="bodyStrong">{name}</Text>
         <Button
           variant="ghost"
+          size="md"
           label={t('pets.breedPicker.change')}
           onPress={() => {
             setQuery('');
@@ -81,7 +82,7 @@ export function BreedPicker({
       />
 
       <View
-        style={[styles.results, { borderColor: theme.border }]}
+        style={[styles.results, { borderColor: theme.line }]}
         accessibilityRole="list"
         accessibilityLabel={t('pets.breedPicker.searchLabel')}>
         {visible.map((breed, index) => (
@@ -92,43 +93,43 @@ export function BreedPicker({
             onPress={() => onSelect(breed.id)}
             style={({ pressed }) => [
               styles.row,
-              index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
-              pressed && { backgroundColor: theme.backgroundSelected },
+              index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
+              pressed && { backgroundColor: theme.surfaceBrand },
             ]}>
-            <ThemedText type="small">{breed.name}</ThemedText>
+            <Text>{breed.name}</Text>
           </Pressable>
         ))}
         {visible.length === 0 ? (
-          <ThemedText type="small" themeColor="textSecondary" style={styles.row}>
+          <Text variant="caption" color="inkMuted" style={styles.row}>
             {t('pets.breedPicker.noResults')}
-          </ThemedText>
+          </Text>
         ) : null}
       </View>
 
       {results.length > visible.length ? (
-        <ThemedText type="small" themeColor="textSecondary">
+        <Text variant="caption" color="inkMuted">
           {t('pets.breedPicker.moreResults')}
-        </ThemedText>
+        </Text>
       ) : null}
 
-      <Button variant="ghost" label={t('pets.breedPicker.other')} onPress={onChooseOther} />
+      <Button variant="ghost" size="md" label={t('pets.breedPicker.other')} onPress={onChooseOther} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.two,
+    gap: spacing['2'],
   },
   results: {
     borderWidth: 1,
-    borderRadius: Spacing.two,
+    borderRadius: radius.md,
     overflow: 'hidden',
   },
   row: {
     minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingHorizontal: spacing['3'],
+    paddingVertical: spacing['2'],
   },
 });

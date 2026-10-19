@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, StyleSheet, TextInput, View, type TextInputProps, type TextStyle } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
 import { IconButton } from '@/components/ui/icon-button';
@@ -8,6 +8,13 @@ import { Text } from '@/components/ui/text';
 import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
 import { borderWidth, fontFamily, radius, size, spacing } from '@/theme/tokens';
+
+/**
+ * Solo web: el navegador dibuja su propio contorno dentro de la caja. El foco (también con teclado) lo
+ * marca el borde de 2 px `primary` de la caja (`isFocused`). React Native Web admite `none`, aunque los
+ * tipos de React Native no lo incluyan.
+ */
+const WEB_INPUT_STYLE = { outlineStyle: 'none' } as unknown as TextStyle;
 
 type TextFieldProps = TextInputProps & {
   /** Siempre visible encima (nunca solo placeholder). */
@@ -95,6 +102,7 @@ export function TextField({
           }}
           style={[
             styles.input,
+            Platform.OS === 'web' && WEB_INPUT_STYLE,
             multiline && styles.multilineInput,
             { color: editable ? theme.ink : theme.inkSubtle },
             style,

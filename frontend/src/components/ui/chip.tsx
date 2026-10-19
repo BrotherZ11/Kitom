@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, type PressableProps } from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -15,6 +16,8 @@ type ChipProps = Omit<PressableProps, 'children' | 'style'> & {
   selected?: boolean;
   /** Icono a la izquierda cuando no está elegido (elegido, siempre el check). */
   icon?: LucideIcon;
+  /** Marca propia antes del texto, siempre visible (p. ej. el punto de color de una serie). */
+  marker?: ReactNode;
 };
 
 /**
@@ -26,6 +29,7 @@ export function Chip({
   label,
   selected,
   icon,
+  marker,
   disabled,
   accessibilityRole,
   onPressIn,
@@ -67,6 +71,7 @@ export function Chip({
             <PressedOverlay />
           ) : null}
           {leadingIcon ? <Icon icon={leadingIcon} size={16} color={selected ? 'primary' : 'ink'} /> : null}
+          {marker}
           <Text
             variant="label"
             color={selected ? 'primary' : 'ink'}

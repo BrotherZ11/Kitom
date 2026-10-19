@@ -15,9 +15,14 @@ import { PressedOverlay } from '@/components/ui/pressed-overlay';
 import { Text } from '@/components/ui/text';
 import { usePressFeedback } from '@/components/ui/use-press-feedback';
 import { useTheme, type ThemeColor } from '@/hooks/use-theme';
+import { withAlpha } from '@/theme/color';
 import { radius, size as sizes, spacing, typography } from '@/theme/tokens';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerGhost';
+/**
+ * `inverse` e `inverseOutline`: sobre fondo `laguna-900` (bienvenida, tablero 1.1): relleno niebla con
+ * texto laguna, y contorno niebla al 50 % con texto niebla.
+ */
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerGhost' | 'inverse' | 'inverseOutline';
 export type ButtonSize = 'lg' | 'md' | 'sm';
 
 type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
@@ -42,6 +47,8 @@ const VARIANTS: Record<ButtonVariant, { background: ThemeColor | null; foregroun
   ghost: { background: null, foreground: 'primary' },
   danger: { background: 'danger', foreground: 'onDanger' },
   dangerGhost: { background: null, foreground: 'dangerInk' },
+  inverse: { background: 'inkInverse', foreground: 'surfaceInverse' },
+  inverseOutline: { background: null, foreground: 'inkInverse' },
 };
 
 const SIZES = {
@@ -116,6 +123,7 @@ export function Button({
                 pressed && variant === 'primary' && !isDisabled ? theme.primaryPressed : background,
             },
             spec.bordered && !isInactive && { borderWidth: 1.5, borderColor: theme.line },
+            variant === 'inverseOutline' && { borderWidth: 1.5, borderColor: withAlpha(theme.inkInverse, 0.5) },
             loading && styles.loading,
             feedback.animatedStyle,
           ]}>

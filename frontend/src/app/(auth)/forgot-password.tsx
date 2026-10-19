@@ -43,11 +43,15 @@ export default function ForgotPasswordScreen() {
   };
 
   const goToLogin = () => router.replace('/login');
+  const back = router.canGoBack() ? () => router.back() : goToLogin;
 
   if (isSent) {
+    // Tablero 1.8 («Enlace enviado»): barra con «atrás» y el bloque arriba, no centrado.
     return (
       <Screen
+        align="top"
         footer={<Button variant="ghost" size="md" label={t('auth.forgotPassword.backToLogin')} onPress={goToLogin} />}>
+        <TopBar onBack={back} backLabel={t('auth.back')} />
         <EmptyState
           prominent
           icon={Mail}
@@ -74,7 +78,7 @@ export default function ForgotPasswordScreen() {
           />
         </>
       }>
-      <TopBar onBack={router.canGoBack() ? () => router.back() : goToLogin} backLabel={t('auth.back')} />
+      <TopBar onBack={back} backLabel={t('auth.back')} />
 
       <View style={styles.heading}>
         <Text variant="title1" accessibilityRole="header">

@@ -2,19 +2,22 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { FormMessage } from '@/components/ui/form-message';
+import { ListItem } from '@/components/ui/list-item';
 import { LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
-import { Spacing } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import { TopBar } from '@/components/ui/top-bar';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
 import type { SignOutOutcome, SyncAttemptResult } from '@/features/auth/sign-out-flow';
 import { summarizeUnsynced } from '@/features/daily-logs/offline/daily-log-cache';
 import { useUnsyncedDailyLogs } from '@/features/daily-logs/hooks/use-daily-log';
 import { useSignOutFlow } from '@/features/daily-logs/sync/daily-log-sync-provider';
-import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
+import { spacing } from '@/theme/tokens';
 
 /**
  * Cerrar sesión con registros diarios sin sincronizar (`features/auth/sign-out-flow.ts`). Se llega
@@ -24,7 +27,6 @@ import { t } from '@/i18n';
  */
 export default function SignOutScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const { flow, state } = useSignOutFlow();
   const { view } = useUnsyncedDailyLogs();
   const [attempt, setAttempt] = useState<SyncAttemptResult | null>(null);
@@ -45,32 +47,42 @@ export default function SignOutScreen() {
     else router.replace('/');
   };
 
-  if (view.state === 'loading') return <LoadingState />;
+  const header = <TopBar onBack={cancel} backLabel={t('signOut.cancel')} title={t('signOut.title')} />;
+
+  if (view.state === 'loading') {
+    return (
+      <Screen align="top">
+        {header}
+        <LoadingState />
+      </Screen>
+    );
+  }
 
   const summary = view.state === 'ready' ? summarizeUnsynced(view.items.map((item) => item.record)) : null;
   const total = summary ? summary.pending + summary.conflict + summary.failed : null;
 
   return (
-    <Screen align="top" edges={['bottom', 'left', 'right']}>
+    <Screen align="top">
+      {header}
       {summary === null ? (
-        <FormMessage message={t('signOut.checkFailed')} />
+        <Alert tone="warning" message={t('signOut.checkFailed')} />
       ) : total === 0 ? (
-        <ThemedText>{t('signOut.allSynced')}</ThemedText>
+        <Text>{t('signOut.allSynced')}</Text>
       ) : (
         <>
-          <ThemedText type="smallBold">{t('signOut.intro')}</ThemedText>
-          <View style={[styles.counts, { borderColor: theme.dangerInk }]} accessibilityLiveRegion="polite">
-            {(['pending', 'conflict', 'failed'] as const).map((status) => (
-              <ThemedText key={status} type="small">
-                {`${t(`signOut.counts.${status}`)}: ${summary[status]}`}
-              </ThemedText>
-            ))}
+          <Text variant="title3">{t('signOut.intro')}</Text>
+          <View accessibilityLiveRegion="polite">
+            <Card flush>
+              {(['pending', 'conflict', 'failed'] as const).map((status, index) => (
+                <ListItem key={status} plain title={t(`signOut.counts.${status}`)} value={String(summary[status])} divider={index < 2} />
+              ))}
+            </Card>
           </View>
-          <ThemedText type="small">{t('signOut.localOnly')}</ThemedText>
+          <Alert tone="warning" message={t('signOut.localOnly')} />
           {summary.conflict + summary.failed > 0 && (
-            <ThemedText type="small" themeColor="textSecondary">
+            <Text variant="caption" color="inkMuted">
               {t('signOut.needsReview')}
-            </ThemedText>
+            </Text>
           )}
         </>
       )}
@@ -80,7 +92,7 @@ export default function SignOutScreen() {
 
       {total === 0 ? (
         <Button
-          label={t('home.signOut')}
+          label={t('settings.signOut')}
           loading={busy}
           onPress={async () => handle(await flow.request())}
         />
@@ -96,9 +108,9 @@ export default function SignOutScreen() {
               handle(await flow.syncAndSignOut());
             }}
           />
-          <ThemedText type="small" themeColor="textSecondary">
+          <Text variant="caption" color="inkMuted" style={styles.explanation}>
             {t('signOut.syncExplanation')}
-          </ThemedText>
+          </Text>
 
           <Button
             variant="secondary"
@@ -110,12 +122,13 @@ export default function SignOutScreen() {
               handle(await flow.keepAndSignOut());
             }}
           />
-          <ThemedText type="small" themeColor="textSecondary">
+          <Text variant="caption" color="inkMuted" style={styles.explanation}>
             {t('signOut.keepExplanation')}
-          </ThemedText>
+          </Text>
 
           <Button
             variant="ghost"
+            size="md"
             label={t('signOut.review')}
             disabled={busy}
             onPress={() => router.push('/daily-logs/unsynced')}
@@ -124,16 +137,14 @@ export default function SignOutScreen() {
       )}
 
       {/* Cancelar también vale durante un intento de sincronización (no espera a la red). */}
-      <Button variant="ghost" label={t('signOut.cancel')} disabled={state === 'signing_out'} onPress={cancel} />
+      <Button variant="ghost" size="md" label={t('signOut.cancel')} disabled={state === 'signing_out'} onPress={cancel} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  counts: {
-    gap: Spacing.half,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Spacing.two,
+  // La explicación va pegada a su botón.
+  explanation: {
+    marginTop: -spacing['2'],
   },
 });

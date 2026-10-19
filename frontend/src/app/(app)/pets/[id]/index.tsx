@@ -1,136 +1,49 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { ThemedText } from '@/components/themed-text';
-import { Button } from '@/components/ui/button';
-import { FormMessage } from '@/components/ui/form-message';
+import { Alert } from '@/components/ui/alert';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
-import { Spacing } from '@/constants/theme';
-import { useAuth } from '@/features/auth/auth-context';
-import { TodayLogCard } from '@/features/daily-logs/components/today-log-card';
-import { PetDetails } from '@/features/pets/components/pet-details';
-import { PetPhotoEditor } from '@/features/pets/components/pet-photo-editor';
-import { useBreed } from '@/features/pets/hooks/use-breeds';
-import { useCanEditPet, useDeletePet, usePet } from '@/features/pets/hooks/use-pets';
-import { useSpecies } from '@/features/pets/hooks/use-species';
+import { TopBar } from '@/components/ui/top-bar';
+import { PetProfile } from '@/features/pets/components/pet-profile';
+import { usePet } from '@/features/pets/hooks/use-pets';
 import { petErrorMessage } from '@/features/pets/pet-errors';
-import { formatBreed } from '@/features/pets/pet-format';
-import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
 
+/**
+ * Perfil de una mascota abierto desde «Mis mascotas» o un enlace (`/pets/[id]`). Es el mismo perfil
+ * que la pestaña Perfil, con «Volver». `?photoFailed=1`: se creó, pero la foto no se pudo subir.
+ */
 export default function PetDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, photoFailed } = useLocalSearchParams<{ id: string; photoFailed?: string }>();
   const router = useRouter();
-  const theme = useTheme();
-  const { user } = useAuth();
   const pet = usePet(id);
-  const canEdit = useCanEditPet(id);
-  const species = useSpecies();
-  const breed = useBreed(pet.data?.breed_id ?? null);
-  const deletePet = useDeletePet(id);
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/pets'));
 
-  const handleDelete = () => {
-    deletePet.mutate(undefined, { onSuccess: () => router.dismissTo('/pets') });
-  };
-
-  if (pet.isPending) {
+  if (pet.data) {
     return (
-      <Screen edges={['bottom', 'left', 'right']}>
+      <PetProfile
+        pet={pet.data}
+        mode="stack"
+        onOpenHistory={() => router.push({ pathname: '/pets/[id]/daily-logs', params: { id } })}
+        notice={photoFailed === '1' ? <Alert tone="warning" message={t('pets.new.photoFailed')} /> : null}
+      />
+    );
+  }
+
+  return (
+    <Screen align="top">
+      <TopBar onBack={back} />
+      {pet.isPending ? (
         <LoadingState />
-      </Screen>
-    );
-  }
-
-  if (pet.isError) {
-    return (
-      <Screen edges={['bottom', 'left', 'right']}>
-        <ErrorState message={petErrorMessage(pet.error)} onRetry={() => pet.refetch()} />
-      </Screen>
-    );
-  }
-
-  if (pet.data === null) {
-    return (
-      <Screen edges={['bottom', 'left', 'right']}>
+      ) : pet.isError ? (
+        <ErrorState message={petErrorMessage(pet.error)} onRetry={() => void pet.refetch()} />
+      ) : (
         <EmptyState
           title={t('pets.detail.notFound')}
           actionLabel={t('pets.detail.backToList')}
           onAction={() => router.dismissTo('/pets')}
         />
-      </Screen>
-    );
-  }
-
-  const currentPet = pet.data;
-  const speciesName =
-    species.data?.find((item) => item.id === currentPet.species_id)?.name ?? null;
-  // `isLoading` solo es true si la consulta está activa (la mascota tiene breed_id).
-  const breedName = breed.isLoading ? t('common.loading') : (breed.data?.name ?? null);
-  const breedLabel = formatBreed(currentPet, breedName);
-  // Solo UX: ocultar acciones que RLS rechazaría (editar: `can_edit_pet`; borrar: propietario).
-  const isOwner = currentPet.owner_id === user?.id;
-
-  return (
-    <Screen align="top" edges={['bottom', 'left', 'right']}>
-      <Stack.Screen options={{ title: currentPet.name }} />
-
-      <PetDetails
-        pet={currentPet}
-        speciesName={speciesName}
-        breedLabel={breedLabel}
-        isShared={!isOwner}
-        photo={<PetPhotoEditor pet={currentPet} canEdit={canEdit.data === true} />}
-      />
-
-      <TodayLogCard petId={id} canEdit={canEdit.data === true} />
-
-      {canEdit.data ? (
-        <Button
-          label={t('pets.detail.edit')}
-          onPress={() => router.push({ pathname: '/pets/[id]/edit', params: { id } })}
-        />
-      ) : null}
-
-      {isOwner && !isConfirmingDelete ? (
-        <Button
-          variant="ghost"
-          label={t('pets.detail.delete')}
-          onPress={() => setIsConfirmingDelete(true)}
-        />
-      ) : null}
-
-      {isOwner && isConfirmingDelete ? (
-        <View style={[styles.confirm, { borderColor: theme.dangerInk }]}>
-          <ThemedText type="smallBold">{t('pets.detail.deleteConfirmTitle')}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {t('pets.detail.deleteConfirmDescription')}
-          </ThemedText>
-          <FormMessage message={deletePet.isError ? petErrorMessage(deletePet.error) : null} />
-          <Button
-            label={t('pets.detail.deleteConfirm')}
-            loading={deletePet.isPending}
-            onPress={handleDelete}
-          />
-          <Button
-            variant="ghost"
-            label={t('common.cancel')}
-            disabled={deletePet.isPending}
-            onPress={() => setIsConfirmingDelete(false)}
-          />
-        </View>
-      ) : null}
+      )}
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  confirm: {
-    gap: Spacing.two,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-  },
-});

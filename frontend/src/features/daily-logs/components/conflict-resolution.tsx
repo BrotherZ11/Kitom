@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { FormMessage } from '@/components/ui/form-message';
 import { OptionGroup, type Option } from '@/components/ui/option-group';
+import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
-import { Spacing } from '@/constants/theme';
 import { FIELD_LABELS, formatUnitValue } from '@/features/daily-logs/components/daily-log-values';
 import { SyncStatus } from '@/features/daily-logs/components/sync-status';
 import { NOTES_MAX_LENGTH, UNUSUAL_BEHAVIOR_NOTES_MAX_LENGTH } from '@/features/daily-logs/daily-log-form';
@@ -39,6 +40,7 @@ import type { DailyLog } from '@/features/daily-logs/types';
 import { useIsOnline } from '@/hooks/use-is-online';
 import { useTheme } from '@/hooks/use-theme';
 import { t, type TranslationKey } from '@/i18n';
+import { radius, spacing } from '@/theme/tokens';
 
 /**
  * Detalle de un registro con cambios sin confirmar: conflicto (comparar y decidir), no se pudo
@@ -146,9 +148,9 @@ export function ConflictResolution({ petId, logDate, record, onDone }: ConflictR
     return (
       <View style={styles.container}>
         {outcomeMessage ?? (
-          <ThemedText themeColor="textSecondary">{t('dailyLogs.resolve.nothingToResolve')}</ThemedText>
+          <Text color="inkMuted">{t('dailyLogs.resolve.nothingToResolve')}</Text>
         )}
-        <Button variant="secondary" label={t('dailyLogs.resolve.back')} onPress={onDone} />
+        <Button variant="secondary" size="md" label={t('dailyLogs.resolve.back')} onPress={onDone} />
       </View>
     );
   }
@@ -167,7 +169,7 @@ export function ConflictResolution({ petId, logDate, record, onDone }: ConflictR
 
   return (
     <View style={styles.container}>
-      <ThemedText>{t(INTRO[record.status])}</ThemedText>
+      <Text>{t(INTRO[record.status])}</Text>
       <SyncStatus
         status={record.status}
         record={record}
@@ -180,19 +182,19 @@ export function ConflictResolution({ petId, logDate, record, onDone }: ConflictR
 
       {remoteCheck ? (
         <View style={styles.section} accessibilityLiveRegion="polite">
-          <ThemedText type="small" themeColor="textSecondary">
+          <Text variant="caption" color="inkMuted">
             {t(remoteCheck)}
-          </ThemedText>
+          </Text>
           {remoteCheck === 'dailyLogs.resolve.remoteCheck.failed' ? (
-            <Button variant="secondary" label={t('dailyLogs.sync.retry')} onPress={() => void retryCheck()} />
+            <Button variant="secondary" size="md" label={t('dailyLogs.sync.retry')} onPress={() => void retryCheck()} />
           ) : null}
         </View>
       ) : null}
 
       {record.status === 'failed' && record.error?.kind === 'permission' ? (
-        <ThemedText type="small" themeColor="textSecondary">
+        <Text variant="caption" color="inkMuted">
           {t('dailyLogs.resolve.permissionHelp')}
-        </ThemedText>
+        </Text>
       ) : null}
 
       {remote?.status === 'absent' ? (
@@ -234,9 +236,9 @@ function DeletedRemote({
 }) {
   return (
     <View style={styles.section}>
-      <ThemedText type="small" themeColor="textSecondary">
+      <Text variant="caption" color="inkMuted">
         {t('dailyLogs.resolve.deletedExplanation')}
-      </ThemedText>
+      </Text>
       <Button
         label={t('dailyLogs.resolve.recreate')}
         loading={saving}
@@ -253,24 +255,34 @@ function DeletedRemote({
  * con eliminar el registro.
  */
 function DiscardLocalCopy({ saving, onConfirm }: { saving: boolean; onConfirm: () => void }) {
-  const theme = useTheme();
   const [confirming, setConfirming] = useState(false);
   return (
-    <View style={[styles.card, { borderColor: theme.border }]}>
-      <ThemedText type="smallBold">{t('dailyLogs.resolve.discardLocal.title')}</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
+    <Card variant="flat">
+      <Text variant="bodyStrong">{t('dailyLogs.resolve.discardLocal.title')}</Text>
+      <Text variant="caption" color="inkMuted">
         {t('dailyLogs.resolve.discardLocal.explanation')}
-      </ThemedText>
+      </Text>
       {confirming ? (
         <>
-          <ThemedText type="small">{t('dailyLogs.resolve.discardLocal.confirm')}</ThemedText>
-          <Button label={t('dailyLogs.resolve.discardLocal.confirmButton')} loading={saving} onPress={onConfirm} />
-          <Button variant="secondary" label={t('common.cancel')} onPress={() => setConfirming(false)} />
+          <Alert tone="warning" message={t('dailyLogs.resolve.discardLocal.confirm')} />
+          <Button variant="secondary" size="md" label={t('common.cancel')} onPress={() => setConfirming(false)} />
+          <Button
+            variant="danger"
+            size="md"
+            label={t('dailyLogs.resolve.discardLocal.confirmButton')}
+            loading={saving}
+            onPress={onConfirm}
+          />
         </>
       ) : (
-        <Button variant="secondary" label={t('dailyLogs.resolve.discardLocal.action')} onPress={() => setConfirming(true)} />
+        <Button
+          variant="dangerGhost"
+          size="md"
+          label={t('dailyLogs.resolve.discardLocal.action')}
+          onPress={() => setConfirming(true)}
+        />
       )}
-    </View>
+    </Card>
   );
 }
 
@@ -344,11 +356,14 @@ function Comparison({
 
   return (
     <View style={styles.section}>
-      <ThemedText type="smallBold">{t('dailyLogs.resolve.differences')}</ThemedText>
+      <Text variant="bodyStrong">{t('dailyLogs.resolve.differences')}</Text>
       {differing.map((item) => (
         <View
           key={item.unit}
-          style={[styles.card, { borderColor: item.change === 'conflict' ? theme.dangerInk : theme.border }]}
+          style={[
+            styles.card,
+            { borderColor: item.change === 'conflict' ? theme.dangerInk : theme.line, backgroundColor: theme.surface },
+          ]}
           accessible
           accessibilityLabel={[
             t(FIELD_LABELS[item.unit]),
@@ -356,18 +371,30 @@ function Comparison({
             `${t('dailyLogs.resolve.server')}: ${formatUnitValue(item.unit, item.remote)}`,
             t(CHANGE_HINTS[item.change as Exclude<UnitChange, 'same'>]),
           ].join('. ')}>
-          <ThemedText type="smallBold">{t(FIELD_LABELS[item.unit])}</ThemedText>
-          <ThemedText type="small">{`${t('dailyLogs.resolve.mine')}: ${formatUnitValue(item.unit, item.local)}`}</ThemedText>
-          <ThemedText type="small">{`${t('dailyLogs.resolve.server')}: ${formatUnitValue(item.unit, item.remote)}`}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
+          <Text variant="bodyStrong">{t(FIELD_LABELS[item.unit])}</Text>
+          <View style={styles.versions}>
+            <View style={[styles.version, { backgroundColor: theme.surfaceBrand }]}>
+              <Text variant="overline" color="inkMuted">
+                {t('dailyLogs.resolve.mine')}
+              </Text>
+              <Text variant="label">{formatUnitValue(item.unit, item.local)}</Text>
+            </View>
+            <View style={[styles.version, { backgroundColor: theme.surfaceSunken }]}>
+              <Text variant="overline" color="inkMuted">
+                {t('dailyLogs.resolve.server')}
+              </Text>
+              <Text variant="label">{formatUnitValue(item.unit, item.remote)}</Text>
+            </View>
+          </View>
+          <Text variant="caption" color={item.change === 'conflict' ? 'dangerInk' : 'inkMuted'}>
             {t(CHANGE_HINTS[item.change as Exclude<UnitChange, 'same'>])}
-          </ThemedText>
+          </Text>
         </View>
       ))}
       {differing.length < units.length ? (
-        <ThemedText type="small" themeColor="textSecondary">
+        <Text variant="caption" color="inkMuted">
           {t('dailyLogs.resolve.restSame')}
-        </ThemedText>
+        </Text>
       ) : null}
 
       <OptionGroup
@@ -384,13 +411,13 @@ function Comparison({
       {strategy === 'combine' ? (
         <View style={styles.section}>
           {namesWith('local_only').length ? (
-            <ThemedText type="small">{`${t('dailyLogs.resolve.autoMine')} ${namesWith('local_only').join(', ')}.`}</ThemedText>
+            <Text variant="caption">{`${t('dailyLogs.resolve.autoMine')} ${namesWith('local_only').join(', ')}.`}</Text>
           ) : null}
           {namesWith('remote_only').length ? (
-            <ThemedText type="small">{`${t('dailyLogs.resolve.autoServer')} ${namesWith('remote_only').join(', ')}.`}</ThemedText>
+            <Text variant="caption">{`${t('dailyLogs.resolve.autoServer')} ${namesWith('remote_only').join(', ')}.`}</Text>
           ) : null}
           {namesWith('merged').length ? (
-            <ThemedText type="small">{t('dailyLogs.resolve.autoTags')}</ThemedText>
+            <Text variant="caption">{t('dailyLogs.resolve.autoTags')}</Text>
           ) : null}
           {conflicts.map((item) => {
             const unit = item.unit as MergeUnit;
@@ -439,11 +466,11 @@ function Comparison({
 
       {result?.status === 'merged' ? (
         <View style={styles.section}>
-          <ThemedText type="smallBold">{t('dailyLogs.resolve.result')}</ThemedText>
+          <Text variant="bodyStrong">{t('dailyLogs.resolve.result')}</Text>
           {differing.map((item) => (
-            <ThemedText key={item.unit} type="small">
+            <Text key={item.unit} variant="caption">
               {`${t(FIELD_LABELS[item.unit])}: ${formatUnitValue(item.unit, result.content)}`}
-            </ThemedText>
+            </Text>
           ))}
         </View>
       ) : null}
@@ -456,30 +483,40 @@ function Comparison({
 
 /** Tus datos tal como están en el dispositivo, seleccionables para copiarlos. */
 function LocalValues({ content }: { content: DailyLogContent }) {
-  const theme = useTheme();
   return (
-    <View style={[styles.card, { borderColor: theme.border }]}>
-      <ThemedText type="smallBold">{t('dailyLogs.resolve.localValues')}</ThemedText>
+    <Card variant="flat">
+      <Text variant="bodyStrong">{t('dailyLogs.resolve.localValues')}</Text>
       {UNITS.map((unit) => (
-        <ThemedText key={unit} type="small" selectable>
+        <Text key={unit} variant="caption" selectable>
           {`${t(FIELD_LABELS[unit])}: ${formatUnitValue(unit, content)}`}
-        </ThemedText>
+        </Text>
       ))}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.four,
+    gap: spacing['5'],
   },
   section: {
-    gap: Spacing.two,
+    gap: spacing['3'],
   },
   card: {
-    gap: Spacing.one,
-    padding: Spacing.three,
+    gap: spacing['2'],
+    padding: spacing['3'],
     borderWidth: 1,
-    borderRadius: Spacing.two,
+    borderRadius: radius.md,
+  },
+  // Tablero 5.9: las dos versiones lado a lado; la del móvil sobre fondo de marca.
+  versions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  version: {
+    flex: 1,
+    gap: spacing['1'],
+    padding: 10,
+    borderRadius: radius.sm,
   },
 });

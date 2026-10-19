@@ -1,14 +1,14 @@
 import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { OptionGroup, type Option } from '@/components/ui/option-group';
+import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
-import { Spacing } from '@/constants/theme';
 import { BreedPicker } from '@/features/pets/components/breed-picker';
 import type { PetFormValues } from '@/features/pets/pet-form';
 import { BREED_STATUS_VALUES, type BreedStatus } from '@/features/pets/types';
 import { t } from '@/i18n';
+import { spacing } from '@/theme/tokens';
 
 export type BreedValues = Pick<PetFormValues, 'breedStatus' | 'breedSource' | 'breedId' | 'breedText'>;
 
@@ -54,15 +54,15 @@ export function PetBreedField({ speciesId, value, onChange, errors }: PetBreedFi
       />
 
       {value.breedStatus === null ? (
-        <ThemedText type="small" themeColor="textSecondary">
+        <Text variant="caption" color="inkMuted">
           {t('pets.breedPicker.hint')}
-        </ThemedText>
+        </Text>
       ) : null}
 
       {isKnown && speciesId === '' ? (
-        <ThemedText type="small" themeColor="textSecondary">
+        <Text variant="caption" color="inkMuted">
           {t('pets.breedPicker.chooseSpeciesFirst')}
-        </ThemedText>
+        </Text>
       ) : null}
 
       {isKnown && speciesId !== '' && value.breedSource === 'catalog' ? (
@@ -96,6 +96,7 @@ export function PetBreedField({ speciesId, value, onChange, errors }: PetBreedFi
       {value.breedStatus !== null ? (
         <Button
           variant="ghost"
+          size="md"
           label={t('pets.breedPicker.clear')}
           onPress={() => onChange(UNANSWERED)}
         />
@@ -106,6 +107,6 @@ export function PetBreedField({ speciesId, value, onChange, errors }: PetBreedFi
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.two,
+    gap: spacing['2'],
   },
 });

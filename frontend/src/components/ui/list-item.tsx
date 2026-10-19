@@ -5,8 +5,8 @@ import { Icon } from '@/components/ui/icon';
 import { ChevronRight, type LucideIcon } from '@/components/ui/icons';
 import { PressedOverlay } from '@/components/ui/pressed-overlay';
 import { Text } from '@/components/ui/text';
-import { useTheme } from '@/hooks/use-theme';
-import { borderWidth, fontFamily, radius, size, spacing } from '@/theme/tokens';
+import { useTheme, type ThemeColor } from '@/hooks/use-theme';
+import { borderWidth, radius, size, spacing } from '@/theme/tokens';
 
 type ListItemProps = {
   title: string;
@@ -17,7 +17,15 @@ type ListItemProps = {
   icon?: LucideIcon;
   /** Elemento propio a la izquierda (avatar, foto); sustituye al icono. */
   leading?: ReactNode;
+  /** Elemento propio a la derecha, antes del chevron (etiqueta «Próximamente», interruptor…). */
+  trailing?: ReactNode;
+  /** Título en peso normal (filas de ajustes); por defecto, `body-strong`. */
+  plain?: boolean;
+  /** Color del título (p. ej. `primary` en «Cerrar sesión», `dangerInk` en acciones destructivas). */
+  titleColor?: ThemeColor;
   onPress?: () => void;
+  /** Chevron de «abre otra pantalla»; las filas que ejecutan una acción (cerrar sesión) no lo llevan. */
+  chevron?: boolean;
   /** Filete inferior: todas las filas de un grupo menos la última. */
   divider?: boolean;
   accessibilityLabel?: string;
@@ -34,7 +42,11 @@ export function ListItem({
   value,
   icon,
   leading,
+  trailing,
+  plain = false,
+  titleColor = 'ink',
   onPress,
+  chevron = true,
   divider = false,
   accessibilityLabel,
   accessibilityHint,
@@ -57,15 +69,18 @@ export function ListItem({
           </View>
         ) : null)}
       <View style={styles.text}>
-        <Text variant="bodyStrong">{title}</Text>
+        <Text variant={plain ? 'body' : 'bodyStrong'} color={titleColor}>
+          {title}
+        </Text>
         {subtitle ? (
-          <Text variant="label" color="inkMuted" style={styles.subtitle}>
+          <Text variant="caption" color="inkMuted">
             {subtitle}
           </Text>
         ) : null}
       </View>
       {value ? <Text color="inkMuted">{value}</Text> : null}
-      {onPress ? <Icon icon={ChevronRight} size="sm" color="inkMuted" /> : null}
+      {trailing}
+      {onPress && chevron ? <Icon icon={ChevronRight} size="sm" color="inkSubtle" /> : null}
     </View>
   );
 
@@ -106,9 +121,5 @@ const styles = StyleSheet.create({
   },
   text: {
     flex: 1,
-    gap: 2,
-  },
-  subtitle: {
-    fontFamily: fontFamily.sans400,
   },
 });

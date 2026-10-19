@@ -1,10 +1,10 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Chip } from '@/components/ui/chip';
+import { Text } from '@/components/ui/text';
 import { DAILY_LOG_TAGS, type DailyLogTag } from '@/features/daily-logs/daily-log-form';
-import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
+import { spacing } from '@/theme/tokens';
 
 type TagSelectorProps = {
   value: DailyLogTag[];
@@ -12,40 +12,25 @@ type TagSelectorProps = {
   disabled?: boolean;
 };
 
-/** Etiquetas del día: solo las del catálogo cerrado (`DAILY_LOG_TAGS`), selección múltiple. */
+/** Etiquetas del día (tablero 5.2): solo las del catálogo cerrado (`DAILY_LOG_TAGS`), selección múltiple. */
 export function TagSelector({ value, onToggle, disabled = false }: TagSelectorProps) {
-  const theme = useTheme();
-  const title = t('dailyLogs.tags.title');
+  const title = t('dailyLogs.editor.tagsTitle');
 
   return (
     <View style={styles.container}>
-      <ThemedText type="smallBold">{title}</ThemedText>
-      <View style={styles.options} accessibilityLabel={title}>
-        {DAILY_LOG_TAGS.map((tag) => {
-          const isSelected = value.includes(tag);
-          return (
-            <Pressable
-              key={tag}
-              accessibilityRole="checkbox"
-              accessibilityLabel={t(`dailyLogs.tags.${tag}`)}
-              accessibilityState={{ checked: isSelected, disabled }}
-              disabled={disabled}
-              onPress={() => onToggle(tag)}
-              style={[
-                styles.option,
-                {
-                  borderColor: isSelected ? theme.tint : theme.border,
-                  backgroundColor: isSelected ? theme.backgroundSelected : theme.backgroundElement,
-                },
-                disabled && styles.disabled,
-              ]}>
-              <ThemedText type={isSelected ? 'smallBold' : 'small'}>
-                {isSelected ? '✓ ' : ''}
-                {t(`dailyLogs.tags.${tag}`)}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
+      <Text variant="title3" accessibilityRole="header">
+        {title}
+      </Text>
+      <View style={styles.chips} accessibilityLabel={title}>
+        {DAILY_LOG_TAGS.map((tag) => (
+          <Chip
+            key={tag}
+            label={t(`dailyLogs.tags.${tag}`)}
+            selected={value.includes(tag)}
+            disabled={disabled}
+            onPress={() => onToggle(tag)}
+          />
+        ))}
       </View>
     </View>
   );
@@ -53,21 +38,11 @@ export function TagSelector({ value, onToggle, disabled = false }: TagSelectorPr
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.one,
+    gap: 10,
   },
-  options: {
+  chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  option: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Spacing.four,
-  },
-  disabled: {
-    opacity: 0.6,
+    gap: spacing['2'],
   },
 });

@@ -1,14 +1,14 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { ErrorState, LoadingState } from '@/components/ui/query-state';
-import { Spacing } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
 import { useDeviceDailyLogPets } from '@/features/daily-logs/hooks/use-daily-log';
 import { formatLogDateLabel } from '@/features/daily-logs/log-date';
-import { useTheme } from '@/hooks/use-theme';
 import { getLocale, t } from '@/i18n';
+import { spacing } from '@/theme/tokens';
 
 /**
  * Registros diarios guardados en el dispositivo, agrupados por mascota, para llegar a ellos cuando la
@@ -17,7 +17,6 @@ import { getLocale, t } from '@/i18n';
  */
 export function DeviceDailyLogs() {
   const router = useRouter();
-  const theme = useTheme();
   const { state, refetch } = useDeviceDailyLogPets();
 
   if (state.status === 'loading') return <LoadingState variant="inline" />;
@@ -25,26 +24,32 @@ export function DeviceDailyLogs() {
 
   return (
     <View style={styles.section}>
-      <ThemedText type="smallBold">{t('dailyLogs.deviceLogs.title')}</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
+      <Text variant="title3" accessibilityRole="header">
+        {t('dailyLogs.deviceLogs.title')}
+      </Text>
+      <Text color="inkMuted">
         {state.data.length === 0 ? t('dailyLogs.deviceLogs.none') : t('dailyLogs.deviceLogs.description')}
-      </ThemedText>
+      </Text>
       {state.data.map(({ petId, count, latestDate }) => (
-        <View key={petId} style={[styles.item, { borderColor: theme.border }]}>
-          <ThemedText type="smallBold">{t('dailyLogs.deviceLogs.pet')}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {`${t('dailyLogs.deviceLogs.count')}: ${count} · ${t('dailyLogs.deviceLogs.latest')}: ${formatLogDateLabel(latestDate, getLocale(), { withYear: true })}`}
-          </ThemedText>
+        <Card key={petId}>
+          <View>
+            <Text variant="bodyStrong">{t('dailyLogs.deviceLogs.pet')}</Text>
+            <Text variant="caption" color="inkMuted">
+              {`${t('dailyLogs.deviceLogs.count')}: ${count} · ${t('dailyLogs.deviceLogs.latest')}: ${formatLogDateLabel(latestDate, getLocale(), { withYear: true })}`}
+            </Text>
+          </View>
           <Button
+            size="md"
             label={t('dailyLogs.deviceLogs.today')}
             onPress={() => router.push({ pathname: '/pets/[id]/daily-log', params: { id: petId } })}
           />
           <Button
             variant="secondary"
+            size="md"
             label={t('dailyLogs.deviceLogs.history')}
             onPress={() => router.push({ pathname: '/pets/[id]/daily-logs', params: { id: petId } })}
           />
-        </View>
+        </Card>
       ))}
     </View>
   );
@@ -52,12 +57,6 @@ export function DeviceDailyLogs() {
 
 const styles = StyleSheet.create({
   section: {
-    gap: Spacing.two,
-  },
-  item: {
-    gap: Spacing.two,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Spacing.two,
+    gap: spacing['3'],
   },
 });

@@ -1,235 +1,149 @@
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Linking, Platform, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { Button } from '@/components/ui/button';
-import { FormMessage } from '@/components/ui/form-message';
-import { Spacing } from '@/constants/theme';
+import { Dialog } from '@/components/ui/dialog';
+import { Icon } from '@/components/ui/icon';
+import { Camera, Trash } from '@/components/ui/icons';
+import { Text } from '@/components/ui/text';
+import { TextLink } from '@/components/ui/text-link';
 import { PetPhoto } from '@/features/pets/components/pet-photo';
+import { PetPhotoSheet } from '@/features/pets/components/pet-photo-sheet';
 import { usePetPhotoUrl, useRemovePetPhoto, useUploadPetPhoto } from '@/features/pets/hooks/use-pet-photo';
-import { petErrorMessage, PetPhotoPermissionError } from '@/features/pets/pet-errors';
+import { petErrorMessage } from '@/features/pets/pet-errors';
 import type { PreparedPetPhoto } from '@/features/pets/pet-photo';
-import { pickPetPhoto, type PetPhotoSource } from '@/features/pets/pet-photo-picker';
 import type { Pet } from '@/features/pets/types';
-import { t } from '@/i18n';
-
-const PHOTO_SIZE = 128;
-
-/**
- * En web el botón de cámara sería un segundo selector de archivos (el navegador decide si ofrece la
- * cámara), así que solo se muestra la galería. En móvil nativo se ofrecen ambas.
- */
-const CAN_USE_CAMERA = Platform.OS !== 'web';
+import { useTheme } from '@/hooks/use-theme';
+import { t, tf } from '@/i18n';
+import { radius, size } from '@/theme/tokens';
 
 type PetPhotoEditorProps = {
   pet: Pet;
   /** Solo UX (`can_edit_pet`): la autorización real la hacen las políticas de Storage y RLS. */
   canEdit: boolean;
+  /**
+   * Control propio que abre la hoja (p. ej. el botón de cámara sobre la foto del perfil 3.6). Sin él,
+   * el avatar con su insignia de cámara (tablero 3.8).
+   */
+  trigger?: (open: () => void) => ReactNode;
 };
 
-type Mode = 'idle' | 'choosing' | 'confirmingRemove';
-
 /**
- * Foto de la ficha de la mascota con sus acciones. Independiente del formulario de datos: un fallo
- * de Storage nunca bloquea la edición de nombre, raza, peso, etc.
+ * Foto de la ficha con sus acciones (tablero 3.8: el avatar abre la hoja 3.2). Independiente del
+ * formulario de datos: un fallo de Storage nunca bloquea la edición de nombre, raza, peso, etc. Una
+ * foto elegida se ve antes de guardarla; quitarla se confirma.
  */
-export function PetPhotoEditor({ pet, canEdit }: PetPhotoEditorProps) {
+export function PetPhotoEditor({ pet, canEdit, trigger }: PetPhotoEditorProps) {
+  const theme = useTheme();
   const photoPath = pet.photo_path;
   const photoUrl = usePetPhotoUrl(photoPath);
   const upload = useUploadPetPhoto(pet.id);
   const remove = useRemovePetPhoto(pet.id);
-
-  const [mode, setMode] = useState<Mode>('idle');
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [preview, setPreview] = useState<PreparedPetPhoto | null>(null);
-  const [isPicking, setIsPicking] = useState(false);
-  const [pickError, setPickError] = useState<unknown>(null);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
-  const isBusy = isPicking || upload.isPending || remove.isPending;
-  const mutationError = upload.error ?? remove.error;
-  const error = pickError ?? mutationError;
-  const needsSettings = error instanceof PetPhotoPermissionError && !error.canAskAgain;
-
-  const resetFeedback = () => {
-    setPickError(null);
-    upload.reset();
-    remove.reset();
-  };
-
-  const handlePick = async (source: PetPhotoSource) => {
-    resetFeedback();
-    setIsPicking(true);
-    try {
-      const photo = await pickPetPhoto(source);
-      // Cancelar no es un error: se vuelve al estado anterior sin mensaje.
-      if (photo) setPreview(photo);
-      setMode('idle');
-    } catch (pickFailure) {
-      setPickError(pickFailure);
-    } finally {
-      setIsPicking(false);
-    }
-  };
-
-  const handleSave = () => {
-    if (!preview) return;
-    upload.mutate(
-      { photo: preview, previousPath: photoPath },
-      { onSuccess: () => setPreview(null) },
-    );
-  };
-
-  const handleRemove = () => {
-    if (!photoPath) return;
-    remove.mutate(photoPath, { onSuccess: () => setMode('idle') });
-  };
-
-  const sourceButtons = (
-    <>
-      <Button
-        variant="secondary"
-        label={t('pets.photo.fromLibrary')}
-        disabled={isBusy}
-        onPress={() => handlePick('library')}
-      />
-      {CAN_USE_CAMERA ? (
-        <Button
-          variant="secondary"
-          label={t('pets.photo.takePhoto')}
-          disabled={isBusy}
-          onPress={() => handlePick('camera')}
-        />
-      ) : null}
-    </>
-  );
-
-  let actions: ReactNode = null;
-  if (!canEdit) {
-    actions = null;
-  } else if (preview) {
-    actions = (
-      <>
-        <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
-          {t('pets.photo.previewHint')}
-        </ThemedText>
-        <Button label={t('pets.photo.save')} loading={upload.isPending} onPress={handleSave} />
-        <Button
-          variant="ghost"
-          label={t('common.cancel')}
-          disabled={upload.isPending}
-          onPress={() => {
-            resetFeedback();
-            setPreview(null);
-          }}
-        />
-      </>
-    );
-  } else if (!photoPath) {
-    actions = sourceButtons;
-  } else if (mode === 'choosing') {
-    actions = (
-      <>
-        {sourceButtons}
-        <Button
-          variant="ghost"
-          label={t('common.cancel')}
-          disabled={isBusy}
-          onPress={() => setMode('idle')}
-        />
-      </>
-    );
-  } else if (mode === 'confirmingRemove') {
-    actions = (
-      <>
-        <ThemedText type="smallBold" style={styles.center}>
-          {t('pets.photo.removeConfirmTitle')}
-        </ThemedText>
-        <Button label={t('pets.photo.removeConfirm')} loading={remove.isPending} onPress={handleRemove} />
-        <Button
-          variant="ghost"
-          label={t('common.cancel')}
-          disabled={remove.isPending}
-          onPress={() => setMode('idle')}
-        />
-      </>
-    );
-  } else {
-    actions = (
-      <>
-        <Button
-          variant="secondary"
-          label={t('pets.photo.change')}
-          disabled={isBusy}
-          onPress={() => {
-            resetFeedback();
-            setMode('choosing');
-          }}
-        />
-        <Button
-          variant="ghost"
-          label={t('pets.photo.remove')}
-          disabled={isBusy}
-          onPress={() => {
-            resetFeedback();
-            setMode('confirmingRemove');
-          }}
-        />
-      </>
-    );
-  }
+  const avatar = <PetPhoto name={pet.name} photoPath={photoPath} size="lg" />;
 
   return (
-    <View style={styles.container}>
-      <PetPhoto name={pet.name} photoPath={photoPath} previewUri={preview?.uri} size={PHOTO_SIZE} />
+    <View>
+      {trigger ? (
+        canEdit ? (
+          trigger(() => setSheetOpen(true))
+        ) : null
+      ) : canEdit ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('pets.edit.changePhoto')}
+          onPress={() => setSheetOpen(true)}
+          style={({ pressed }) => pressed && styles.pressed}>
+          {avatar}
+          <View style={[styles.badge, { backgroundColor: theme.surface, borderColor: theme.line }]}>
+            <Icon icon={Camera} size={14} color="ink" />
+          </View>
+        </Pressable>
+      ) : (
+        avatar
+      )}
 
-      {isPicking ? (
-        <View style={styles.row} accessibilityLabel={t('pets.photo.processing')}>
-          <ActivityIndicator />
-          <ThemedText type="small" themeColor="textSecondary">
-            {t('pets.photo.processing')}
-          </ThemedText>
+      {photoUrl.isError && !trigger ? (
+        <View style={styles.urlError}>
+          <Text variant="caption" color="dangerInk">
+            {petErrorMessage(photoUrl.error)}
+          </Text>
+          <TextLink label={t('common.retry')} onPress={() => void photoUrl.refetch()} />
         </View>
       ) : null}
 
-      {photoUrl.isError && !preview ? (
-        <View style={styles.actions}>
-          <FormMessage message={petErrorMessage(photoUrl.error)} />
-          <Button variant="ghost" label={t('common.retry')} onPress={() => photoUrl.refetch()} />
-        </View>
-      ) : null}
+      <PetPhotoSheet
+        visible={sheetOpen}
+        title={tf('pets.photo.sheetTitle', { name: pet.name })}
+        canRemove={photoPath !== null}
+        onClose={() => setSheetOpen(false)}
+        onPicked={(photo) => {
+          upload.reset();
+          setPreview(photo);
+        }}
+        onRemove={() => {
+          remove.reset();
+          setConfirmingRemove(true);
+        }}
+      />
 
-      {actions ? <View style={styles.actions}>{actions}</View> : null}
-
-      {error ? (
-        <View style={styles.actions}>
-          <FormMessage message={petErrorMessage(error)} />
-          {needsSettings ? (
-            <Button
-              variant="ghost"
-              label={t('pets.photo.openSettings')}
-              onPress={() => Linking.openSettings()}
-            />
-          ) : null}
+      <Dialog
+        visible={preview !== null}
+        title={t('pets.photo.previewTitle')}
+        message={t('pets.photo.previewHint')}
+        confirmLabel={t('pets.photo.save')}
+        loading={upload.isPending}
+        error={upload.isError ? petErrorMessage(upload.error) : null}
+        onConfirm={() => {
+          if (!preview) return;
+          upload.mutate({ photo: preview, previousPath: photoPath }, { onSuccess: () => setPreview(null) });
+        }}
+        onCancel={() => setPreview(null)}>
+        <View style={styles.preview}>
+          <PetPhoto name={pet.name} photoPath={null} previewUri={preview?.uri} size="xl" />
         </View>
-      ) : null}
+      </Dialog>
+
+      <Dialog
+        visible={confirmingRemove}
+        tone="danger"
+        icon={Trash}
+        title={t('pets.photo.removeConfirmTitle')}
+        confirmLabel={t('pets.photo.removeConfirm')}
+        loading={remove.isPending}
+        error={remove.isError ? petErrorMessage(remove.error) : null}
+        onConfirm={() => {
+          if (!photoPath) return;
+          remove.mutate(photoPath, { onSuccess: () => setConfirmingRemove(false) });
+        }}
+        onCancel={() => setConfirmingRemove(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  pressed: {
+    opacity: 0.8,
+  },
+  badge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 26,
+    height: 26,
+    borderRadius: radius.full,
+    borderWidth: 1,
     alignItems: 'center',
-    gap: Spacing.two,
+    justifyContent: 'center',
   },
-  actions: {
-    alignSelf: 'stretch',
-    gap: Spacing.one,
+  urlError: {
+    marginTop: 6,
+    maxWidth: size.avatarLg * 3,
   },
-  row: {
-    flexDirection: 'row',
+  preview: {
     alignItems: 'center',
-    gap: Spacing.two,
-  },
-  center: {
-    textAlign: 'center',
   },
 });

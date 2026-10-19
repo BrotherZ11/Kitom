@@ -74,6 +74,62 @@ export function formatLogDateLabel(
   }
 }
 
+/** Fecha `YYYY-MM-DD` a mediodía UTC (para formatear exactamente ese día). */
+function utcNoon(logDate: string): Date | null {
+  const match = LOG_DATE.exec(logDate);
+  if (!match) return null;
+  return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12));
+}
+
+/** Fecha corta de cabecera (antetítulo de Hoy, tablero 4.x): «jueves 16 oct». */
+export function formatShortDateLabel(logDate: string, locale: string): string {
+  const date = utcNoon(logDate);
+  if (!date) return logDate;
+  try {
+    const parts = new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'short' })
+      .formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => part.value.replace(/\.$/, ''));
+    return parts.join(' ');
+  } catch {
+    return logDate;
+  }
+}
+
+/** Día de la semana y número (título del registro, tableros 5.1 y 5.4): «jueves 16». */
+export function formatWeekdayDay(logDate: string, locale: string): string {
+  const date = utcNoon(logDate);
+  if (!date) return logDate;
+  try {
+    const parts = new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'long', day: 'numeric' })
+      .formatToParts(date)
+      .filter((part) => part.type === 'weekday' || part.type === 'day');
+    const weekday = parts.find((part) => part.type === 'weekday')?.value ?? '';
+    const day = parts.find((part) => part.type === 'day')?.value ?? '';
+    return `${weekday} ${day}`.trim();
+  } catch {
+    return logDate;
+  }
+}
+
+/** Primera letra en mayúscula según el idioma («miércoles 15» → «Miércoles 15»). */
+export function capitalizeFirst(text: string, locale: string): string {
+  return text.charAt(0).toLocaleUpperCase(locale) + text.slice(1);
+}
+
+/** Inicial del día de la semana (eje de la gráfica semanal): «L», «M», «X»… según el idioma. */
+export function formatWeekdayInitial(logDate: string, locale: string): string {
+  const date = utcNoon(logDate);
+  if (!date) return '';
+  // En español el miércoles se abrevia «X» para no confundirlo con el martes.
+  if (locale.startsWith('es') && date.getUTCDay() === 3) return 'X';
+  try {
+    return new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'narrow' }).format(date).toLocaleUpperCase(locale);
+  } catch {
+    return '';
+  }
+}
+
 function formatUtcDate(instant: Date): string {
   const month = String(instant.getUTCMonth() + 1).padStart(2, '0');
   const day = String(instant.getUTCDate()).padStart(2, '0');

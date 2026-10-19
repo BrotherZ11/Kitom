@@ -1,57 +1,32 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { Button } from '@/components/ui/button';
-import { Spacing } from '@/constants/theme';
+import { Alert } from '@/components/ui/alert';
+import { CloudUpload } from '@/components/ui/icons';
 import { useUnsyncedDailyLogs } from '@/features/daily-logs/hooks/use-daily-log';
-import { useTheme } from '@/hooks/use-theme';
-import { t } from '@/i18n';
+import { t, tf } from '@/i18n';
 
 /**
- * Entrada de la pantalla de inicio a «Registros sin sincronizar», con contador. Lee solo el almacén
- * local del usuario: no depende de que la mascota siga visible en el servidor.
+ * Aviso de Hoy con los registros que tienen cambios solo en este dispositivo (también de mascotas que
+ * ya no se ven), con acceso a «Registros sin sincronizar». Lee solo el almacén local del usuario.
+ * Sin pendientes no ocupa sitio; si no se puede leer el almacén, lo dice (no afirma que no hay nada).
  */
 export function UnsyncedDailyLogsEntry() {
   const router = useRouter();
-  const theme = useTheme();
   const { view } = useUnsyncedDailyLogs();
-  const count = view.state === 'ready' ? view.items.length : null;
-  const needsAttention = count !== null && count > 0;
+  const open = { label: t('dailyLogs.unsynced.bannerAction'), onPress: () => router.push('/daily-logs/unsynced') };
 
-  const summary =
-    view.state === 'error'
-      ? t('dailyLogs.errors.local_read_failed')
-      : count === null
-        ? t('common.loading')
-        : count === 0
-          ? t('dailyLogs.unsynced.none')
-          : t('dailyLogs.unsynced.some');
+  if (view.state === 'error') {
+    return <Alert tone="warning" title={t('dailyLogs.unsynced.title')} message={t('dailyLogs.errors.local_read_failed')} action={open} />;
+  }
+  if (view.state !== 'ready' || view.items.length === 0) return null;
 
+  const count = view.items.length;
   return (
-    <View
-      style={[styles.card, { borderColor: needsAttention || view.state === 'error' ? theme.dangerInk : theme.border }]}
-      accessibilityLiveRegion="polite">
-      <ThemedText type="smallBold">
-        {count === null ? t('dailyLogs.unsynced.title') : `${t('dailyLogs.unsynced.title')} (${count})`}
-      </ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        {summary}
-      </ThemedText>
-      <Button
-        variant={needsAttention ? 'primary' : 'secondary'}
-        label={t('dailyLogs.unsynced.open')}
-        onPress={() => router.push('/daily-logs/unsynced')}
-      />
-    </View>
+    <Alert
+      tone="warning"
+      icon={CloudUpload}
+      message={count === 1 ? t('dailyLogs.unsynced.bannerOne') : tf('dailyLogs.unsynced.banner', { count })}
+      action={open}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    gap: Spacing.two,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-  },
-});

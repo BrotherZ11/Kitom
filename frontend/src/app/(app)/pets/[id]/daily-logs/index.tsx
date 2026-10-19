@@ -1,94 +1,45 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { ThemedText } from '@/components/themed-text';
-import { Button } from '@/components/ui/button';
-import { FormMessage } from '@/components/ui/form-message';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
-import { HistoryListItem } from '@/features/daily-logs/components/history-list-item';
-import { toDailyLogError } from '@/features/daily-logs/daily-log-errors';
-import { useDailyLogHistory } from '@/features/daily-logs/hooks/use-daily-log';
-import { useTodayLogDate } from '@/features/daily-logs/hooks/use-today-log-date';
-import { useCanEditPet } from '@/features/pets/hooks/use-pets';
+import { TopBar } from '@/components/ui/top-bar';
+import { PetHistory } from '@/features/daily-logs/components/pet-history';
+import { useCanEditPet, usePet } from '@/features/pets/hooks/use-pets';
+import { petErrorMessage, toPetError } from '@/features/pets/pet-errors';
 import { t } from '@/i18n';
 
 /**
- * Historial de registros diarios de una mascota, del más reciente al más antiguo, por páginas, con
- * los cambios pendientes del dispositivo encima. Sin conexión muestra lo guardado en el dispositivo.
+ * Historial de una mascota concreta (`/pets/[id]/daily-logs`), el mismo que la pestaña Historial. Sin
+ * conexión y sin la mascota en caché (Pets aún no funciona sin conexión) se muestra igualmente lo
+ * guardado en el dispositivo, sin nombre ni foto: no se inventan.
  */
 export default function DailyLogHistoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const history = useDailyLogHistory(id);
+  const pet = usePet(id);
   const canEdit = useCanEditPet(id);
-  // Solo para marcar «Hoy» y decidir si mostrar el año; las fechas mostradas son las guardadas.
-  const today = useTodayLogDate();
+  const offline = !pet.data && pet.isError && toPetError(pet.error).code === 'network';
 
-  const errorMessage = (error: unknown) => t(`dailyLogs.errors.${toDailyLogError(error).code}`);
-  const openLog = (date: string) =>
-    router.push({ pathname: '/pets/[id]/daily-logs/[date]', params: { id, date } });
-
-  const content = () => {
-    const { view } = history;
-    if (view.state === 'loading') return <LoadingState />;
-    // Sin datos del servidor ni del dispositivo: error (nunca una lista vacía engañosa). Con datos,
-    // el error es de "cargar más" (abajo).
-    if (view.state === 'error') {
-      return <ErrorState message={errorMessage(view.error)} onRetry={history.refetch} />;
-    }
-
-    const { items } = view;
-    if (items.length === 0) {
-      return (
-        <EmptyState
-          title={t('dailyLogs.history.emptyTitle')}
-          description={t('dailyLogs.history.emptyDescription')}
-          actionLabel={canEdit.data ? t('dailyLogs.history.logToday') : undefined}
-          onAction={() => router.push({ pathname: '/pets/[id]/daily-log', params: { id } })}
-        />
-      );
-    }
-
-    const currentYear = today?.slice(0, 4);
-    return (
-      <>
-        {view.offline ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            {t('dailyLogs.sync.offline')}
-          </ThemedText>
-        ) : null}
-        {items.map(({ log, syncStatus }) => (
-          <HistoryListItem
-            key={log.log_date}
-            log={log}
-            syncStatus={syncStatus}
-            isToday={log.log_date === today}
-            withYear={currentYear !== undefined && !log.log_date.startsWith(currentYear)}
-            onPress={() => openLog(log.log_date)}
-          />
-        ))}
-        <FormMessage message={history.isFetchNextPageError ? errorMessage(history.error) : null} />
-        {view.offline ? null : history.hasNextPage ? (
-          <Button
-            variant="secondary"
-            label={t('dailyLogs.history.loadMore')}
-            loading={history.isFetchingNextPage}
-            onPress={() => {
-              if (!history.isFetchingNextPage) void history.fetchNextPage();
-            }}
-          />
-        ) : (
-          <ThemedText type="small" themeColor="textSecondary">
-            {t('dailyLogs.history.end')}
-          </ThemedText>
-        )}
-      </>
-    );
-  };
+  if (pet.data || offline) {
+    // Sin conexión no se conoce el nombre ni la foto: se dice que no están disponibles.
+    const shown = pet.data ?? { id, name: t('dailyLogs.offlinePet.unavailable'), photo_path: null };
+    return <PetHistory pet={shown} mode="stack" canEdit={canEdit.data ?? null} />;
+  }
 
   return (
-    <Screen align="top" edges={['bottom', 'left', 'right']}>
-      {content()}
+    <Screen align="top">
+      <TopBar onBack={() => (router.canGoBack() ? router.back() : router.replace('/history'))} />
+      {pet.isPending ? (
+        <LoadingState />
+      ) : pet.isError ? (
+        <ErrorState message={petErrorMessage(pet.error)} onRetry={() => void pet.refetch()} />
+      ) : (
+        <EmptyState
+          title={t('pets.detail.notFound')}
+          actionLabel={t('pets.detail.backToList')}
+          onAction={() => router.dismissTo('/pets')}
+        />
+      )}
     </Screen>
   );
 }

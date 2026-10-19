@@ -26,9 +26,12 @@ export type ScaleField =
   | (typeof QUALITY_SCALE_FIELDS)[number];
 export type ScaleKind = 'relative' | 'quality';
 
-/** Orden en pantalla: bloque principal y «Más detalles». */
-export const PRIMARY_SCALE_FIELDS = ['energy', 'appetite', 'mood'] as const satisfies readonly ScaleField[];
-export const DETAIL_SCALE_FIELDS = ['activity', 'sleep', 'vocalization', 'social'] as const satisfies readonly ScaleField[];
+/**
+ * Orden en pantalla. Principales (tablero 5.1): obligatorias al crear un registro. Detalles (tablero
+ * 5.2): opcionales, con tres opciones guardadas como 2/3/4 (`scale-labels.ts`).
+ */
+export const PRIMARY_SCALE_FIELDS = ['energy', 'appetite', 'mood', 'activity'] as const satisfies readonly ScaleField[];
+export const DETAIL_SCALE_FIELDS = ['sleep', 'vocalization', 'social'] as const satisfies readonly ScaleField[];
 export const SCALE_FIELDS = [...PRIMARY_SCALE_FIELDS, ...DETAIL_SCALE_FIELDS];
 
 /** Valor de «Todo como siempre» (relativa: como siempre; calidad: normal). */
@@ -51,7 +54,11 @@ export type DailyLogFormValues = {
   tags: DailyLogTag[];
 };
 
-export type DailyLogFormError = 'empty' | 'notes_too_long' | 'unusual_behavior_notes_too_long';
+export type DailyLogFormError =
+  | 'empty'
+  | 'primary_required'
+  | 'notes_too_long'
+  | 'unusual_behavior_notes_too_long';
 
 const EMPTY_SCALES: Record<ScaleField, null> = {
   energy: null,
@@ -120,11 +127,19 @@ export function setScale(
   return { ...values, scales: { ...values.scales, [field]: value } };
 }
 
-/** «Todo como siempre»: las 7 escalas a 3. Solo cambia el formulario; no guarda ni toca lo opcional. */
+/**
+ * «Todo como siempre»: las 4 escalas principales a 3 (tablero 5.1). Solo cambia el formulario; no
+ * guarda ni toca los detalles ni lo opcional.
+ */
 export function setAllAsUsual(values: DailyLogFormValues): DailyLogFormValues {
   const scales = { ...values.scales };
-  for (const field of SCALE_FIELDS) scales[field] = USUAL_SCALE_VALUE;
+  for (const field of PRIMARY_SCALE_FIELDS) scales[field] = USUAL_SCALE_VALUE;
   return { ...values, scales };
+}
+
+/** Cuántas de las 4 escalas principales están indicadas (progreso «n/4» del tablero 5.1). */
+export function answeredPrimaryCount(values: DailyLogFormValues): number {
+  return PRIMARY_SCALE_FIELDS.filter((field) => values.scales[field] !== null).length;
 }
 
 /** Añade o quita una etiqueta. Cualquier valor fuera del catálogo cerrado se ignora. */
@@ -153,13 +168,21 @@ function toContent(values: DailyLogFormValues) {
   };
 }
 
-/** Mismas reglas que la BD (CHECKs), para avisar antes de enviar. */
-export function validateDailyLogForm(values: DailyLogFormValues): DailyLogFormError | null {
+/**
+ * Mismas reglas que la BD (CHECKs), para avisar antes de enviar. Al crear un registro
+ * (`requirePrimary`), las 4 escalas principales son obligatorias (regla de producto del diseño v2);
+ * al editar uno que ya existe se mantiene «no vacío», sin obligar a rellenar lo que antes no lo era.
+ */
+export function validateDailyLogForm(
+  values: DailyLogFormValues,
+  { requirePrimary = false }: { requirePrimary?: boolean } = {}
+): DailyLogFormError | null {
   const content = toContent(values);
   if ((content.notes?.length ?? 0) > NOTES_MAX_LENGTH) return 'notes_too_long';
   if ((content.unusualBehaviorNotes?.length ?? 0) > UNUSUAL_BEHAVIOR_NOTES_MAX_LENGTH) {
     return 'unusual_behavior_notes_too_long';
   }
+  if (requirePrimary && answeredPrimaryCount(values) < PRIMARY_SCALE_FIELDS.length) return 'primary_required';
   const hasScale = SCALE_FIELDS.some((field) => values.scales[field] !== null);
   const hasContent =
     hasScale ||
@@ -224,9 +247,14 @@ export function summarizeDailyLog(values: DailyLogFormValues): DailyLogSummary {
   };
 }
 
-/** ¿Hay algún dato de «Más detalles»? (para abrir la sección al cargar un registro). */
+/** ¿Hay algún dato de los detalles (tablero 5.2)? Para el resumen de «Añadir detalles». */
 export function hasDetailValues(values: DailyLogFormValues): boolean {
-  return DETAIL_SCALE_FIELDS.some((field) => values.scales[field] !== null);
+  return (
+    DETAIL_SCALE_FIELDS.some((field) => values.scales[field] !== null) ||
+    values.unusualBehavior ||
+    values.notes.trim() !== '' ||
+    values.tags.length > 0
+  );
 }
 
 // ---------------------------------------------------------------------------------------------

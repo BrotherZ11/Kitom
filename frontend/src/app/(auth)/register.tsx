@@ -61,8 +61,11 @@ export default function RegisterScreen() {
   const back = router.canGoBack() ? () => router.back() : undefined;
 
   if (needsEmailConfirmation) {
+    // Tablero 1.4: sin barra superior, bloque arriba (no centrado) y 24 hasta la tarjeta.
     return (
       <Screen
+        align="top"
+        gap={spacing['6']}
         footer={
           <>
             <Button label={t('auth.callback.goToLogin')} onPress={goToLogin} />
@@ -77,6 +80,7 @@ export default function RegisterScreen() {
         <EmptyState
           prominent
           icon={Mail}
+          style={styles.verifyOffset}
           title={t('auth.verifyEmail.title')}
           description={
             <>
@@ -174,5 +178,10 @@ const styles = StyleSheet.create({
   },
   hint: {
     gap: 6,
+  },
+  // El bloque del tablero 1.4 empieza a 120 del borde: 44 de barra de estado + 14 de `Screen` + 74
+  // (incluye los 12 de relleno de `.empty`).
+  verifyOffset: {
+    paddingTop: 74,
   },
 });

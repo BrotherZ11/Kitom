@@ -52,7 +52,7 @@ export function BottomSheet({ visible, title, onClose, children, footer }: Botto
             ]}>
             <View style={[styles.handle, { backgroundColor: theme.line }]} />
             <View style={styles.header}>
-              <Text variant="title3" accessibilityRole="header" style={styles.title}>
+              <Text variant="title2" accessibilityRole="header" style={styles.title}>
                 {title}
               </Text>
               <IconButton icon={X} accessibilityLabel={t('common.close')} onPress={onClose} />

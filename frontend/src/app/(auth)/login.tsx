@@ -7,6 +7,8 @@ import { FormMessage } from '@/components/ui/form-message';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
+import { TextLink } from '@/components/ui/text-link';
+import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
 import { authErrorField } from '@/features/auth/auth-error-field';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
@@ -75,6 +77,12 @@ export default function LoginScreen() {
           />
         </>
       }>
+      {/* «Atrás» vuelve a la bienvenida (tablero 1.5), también si se entró directamente en /login. */}
+      <TopBar
+        onBack={router.canGoBack() ? () => router.back() : () => router.replace('/welcome')}
+        backLabel={t('auth.back')}
+      />
+
       <View style={styles.heading}>
         <Text variant="title1" accessibilityRole="header">
           {t('auth.login.title')}
@@ -117,13 +125,7 @@ export default function LoginScreen() {
         onSubmitEditing={handleSubmit}
       />
 
-      <Button
-        variant="ghost"
-        size="sm"
-        label={t('auth.login.goToForgotPassword')}
-        onPress={() => router.push('/forgot-password')}
-        style={styles.inlineLink}
-      />
+      <TextLink label={t('auth.login.goToForgotPassword')} onPress={() => router.push('/forgot-password')} />
     </Screen>
   );
 }
@@ -131,9 +133,5 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   heading: {
     gap: spacing['2'],
-  },
-  inlineLink: {
-    // Enlace alineado con el texto (el botón `sm` tiene 14 de relleno lateral).
-    marginLeft: -14,
   },
 });

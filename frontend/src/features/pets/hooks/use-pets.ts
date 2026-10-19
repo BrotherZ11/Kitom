@@ -9,6 +9,7 @@ import {
   fetchPets,
   updatePet,
 } from '@/features/pets/api/pets-api';
+import { fetchPetStreak } from '@/features/pets/api/pet-streak-api';
 import { PetError } from '@/features/pets/pet-errors';
 import { petKeys } from '@/features/pets/query-keys';
 import type { PetFields } from '@/features/pets/types';
@@ -32,6 +33,12 @@ export function usePet(petId: string) {
 export function useCanEditPet(petId: string) {
   const { serverCall } = useAuth();
   return useQuery({ queryKey: petKeys.canEdit(petId), queryFn: () => serverCall(() => fetchCanEditPet(petId)) });
+}
+
+/** Racha calculada por el servidor (`pet_streaks`); se vuelve a pedir al abrir el perfil. */
+export function usePetStreak(petId: string) {
+  const { serverCall } = useAuth();
+  return useQuery({ queryKey: petKeys.streak(petId), queryFn: () => serverCall(() => fetchPetStreak(petId)) });
 }
 
 export function useCreatePet() {

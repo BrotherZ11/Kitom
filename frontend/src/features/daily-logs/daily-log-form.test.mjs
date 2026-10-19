@@ -4,7 +4,10 @@ import { describe, it } from 'node:test';
 
 import {
   DAILY_LOG_TAGS,
+  DETAIL_SCALE_FIELDS,
+  PRIMARY_SCALE_FIELDS,
   SCALE_FIELDS,
+  answeredPrimaryCount,
   dailyLogEditorReducer,
   decideSourceChange,
   emptyDailyLogForm,
@@ -85,11 +88,13 @@ describe('formulario inicial', () => {
 });
 
 describe('Todo como siempre', () => {
-  it('pone las 7 escalas en 3 y no toca lo opcional', () => {
+  it('pone las 4 principales en 3 y no toca los detalles ni lo opcional', () => {
     const before = { ...emptyDailyLogForm(), notes: 'algo', tags: ['new_pet'] };
     const after = setAllAsUsual(before);
     assert.equal(SCALE_FIELDS.length, 7);
-    for (const field of SCALE_FIELDS) assert.equal(after.scales[field], 3);
+    for (const field of PRIMARY_SCALE_FIELDS) assert.equal(after.scales[field], 3);
+    for (const field of DETAIL_SCALE_FIELDS) assert.equal(after.scales[field], null);
+    assert.equal(answeredPrimaryCount(after), 4);
     assert.equal(after.notes, 'algo');
     assert.deepEqual(after.tags, ['new_pet']);
     assert.equal(after.unusualBehavior, false);
@@ -99,7 +104,7 @@ describe('Todo como siempre', () => {
     const state = initialDailyLogEditorState(null);
     const next = dailyLogEditorReducer(state, { type: 'edit', update: setAllAsUsual });
     assert.equal(next.status, 'idle');
-    for (const field of SCALE_FIELDS) assert.equal(next.values.scales[field], 3);
+    for (const field of PRIMARY_SCALE_FIELDS) assert.equal(next.values.scales[field], 3);
   });
 });
 
@@ -160,6 +165,23 @@ describe('payload de save_daily_log', () => {
     assert.equal(args.p_notes, 'Paseo largo');
     // Etiquetas sin duplicados y en el orden estable de la RPC.
     assert.deepEqual(args.p_tags, ['home_change', 'vet_visit']);
+  });
+});
+
+describe('validación al crear (4 principales obligatorias)', () => {
+  it('sin las 4 principales no se puede crear', () => {
+    const three = ['energy', 'appetite', 'mood'].reduce((values, field) => setScale(values, field, 3), emptyDailyLogForm());
+    assert.equal(validateDailyLogForm(three, { requirePrimary: true }), 'primary_required');
+    assert.equal(validateDailyLogForm({ ...emptyDailyLogForm(), notes: 'x' }, { requirePrimary: true }), 'primary_required');
+  });
+
+  it('con las 4 principales sí, aunque falten los detalles', () => {
+    assert.equal(validateDailyLogForm(setAllAsUsual(emptyDailyLogForm()), { requirePrimary: true }), null);
+  });
+
+  it('al editar se mantiene «no vacío»: no obliga a rellenar lo que antes no era obligatorio', () => {
+    assert.equal(validateDailyLogForm({ ...emptyDailyLogForm(), notes: 'x' }), null);
+    assert.equal(validateDailyLogForm(emptyDailyLogForm()), 'empty');
   });
 });
 

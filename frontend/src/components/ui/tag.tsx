@@ -6,7 +6,7 @@ import { Text } from '@/components/ui/text';
 import { useTheme, type ThemeColor } from '@/hooks/use-theme';
 import { fontFamily, radius, size } from '@/theme/tokens';
 
-export type TagTone = 'neutral' | 'success' | 'brand' | 'accent';
+export type TagTone = 'neutral' | 'success' | 'brand' | 'accent' | 'danger';
 
 const TONES: Record<TagTone, { background: ThemeColor; foreground: ThemeColor }> = {
   neutral: { background: 'surfaceSunken', foreground: 'inkMuted' },
@@ -14,6 +14,8 @@ const TONES: Record<TagTone, { background: ThemeColor; foreground: ThemeColor }>
   brand: { background: 'surfaceBrand', foreground: 'primary' },
   // «Hoy» y rachas: el sol es relleno, nunca color de texto.
   accent: { background: 'accent', foreground: 'onAccent' },
+  // Algo necesita al usuario (no se pudo sincronizar, conflicto). No es urgencia veterinaria.
+  danger: { background: 'dangerBg', foreground: 'dangerInk' },
 };
 
 type TagProps = {

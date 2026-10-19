@@ -10,6 +10,7 @@ export const petKeys = {
   details: () => [...petKeys.all, 'detail'] as const,
   detail: (petId: string) => [...petKeys.details(), petId] as const,
   canEdit: (petId: string) => [...petKeys.detail(petId), 'can-edit'] as const,
+  streak: (petId: string) => [...petKeys.detail(petId), 'streak'] as const,
   photo: (photoPath: string) => [...petKeys.all, 'photo', photoPath] as const,
 };
 

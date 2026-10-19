@@ -1,10 +1,17 @@
 import { Stack } from 'expo-router';
 
 import { DailyLogSyncProvider } from '@/features/daily-logs/sync/daily-log-sync-provider';
+import { ActivePetProvider } from '@/features/pets/active-pet-context';
 import { useProfileTimeZoneSync } from '@/features/profile/hooks/use-profile-timezone-sync';
-import { t } from '@/i18n';
 import { useStackScreenOptions } from '@/theme/theme-provider';
 
+/** Un enlace directo (p. ej. a `/pets/…`) deja las pestañas debajo: «atrás» vuelve a Hoy. */
+export const unstable_settings = { initialRouteName: '(tabs)' };
+
+/**
+ * Zona con sesión. Las pantallas llevan su propia cabecera (`TopBar`, como en el diseño), así que la
+ * del navegador está oculta. Las URL son las de siempre: las pestañas (`(tabs)`) no añaden segmento.
+ */
 export default function AppLayout() {
   // Solo se monta con sesión activa (Stack.Protected en el layout raíz).
   useProfileTimeZoneSync();
@@ -12,22 +19,16 @@ export default function AppLayout() {
 
   return (
     <DailyLogSyncProvider>
-      <Stack screenOptions={screenOptions}>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="pets/index" options={{ title: t('pets.list.title') }} />
-        <Stack.Screen name="pets/new" options={{ title: t('pets.new.title') }} />
-        <Stack.Screen name="pets/[id]/index" options={{ title: t('pets.detail.title') }} />
-        <Stack.Screen name="pets/[id]/edit" options={{ title: t('pets.edit.title') }} />
-        <Stack.Screen name="pets/[id]/daily-log" options={{ title: t('dailyLogs.screenTitle') }} />
-        <Stack.Screen name="pets/[id]/daily-logs/index" options={{ title: t('dailyLogs.history.title') }} />
-        <Stack.Screen name="pets/[id]/daily-logs/[date]" options={{ title: t('dailyLogs.entry.title') }} />
-        <Stack.Screen
-          name="pets/[id]/daily-logs/resolve/[date]"
-          options={{ title: t('dailyLogs.resolve.title') }}
-        />
-        <Stack.Screen name="daily-logs/unsynced" options={{ title: t('dailyLogs.unsynced.title') }} />
-        <Stack.Screen name="sign-out" options={{ title: t('signOut.title') }} />
-      </Stack>
+      <ActivePetProvider>
+        <Stack screenOptions={{ ...screenOptions, headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          {/* «Registrar» abre el registro a pantalla completa, desde abajo (PANTALLAS.md §1). */}
+          <Stack.Screen
+            name="pets/[id]/daily-log"
+            options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+          />
+        </Stack>
+      </ActivePetProvider>
     </DailyLogSyncProvider>
   );
 }

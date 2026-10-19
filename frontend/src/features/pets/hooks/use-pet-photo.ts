@@ -50,6 +50,18 @@ export function useUploadPetPhoto(petId: string) {
   });
 }
 
+/** Primera foto de una mascota recién creada (el id se conoce al crearla, no al montar la pantalla). */
+export function useUploadNewPetPhoto() {
+  const applyChange = useApplyPetPhotoChange();
+  const { serverCall } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ petId, photo }: { petId: string; photo: PreparedPetPhoto }) =>
+      serverCall(() => uploadPetPhoto(petId, photo, null)),
+    onSuccess: (pet) => applyChange(pet, null),
+  });
+}
+
 export function useRemovePetPhoto(petId: string) {
   const applyChange = useApplyPetPhotoChange();
   const { serverCall } = useAuth();

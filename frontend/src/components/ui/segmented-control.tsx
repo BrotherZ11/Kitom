@@ -9,6 +9,8 @@ import { useElevation } from '@/theme/use-elevation';
 type SegmentedControlProps<T extends string> = {
   /** Etiqueta visible encima; también nombra el grupo para lectores de pantalla. */
   label?: string;
+  /** Nombre del grupo para lectores de pantalla cuando el título va fuera (p. ej. un `title-3`). */
+  accessibilityLabel?: string;
   options: Option<T>[];
   /** `null` = ninguna elegida todavía. */
   value: T | null;
@@ -22,6 +24,7 @@ type SegmentedControlProps<T extends string> = {
  */
 export function SegmentedControl<T extends string>({
   label,
+  accessibilityLabel,
   options,
   value,
   onChange,
@@ -36,7 +39,7 @@ export function SegmentedControl<T extends string>({
       <View
         style={[styles.track, { backgroundColor: theme.surfaceSunken }]}
         accessibilityRole="radiogroup"
-        accessibilityLabel={label}>
+        accessibilityLabel={label ?? accessibilityLabel}>
         {options.map((option) => {
           const isSelected = option.value === value;
           return (

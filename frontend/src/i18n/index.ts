@@ -24,6 +24,16 @@ export function getLocale(): Locale {
   return currentLocale;
 }
 
+/**
+ * Texto con parámetros: sustituye cada `{nombre}` del texto por `params.nombre` («Kika lleva {count}
+ * días esta semana»). Un marcador sin valor se deja tal cual (se ve el error, no se inventa nada).
+ */
+export function tf(key: TranslationKey, params: Record<string, string | number>): string {
+  return t(key).replace(/\{(\w+)\}/g, (match, name: string) =>
+    params[name] === undefined ? match : String(params[name])
+  );
+}
+
 export function t(key: TranslationKey): string {
   let node: unknown = translations[currentLocale];
   for (const part of key.split('.')) {

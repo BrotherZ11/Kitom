@@ -1,27 +1,34 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Spacing } from '@/constants/theme';
+import { CircleAlert, Clock, CloudCheck, RefreshCw, TriangleAlert, type LucideIcon } from '@/components/ui/icons';
+import { Tag, type TagTone } from '@/components/ui/tag';
+import { Text } from '@/components/ui/text';
 import { FIELD_LABELS } from '@/features/daily-logs/components/daily-log-values';
 import { describeConflict, type DisplaySyncStatus } from '@/features/daily-logs/offline/daily-log-view';
 import type { LocalDailyLog } from '@/features/daily-logs/offline/local-daily-log';
-import { useTheme } from '@/hooks/use-theme';
 import { t, type TranslationKey } from '@/i18n';
+import { spacing } from '@/theme/tokens';
 
-/** Texto y símbolo de cada estado: nunca solo color. */
-const STATUS: Record<DisplaySyncStatus, { symbol: string; label: TranslationKey }> = {
-  synced: { symbol: '✓', label: 'dailyLogs.sync.synced' },
-  pending: { symbol: '•', label: 'dailyLogs.sync.pending' },
-  syncing: { symbol: '↻', label: 'dailyLogs.sync.syncing' },
-  conflict: { symbol: '!', label: 'dailyLogs.sync.conflict' },
-  failed: { symbol: '!', label: 'dailyLogs.sync.failed' },
+/** Texto, icono y tono de cada estado: nunca solo color. */
+const STATUS: Record<DisplaySyncStatus, { icon: LucideIcon; tone: TagTone; label: TranslationKey }> = {
+  synced: { icon: CloudCheck, tone: 'success', label: 'dailyLogs.sync.synced' },
+  pending: { icon: Clock, tone: 'neutral', label: 'dailyLogs.sync.pending' },
+  syncing: { icon: RefreshCw, tone: 'neutral', label: 'dailyLogs.sync.syncing' },
+  conflict: { icon: TriangleAlert, tone: 'danger', label: 'dailyLogs.sync.conflict' },
+  failed: { icon: CircleAlert, tone: 'danger', label: 'dailyLogs.sync.failed' },
 };
 
-
 export function syncStatusLabel(status: DisplaySyncStatus): string {
-  return `${STATUS[status].symbol} ${t(STATUS[status].label)}`;
+  return t(STATUS[status].label);
+}
+
+/** Estado de sincronización en una etiqueta (icono + texto). */
+export function SyncStatusTag({ status }: { status: DisplaySyncStatus }) {
+  const spec = STATUS[status];
+  return <Tag label={t(spec.label)} tone={spec.tone} icon={spec.icon} />;
 }
 
 /** Explicación del estado, sin mensajes del servidor ni contenido. */
@@ -70,9 +77,11 @@ type SyncStatusProps = {
   onResolve?: () => void;
 };
 
-/** Estado de sincronización de un registro, con su explicación y «Reintentar». */
+/**
+ * Estado de sincronización de un registro, con su explicación y «Reintentar». Conflicto o fallo: una
+ * alerta que se queda hasta resolverse (los datos siguen en el dispositivo). Lo demás: una etiqueta.
+ */
 export function SyncStatus({ status, record, onRetry, onResolve }: SyncStatusProps) {
-  const theme = useTheme();
   const [retrying, setRetrying] = useState(false);
   const needsAttention = status === 'conflict' || status === 'failed';
   // En conflicto, la pantalla de resolución ya vuelve a comprobar el servidor.
@@ -83,49 +92,57 @@ export function SyncStatus({ status, record, onRetry, onResolve }: SyncStatusPro
       (status === 'pending' && record?.error != null));
   const details = statusDetail(record, status);
 
+  const retryButton = canRetry ? (
+    <Button
+      variant="secondary"
+      size="md"
+      label={t('dailyLogs.sync.retry')}
+      loading={retrying}
+      onPress={() => {
+        if (retrying) return;
+        setRetrying(true);
+        void onRetry().finally(() => setRetrying(false));
+      }}
+    />
+  ) : null;
+
+  if (needsAttention) {
+    return (
+      <View style={styles.container}>
+        <Alert
+          tone="error"
+          icon={STATUS[status].icon}
+          title={syncStatusLabel(status)}
+          message={details.join(' ')}
+          action={
+            onResolve
+              ? {
+                  label: t(status === 'conflict' ? 'dailyLogs.resolve.open' : 'dailyLogs.resolve.openDetails'),
+                  onPress: onResolve,
+                }
+              : undefined
+          }
+        />
+        {retryButton}
+      </View>
+    );
+  }
+
   return (
-    <View
-      style={[
-        styles.container,
-        needsAttention && { borderColor: theme.dangerInk, borderWidth: 1, padding: Spacing.three },
-      ]}
-      accessibilityLiveRegion="polite">
-      <ThemedText
-        type="smallBold"
-        style={needsAttention ? { color: theme.dangerInk } : undefined}
-        themeColor={needsAttention ? undefined : 'textSecondary'}>
-        {syncStatusLabel(status)}
-      </ThemedText>
+    <View style={styles.container} accessibilityLiveRegion="polite">
+      <SyncStatusTag status={status} />
       {details.map((line) => (
-        <ThemedText key={line} type="small" themeColor="textSecondary">
+        <Text key={line} variant="caption" color="inkMuted">
           {line}
-        </ThemedText>
+        </Text>
       ))}
-      {needsAttention && onResolve ? (
-        <Button
-          label={t(status === 'conflict' ? 'dailyLogs.resolve.open' : 'dailyLogs.resolve.openDetails')}
-          onPress={onResolve}
-        />
-      ) : null}
-      {canRetry ? (
-        <Button
-          variant="secondary"
-          label={t('dailyLogs.sync.retry')}
-          loading={retrying}
-          onPress={() => {
-            if (retrying) return;
-            setRetrying(true);
-            void onRetry().finally(() => setRetrying(false));
-          }}
-        />
-      ) : null}
+      {retryButton}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.one,
-    borderRadius: Spacing.two,
+    gap: spacing['2'],
   },
 });

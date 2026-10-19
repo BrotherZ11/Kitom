@@ -5,4 +5,5 @@
 export const profileKeys = {
   all: ['profile'] as const,
   timeZone: () => [...profileKeys.all, 'timezone'] as const,
+  name: () => [...profileKeys.all, 'name'] as const,
 };

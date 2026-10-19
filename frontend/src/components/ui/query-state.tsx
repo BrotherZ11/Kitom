@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -55,6 +55,8 @@ type EmptyStateProps = {
   kind?: 'empty' | 'error' | 'offline';
   /** Icono propio en la placa de marca (`empty`) en vez del símbolo (p. ej. «Enlace enviado»). */
   icon?: LucideIcon;
+  /** Ilustración propia en lugar de la placa (p. ej. el anillo de la semana del historial vacío). */
+  illustration?: ReactNode;
   /** Estado que ocupa la pantalla (título `title-1`, texto 17/24), como «Revisa tu correo». */
   prominent?: boolean;
   title: string;
@@ -63,33 +65,39 @@ type EmptyStateProps = {
   /** Una sola acción, la más útil. */
   actionLabel?: string;
   onAction?: () => void;
+  /** Ajustes de posición propios de una pantalla (p. ej. el margen superior de un tablero). */
+  style?: StyleProp<ViewStyle>;
 };
 
 /** Estado vacío o de error de pantalla (docs/design/componentes/EmptyState). */
 export function EmptyState({
   kind = 'empty',
   icon,
+  illustration,
   prominent = false,
   title,
   description,
   actionLabel,
   onAction,
+  style,
 }: EmptyStateProps) {
   const theme = useTheme();
   const isProblem = kind !== 'empty';
 
   return (
-    <View style={styles.empty}>
-      <View style={[styles.illustration, { backgroundColor: isProblem ? theme.dangerBg : theme.surfaceBrand }]}>
-        {isProblem ? (
-          <Icon icon={kind === 'offline' ? WifiOff : CircleAlert} size="lg" color="dangerInk" />
-        ) : icon ? (
-          <Icon icon={icon} size="lg" color="primary" />
-        ) : (
-          <KitomSymbol size={36} />
-        )}
-      </View>
-      <Text variant={prominent ? 'title1' : 'title3'} style={styles.center} accessibilityRole="header">
+    <View style={[styles.empty, prominent && styles.prominent, style]}>
+      {illustration ?? (
+        <View style={[styles.illustration, { backgroundColor: isProblem ? theme.dangerBg : theme.surfaceBrand }]}>
+          {isProblem ? (
+            <Icon icon={kind === 'offline' ? WifiOff : CircleAlert} size="lg" color="dangerInk" />
+          ) : icon ? (
+            <Icon icon={icon} size="lg" color="primary" />
+          ) : (
+            <KitomSymbol size={36} />
+          )}
+        </View>
+      )}
+      <Text variant={prominent ? 'title1' : 'title2'} style={styles.center} accessibilityRole="header">
         {title}
       </Text>
       {description ? (
@@ -112,17 +120,20 @@ export function EmptyState({
 
 type ErrorStateProps = {
   message: string;
+  /** Explicación bajo el título (qué hacer, qué no se ha perdido). */
+  description?: string;
   onRetry?: () => void;
   /** Sin conexión: icono propio; por defecto, error genérico. */
   offline?: boolean;
 };
 
-export function ErrorState({ message, onRetry, offline = false }: ErrorStateProps) {
+export function ErrorState({ message, description, onRetry, offline = false }: ErrorStateProps) {
   return (
     <View accessibilityRole="alert" accessibilityLiveRegion="polite">
       <EmptyState
         kind={offline ? 'offline' : 'error'}
         title={message}
+        description={description}
         actionLabel={onRetry ? t('common.retry') : undefined}
         onAction={onRetry}
       />
@@ -145,6 +156,11 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     paddingVertical: spacing['8'],
     paddingHorizontal: spacing['2'],
+  },
+  // Estado de pantalla completa bajo la barra superior (tablero 1.8: `.empty` con 48 arriba, 12 abajo).
+  prominent: {
+    paddingTop: spacing['12'],
+    paddingBottom: spacing['3'],
   },
   illustration: {
     width: 72,

@@ -1,13 +1,8 @@
 import type { ViewStyle } from 'react-native';
 
+import { withAlpha as rgba } from '@/theme/color';
 import { useAppTheme } from '@/theme/theme-provider';
 import { borderWidth, elevation } from '@/theme/tokens';
-
-/** `#RRGGBB` + opacidad → `rgba(…)`. */
-function rgba(hex: string, alpha: number): string {
-  const value = Number.parseInt(hex.slice(1), 16);
-  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
-}
 
 /**
  * Sombras de los tokens (`elevation`) como `boxShadow`, que la nueva arquitectura de React Native

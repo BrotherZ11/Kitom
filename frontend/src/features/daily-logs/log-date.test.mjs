@@ -3,7 +3,16 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { normalizeTimeZone } from '../profile/timezone.ts';
-import { formatLocalDate, formatLogDateLabel, resolveLogTimeZone, todayLogDate } from './log-date.ts';
+import {
+  capitalizeFirst,
+  formatLocalDate,
+  formatLogDateLabel,
+  formatShortDateLabel,
+  formatWeekdayDay,
+  formatWeekdayInitial,
+  resolveLogTimeZone,
+  todayLogDate,
+} from './log-date.ts';
 
 describe('formatLocalDate', () => {
   it('Europe/Madrid en horario de verano (UTC+2): la medianoche local cambia el día', () => {
@@ -90,5 +99,31 @@ describe('formatLogDateLabel', () => {
 
   it('devuelve el texto tal cual si no es una fecha', () => {
     assert.equal(formatLogDateLabel('hoy', 'es'), 'hoy');
+  });
+});
+
+describe('formatShortDateLabel', () => {
+  it('día de la semana, número y mes corto, sin puntos', () => {
+    assert.equal(formatShortDateLabel('2026-10-16', 'es'), 'viernes 16 oct');
+  });
+});
+
+describe('formatWeekdayInitial', () => {
+  it('inicial del día; en español el miércoles es «X»', () => {
+    assert.equal(formatWeekdayInitial('2026-10-12', 'es'), 'L');
+    assert.equal(formatWeekdayInitial('2026-10-13', 'es'), 'M');
+    assert.equal(formatWeekdayInitial('2026-10-14', 'es'), 'X');
+    assert.equal(formatWeekdayInitial('2026-10-18', 'es'), 'D');
+  });
+});
+
+describe('formatWeekdayDay', () => {
+  it('día de la semana y número, sin mes («jueves 16»)', () => {
+    assert.equal(formatWeekdayDay('2026-10-15', 'es-ES'), 'jueves 15');
+    assert.equal(capitalizeFirst(formatWeekdayDay('2026-10-14', 'es-ES'), 'es-ES'), 'Miércoles 14');
+  });
+
+  it('con una fecha no válida devuelve el texto tal cual', () => {
+    assert.equal(formatWeekdayDay('15/10/2026', 'es-ES'), '15/10/2026');
   });
 });

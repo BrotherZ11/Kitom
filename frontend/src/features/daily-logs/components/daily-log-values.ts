@@ -1,4 +1,4 @@
-import { scaleOptionLabel } from '@/features/daily-logs/components/scale-selector';
+import { scaleValueLabel } from '@/features/daily-logs/scale-labels';
 import { isDailyLogTag, type ScaleField, type ScaleValue } from '@/features/daily-logs/daily-log-form';
 import type { DailyLogContent, LevelColumn } from '@/features/daily-logs/offline/daily-log-content';
 import type { MergeUnit } from '@/features/daily-logs/offline/daily-log-merge';
@@ -47,5 +47,5 @@ export function formatUnitValue(unit: MergeUnit | 'tags', values: Partial<DailyL
   }
   const value = values[unit];
   if (value === null || value === undefined) return t('dailyLogs.scale.notAnswered');
-  return `${value} · ${scaleOptionLabel(SCALE_FIELD[unit], value as ScaleValue, 'short')}`;
+  return `${value} · ${scaleValueLabel(SCALE_FIELD[unit], value as ScaleValue)}`;
 }
