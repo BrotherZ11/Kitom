@@ -1,15 +1,19 @@
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
-import { FormMessage } from '@/components/ui/form-message';
+import { MailCheck } from '@/components/ui/icons';
+import { KitomSymbol } from '@/components/ui/kitom-symbol';
+import { EmptyState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
 import { authErrorMessage } from '@/features/auth/auth-errors';
 import { completeAuthRedirect, type AuthRedirectResult } from '@/features/auth/auth-redirect';
+import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
+import { spacing } from '@/theme/tokens';
 
 /**
  * Destino de los enlaces de Supabase Auth (`kitom://auth-callback?…`). Si el intercambio crea la
@@ -18,6 +22,7 @@ import { t } from '@/i18n';
  */
 export default function AuthCallbackScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const url = Linking.useLinkingURL();
   const [result, setResult] = useState<AuthRedirectResult | null>(null);
 
@@ -32,28 +37,51 @@ export default function AuthCallbackScreen() {
     };
   }, [url]);
 
+  const goToLogin = () => router.replace('/login');
+
   if (result?.status === 'email_confirmed' || result?.status === 'error') {
+    const isError = result.status === 'error';
     return (
-      <Screen>
-        <FormMessage
-          tone={result.status === 'error' ? 'error' : 'success'}
-          message={
-            result.status === 'error'
-              ? authErrorMessage(result.error)
-              : t('auth.callback.emailConfirmed')
-          }
-        />
-        <Button label={t('auth.callback.goToLogin')} onPress={() => router.replace('/login')} />
+      <Screen
+        footer={
+          <Button
+            // En error, volver al login es la salida, no la acción principal.
+            variant={isError ? 'secondary' : 'primary'}
+            label={t('auth.callback.goToLogin')}
+            onPress={goToLogin}
+          />
+        }>
+        <View accessibilityLiveRegion="polite">
+          <EmptyState
+            prominent={!isError}
+            kind={isError ? 'error' : 'empty'}
+            icon={isError ? undefined : MailCheck}
+            title={isError ? authErrorMessage(result.error) : t('auth.callback.emailConfirmed')}
+          />
+        </View>
       </Screen>
     );
   }
 
   return (
     <Screen>
-      <ActivityIndicator />
-      <ThemedText themeColor="textSecondary" style={{ textAlign: 'center' }}>
-        {t('auth.callback.processing')}
-      </ThemedText>
+      <View style={styles.processing} accessibilityLiveRegion="polite">
+        <KitomSymbol size={48} />
+        <ActivityIndicator color={theme.primary} />
+        <Text color="inkMuted" style={styles.center}>
+          {t('auth.callback.processing')}
+        </Text>
+      </View>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  processing: {
+    alignItems: 'center',
+    gap: spacing['4'],
+  },
+  center: {
+    textAlign: 'center',
+  },
+});

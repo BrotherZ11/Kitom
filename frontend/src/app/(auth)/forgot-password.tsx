@@ -1,16 +1,23 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/form-message';
+import { Mail } from '@/components/ui/icons';
+import { EmptyState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
+import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
+import { authErrorField } from '@/features/auth/auth-error-field';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { validateEmail } from '@/features/auth/validation';
 import { t } from '@/i18n';
+import { spacing } from '@/theme/tokens';
 
+/** Recuperar contraseña (tablero 1.8): pedir el enlace y «Enlace enviado». */
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { resetPassword } = useAuth();
@@ -35,14 +42,52 @@ export default function ForgotPasswordScreen() {
     setIsSent(result.error === null);
   };
 
+  const goToLogin = () => router.replace('/login');
+
+  if (isSent) {
+    return (
+      <Screen
+        footer={<Button variant="ghost" size="md" label={t('auth.forgotPassword.backToLogin')} onPress={goToLogin} />}>
+        <EmptyState
+          prominent
+          icon={Mail}
+          title={t('auth.forgotPassword.sentTitle')}
+          description={t('auth.forgotPassword.sent')}
+        />
+      </Screen>
+    );
+  }
+
+  const emailError = error && authErrorField(error) === 'email' ? authErrorMessage(error) : null;
+
   return (
-    <Screen>
-      <ThemedText themeColor="textSecondary">{t('auth.forgotPassword.description')}</ThemedText>
+    <Screen
+      align="top"
+      footer={
+        <>
+          <FormMessage message={error && !emailError ? authErrorMessage(error) : null} />
+          <Button
+            label={t('auth.forgotPassword.submit')}
+            loading={isSubmitting}
+            loadingLabel={t('auth.forgotPassword.submitting')}
+            onPress={handleSubmit}
+          />
+        </>
+      }>
+      <TopBar onBack={router.canGoBack() ? () => router.back() : goToLogin} backLabel={t('auth.back')} />
+
+      <View style={styles.heading}>
+        <Text variant="title1" accessibilityRole="header">
+          {t('auth.forgotPassword.title')}
+        </Text>
+        <Text color="inkMuted">{t('auth.forgotPassword.description')}</Text>
+      </View>
 
       <TextField
         label={t('auth.fields.email')}
         value={email}
         onChangeText={setEmail}
+        error={emailError}
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete="email"
@@ -51,20 +96,12 @@ export default function ForgotPasswordScreen() {
         textContentType="emailAddress"
         onSubmitEditing={handleSubmit}
       />
-
-      <FormMessage message={error ? authErrorMessage(error) : null} />
-      <FormMessage tone="success" message={isSent ? t('auth.forgotPassword.sent') : null} />
-
-      <Button
-        label={t('auth.forgotPassword.submit')}
-        loading={isSubmitting}
-        onPress={handleSubmit}
-      />
-      <Button
-        variant="ghost"
-        label={t('auth.forgotPassword.backToLogin')}
-        onPress={() => router.replace('/login')}
-      />
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  heading: {
+    gap: spacing['2'],
+  },
+});

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -27,6 +28,8 @@ type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
   size?: ButtonSize;
   /** Icono Lucide a la izquierda del texto. */
   icon?: LucideIcon;
+  /** Elemento propio a la izquierda (p. ej. un logotipo de terceros); sustituye a `icon`. */
+  leading?: ReactNode;
   loading?: boolean;
   /** Texto mientras carga, en gerundio («Guardando…»). Por defecto, `label`. */
   loadingLabel?: string;
@@ -57,6 +60,7 @@ export function Button({
   variant = 'primary',
   size = 'lg',
   icon,
+  leading,
   loading = false,
   loadingLabel,
   disabled,
@@ -121,6 +125,8 @@ export function Button({
           ) : null}
           {loading ? (
             <ActivityIndicator size="small" color={theme[foreground]} />
+          ) : leading ? (
+            leading
           ) : icon ? (
             <Icon icon={icon} size={18} color={foreground} />
           ) : null}

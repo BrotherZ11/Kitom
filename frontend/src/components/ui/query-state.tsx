@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { CircleAlert, WifiOff } from '@/components/ui/icons';
+import { CircleAlert, WifiOff, type LucideIcon } from '@/components/ui/icons';
 import { KitomSymbol } from '@/components/ui/kitom-symbol';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
@@ -53,15 +53,28 @@ export function LoadingState({ variant = 'screen' }: LoadingStateProps) {
 type EmptyStateProps = {
   /** `empty`: falta algo (símbolo de Kitom). `error` y `offline`: no se ha podido cargar. */
   kind?: 'empty' | 'error' | 'offline';
+  /** Icono propio en la placa de marca (`empty`) en vez del símbolo (p. ej. «Enlace enviado»). */
+  icon?: LucideIcon;
+  /** Estado que ocupa la pantalla (título `title-1`, texto 17/24), como «Revisa tu correo». */
+  prominent?: boolean;
   title: string;
-  description?: string;
+  /** Texto o contenido (p. ej. con una parte resaltada). */
+  description?: ReactNode;
   /** Una sola acción, la más útil. */
   actionLabel?: string;
   onAction?: () => void;
 };
 
 /** Estado vacío o de error de pantalla (docs/design/componentes/EmptyState). */
-export function EmptyState({ kind = 'empty', title, description, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({
+  kind = 'empty',
+  icon,
+  prominent = false,
+  title,
+  description,
+  actionLabel,
+  onAction,
+}: EmptyStateProps) {
   const theme = useTheme();
   const isProblem = kind !== 'empty';
 
@@ -70,15 +83,17 @@ export function EmptyState({ kind = 'empty', title, description, actionLabel, on
       <View style={[styles.illustration, { backgroundColor: isProblem ? theme.dangerBg : theme.surfaceBrand }]}>
         {isProblem ? (
           <Icon icon={kind === 'offline' ? WifiOff : CircleAlert} size="lg" color="dangerInk" />
+        ) : icon ? (
+          <Icon icon={icon} size="lg" color="primary" />
         ) : (
           <KitomSymbol size={36} />
         )}
       </View>
-      <Text variant="title3" style={styles.center} accessibilityRole="header">
+      <Text variant={prominent ? 'title1' : 'title3'} style={styles.center} accessibilityRole="header">
         {title}
       </Text>
       {description ? (
-        <Text color="inkMuted" style={styles.center}>
+        <Text variant={prominent ? 'bodyLg' : 'body'} color="inkMuted" style={[styles.center, styles.description]}>
           {description}
         </Text>
       ) : null}
@@ -141,6 +156,9 @@ const styles = StyleSheet.create({
   },
   center: {
     textAlign: 'center',
+  },
+  description: {
+    maxWidth: 310,
   },
   action: {
     marginTop: spacing['2'],
