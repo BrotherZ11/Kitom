@@ -5,6 +5,9 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-19
 
+- Dependencias de Expo actualizadas a las versiones recomendadas para SDK 57 (solo parches): `expo`
+  57.0.30, `expo-router` 57.0.28, `@expo/ui` 57.0.25, `expo-linking` 57.0.13, `expo-splash-screen`
+  57.0.10 y `expo-constants` 57.0.22 (`npx expo install --fix`). React Native y React no cambian.
 - Diseño v2, F2 (bienvenida): pantalla de bienvenida (1.1) como entrada sin sesión y «Cómo funciona»
   (1.2); «Ya tengo cuenta» lleva al login y el «atrás» del login vuelve a la bienvenida.
 - Diseño v2, F5 (navegación y Hoy): barra Hoy · Historial · Registrar · Agenda · Perfil; Hoy con la
