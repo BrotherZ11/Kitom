@@ -3,6 +3,52 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-20 — Pets offline, fase 7: copia de solo lectura de la lista y las fichas
+
+**Contexto.** Hasta ahora Pets solo funcionaba con conexión: en un arranque en frío sin red (o con la
+sesión `offline`) la lista daba «No hay conexión», la ficha un error y las pestañas no tenían mascota
+activa; los registros diarios se alcanzaban sin nombre desde «Registros guardados en este
+dispositivo». Esta fase permite **leer** mascotas sin conexión; las escrituras siguen necesitando el
+servidor.
+
+**Decisión.**
+
+- Copia en `LocalStore` (sin abstracción nueva), por usuario y validada al leer: `pets:<petId>`
+  (`{ pet, savedAt, unavailableAt }`, solo las columnas de `PET_COLUMNS`) y `pets-list:current`
+  (`{ savedAt, petIds }`). La lista sin guardar = «nunca cargada»; `petIds: []` = vacía confirmada por
+  el servidor. Ni URLs firmadas, ni `can_edit_pet`, ni tokens. Lo ilegible es un error recuperable,
+  nunca una lista vacía, y la siguiente respuesta correcta lo sustituye (es copia de datos del
+  servidor). Nada se borra solo: una mascota que el servidor deja de devolver conserva su copia con
+  `unavailableAt` (y sus Daily Logs locales no se tocan); cambiar de cuenta no borra las copias de otras.
+- Solo entran respuestas correctas, autenticadas como el dueño y con su sesión aún vigente: lecturas con
+  el token del dueño fijado en la cabecera (`createOwnerAccessToken`, como el motor de Daily Logs),
+  siempre por `serverCall`, y se guardan solo si `isCurrentUser(userId)` al terminar. Un error, la
+  sesión sin comprobar o una respuesta de otra cuenta nunca llegan al almacén.
+- Orden: marca de lectura en memoria antes de cada petición (como Daily Logs). Por mascota manda la
+  lectura iniciada más tarde para la visibilidad, pero los datos no retroceden por `updated_at`; una
+  respuesta tardía solo entra si trae un `updated_at` estrictamente posterior de una mascota visible.
+  `updated_at` no basta (lo pone `now()`, inicio de la transacción, y no cambia con la visibilidad): la
+  estrategia conservadora no sustituye datos con una respuesta cuya actualidad no se puede demostrar, y
+  la siguiente lectura corrige un orden equivocado.
+- Lista y ficha: `enabled: canUseServer` además de `serverCall` (en `offline` no se ejecuta ningún
+  `queryFn`). Modifica, solo para estas dos queries, lo descartado el 2026-10-16 («`enabled: false` las
+  deja cargando para siempre»): la vista combinada (`pet-view.ts`) trata «pendiente sin servidor» como
+  sin conexión y muestra la copia. Al recuperar la sesión hay una sola petición (la invalidación de
+  AuthProvider llega antes de que se habiliten). `can_edit_pet` y la racha no cambian.
+- Query keys de la lista y la ficha con `userId` (como Daily Logs). La caché de TanStack Query sigue
+  sin persistirse.
+- Escrituras: crear, editar, borrar y fotos siguen necesitando conexión; sin ella se avisa y no se
+  puede enviar (sin cola). Sin conexión no se ofrecen editar ni la foto (el permiso no se puede
+  comprobar) y la edición nunca se abre sobre la copia. Las filas devueltas por crear, editar y borrar
+  actualizan la copia; el flujo de fotos no cambia (la lista invalidada trae el `photo_path` nuevo).
+- Foto sin conexión o con la URL caducada: «no disponible», sin tocar `photo_path`.
+
+**Consecuencias.** Las pestañas, la lista, la ficha y el nombre en los registros funcionan sin conexión
+con datos posiblemente desactualizados (se avisa con la fecha). Una mascota creada o compartida en otro
+dispositivo no aparece sin conexión hasta que se lea con conexión. La copia de cuentas que no vuelven
+sigue en el dispositivo (limpieza pendiente, como la de Daily Logs). Contrato:
+`FRONTEND_ARCHITECTURE.md` §5 «Pets sin conexión (fase 7)».
+
 ## 2026-10-20 — Revalidación al reconectar en móvil (modifica la decisión del 2026-10-13)
 
 **Contexto.** El 2026-10-13 se fijó `networkMode: 'always'` en móvil y, para no cambiar nada más, no se

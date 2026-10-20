@@ -90,7 +90,7 @@ type AuthState =
 |---|---|---|
 | Server state | `pets`, `daily_logs`, `reminders`, `subscriptions`... | React Query / TanStack Query (o SWR), nunca en un store global manual |
 | Local UI state | tab activo, formulario abierto, texto en curso | `useState` local al componente |
-| Offline persistence | `daily_logs` creados sin conexión | ver sección 5 |
+| Offline persistence | `daily_logs` creados sin conexión; copia de solo lectura de `pets` | ver sección 5 |
 | Derived state | "¿tengo acceso de edición a esta mascota?", "¿me queda cupo de IA?" | calculado a partir de server state, nunca duplicado a mano |
 
 No se introduce Redux ni una capa de estado global adicional — con React Query + Context para sesión/mascota activa es suficiente para el alcance actual.
@@ -130,8 +130,10 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
   RLS `pet_streaks: select members`). La calcula el servidor al guardar registros y no la pone a 0 si
   pasan días sin registrar: el cliente la da por terminada si `last_log_date` es anterior a ayer
   (`currentStreak`). Query key `['pets','detail',petId,'streak']`.
-- **READ:** `pets` con columnas explícitas y **sin filtrar por `owner_id`**: RLS (`is_pet_member`) devuelve
-  las propias y las compartidas con `pet_co_owners.status = 'accepted'`. Especies: `species` (todas, para
+- **READ:** `pets` con columnas explícitas (`PET_COLUMNS`) y **sin filtrar por `owner_id`**: RLS
+  (`is_pet_member`) devuelve las propias y las compartidas con `pet_co_owners.status = 'accepted'`. Lista
+  y ficha en `api/pets-remote.ts`, con el token del usuario fijado en la cabecera y a través de la copia
+  sin conexión (§5 «Pets sin conexión (fase 7)»). Especies: `species` (todas, para
   poder mostrar una ya desactivada) + `catalog_translations` (`entity_type='species'`, `field='name'`,
   `locale` activo), combinadas en el cliente porque la tabla de traducciones es polimórfica (sin FK).
 - **WRITE (insert):** columnas editables + `owner_id = auth user id` tomado de la sesión, nunca del
@@ -167,10 +169,12 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
 - **RPC:** `can_edit_pet(pet_id)` solo para decidir si mostrar «Editar» (UX); «Eliminar» se muestra si
   `owner_id` es el usuario (UX). La autorización real es RLS.
 - **Storage:** `pet-photos`, ver «Pets: fotos».
-- **Query keys:** `['pets','list']`, `['pets','detail',id]`, `['pets','detail',id,'can-edit']`,
-  `['pets','photo',path]`, `['species',locale]`, `['breeds','list',speciesId,locale]`,
-  `['breeds','detail',breedId,locale]`. Crear/editar/borrar invalidan `['pets','list']` y
-  actualizan o eliminan el detalle. La caché se vacía al cambiar de usuario (AuthProvider).
+- **Query keys:** `['pets',userId,'list']`, `['pets',userId,'detail',id]`,
+  `['pets',userId,'detail',id,'can-edit']`, `['pets',userId,'detail',id,'streak']`, copias del
+  dispositivo `['pets',userId,'local',…]`, `['pets','photo',path]`, `['species',locale]`,
+  `['breeds','list',speciesId,locale]`, `['breeds','detail',breedId,locale]`. Crear/editar/borrar
+  invalidan la lista y actualizan o eliminan el detalle (y la copia local). La caché se vacía al
+  cambiar de usuario (AuthProvider).
 - **Errores** (`features/pets/pet-errors.ts`, por código y nombre de constraint): `42501` → `not_allowed`,
   `PGRST116` → `not_found`, `23503` → `invalid_breed` (`pets_breed_species_fkey`) o `invalid_species`,
   `23514` → `invalid_breed` (`pets_breed_status_check`), `invalid_weight` (`pets_weight_kg_check`) o
@@ -423,7 +427,7 @@ fotos, exportar, suscripción, eliminar cuenta) no se muestra hasta tener servic
 - **WRITE:** ninguna directa
 - **Edge Function:** `delete-account` — **es la única vía real de borrado.** Ignora cualquier `user_id` que el cliente pudiera enviar (no hace falta enviarlo: usa el JWT), y vuelve a comprobar `owner_has_pets()` ella misma antes de borrar. Si el usuario tiene mascotas, responde `409 has_pets` y el frontend debe dirigir a `OwnershipTransferScreen` — no intentar el borrado de nuevo hasta que se resuelva
 
-## 5. Offline (daily logs)
+## 5. Offline (daily logs y pets)
 
 ```
 Usuario pulsa Guardar
@@ -760,13 +764,15 @@ como `status`, `canUseServer`, `recoverSession` y `serverCall`):
   sincronizar», detalle/resolución de un registro (datos para copiar, descartar fallidos y conflictos
   con la versión remota conocida; resolver necesita conexión, como antes), historial (lo guardado en el
   dispositivo), registro de hoy y de un día (ver y editar lo guardado; crear el de hoy).
-- Con límites: la lista de mascotas muestra el error de conexión y, debajo, «Registros guardados en este
-  dispositivo» (por mascota, sin nombre: «Mascota (información no disponible sin conexión)»), con
-  acceso al registro de hoy y al historial. En el registro, sin la mascota en caché: «Información de la
-  mascota no disponible sin conexión» y, sin el permiso, se permite editar con el aviso de que el
-  servidor decidirá al sincronizar (`daily-log-pet-context.ts`; si no hay permiso, queda «No se pudo
+- Con límites: sin copia de la lista de mascotas (fase 7), «no disponible sin conexión» y, debajo,
+  «Registros guardados en este dispositivo» (por mascota, sin nombre: «Mascota (información no
+  disponible sin conexión)»), con acceso al registro de hoy y al historial. Con copia, la lista, las
+  fichas y las pestañas funcionan (ver «Pets sin conexión (fase 7)»). En el registro, sin copia de la
+  mascota: «Información de la mascota no disponible sin conexión» y, sin el permiso, se permite editar
+  con el aviso de que el servidor decidirá al sincronizar (`daily-log-pet-context.ts`; si no hay permiso, queda «No se pudo
   sincronizar» con los datos intactos).
-- No disponibles: ficha, alta y edición de mascotas, fotos (necesitan el servidor).
+- No disponibles: alta, edición y borrado de mascotas, fotos (necesitan el servidor). La ficha, desde
+  la fase 7, con la copia del dispositivo.
 
 ### Estabilización de la sesión (fase 6.5)
 
@@ -845,6 +851,72 @@ Node: la red que vuelve en segundo plano y el cierre de sesión en `offline` con
 Para repetirlo: arrancar Expo con `EXPO_PUBLIC_SUPABASE_URL=http://10.0.2.2:54321` y la clave anónima
 local, `adb reverse` solo para Metro, y esperar 1 h (`jwt_expiry`) con la app cerrada para el token
 caducado.
+
+### Pets sin conexión (fase 7)
+
+Solo lectura: no hay escrituras de mascotas sin conexión ni cola. Decisión: `DECISIONS.md` (2026-10-20,
+fase 7). Código: `features/pets/offline/` (puro) y `hooks/use-pets.ts`. Pruebas:
+`pet-snapshot.test.mjs`, `pet-cache-repository.test.mjs`, `pet-view.test.mjs` (vistas, formularios,
+foto y compatibilidad con Daily Logs), `pet-queries.test.mjs` (`@tanstack/query-core` con las opciones
+de la app y el controlador de sesión) y `pets-offline.integration.test.mjs` (Supabase **local**).
+
+**Copia en el dispositivo** (`LocalStore`, `offline/pet-snapshot.ts`; validada y versionada al leer):
+
+| Clave | Valor (v1) | Significado |
+|---|---|---|
+| `kitom:v1:<userId>:pets:<petId>` | `{ pet, savedAt, unavailableAt }` | Mascota leída del servidor al menos una vez. `pet`: solo las columnas de `PET_COLUMNS` (`photo_path` es un path, nunca una URL). `unavailableAt` ≠ `null`: el servidor dejó de devolverla (sin acceso o eliminada); la copia se conserva |
+| `kitom:v1:<userId>:pets-list:current` | `{ savedAt, petIds }` | Última lista correcta del servidor. No existe: **nunca cargada**. `petIds: []`: **vacía confirmada** |
+
+No se guardan URLs firmadas, `can_edit_pet`, la racha, tokens ni credenciales. `savedAt` es la hora del
+dispositivo al confirmar esa versión con el servidor (solo para «actualizados: …»).
+
+**Estados** (`offline/pet-view.ts`):
+
+| Caso | Lista | Ficha |
+|---|---|---|
+| Con servidor, primera carga | cargando (no se enseña la copia para luego sustituirla) | cargando |
+| Datos del servidor | `ready`, `source: 'server'` | `ready` / `not_found` (solo lo dice el servidor) |
+| Datos del servidor y se pierde la conexión | `ready`, `stale` con la hora | igual |
+| Sin servidor (sin red, sesión `offline` o fallo de red) y con copia | `ready`, `source: 'device'`, `stale` | `ready` (copia) o `unavailable` si tiene `unavailableAt` |
+| Sin servidor y sin copia | `offline_unavailable` («no disponible sin conexión» + Reintentar + registros del dispositivo) | `offline_unavailable` (nunca «no existe») |
+| Copia ilegible (corrupta, otra versión, almacenamiento) | `local_error` (Reintentar; no es «sin mascotas») | `local_error` |
+| Otro error del servidor | `error` | `error` |
+
+«Sin servidor» = `!canUseServer || !online` o la petición falló por la red. «Reintentar» en `offline`
+vuelve a comprobar la sesión. Las pantallas de un registro reciben la ficha con forma de query
+(`petDetailAsQuery`): nombre de la copia si la hay; sin ella, como antes («Información de la mascota no
+disponible sin conexión»). La mascota activa sale de la lista (también de la copia).
+
+**Qué entra en la copia.** Solo respuestas correctas del servidor (un error lanza antes de llegar al
+almacén: nunca se interpreta como lista vacía), pedidas por `serverCall` con la sesión utilizable, con
+el **token del dueño** en la cabecera (`api/pets-remote.ts` + `createOwnerAccessToken`: si la sesión del
+cliente compartido es de otra cuenta, la petición no sale) y guardadas solo si al terminar
+`isCurrentUser(userId)`. Lista y ficha con `enabled: canUseServer`: en `offline` no se ejecuta ningún
+`queryFn`. Las filas que devuelven crear, editar y borrar también entran (borrar = `unavailableAt`).
+
+**Orden** (`offline/pet-cache-repository.ts`, una instancia por usuario y proceso): marca de lectura
+antes de cada petición. Por mascota, la lectura iniciada más tarde decide la visibilidad, pero los datos
+nunca retroceden (se conserva un `updated_at` estrictamente posterior); una respuesta tardía solo entra
+con un `updated_at` estrictamente posterior de una mascota que sigue visible; la lista guardada solo la
+sustituye una lista con marca posterior. Límite: `updated_at` es `now()` (inicio de la transacción) y no
+cambia con la visibilidad; la marca es el orden de salida desde el dispositivo, no el de llegada al
+servidor. La siguiente lectura corrige un orden equivocado. Escrituras de una en una y de mejor esfuerzo
+(si el dispositivo no guarda, lo aceptado sigue en memoria y la siguiente lectura lo reintenta).
+
+**Cambio de cuenta.** Query keys con `userId`; AuthProvider vacía la caché (`clear` cancela las queries,
+pero el `queryFn` en curso termina: por eso la comprobación de `isCurrentUser` antes de guardar). Las
+copias de otras cuentas se quedan en el dispositivo, aisladas por su clave, y no se borran.
+
+**Escrituras y fotos.** Crear y editar necesitan conexión: sin ella, si el formulario aún no se puede
+mostrar, «Necesitas conexión…»; si ya estaba abierto, aviso y envío deshabilitado (lo escrito se
+conserva). La edición nunca se abre sobre la copia. Sin servidor, el perfil no ofrece editar la
+mascota ni su foto (el permiso no se guarda ni se da por vigente); el registro del día sigue su propia
+regla. Foto sin conexión, sin sesión o con la URL caducada: «La foto no está disponible ahora mismo» (y
+la inicial en los avatares); `photo_path` no se toca. El flujo de subir/quitar no cambia.
+
+**Pendiente:** limpieza (no automática) de copias de cuentas que no vuelven; una mascota creada o
+compartida en otro dispositivo no aparece sin conexión hasta leerla con conexión; si el sistema dice
+«conectado» pero el servidor no responde, postgrest-js reintenta (~7 s) antes de pasar a la copia.
 
 ### Infraestructura (fase 1 del frontend)
 

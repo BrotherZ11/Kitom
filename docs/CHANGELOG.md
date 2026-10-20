@@ -5,6 +5,19 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-20
 
+- Android: identificador de paquete `com.kitom.app` en `app.json` (necesario para compilar la APK de
+  prueba en local; no se debe cambiar). La APK de prueba va firmada con la clave de depuración y
+  apunta al Supabase del `.env` (`kitom-dev`).
+- Pets offline, fase 7 (solo lectura): la lista de mascotas, las fichas, las pestañas y el nombre de la
+  mascota en los registros se pueden ver sin conexión con la última copia guardada en el dispositivo
+  (aviso «Sin conexión: datos guardados…» con la fecha). Sin copia: «no disponible sin conexión» (nunca
+  «no existe» ni «no tienes mascotas»); una lista vacía confirmada por el servidor se distingue de una
+  que nunca se cargó; una copia ilegible es un error que se puede reintentar. Solo se guardan
+  respuestas correctas de la cuenta activa; una respuesta tardía no hace retroceder la copia; las copias
+  de otras cuentas no se ven ni se borran. Crear, editar, borrar y fotos siguen necesitando conexión
+  (aviso y envío bloqueado). Foto sin conexión o caducada: «no disponible», sin tocar `photo_path`. Sin
+  cambios de BD ni de dependencias. Contrato en `FRONTEND_ARCHITECTURE.md` §5 «Pets sin conexión
+  (fase 7)»; decisión en `DECISIONS.md`.
 - Móvil: al volver la red se vuelven a pedir solas las consultas que fallaron sin conexión (p. ej. la
   lista de mascotas ya no se queda en «No hay conexión» hasta pulsar «Reintentar»). Solo las
   caducadas y en pantalla; sin sesión utilizable no sale ninguna, y red, primer plano y renovación de

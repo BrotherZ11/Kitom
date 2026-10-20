@@ -52,8 +52,10 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   sesión guardada, nada se envía ni se lee del servidor hasta renovarla). Fase 6.5: sin conexión no se
   intenta renovar (temporizador de auth-js y app), recuperación inmediata al volver la red, sesión
   rechazada sin reintentos; verificada en emulador Android con Expo Go (SecureStore nativo) salvo la
-  red que vuelve en segundo plano. Pendiente: Pets offline, la limpieza (no automática) de datos
-  locales de cuentas que no vuelven. En móvil las queries caducadas se vuelven a pedir al reconectar
+  red que vuelve en segundo plano. Fase 7 (Pets offline, solo lectura): copia por usuario de la lista y
+  las fichas en `LocalStore` (lista, ficha, pestañas y nombre en los registros sin conexión); crear,
+  editar, borrar y fotos siguen necesitando conexión (`docs/FRONTEND_ARCHITECTURE.md` §5 «Pets sin
+  conexión (fase 7)»). Pendiente: la limpieza (no automática) de datos locales de cuentas que no vuelven. En móvil las queries caducadas se vuelven a pedir al reconectar
   (`refetchOnReconnect`, 2026-10-20).
 - Diseño v2 (`docs/design/`): F0–F5 implementadas en la rama `feat/ui-brand-implementation`: tokens,
   tema claro/oscuro según el sistema y fuentes (`frontend/src/theme/`), componentes
@@ -64,9 +66,11 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   ajustes completos, Premium, preferencia de tema y voz de la mascota; del acceso, texto legal,
   reenviar el email, repetir la contraseña y la regla visible de longitud (`docs/DECISIONS.md`).
   Marca enlazada en `app.json` (nombre «Kitom», icono iOS/Android, splash y favicon desde
-  `frontend/assets/brand/app-icon/`); `slug` (`frontend`) y esquema (`kitom`) sin cambiar. Sin build
-  nativa propia todavía (se prueba en Expo Go, que no muestra icono ni splash propios) y sin
-  `android.package`/`ios.bundleIdentifier` definidos.
+  `frontend/assets/brand/app-icon/`); `slug` (`frontend`) y esquema (`kitom`) sin cambiar.
+  `android.package` = `com.kitom.app` (2026-10-20, no cambiarlo: otra APK no actualizaría la
+  instalada); `ios.bundleIdentifier` sin definir. APK de prueba compilada en local
+  (`npx expo prebuild --platform android` + `gradlew assembleRelease`; `/android` está ignorado por git
+  y la release va firmada con la clave de depuración: no vale para Google Play). Sin EAS.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 

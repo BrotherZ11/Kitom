@@ -25,6 +25,14 @@ error y «sin mascotas».
   `api/pet-photos-api.ts`, `hooks/use-pet-photo.ts`, `components/pet-photo-editor.tsx` (§4 «Pets: fotos»).
   Patrón a seguir en nuevas features: el acceso a datos solo en `api/`, los componentes nunca llaman a
   `supabase` directamente, y las escrituras envían únicamente columnas editables explícitas.
+  Sin conexión (fase 7, solo lectura): `offline/` (puro y probado): copia por usuario en `LocalStore`
+  (`pet-snapshot.ts`, `pet-cache-repository.ts`: marca de lectura, nunca retrocede, nada se borra solo),
+  `pet-queries.ts` (solo guarda respuestas correctas de la cuenta activa), `pet-view.ts` (vistas
+  combinadas servidor + copia; las pantallas usan `view`, nunca `isError` para decidir «no existe») y
+  `pet-form-gate.ts`. Lista y ficha con `api/pets-remote.ts` (token del dueño en la cabecera) y
+  `enabled: canUseServer`; query keys de lista/ficha con `userId`. Nunca guardar URLs firmadas ni
+  `can_edit_pet`; las escrituras de mascotas siguen necesitando conexión. Contrato:
+  `docs/FRONTEND_ARCHITECTURE.md` §5 «Pets sin conexión (fase 7)».
 - `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`
   sobre `chunked-storage.ts`, clave `AUTH_STORAGE_KEY` = la de supabase-js por defecto: no cambiarla). Su
   `fetch` es `src/lib/user-token-fetch.ts` (ninguna petición de datos sale como `anon`) sobre
