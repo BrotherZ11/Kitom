@@ -49,8 +49,12 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   sincronizar» en inicio (`docs/FRONTEND_ARCHITECTURE.md` §5). Fase 5: cierre de sesión con pendientes
   (sincronizar / conservar / cancelar) y aislamiento entre cuentas (cada envío con el token del dueño).
   Fase 6: arranque en frío sin conexión (estado de sesión `offline`: datos locales del usuario de la
-  sesión guardada, nada se envía ni se lee del servidor hasta renovarla). Pendiente: Pets offline y la
-  limpieza (no automática) de datos locales de cuentas que no vuelven.
+  sesión guardada, nada se envía ni se lee del servidor hasta renovarla). Fase 6.5: sin conexión no se
+  intenta renovar (temporizador de auth-js y app), recuperación inmediata al volver la red, sesión
+  rechazada sin reintentos; verificada en emulador Android con Expo Go (SecureStore nativo) salvo la
+  red que vuelve en segundo plano. Pendiente: Pets offline, la limpieza (no automática) de datos
+  locales de cuentas que no vuelven. En móvil las queries caducadas se vuelven a pedir al reconectar
+  (`refetchOnReconnect`, 2026-10-20).
 - Diseño v2 (`docs/design/`): F0–F5 implementadas en la rama `feat/ui-brand-implementation`: tokens,
   tema claro/oscuro según el sistema y fuentes (`frontend/src/theme/`), componentes
   (`frontend/src/components/ui/`), bienvenida y acceso, mascotas, registro e historial, pestañas

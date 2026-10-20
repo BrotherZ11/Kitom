@@ -733,9 +733,9 @@ como `status`, `canUseServer`, `recoverSession` y `serverCall`):
   `INITIAL_SESSION` que llega después del tope se aplica normalmente (p. ej. `offline` → `signed_in`).
 - **Recuperación** (`offline` → `signed_in`): `getSession()` (lo renueva si puede), una petición a la
   vez y como mucho 10 s, al volver la conectividad, al volver a primer plano, con «Volver a comprobar» y
-  cada 30 s mientras dure `offline` (cubre el margen de 60 s de supabase-js y que en móvil su
-  temporizador de renovación no arranca hasta un cambio de `AppState`). Al recuperarla, se vuelven a
-  pedir las queries (`invalidateQueries`) y el motor recibe la sesión y envía.
+  periódicamente mientras dure `offline`; solo con conexión y en primer plano (política y tiempos en
+  «Estabilización de la sesión (fase 6.5)»). Al recuperarla, se vuelven a pedir las queries
+  (`invalidateQueries`) y el motor recibe la sesión y envía.
 - **Cerrar sesión en `offline`:** la sesión se borra del dispositivo (Supabase no puede); también si con
   sesión `signed_in` Supabase no la quita (token caducado sin red) o no responde en 10 s. Sin red el
   servidor no se entera.
@@ -767,6 +767,84 @@ como `status`, `canUseServer`, `recoverSession` y `serverCall`):
   servidor decidirá al sincronizar (`daily-log-pet-context.ts`; si no hay permiso, queda «No se pudo
   sincronizar» con los datos intactos).
 - No disponibles: ficha, alta y edición de mascotas, fotos (necesitan el servidor).
+
+### Estabilización de la sesión (fase 6.5)
+
+Decisión: `DECISIONS.md` (2026-10-19, fase 6.5). Pruebas: `lib/auto-refresh-gate.test.mjs` (premisas de
+auth-js con el cliente real y reloj simulado), `lib/auth-refresh-fetch.test.mjs`,
+`lib/chunked-storage.test.mjs`, `lib/user-token-fetch.test.mjs`,
+`features/auth/auth-session-controller.test.mjs` y `features/auth/auth-session-recovery.integration.test.mjs`
+(Supabase **local**). Tiempos: `frontend/scripts/measure-session-recovery.mjs`.
+
+**Qué hace auth-js 2.117 con la renovación** (probado contra el cliente real; si cambia, las pruebas
+de `auto-refresh-gate.test.mjs` fallan):
+- Fuera del navegador (React Native) arranca **su propio temporizador** de renovación (cada 30 s, con
+  una pasada inmediata) al terminar de inicializarse, sin mirar la red ni `AppState`.
+- Una renovación fallida por la red reintenta ~25 s (200 ms … 12,8 s) y después, durante **60 s**,
+  devuelve el mismo fallo sin pedir nada. Las llamadas simultáneas comparten una sola renovación.
+- Una respuesta de error que no sea fallo de red ni 5xx (p. ej. un 403 en HTML de un proxy) la toma
+  como rechazo y, con el token caducado, **borra la sesión**.
+
+**Política** (sin temporizadores nuevos):
+- Temporizador de auth-js en móvil: solo en primer plano **y con conexión** (`lib/auto-refresh-gate.ts`,
+  conectado en `lib/supabase.ts`; se reaplica tras la inicialización de auth-js, que lo arranca por su
+  cuenta). Sin red no se intenta renovar, así que al volver la red no hay bloqueo de 60 s que esperar.
+  En web lo sigue gestionando auth-js según la visibilidad de la pestaña.
+- Controlador (`auth-session-controller.ts`): intenta recuperar solo si `canAttemptRecovery()` (con
+  conexión y en primer plano); al volver la red o el primer plano, al momento; mientras siga `offline`,
+  cada **5 s** contados desde el final del intento anterior. No añade peticiones: auth-js comparte la
+  renovación en curso y responde con el fallo guardado durante su bloqueo; el intervalo solo acorta lo
+  que se tarda en notar que ha terminado.
+- Sesión rechazada (`isSessionRejected`: 4xx de Auth salvo 408/429, o `AuthSessionMissingError`):
+  auth-js la borra y emite `SIGNED_OUT`; si no pudo, se quita del dispositivo; si tampoco, queda
+  `offline` sin más intentos. Nunca se reintenta.
+- Respuesta tardía de `recover`: solo se aplica si la sesión de la app sigue `offline` con el mismo
+  usuario y la sesión recibida es de ese usuario. Si Supabase ya no tiene sesión guardada (sin error),
+  `signed_out`.
+- `lib/auth-refresh-fetch.ts`: una respuesta de error **no JSON** a la renovación del token se convierte
+  en fallo de red (el servidor de Auth siempre responde JSON); los rechazos reales siguen cerrando.
+- Identidad: una sesión de Supabase solo da `signed_in` si el `sub` del token es `user.id` (como la
+  sesión guardada); si no, `signed_out` sin borrar nada.
+- SecureStore (`lib/chunked-storage.ts`): los fallos de leer, escribir o borrar se propagan, nunca se
+  borra nada para «arreglarlos»; un valor escrito a medias que mezcle dos cuentas no identifica a
+  ninguna.
+
+**Tiempos medidos** (Node, supabase-js real con `autoRefreshToken: true` contra el Supabase local; red,
+conectividad y `AppState` simulados; desde que vuelve la red hasta la sesión renovada · sincronización
+del pendiente). Antes → después:
+
+| Escenario | Antes | Después |
+|---|---|---|
+| Token vigente sin red | utilizable al arrancar, 0 peticiones | igual |
+| Caducado, la red vuelve a los 10 s (durante los reintentos del arranque) | 2,7 s | 2,7 s |
+| Caducado, la red vuelve a los 150 s | 25,6 s | **0,12 s** · 0,24 s |
+| Red + primer plano + «Volver a comprobar» ×2 a la vez | 30 s, 1 renovación | **0,13 s**, 1 renovación |
+| La red vuelve en segundo plano; medido desde el primer plano | (renovada en segundo plano) | **0,16 s** · 0,32 s |
+| Renovación colgada 15 s | 25,6 s | **15,1 s** |
+| Caducado, la red vuelve a los 45 s (dentro del bloqueo de 60 s del arranque) | 40,6 s | 45,1 s |
+| Sesión revocada; la red vuelve a los 40 s | cierre a los 45,5 s, 0 renovaciones después | 50,1 s, 0 después |
+| 503 durante 180 s y luego servidor sano (sin evento de red) | 51 s; 16 renovaciones en 180 s | 60,2 s; 16 en 180 s |
+| Renovaciones sin red en 150 s | 16 | **8** (solo las del arranque) |
+
+Los tres últimos casos están limitados por el bloqueo de 60 s de auth-js (no se puede saltar con su
+API pública): la espera es lo que le quede más ≤ 5 s; la diferencia antes/después depende de en qué
+momento del bloqueo vuelve la red.
+
+**Consultas tras recuperar la red** (2026-10-20): con el token vigente la sesión nunca pasa por
+`offline`, así que las queries que fallaron sin red se recuperan con la revalidación al reconectar
+de TanStack Query (activada en móvil; ver `networkMode` en «Infraestructura (fase 1 del frontend)»);
+con el token caducado, con la invalidación de AuthProvider al recuperar la sesión.
+
+**Verificado en Android** (emulador Android 16, Expo Go 57.0.9 con su SecureStore nativo, Supabase
+local en `10.0.2.2` para que el modo avión lo corte de verdad; peticiones contadas en los registros de
+Kong): arranque sin red con token vigente y caducado, ida y vuelta a primer plano durante los
+reintentos, crear/editar sin red y cerrar la app, recuperación en primer plano con el token caducado
+(1 renovación, 1 escritura con precondición; renovación a 3,3 s de quitar el modo avión, ~3 s de ellos
+la reconexión del wifi), cambio de cuenta y cierre de sesión sin red conservando los cambios. Solo en
+Node: la red que vuelve en segundo plano y el cierre de sesión en `offline` con el token caducado.
+Para repetirlo: arrancar Expo con `EXPO_PUBLIC_SUPABASE_URL=http://10.0.2.2:54321` y la clave anónima
+local, `adb reverse` solo para Metro, y esperar 1 h (`jwt_expiry`) con la app cerrada para el token
+caducado.
 
 ### Infraestructura (fase 1 del frontend)
 
@@ -873,15 +951,25 @@ lectura = conectado. `isInternetReachable` no se usa. Sin polling: eventos del s
 inicial. TanStack Query llama a la limpieza al sustituir el listener o quedarse sin suscriptores.
 
 `networkMode` (`frontend/src/lib/query-defaults.ts`, probado contra `@tanstack/query-core`): conserva
-lo que hacía cada plataforma antes de existir la señal. Ninguna feature fija el suyo.
+lo que hacía cada plataforma antes de existir la señal. Solo Daily Logs fija el suyo
+(`offline/daily-log-cache.ts`: queries locales y la mutación de guardado).
 - **Móvil: `always`.** Antes TanStack Query no recibía señal de red en móvil, así que toda petición
-  se intentaba y sin red fallaba con `network`; `always` es eso mismo. No se revalida nada al
-  reconectar (antes no existía ese evento). Con el modo por defecto las queries se quedarían cargando
-  y las mutaciones de Pets, fotos y Daily Logs quedarían en pausa y se enviarían solas al reconectar.
-- **Web: modo por defecto de TanStack Query, sin cambios.** Con el navegador sin conexión las
-  queries y las mutaciones quedan en pausa y se lanzan al reconectar. Para Daily Logs eso es un
-  guardado diferido **sin precondición** (comprobado en navegador el 2026-10-13). Sigue pendiente de
-  decisión; cambio mínimo propuesto: `networkMode: 'always'` solo en la mutación de `useSaveDailyLog`.
+  se intentaba y sin red fallaba con `network`; `always` es eso mismo. Con el modo por defecto las
+  queries se quedarían cargando y las mutaciones de Pets, fotos y Daily Logs quedarían en pausa y se
+  enviarían solas al reconectar.
+- **Móvil: revalidación al reconectar (`refetchOnReconnect: true`, 2026-10-20).** Con `always`
+  TanStack Query la desactiva por defecto y una query que falló sin red se quedaba en error hasta
+  pulsar «Reintentar». Al volver la red se vuelven a pedir las queries **caducadas** con observadores
+  (las de `staleTime: Infinity`, como las locales de Daily Logs, no). Sin sesión utilizable no sale
+  nada: toda query de servidor pasa por `serverCall` (también la de zona horaria) y AuthProvider las
+  vuelve a pedir al recuperar la sesión. Red, primer plano y recuperación a la vez: una renovación y
+  una petición por query (TanStack Query reutiliza la petición en curso; la invalidación de la
+  recuperación solo sustituye intentos que `serverCall` ya cortó). Las mutaciones no cambian.
+  Probado contra `@tanstack/query-core` con el controlador de sesión (`lib/query-defaults.test.mjs`).
+- **Web: modo por defecto de TanStack Query, sin cambios** (también la revalidación al reconectar,
+  que en web ya estaba activa). Con el navegador sin conexión las queries quedan en pausa y se lanzan
+  al reconectar. El guardado de Daily Logs usa `networkMode: 'always'` para no quedar en pausa y
+  enviarse sin precondición (§5, «Web»).
 - Auth y la sincronización de la zona horaria no pasan por TanStack Query: no les afecta.
 
 **Comprobación del almacenamiento real** (`frontend/src/lib/local-store/local-store-check.ts`,

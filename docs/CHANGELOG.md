@@ -3,7 +3,37 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-20
+
+- Móvil: al volver la red se vuelven a pedir solas las consultas que fallaron sin conexión (p. ej. la
+  lista de mascotas ya no se queda en «No hay conexión» hasta pulsar «Reintentar»). Solo las
+  caducadas y en pantalla; sin sesión utilizable no sale ninguna, y red, primer plano y renovación de
+  la sesión a la vez dan una sola petición por consulta. Web, las mutaciones y Daily Logs no cambian.
+  Modifica la decisión del 2026-10-13 (`DECISIONS.md`); contrato en `FRONTEND_ARCHITECTURE.md` §5.
+
 ## 2026-10-19
+
+- Daily Logs offline, fase 6.5 (estabilización de la sesión en móvil): al volver la red tras un arranque
+  sin conexión, la sesión se renueva al momento (0,12 s medidos; antes 25,6 s) y los pendientes se
+  sincronizan después (0,24 s). Sin conexión ya no se intenta renovar (ni el temporizador de supabase-js
+  ni la app), así que al volver la red no hay que esperar el bloqueo de 60 s de supabase-js; con
+  conexión pero sin sesión, se reintenta cada 5 s sin peticiones de más. Corregido: una respuesta de
+  error que no es del servidor de Auth (p. ej. un 403 en HTML de un proxy) cerraba la sesión con el
+  token caducado; una sesión rechazada que supabase-js no pudiera borrar se reintentaba sin fin; una
+  comprobación tardía podía aplicarse a otra cuenta; una sesión guardada a medias que mezclara dos
+  cuentas podía identificar a una de ellas. Sin cambios de BD ni de dependencias. Tiempos, política y
+  premisas de supabase-js en `FRONTEND_ARCHITECTURE.md` §5 «Estabilización de la sesión (fase 6.5)»;
+  decisión en `DECISIONS.md`; medición repetible con `frontend/scripts/measure-session-recovery.mjs`.
+  Verificado en el emulador Android (Android 16, Expo Go 57.0.9 con SecureStore nativo, Supabase local
+  cortado de verdad con el modo avión): arranque sin red con el token vigente (sesión leída del
+  SecureStore, sin login) y con el token caducado tras 1 h (aviso «Sesión sin comprobar»; seguir así
+  tras ir y volver de segundo plano durante los reintentos), crear y editar sin red, cerrar la app y
+  conservarlo, al volver la red una sola renovación y una sola escritura (`save_daily_log` con
+  precondición, 200, sin conflicto; renovación a los 3,3 s de quitar el modo avión, de los que ~3 s son
+  la reconexión del wifi del emulador), cambio de cuenta sin ver datos de la otra y cierre de sesión sin
+  red conservando los cambios (otra cuenta no los ve ni los envía; al volver la cuenta, se envían una
+  vez). No verificado en dispositivo: volver la red con la app en segundo plano y cerrar sesión en
+  `offline` con el token caducado (cubiertos con supabase-js real en Node).
 
 - Dependencias de Expo actualizadas a las versiones recomendadas para SDK 57 (solo parches): `expo`
   57.0.30, `expo-router` 57.0.28, `@expo/ui` 57.0.25, `expo-linking` 57.0.13, `expo-splash-screen`
