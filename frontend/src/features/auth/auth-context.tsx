@@ -98,6 +98,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         });
         return () => subscription.remove();
       },
+      // Sin conexión o en segundo plano no se intenta renovar (ver `auth-session-controller.ts`). Un
+      // estado de AppState aún desconocido al arrancar cuenta como primer plano.
+      canAttemptRecovery: () => onlineManager.isOnline() && AppState.currentState !== 'background',
     })
   );
   const [state, setState] = useState(controller.getState);

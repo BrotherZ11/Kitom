@@ -13,7 +13,16 @@ import type { DefaultOptions } from '@tanstack/react-query';
  *   se ejecutarían solas al reconectar.
  * - Web: ya recibía la señal del navegador y usaba el modo por defecto; no se toca.
  *
- * Ninguna feature fija su propio `networkMode`. Decisión y pendientes: `docs/DECISIONS.md` (2026-10-13).
+ * Revalidación al reconectar (`refetchOnReconnect`), solo en móvil (decisión del 2026-10-20, que
+ * modifica la del 2026-10-13): con `always` TanStack Query la desactiva por defecto, y una query que
+ * falló sin red (p. ej. la lista de mascotas) se quedaba en error hasta pulsar «Reintentar». Ahora, al
+ * volver la red, se vuelven a pedir las queries **caducadas** que tengan observadores, como en web.
+ * Es seguro porque toda query de servidor pasa por `serverCall`: sin sesión utilizable (`offline` o
+ * sin comprobar) falla al instante sin enviar nada, y al recuperar la sesión AuthProvider las vuelve
+ * a pedir. Las mutaciones no cambian: no quedan en pausa ni se reenvían solas al reconectar.
+ *
+ * Solo Daily Logs fija su propio `networkMode` (`daily-log-cache.ts`). Decisiones: `docs/DECISIONS.md`
+ * (2026-10-13 y 2026-10-20).
  */
 export function queryDefaultOptions(platform: 'web' | 'native'): DefaultOptions {
   const networkMode = platform === 'web' ? undefined : 'always';
@@ -22,6 +31,7 @@ export function queryDefaultOptions(platform: 'web' | 'native'): DefaultOptions 
       staleTime: 30_000,
       retry: 1,
       networkMode,
+      ...(platform === 'native' ? { refetchOnReconnect: true } : {}),
     },
     mutations: {
       retry: 0,

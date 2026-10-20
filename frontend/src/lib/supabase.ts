@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import { onlineManager } from '@tanstack/react-query';
 import { AppState, Platform } from 'react-native';
 
+import { createAuthRefreshFetch } from '@/lib/auth-refresh-fetch';
+import { createAutoRefreshGate } from '@/lib/auto-refresh-gate';
 import { secureSessionStorage } from '@/lib/secure-session-storage';
 import { createUserTokenFetch } from '@/lib/user-token-fetch';
 import type { Database } from '@/types/database.types';
@@ -30,9 +33,10 @@ export const AUTH_STORAGE_KEY = `sb-${new URL(supabaseUrl).hostname.split('.')[0
 /** Cliente único de Supabase para toda la app. */
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   global: {
-    // Ninguna petición de datos sale sin el token de un usuario (`user-token-fetch.ts`).
+    // Ninguna petición de datos sale sin el token de un usuario (`user-token-fetch.ts`) y una respuesta
+    // que no es del servidor de Auth nunca cierra la sesión (`auth-refresh-fetch.ts`).
     fetch: createUserTokenFetch({
-      fetch: (input, init) => fetch(input, init),
+      fetch: createAuthRefreshFetch({ fetch: (input, init) => fetch(input, init), supabaseUrl }),
       supabaseUrl,
       anonKey: supabaseAnonKey,
     }),
@@ -50,13 +54,17 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// En móvil el refresco automático del token solo debe correr con la app en primer plano.
+// En móvil el temporizador de renovación del token solo corre en primer plano y con conexión
+// (`auto-refresh-gate.ts`). En web lo gestiona auth-js según la visibilidad de la pestaña.
 if (Platform.OS !== 'web') {
-  AppState.addEventListener('change', (state) => {
-    if (state === 'active') {
-      supabase.auth.startAutoRefresh();
-    } else {
-      supabase.auth.stopAutoRefresh();
-    }
+  const gate = createAutoRefreshGate({
+    start: () => void supabase.auth.startAutoRefresh(),
+    stop: () => void supabase.auth.stopAutoRefresh(),
+    foreground: AppState.currentState !== 'background',
+    online: onlineManager.isOnline(),
   });
+  AppState.addEventListener('change', (state) => gate.setForeground(state === 'active'));
+  onlineManager.subscribe((online) => gate.setOnline(online));
+  // auth-js arranca el temporizador por su cuenta al terminar de inicializarse: después se reaplica.
+  void supabase.auth.initialize().then(() => setTimeout(gate.sync, 0));
 }

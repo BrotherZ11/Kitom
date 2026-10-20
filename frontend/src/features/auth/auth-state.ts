@@ -1,3 +1,4 @@
+import { jwtSubject } from './owner-session.ts';
 import type { PersistedIdentity, PersistedUser } from './persisted-session.ts';
 
 /**
@@ -12,6 +13,10 @@ import type { PersistedIdentity, PersistedUser } from './persisted-session.ts';
  *   del servidor hasta volver a `signed_in`. **No** es un cierre de sesión.
  * - `signed_out`: no hay sesión guardada (o no se puede atribuir a nadie): flujo de autenticación.
  *
+ * Identidad: una sesión solo identifica a un usuario si el `sub` de su token es `user.id`, igual que la
+ * sesión guardada (`persisted-session.ts`). Una sesión incoherente (p. ej. un valor guardado a medias
+ * mezclando dos cuentas) no abre nada: `signed_out`, sin borrar nada; iniciar sesión la sustituye.
+ *
  * Supabase Auth, con el token caducado y sin red, reintenta la renovación hasta ~30 s y después emite
  * `INITIAL_SESSION` sin sesión aunque la conserve guardada (error reintentable). Por eso una sesión
  * `null` que no sea `SIGNED_OUT` no se cree sin mirar el almacenamiento.
@@ -23,7 +28,7 @@ import type { PersistedIdentity, PersistedUser } from './persisted-session.ts';
 /** Tope del arranque: pasado este tiempo sin `INITIAL_SESSION`, decide la sesión guardada. */
 export const AUTH_STARTUP_TIMEOUT_MS = 4_000;
 
-type SessionLike = { user: { id: string } };
+type SessionLike = { access_token: string; user: { id: string } };
 
 export type AuthState<S extends SessionLike> =
   | { status: 'loading' }
@@ -68,7 +73,10 @@ export function createAuthStateMachine<S extends SessionLike>(): AuthStateMachin
       sequence += 1;
       if (event === 'INITIAL_SESSION') initialSeen = true;
       if (session) {
-        state = { status: 'signed_in', session, userId: session.user.id };
+        state =
+          jwtSubject(session.access_token) === session.user.id
+            ? { status: 'signed_in', session, userId: session.user.id }
+            : { status: 'signed_out' };
         return null;
       }
       if (event === 'SIGNED_OUT') {

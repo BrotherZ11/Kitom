@@ -3,6 +3,72 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-20 — Revalidación al reconectar en móvil (modifica la decisión del 2026-10-13)
+
+**Contexto.** El 2026-10-13 se fijó `networkMode: 'always'` en móvil y, para no cambiar nada más, no se
+activó la revalidación al reconectar (con `always`, TanStack Query la desactiva por defecto). Al probar
+la fase 6.5 en el emulador, con el token vigente la sesión nunca pasa por `offline` (no hay
+invalidación al recuperarla) y la lista de mascotas que falló sin red se quedaba en «No hay conexión»
+tras volver la red, hasta pulsar «Reintentar». Con el token caducado no pasaba (AuthProvider vuelve a
+pedir las queries al recuperar la sesión).
+
+**Decisión.**
+
+- `refetchOnReconnect: true` en las opciones por defecto de las queries **solo en móvil**
+  (`lib/query-defaults.ts`). Al volver la red se vuelven a pedir las queries caducadas con
+  observadores, como ya hacía web. `networkMode: 'always'` no cambia, ni las mutaciones (no quedan en
+  pausa ni se reenvían solas) ni nada de web.
+- Requisito: ninguna query de servidor sale sin sesión utilizable. Todas pasan por `serverCall`
+  (también la de zona horaria, que solo se apoyaba en `enabled`): en `offline` o con la sesión sin
+  comprobar, la revalidación falla al instante sin enviar nada.
+- Sin peticiones duplicadas: con red, primer plano y recuperación de la sesión a la vez, TanStack
+  Query reutiliza la petición en curso, y la invalidación de AuthProvider solo sustituye intentos que
+  `serverCall` ya había cortado sin red (probado contra `@tanstack/query-core` con el controlador de
+  sesión). Se descartó invalidar al reconectar desde AuthProvider (duplicaría a TanStack Query) y
+  reintentar solo la lista de mascotas (el problema es de todas las queries).
+- Daily Logs no cambia: sus lecturas del servidor pasan por el almacén local (una lectura tardía no
+  retrocede la versión), sus queries locales tienen `staleTime: Infinity` (no se releen al reconectar)
+  y las escrituras siguen siendo solo del motor, con precondición.
+
+**Consecuencias.** Al reconectar en móvil puede haber algunas peticiones más (solo de queries caducadas
+y en pantalla). La decisión del 2026-10-13 queda modificada en ese punto; el resto sigue vigente.
+
+## 2026-10-19 — Daily Logs offline, fase 6.5: estabilización de la sesión en móvil
+
+**Contexto.** En la fase 6 la renovación tras recuperar la red tardó 25,7 s y se añadió un reintento
+cada 30 s sin volver a medir, con la premisa de que en móvil el temporizador de renovación de
+supabase-js solo arranca con un cambio de `AppState`. Medido ahora contra el Supabase local con
+supabase-js real (`FRONTEND_ARCHITECTURE.md` §5 «Estabilización de la sesión (fase 6.5)»): esa premisa
+es falsa (auth-js arranca su temporizador al inicializarse fuera del navegador) y la espera venía de que,
+sin red, el temporizador de auth-js y el reintento de la app intentaban renovar cada pocos segundos;
+cada intento fallido bloquea las renovaciones 60 s, así que al volver la red casi siempre había que
+esperar ese bloqueo (25–51 s).
+
+**Decisión.**
+
+- No intentar renovar mientras el sistema dice «sin conexión»: el temporizador de auth-js corre solo en
+  primer plano y con conexión (`lib/auto-refresh-gate.ts`) y el controlador solo intenta con conexión y
+  en primer plano. Al volver la red la renovación sale al momento (0,12 s medidos).
+- Mantener el reintento periódico existente (no uno nuevo) pero cada 5 s y solo con conexión: durante el
+  bloqueo de auth-js no genera peticiones (fallo guardado y una renovación compartida, probado contra
+  auth-js real) y acorta lo que se tarda en notar que terminó. Se descartó quitarlo y depender del
+  temporizador de auth-js (hasta 30 s más por su fase) y calcular el fin del bloqueo (depende de una
+  constante interna y de fallos que la app no ve).
+- Sesión rechazada: nunca se reintenta; si auth-js no pudo borrarla, se quita del dispositivo.
+- Las respuestas de error no JSON a la renovación cuentan como fallo de red (`lib/auth-refresh-fetch.ts`):
+  auth-js borraría la sesión por un 403 en HTML de un proxy (probado). Se descartó cambiar el código de
+  estado o tocar otras rutas de Auth.
+- Identidad coherente también con la sesión de Supabase (`sub` del token = `user.id`); el troceado de
+  SecureStore pasa a un módulo puro (`lib/chunked-storage.ts`) sin cambiar formato ni orden de escritura
+  (escribir el recuento al final hace que una lectura concurrente durante una renovación vea la sesión,
+  no «ninguna»).
+
+**Consecuencias.** Sin cambios de BD ni de dependencias. Quedan limitados por el bloqueo de 60 s de
+auth-js: la red que vuelve dentro del primer minuto tras un arranque sin conexión con el token caducado,
+la sesión revocada y los fallos repetidos del servidor. En web el temporizador sigue gestionado por
+auth-js. Detectado en el emulador: en móvil TanStack Query no volvía a pedir las queries al reconectar
+(decisión del 2026-10-13); resuelto en la entrada del 2026-10-20.
+
 ## 2026-10-19 — Especie bloqueada al editar y limpieza de lo que no se usa
 
 **Contexto.** El tablero 3.8 pide la especie bloqueada al editar una mascota, pero el usuario puede
@@ -382,7 +448,8 @@ versión. Esta fase no conecta nada a las pantallas ni envía operaciones.
   mantiene eso ahora que la señal existe. Con el modo por defecto cambiarían todas las features: las
   queries se quedarían cargando y las seis mutaciones (crear, editar y borrar mascota, subir y quitar
   foto, guardar registro) quedarían en pausa y se enviarían solas al reconectar. Tampoco se activa
-  la revalidación al reconectar en móvil. En web no se cambia el modo que ya tenía. Auth y la zona
+  la revalidación al reconectar en móvil (**modificado el 2026-10-20**: ahora sí, ver esa entrada).
+  En web no se cambia el modo que ya tenía. Auth y la zona
   horaria no usan TanStack Query. Comprobado con tests contra `@tanstack/query-core` y a mano en un
   emulador Android (guardar sin red da error al instante, nada se envía al reconectar, una consulta
   sin red termina en error con «Reintentar»).

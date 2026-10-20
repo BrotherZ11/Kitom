@@ -25,17 +25,24 @@ error y «sin mascotas».
   `api/pet-photos-api.ts`, `hooks/use-pet-photo.ts`, `components/pet-photo-editor.tsx` (§4 «Pets: fotos»).
   Patrón a seguir en nuevas features: el acceso a datos solo en `api/`, los componentes nunca llaman a
   `supabase` directamente, y las escrituras envían únicamente columnas editables explícitas.
-- `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`,
-  clave `AUTH_STORAGE_KEY` = la de supabase-js por defecto: no cambiarla). Su `fetch` es
-  `src/lib/user-token-fetch.ts`: ninguna petición de datos sale como `anon`.
+- `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`
+  sobre `chunked-storage.ts`, clave `AUTH_STORAGE_KEY` = la de supabase-js por defecto: no cambiarla). Su
+  `fetch` es `src/lib/user-token-fetch.ts` (ninguna petición de datos sale como `anon`) sobre
+  `auth-refresh-fetch.ts` (una respuesta no JSON a la renovación nunca cierra la sesión). En móvil, el
+  temporizador de renovación de auth-js solo corre en primer plano y con conexión
+  (`auto-refresh-gate.ts`); no llamar a `startAutoRefresh`/`stopAutoRefresh` en otro sitio.
 - `src/lib/query-client.ts` — QueryClient único; AuthProvider lo vacía al cerrar sesión o cambiar de usuario.
 - `src/features/auth/` — `AuthProvider`/`useAuth`, mapeo de errores (`auth-errors.ts`), validación,
   deep links de Auth (`auth-redirect.ts`, flujo PKCE). Guía y configuración de Supabase/Google: `docs/AUTH.md`.
   Estado de la sesión (fase 6): `auth-state.ts` + `auth-session-controller.ts` (puros) y
   `persisted-session.ts` (identidad local sin red). `status`: `loading` | `signed_in` | `offline` |
-  `signed_out`; en `offline` hay `user` pero no `session` ni servidor. Toda query/mutación de servidor
-  pasa por `serverCall` de `useAuth()` (falla al instante sin sesión utilizable); nunca comprobar
-  `session` para decidir si hay usuario (usar `user`), ni dar por válida una sesión `offline`.
+  `signed_out`; en `offline` hay `user` pero no `session` ni servidor. Recuperación, reintentos y
+  premisas de auth-js en las que se apoyan: `docs/FRONTEND_ARCHITECTURE.md` §5 «Estabilización de la
+  sesión (fase 6.5)»; tiempos con `node scripts/measure-session-recovery.mjs` (Supabase local).
+  Toda query/mutación de servidor pasa por `serverCall` de `useAuth()` (falla al instante sin sesión
+  utilizable; es lo que hace segura la revalidación al reconectar de móvil, `lib/query-defaults.ts`,
+  aunque la query use `enabled`); nunca comprobar `session` para decidir si hay usuario (usar
+  `user`), ni dar por válida una sesión `offline`.
 - Rutas de Auth: `(auth)/auth-callback.tsx` recibe los enlaces de email y el retorno de Google;
   `update-password.tsx` solo es accesible con una sesión de recuperación.
 - `src/app/_layout.tsx` — único punto de protección de rutas (`Stack.Protected`); nunca comprobar la
