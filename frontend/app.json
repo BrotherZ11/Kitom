@@ -8,6 +8,7 @@
     "scheme": "kitom",
     "userInterfaceStyle": "automatic",
     "android": {
+      "package": "com.kitom.app",
       "adaptiveIcon": {
         "backgroundColor": "#0E3B39",
         "foregroundImage": "./assets/brand/app-icon/android-adaptive-foreground.png",
