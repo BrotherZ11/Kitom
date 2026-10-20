@@ -43,7 +43,8 @@ export function makeSession(userId, { expiresAt, version = 1 } = {}) {
 
 /**
  * `net.online`: hay red. `net.hang`: la red «cuelga» (las peticiones no terminan hasta `release()`).
- * `server.revoked`: tokens de renovación rechazados por el servidor.
+ * `server.revoked`: tokens de renovación rechazados por el servidor. `server.keepRejected`: auth-js no
+ * consigue borrar la sesión rechazada (p. ej. el almacenamiento falla): devuelve el error sin emitir nada.
  */
 export function createFakeSupabaseAuth({ disk, key, clock, net = { online: true }, server = { revoked: new Set() } }) {
   const storage = sessionStorageOn(disk);
@@ -64,9 +65,11 @@ export function createFakeSupabaseAuth({ disk, key, clock, net = { online: true 
     if (net.hang) await new Promise((resolve) => hung.push(resolve));
     if (!net.online) return { session: null, error: RETRYABLE };
     if (server.revoked.has(session.refresh_token)) {
+      const error = { name: 'AuthApiError', code: 'refresh_token_not_found', status: 400 };
+      if (server.keepRejected) return { session: null, error };
       await storage.removeItem(key);
       emit('SIGNED_OUT', null);
-      return { session: null, error: { name: 'AuthApiError', code: 'refresh_token_not_found', status: 400 } };
+      return { session: null, error };
     }
     const version = Number(session.refresh_token.split('-').pop()) + 1;
     const next = makeSession(session.user.id, { expiresAt: Math.floor(clock.now / 1000) + 3600, version });
