@@ -1,14 +1,13 @@
+import { PET_COLUMNS } from '@/features/pets/api/pets-remote';
 import { PetError, toPetError } from '@/features/pets/pet-errors';
 import type { Pet, PetFields } from '@/features/pets/types';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Acceso a `pets`. RLS es la autoridad: no se filtra por `owner_id`, así que las consultas devuelven
- * tanto las mascotas propias como las compartidas (`pet_co_owners` aceptado, `is_pet_member`).
+ * Escrituras en `pets` (y el permiso de edición). RLS es la autoridad. Las lecturas de la lista y la
+ * ficha están en `pets-remote.ts` (con el token del dueño del almacén local, para la copia sin
+ * conexión).
  */
-
-const PET_COLUMNS =
-  'id, owner_id, name, species_id, sex, breed, breed_id, breed_status, birth_date, weight_kg, sterilized, known_conditions, allergies, temperament_notes, photo_path, is_active, created_at, updated_at';
 
 /**
  * Copia solo las columnas editables. Aunque llegue un objeto con más propiedades (p. ej. `owner_id`
@@ -29,30 +28,6 @@ function pickEditableFields(fields: PetFields): PetFields {
     allergies: fields.allergies,
     temperament_notes: fields.temperament_notes,
   };
-}
-
-export async function fetchPets(): Promise<Pet[]> {
-  const { data, error } = await supabase
-    .from('pets')
-    .select(PET_COLUMNS)
-    .order('created_at', { ascending: true });
-  if (error) throw toPetError(error);
-  return data;
-}
-
-/** `null` si no existe o el usuario no tiene acceso (RLS no distingue ambos casos). */
-export async function fetchPet(petId: string): Promise<Pet | null> {
-  const { data, error } = await supabase
-    .from('pets')
-    .select(PET_COLUMNS)
-    .eq('id', petId)
-    .maybeSingle();
-  if (error) {
-    // Un id con formato inválido (p. ej. una URL manipulada) equivale a "no existe".
-    if (error.code === '22P02') return null;
-    throw toPetError(error);
-  }
-  return data;
 }
 
 /** Crea una mascota cuyo propietario es el usuario de la sesión (`pets: insert own`). */

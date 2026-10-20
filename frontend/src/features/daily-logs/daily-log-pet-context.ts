@@ -1,9 +1,9 @@
 /**
- * Datos de la mascota que necesitan las pantallas de un registro (nombre y permiso de edición), que
- * solo existen en el servidor (Pets aún no funciona sin conexión). Módulo puro (se prueba con
- * `npm test`).
+ * Datos de la mascota que necesitan las pantallas de un registro (nombre y permiso de edición). El
+ * nombre puede venir de la copia del dispositivo (`usePet`, fase 7); el permiso, solo del servidor
+ * (nunca se guarda). Módulo puro (se prueba con `npm test`).
  *
- * Sin conexión, o sin sesión utilizable, y sin esos datos en caché (p. ej. arranque en frío), el
+ * Sin conexión, o sin sesión utilizable, y sin esos datos (p. ej. arranque en frío sin copia), el
  * registro se sigue pudiendo ver y editar en el dispositivo: el nombre queda `null` («información de la
  * mascota no disponible sin conexión»; nunca se inventa) y el permiso, desconocido. Con permiso
  * desconocido se permite editar: es solo UX (RLS decide al sincronizar; si no hay permiso, el registro

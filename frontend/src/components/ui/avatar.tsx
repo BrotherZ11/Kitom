@@ -1,4 +1,5 @@
 import { Image, type ImageSource } from 'expo-image';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
@@ -22,15 +23,26 @@ type AvatarProps = {
 
 /**
  * Avatar circular. Sin foto, la inicial del nombre: nunca una silueta de perro o gato
- * (docs/design/componentes/PetCard).
+ * (docs/design/componentes/PetCard). Si la imagen no se puede descargar (sin conexión, URL firmada
+ * caducada), también la inicial; una imagen nueva (otra URL) se vuelve a intentar.
  */
 export function Avatar({ name, source, size = 'md', tone = 'brand', accessibilityLabel }: AvatarProps) {
   const theme = useTheme();
+  const [failedUri, setFailedUri] = useState<string | null>(null);
   const pixels = typeof size === 'number' ? size : SIZES[size];
   const shape = { width: pixels, height: pixels, borderRadius: pixels / 2 };
+  const uri = source?.uri ?? null;
 
-  if (source) {
-    return <Image source={source} style={shape} contentFit="cover" accessibilityLabel={accessibilityLabel} />;
+  if (source && (uri === null || uri !== failedUri)) {
+    return (
+      <Image
+        source={source}
+        style={shape}
+        contentFit="cover"
+        accessibilityLabel={accessibilityLabel}
+        onError={() => setFailedUri(uri)}
+      />
+    );
   }
 
   const fontSize = Math.round(pixels * 0.375);

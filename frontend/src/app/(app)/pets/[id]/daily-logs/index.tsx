@@ -10,7 +10,7 @@ import { t } from '@/i18n';
 
 /**
  * Historial de una mascota concreta (`/pets/[id]/daily-logs`), el mismo que la pestaña Historial. Sin
- * conexión y sin la mascota en caché (Pets aún no funciona sin conexión) se muestra igualmente lo
+ * conexión, con el nombre de la copia del dispositivo si la hay; sin ella, se muestra igualmente lo
  * guardado en el dispositivo, sin nombre ni foto: no se inventan.
  */
 export default function DailyLogHistoryScreen() {

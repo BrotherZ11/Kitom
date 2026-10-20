@@ -35,7 +35,7 @@ export default function DailyLogEntryScreen() {
   const pet = usePet(id);
   const canEdit = useCanEditPet(id);
   const retrySync = useRetryDailyLogSync();
-  // Sin conexión y sin la mascota en caché, el registro sigue disponible (`daily-log-pet-context.ts`).
+  // Sin conexión y sin copia de la mascota, el registro sigue disponible (`daily-log-pet-context.ts`).
   const petContext = resolveDailyLogPetContext(pet, canEdit, (error) => toPetError(error).code === 'network');
   const { view, refetch } = useDailyLog(id, logDate, { waitForRemote: true });
   const editing = edit === '1';

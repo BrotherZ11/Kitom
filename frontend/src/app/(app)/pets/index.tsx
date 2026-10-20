@@ -9,12 +9,17 @@ import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
 import { DeviceDailyLogs } from '@/features/daily-logs/components/device-logs';
 import { PetListItem } from '@/features/pets/components/pet-list-item';
+import { PetSavedBanner } from '@/features/pets/components/pet-saved-banner';
 import { usePets } from '@/features/pets/hooks/use-pets';
 import { useSpecies } from '@/features/pets/hooks/use-species';
-import { petErrorMessage, toPetError } from '@/features/pets/pet-errors';
+import { petErrorMessage } from '@/features/pets/pet-errors';
 import { t } from '@/i18n';
 
-/** Mis mascotas (desde «Tu cuenta»): todas las visibles, propias y compartidas, y añadir otra. */
+/**
+ * Mis mascotas (desde «Tu cuenta»): todas las visibles, propias y compartidas, y añadir otra. Sin
+ * conexión, la última lista guardada en el dispositivo con su fecha; sin copia, «no disponible sin
+ * conexión» y los registros del dispositivo.
+ */
 export default function PetsListScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -25,41 +30,59 @@ export default function PetsListScreen() {
 
   const goToNewPet = () => router.push('/pets/new');
 
+  const { view } = pets;
+
   const content = () => {
-    if (pets.isPending) return <LoadingState />;
-    if (pets.isError) {
+    if (view.state === 'loading') return <LoadingState />;
+    if (view.state === 'error') return <ErrorState message={petErrorMessage(view.error)} onRetry={pets.refetch} />;
+    if (view.state === 'offline_unavailable' || view.state === 'local_error') {
       return (
         <>
-          <ErrorState message={petErrorMessage(pets.error)} onRetry={() => void pets.refetch()} />
-          {/* Sin conexión (Pets aún no funciona sin ella): acceso a los registros del dispositivo. */}
-          {toPetError(pets.error).code === 'network' ? <DeviceDailyLogs /> : null}
+          {view.state === 'local_error' ? (
+            <ErrorState message={t('pets.offline.localReadFailed')} onRetry={pets.refetch} />
+          ) : (
+            <ErrorState
+              offline
+              message={t('pets.offline.listUnavailableTitle')}
+              description={t('pets.offline.listUnavailableText')}
+              onRetry={pets.refetch}
+            />
+          )}
+          {/* Sin la lista: acceso a los registros guardados en el dispositivo. */}
+          <DeviceDailyLogs />
         </>
       );
     }
-    if (pets.data.length === 0) {
+    if (view.pets.length === 0) {
       return (
-        <EmptyState
-          title={t('pets.list.emptyTitle')}
-          description={t('pets.list.emptyDescription')}
-          actionLabel={t('pets.list.add')}
-          onAction={goToNewPet}
-        />
+        <>
+          <PetSavedBanner freshness={view} />
+          <EmptyState
+            title={t('pets.list.emptyTitle')}
+            description={t('pets.list.emptyDescription')}
+            actionLabel={t('pets.list.add')}
+            onAction={goToNewPet}
+          />
+        </>
       );
     }
     return (
-      <Card flush>
-        {pets.data.map((pet, index) => (
-          <PetListItem
-            key={pet.id}
-            pet={pet}
-            speciesName={speciesNames.get(pet.species_id) ?? null}
-            // Solo informativo: la visibilidad la decide RLS, no esta comparación.
-            isShared={pet.owner_id !== user?.id}
-            divider={index < pets.data.length - 1}
-            onPress={() => router.push({ pathname: '/pets/[id]', params: { id: pet.id } })}
-          />
-        ))}
-      </Card>
+      <>
+        <PetSavedBanner freshness={view} />
+        <Card flush>
+          {view.pets.map((pet, index) => (
+            <PetListItem
+              key={pet.id}
+              pet={pet}
+              speciesName={speciesNames.get(pet.species_id) ?? null}
+              // Solo informativo: la visibilidad la decide RLS, no esta comparación.
+              isShared={pet.owner_id !== user?.id}
+              divider={index < view.pets.length - 1}
+              onPress={() => router.push({ pathname: '/pets/[id]', params: { id: pet.id } })}
+            />
+          ))}
+        </Card>
+      </>
     );
   };
 
@@ -67,7 +90,7 @@ export default function PetsListScreen() {
     <Screen
       align="top"
       footer={
-        pets.data && pets.data.length > 0 ? (
+        view.state === 'ready' && view.pets.length > 0 ? (
           <Button variant="secondary" icon={Plus} label={t('pets.list.add')} onPress={goToNewPet} />
         ) : undefined
       }>

@@ -52,6 +52,17 @@ function isNetworkFailure(message: string): boolean {
   return /network request failed|failed to fetch|fetch failed|session_unavailable/i.test(message);
 }
 
+/**
+ * ¿Es un fallo de conexión (o una petición retenida sin sesión utilizable)? Igual que `toPetError(…)
+ * .code === 'network'`, pero sin registrar nada: se usa al decidir qué pintar en cada render.
+ */
+export function isPetOfflineError(error: unknown): boolean {
+  if (error instanceof PetError) return error.code === 'network';
+  if (error instanceof TypeError) return true;
+  const message = (error as PostgrestLikeError | null)?.message;
+  return typeof message === 'string' && isNetworkFailure(message);
+}
+
 /** Traduce un error de PostgREST/Postgres a un código de UI. */
 export function toPetError(error: unknown): PetError {
   if (error instanceof PetError) return error;

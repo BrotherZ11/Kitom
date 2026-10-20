@@ -8,6 +8,7 @@ import { ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TopBar } from '@/components/ui/top-bar';
+import { useAuth } from '@/features/auth/auth-context';
 import { useActivePet } from '@/features/pets/active-pet-context';
 import { PetForm } from '@/features/pets/components/pet-form';
 import { PetPhoto } from '@/features/pets/components/pet-photo';
@@ -15,10 +16,12 @@ import { PetPhotoSheet } from '@/features/pets/components/pet-photo-sheet';
 import { useUploadNewPetPhoto } from '@/features/pets/hooks/use-pet-photo';
 import { useCreatePet } from '@/features/pets/hooks/use-pets';
 import { useSpecies } from '@/features/pets/hooks/use-species';
-import { petErrorMessage } from '@/features/pets/pet-errors';
+import { resolveNewPetForm } from '@/features/pets/offline/pet-form-gate';
+import { isPetOfflineError, petErrorMessage } from '@/features/pets/pet-errors';
 import { toPetFormValues } from '@/features/pets/pet-form';
 import type { PreparedPetPhoto } from '@/features/pets/pet-photo';
 import type { PetFields } from '@/features/pets/types';
+import { useIsOnline } from '@/hooks/use-is-online';
 import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
 import { borderWidth, fontFamily, radius, spacing } from '@/theme/tokens';
@@ -27,6 +30,7 @@ import { borderWidth, fontFamily, radius, spacing } from '@/theme/tokens';
  * Nueva mascota (tablero 3.1, con todos los datos opcionales disponibles al crear). La foto se elige
  * aquí y se sube al crearla (Storage necesita el id); si la subida falla, la mascota ya existe y su
  * perfil lo dice. La nueva pasa a ser la mascota activa. El límite del plan lo decide el servidor.
+ * Crear necesita conexión: sin ella se avisa y no se puede enviar (no hay altas sin conexión).
  */
 export default function NewPetScreen() {
   const router = useRouter();
@@ -37,6 +41,9 @@ export default function NewPetScreen() {
   const { setActivePet } = useActivePet();
   const [photo, setPhoto] = useState<PreparedPetPhoto | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const { canUseServer } = useAuth();
+  const online = useIsOnline();
+  const writable = canUseServer && online;
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   const handleSubmit = (fields: PetFields) => {
@@ -75,14 +82,24 @@ export default function NewPetScreen() {
     </>
   );
 
-  if (species.isPending || species.isError) {
+  const gate = resolveNewPetForm({ species, writable, isOfflineError: isPetOfflineError });
+
+  if (gate.state !== 'form' || !species.data) {
     return (
       <Screen align="top">
         {header}
-        {species.isPending ? (
+        {gate.state === 'loading' ? (
           <LoadingState />
+        ) : gate.state === 'error' ? (
+          <ErrorState message={petErrorMessage(gate.error)} onRetry={() => void species.refetch()} />
         ) : (
-          <ErrorState message={petErrorMessage(species.error)} onRetry={() => void species.refetch()} />
+          // Sin conexión no se ofrece un formulario que no se podría guardar.
+          <ErrorState
+            offline
+            message={t('pets.offline.newTitle')}
+            description={t('pets.offline.formText')}
+            onRetry={() => void species.refetch()}
+          />
         )}
       </Screen>
     );
@@ -121,6 +138,7 @@ export default function NewPetScreen() {
         isSubmitting={createPet.isPending || uploadPhoto.isPending}
         leaveAllowed={createPet.isSuccess}
         submitError={createPet.isError ? petErrorMessage(createPet.error) : null}
+        offline={gate.offline}
         onSubmit={handleSubmit}
       />
       <PetPhotoSheet

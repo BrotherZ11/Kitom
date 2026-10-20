@@ -2,11 +2,12 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Alert } from '@/components/ui/alert';
+import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { FormMessage } from '@/components/ui/form-message';
 import { Icon } from '@/components/ui/icon';
-import { Info, Lock } from '@/components/ui/icons';
+import { Info, Lock, WifiOff } from '@/components/ui/icons';
 import { Screen } from '@/components/ui/screen';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
@@ -47,6 +48,11 @@ type PetFormProps = {
   leaveAllowed?: boolean;
   /** Mensaje del último error al guardar (ya traducido). */
   submitError: string | null;
+  /**
+   * Sin conexión o sin sesión utilizable: se avisa y no se puede enviar (guardar necesita el servidor;
+   * no hay escrituras de mascotas sin conexión). Lo escrito se conserva hasta que vuelva la conexión.
+   */
+  offline?: boolean;
   onSubmit: (fields: PetFields) => void;
 };
 
@@ -73,6 +79,7 @@ export function PetForm({
   isSubmitting,
   leaveAllowed = false,
   submitError,
+  offline = false,
   onSubmit,
 }: PetFormProps) {
   const theme = useTheme();
@@ -112,6 +119,7 @@ export function PetForm({
     species.find((item) => item.id === values.speciesId)?.name ?? t('common.notSpecified');
 
   const handleSubmit = () => {
+    if (offline) return;
     const nextErrors = validatePetForm(values);
     setErrors(nextErrors);
     if (hasPetFormErrors(nextErrors)) return;
@@ -127,11 +135,12 @@ export function PetForm({
       align="top"
       footer={
         <>
+          {offline ? <Banner tone="warning" icon={WifiOff} message={t('pets.offline.formBanner')} /> : null}
           <FormMessage message={submitError} />
           <Button
             label={submitLabel}
             loading={isSubmitting}
-            disabled={speciesOptions.length === 0 || (variant === 'new' && otherSpecies)}
+            disabled={offline || speciesOptions.length === 0 || (variant === 'new' && otherSpecies)}
             onPress={handleSubmit}
           />
         </>

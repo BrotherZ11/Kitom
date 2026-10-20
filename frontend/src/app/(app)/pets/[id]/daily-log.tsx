@@ -32,7 +32,7 @@ export default function DailyLogScreen() {
   const toast = useToast();
   const pet = usePet(id);
   const canEdit = useCanEditPet(id);
-  // Sin conexión y sin la mascota en caché, el registro sigue disponible (`daily-log-pet-context.ts`).
+  // Sin conexión y sin copia de la mascota, el registro sigue disponible (`daily-log-pet-context.ts`).
   const petContext = resolveDailyLogPetContext(pet, canEdit, (error) => toPetError(error).code === 'network');
   // La fecha se fija al abrir: el registro que se está rellenando no cambia de día.
   const logDate = useTodayLogDate({ refreshOnForeground: false });

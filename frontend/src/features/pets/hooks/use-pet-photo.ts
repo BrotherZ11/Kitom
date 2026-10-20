@@ -28,14 +28,19 @@ export function usePetPhotoUrl(photoPath: string | null) {
   });
 }
 
-/** Tras cambiar `photo_path`: detalle actualizado con la fila devuelta y lista invalidada. */
+/**
+ * Tras cambiar `photo_path`: detalle actualizado con la fila devuelta y lista invalidada (al volver a
+ * leerla, la copia sin conexión recibe el `photo_path` nuevo).
+ */
 function useApplyPetPhotoChange() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return (pet: Pet, previousPath: string | null) => {
-    queryClient.setQueryData(petKeys.detail(pet.id), pet);
+    const userId = user?.id ?? '';
+    queryClient.setQueryData(petKeys.detail(userId, pet.id), pet);
     if (previousPath) queryClient.removeQueries({ queryKey: petKeys.photo(previousPath) });
-    return queryClient.invalidateQueries({ queryKey: petKeys.lists() });
+    return queryClient.invalidateQueries({ queryKey: petKeys.lists(userId) });
   };
 }
 

@@ -13,23 +13,33 @@ import { PetForm } from '@/features/pets/components/pet-form';
 import { PetPhotoEditor } from '@/features/pets/components/pet-photo-editor';
 import { useCanEditPet, useDeletePet, usePet, useUpdatePet } from '@/features/pets/hooks/use-pets';
 import { useSpecies } from '@/features/pets/hooks/use-species';
-import { petErrorMessage } from '@/features/pets/pet-errors';
+import { resolveEditPetForm } from '@/features/pets/offline/pet-form-gate';
+import { isPetOfflineError, petErrorMessage } from '@/features/pets/pet-errors';
 import { toPetFormValues } from '@/features/pets/pet-form';
 import { missingProfileFields, PROFILE_FIELDS } from '@/features/pets/pet-profile';
 import type { PetFields } from '@/features/pets/types';
+import { useIsOnline } from '@/hooks/use-is-online';
 import { t, tf } from '@/i18n';
 
 /**
  * Editar el perfil (tablero 3.8): todo opcional salvo el nombre; la especie no cambia si solo hay una
  * disponible. La foto se gestiona aparte (hoja 3.2). Eliminar (solo el propietario) se confirma con
  * sus consecuencias (3.11). Al guardar, vuelve con «Cambios guardados» (3.7).
+ *
+ * Guardar y eliminar necesitan conexión (no hay escrituras de mascotas sin conexión): sin ella, si no
+ * se puede mostrar el formulario se explica; si ya estaba abierto, se avisa, no se puede enviar y lo
+ * escrito se conserva. Sin conexión no se edita sobre la copia del dispositivo (puede estar
+ * desactualizada).
  */
 export default function EditPetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const toast = useToast();
-  const { user } = useAuth();
+  const { user, canUseServer } = useAuth();
+  const online = useIsOnline();
+  const writable = canUseServer && online;
   const pet = usePet(id);
+  const { view } = pet;
   const canEdit = useCanEditPet(id);
   const species = useSpecies();
   const updatePet = useUpdatePet(id);
@@ -53,12 +63,27 @@ export default function EditPetScreen() {
     </Screen>
   );
 
-  if (pet.isPending || species.isPending) return frame(<LoadingState />);
-  if (pet.isError) return frame(<ErrorState message={petErrorMessage(pet.error)} onRetry={() => void pet.refetch()} />);
-  if (species.isError) {
-    return frame(<ErrorState message={petErrorMessage(species.error)} onRetry={() => void species.refetch()} />);
+  const gate = resolveEditPetForm({ pet: view, species, writable, isOfflineError: isPetOfflineError });
+
+  if (gate.state === 'loading') return frame(<LoadingState />);
+  if (gate.state === 'offline') {
+    return frame(
+      <ErrorState
+        offline
+        message={t('pets.offline.editTitle')}
+        description={t('pets.offline.formText')}
+        onRetry={() => {
+          pet.refetch();
+          void species.refetch();
+        }}
+      />
+    );
   }
-  if (pet.data === null) {
+  if (gate.state === 'error') {
+    const retry = gate.source === 'pet' ? pet.refetch : () => void species.refetch();
+    return frame(<ErrorState message={petErrorMessage(gate.error)} onRetry={retry} />);
+  }
+  if (gate.state === 'not_found' || view.state !== 'ready' || !species.data) {
     return frame(
       <EmptyState
         title={t('pets.detail.notFound')}
@@ -68,7 +93,7 @@ export default function EditPetScreen() {
     );
   }
 
-  const current = pet.data;
+  const current = view.pet;
   const filled = PROFILE_FIELDS.length - missingProfileFields(current).length;
   // Solo UX: ocultar lo que RLS rechazaría (borrar: propietario).
   const isOwner = current.owner_id === user?.id;
@@ -87,9 +112,9 @@ export default function EditPetScreen() {
             right={<TopBarText mono text={`${filled}/${PROFILE_FIELDS.length}`} />}
           />
         }
-        photo={<PetPhotoEditor pet={current} canEdit={canEdit.data === true} />}
+        photo={<PetPhotoEditor pet={current} canEdit={canEdit.data === true && writable} />}
         footerExtra={
-          isOwner ? (
+          isOwner && writable ? (
             <Button
               variant="dangerGhost"
               size="md"
@@ -105,6 +130,7 @@ export default function EditPetScreen() {
         isSubmitting={updatePet.isPending}
         leaveAllowed={confirmingDelete || updatePet.isSuccess}
         submitError={updatePet.isError ? petErrorMessage(updatePet.error) : null}
+        offline={gate.offline}
         onSubmit={handleSubmit}
       />
       <Dialog

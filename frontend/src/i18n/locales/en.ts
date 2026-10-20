@@ -323,6 +323,25 @@ export const en: Translations = {
       notFound: "We couldn't find this pet or you no longer have access to it.",
       backToList: 'Back to my pets',
     },
+    /** Offline (phase 7): data saved on the device; writes blocked. */
+    offline: {
+      savedBanner: 'Offline: showing data saved on this device. It may be out of date.',
+      savedBannerAt: 'Offline: showing data saved on this device (updated: {date}). It may be out of date.',
+      listUnavailableTitle: 'Your pets are not available offline',
+      listUnavailableText: "This device doesn't have a copy of your pet list yet. Connect and try again.",
+      detailUnavailableTitle: "This pet's information is not available offline",
+      detailUnavailableText: "This device doesn't have a copy of their profile. Connect and try again.",
+      noLongerAvailableTitle: 'This pet was not available the last time we checked',
+      noLongerAvailableText:
+        'It may have been deleted or you may no longer have access. What is saved on this device is kept; connect to check again.',
+      localReadFailed:
+        "We couldn't read the pets saved on this device. This doesn't mean there is no data: try again.",
+      newTitle: 'You need a connection to add a pet',
+      editTitle: 'You need a connection to edit this pet',
+      formText: "Pet changes can't be saved offline. Nothing has been changed.",
+      formBanner: "Offline: changes can't be saved until the connection is back.",
+      photoUnavailable: "The photo isn't available right now (offline or expired link). It is still saved.",
+    },
     fields: {
       photo: 'Photo',
       name: 'Name',

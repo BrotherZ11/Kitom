@@ -27,10 +27,13 @@ import { useBreed } from '@/features/pets/hooks/use-breeds';
 import { usePetPhotoUrl } from '@/features/pets/hooks/use-pet-photo';
 import { useCanEditPet, usePetStreak } from '@/features/pets/hooks/use-pets';
 import { useSpecies } from '@/features/pets/hooks/use-species';
-import { petErrorMessage } from '@/features/pets/pet-errors';
+import { PetSavedBanner } from '@/features/pets/components/pet-saved-banner';
+import { resolvePetPhotoState, type PetFreshness } from '@/features/pets/offline/pet-view';
+import { isPetOfflineError, petErrorMessage } from '@/features/pets/pet-errors';
 import { formatBreed } from '@/features/pets/pet-format';
 import { currentStreak, missingProfileFields, petAge, PROFILE_FIELDS } from '@/features/pets/pet-profile';
 import type { Pet } from '@/features/pets/types';
+import { useIsOnline } from '@/hooks/use-is-online';
 import { useTheme } from '@/hooks/use-theme';
 import { t, tf } from '@/i18n';
 import { fontFamily, layout, radius, spacing } from '@/theme/tokens';
@@ -46,6 +49,8 @@ type PetProfileProps = {
   onOpenHistory: () => void;
   /** Aviso bajo la cabecera (p. ej. la foto no se pudo subir al crearla). */
   notice?: ReactNode;
+  /** Origen de los datos: si pueden estar desactualizados (sin conexión), se avisa. */
+  freshness?: PetFreshness;
 };
 
 /** Foto de cabecera: 220 desde el borde superior, barra de estado (44 en el tablero) incluida. */
@@ -56,17 +61,36 @@ const BOARD_STATUS_BAR = 44;
  * Perfil de la mascota (tablero 3.6). Datos reales: la ficha (`pets`), la racha que calcula el
  * servidor (`pet_streaks`) y los permisos (`can_edit_pet`, solo para decidir qué se ofrece). Lo que
  * aún no existe (consultas con foto, co-tutores, informe) se marca «Próximamente» y no se pulsa.
+ *
+ * Sin conexión (o con la sesión sin comprobar) los datos pueden venir de la copia del dispositivo:
+ * se avisa y no se ofrece editar la mascota ni su foto (el permiso no se puede comprobar y guardar
+ * necesita el servidor). El registro del día sigue su propia regla (se guarda en el dispositivo).
  */
-export function PetProfile({ pet, mode, onOpenHistory, notice }: PetProfileProps) {
+export function PetProfile({ pet, mode, onOpenHistory, notice, freshness }: PetProfileProps) {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
-  const canEdit = useCanEditPet(pet.id).data === true;
+  const { user, canUseServer } = useAuth();
+  const online = useIsOnline();
+  const canEditLog = useCanEditPet(pet.id).data === true;
+  // Editar la mascota o su foto: con permiso conocido, servidor utilizable y datos al día.
+  const canEdit = canEditLog && canUseServer && online && freshness?.stale !== true;
   const species = useSpecies();
   const breed = useBreed(pet.breed_id);
   const streak = usePetStreak(pet.id);
   const photoUrl = usePetPhotoUrl(pet.photo_path);
+  // URL con la que la imagen no se pudo descargar (p. ej. caducada): se muestra «no disponible».
+  const [failedPhotoUrl, setFailedPhotoUrl] = useState<string | null>(null);
+  const photo = resolvePetPhotoState({
+    photoPath: pet.photo_path,
+    url: photoUrl,
+    imageFailed: photoUrl.data !== undefined && photoUrl.data === failedPhotoUrl,
+    isOfflineError: isPetOfflineError,
+  });
+  const retryPhoto = () => {
+    setFailedPhotoUrl(null);
+    void photoUrl.refetch();
+  };
   const today = useTodayLogDate();
   const week = useWeekOverview(pet.id);
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -100,12 +124,13 @@ export function PetProfile({ pet, mode, onOpenHistory, notice }: PetProfileProps
       <ScrollView contentContainerStyle={styles.scroll}>
         <View
           style={[styles.header, { height: HEADER_HEIGHT - BOARD_STATUS_BAR + insets.top, backgroundColor: theme.surfaceWarm }]}>
-          {photoUrl.data && pet.photo_path ? (
+          {photo.state === 'ready' ? (
             <Image
-              source={{ uri: photoUrl.data, cacheKey: pet.photo_path }}
+              source={{ uri: photo.url, cacheKey: photo.cacheKey }}
               style={StyleSheet.absoluteFill}
               contentFit="cover"
               accessibilityLabel={`${t('pets.fields.photo')}: ${pet.name}`}
+              onError={() => setFailedPhotoUrl(photo.url)}
             />
           ) : (
             <View style={[styles.placeholder, { paddingTop: insets.top }]}>
@@ -153,12 +178,14 @@ export function PetProfile({ pet, mode, onOpenHistory, notice }: PetProfileProps
         </View>
 
         <View style={styles.body}>
+          <PetSavedBanner freshness={freshness} />
           {notice}
-          {photoUrl.isError ? (
+          {photo.state === 'unavailable' || photo.state === 'error' ? (
             <Alert
               tone="warning"
-              message={petErrorMessage(photoUrl.error)}
-              action={{ label: t('common.retry'), onPress: () => void photoUrl.refetch() }}
+              // Sin conexión o URL caducada: la foto sigue guardada (`photo_path` no se toca).
+              message={photo.state === 'unavailable' ? t('pets.offline.photoUnavailable') : petErrorMessage(photo.error)}
+              action={{ label: t('common.retry'), onPress: retryPhoto }}
             />
           ) : null}
           <View style={styles.between}>
@@ -232,7 +259,7 @@ export function PetProfile({ pet, mode, onOpenHistory, notice }: PetProfileProps
           ) : null}
 
           {/* Desde una ficha concreta (no la mascota activa), el registro de hoy de esa mascota. */}
-          {mode === 'stack' ? <TodayLogCard petId={pet.id} canEdit={canEdit} showHistoryLink={false} /> : null}
+          {mode === 'stack' ? <TodayLogCard petId={pet.id} canEdit={canEditLog} showHistoryLink={false} /> : null}
 
           <PetDetails pet={pet} speciesName={speciesName} breedLabel={breedLabel} isShared={isShared} />
 

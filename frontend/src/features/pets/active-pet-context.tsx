@@ -9,9 +9,12 @@ import { deviceStorage } from '@/lib/local-store/device-storage';
 import { createLocalStore } from '@/lib/local-store/local-store';
 
 type ActivePetValue = {
-  /** Consulta de mascotas visibles (estado de carga, error, reintento). */
+  /** Mascotas visibles: vista (servidor o copia del dispositivo), datos y reintento (`usePets`). */
   pets: ReturnType<typeof usePets>;
-  /** Mascota activa; `null` mientras carga, si falla o si no hay mascotas. */
+  /**
+   * Mascota activa; `null` mientras carga, si falla o si no hay mascotas. Sin conexión puede salir
+   * de la copia del dispositivo (`pets.view` dice si está desactualizada).
+   */
   activePet: Pet | null;
   /** Cambia la mascota activa y la recuerda en este dispositivo. */
   setActivePet: (petId: string) => void;

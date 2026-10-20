@@ -336,6 +336,25 @@ export const es = {
       notFound: 'No hemos encontrado esta mascota o ya no tienes acceso a ella.',
       backToList: 'Volver a mis mascotas',
     },
+    /** Sin conexión (fase 7): datos guardados en el dispositivo; escrituras bloqueadas. */
+    offline: {
+      savedBanner: 'Sin conexión: datos guardados en este dispositivo. Pueden no estar al día.',
+      savedBannerAt: 'Sin conexión: datos guardados en este dispositivo (actualizados: {date}). Pueden no estar al día.',
+      listUnavailableTitle: 'Tus mascotas no están disponibles sin conexión',
+      listUnavailableText: 'Este dispositivo todavía no tiene una copia de tu lista de mascotas. Conéctate y vuelve a intentarlo.',
+      detailUnavailableTitle: 'La información de esta mascota no está disponible sin conexión',
+      detailUnavailableText: 'Este dispositivo no tiene una copia de su ficha. Conéctate y vuelve a intentarlo.',
+      noLongerAvailableTitle: 'Esta mascota no estaba disponible la última vez que se comprobó',
+      noLongerAvailableText:
+        'Puede que se haya eliminado o que ya no tengas acceso. Lo guardado en este dispositivo se conserva; conéctate para comprobarlo de nuevo.',
+      localReadFailed:
+        'No se han podido leer las mascotas guardadas en este dispositivo. Esto no significa que no haya datos: inténtalo de nuevo.',
+      newTitle: 'Necesitas conexión para añadir una mascota',
+      editTitle: 'Necesitas conexión para editar esta mascota',
+      formText: 'Sin conexión no se pueden guardar cambios en las mascotas. No se ha modificado nada.',
+      formBanner: 'Sin conexión: los cambios no se pueden guardar hasta que vuelva la conexión.',
+      photoUnavailable: 'La foto no está disponible ahora mismo (sin conexión o enlace caducado). Sigue guardada.',
+    },
     fields: {
       photo: 'Foto',
       name: 'Nombre',
