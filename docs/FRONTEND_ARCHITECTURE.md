@@ -137,13 +137,16 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
   poder mostrar una ya desactivada) + `catalog_translations` (`entity_type='species'`, `field='name'`,
   `locale` activo), combinadas en el cliente porque la tabla de traducciones es polimórfica (sin FK).
 - **WRITE (insert):** columnas editables + `owner_id = auth user id` tomado de la sesión, nunca del
-  formulario (`pets: insert own`). `id`, `is_active`, `photo_path` y timestamps no se envían. Se pide
-  la fila creada (`RETURNING`), lo que requiere que la política SELECT acepte al propietario
-  directamente (migración `20261007172110`).
+  formulario (`pets: insert own`), y `client_request_id` (clave del alta idempotente, migración
+  `20261020135440`). `id`, `is_active`, `photo_path` y timestamps no se envían. Se pide la fila creada
+  (`RETURNING`), lo que requiere que la política SELECT acepte al propietario directamente (migración
+  `20261007172110`). Desde la fase 8 el alta se guarda primero en el dispositivo y la envía el motor
+  (`api/pet-writes-remote.ts`; §5 «Pets: altas y ediciones sin conexión (fase 8)»).
 - **WRITE (update):** solo columnas editables: `name`, `species_id`, `sex`, `breed`, `birth_date`,
   `weight_kg`, `sterilized`, `known_conditions`, `allergies`, `temperament_notes`. `owner_id` no tiene
-  GRANT de UPDATE (transferencia solo por `transfer_pet_ownership`). Si RLS filtra la fila
-  (`can_edit_pet` falso), el update no devuelve fila y se trata como `not_allowed`.
+  GRANT de UPDATE (transferencia solo por `transfer_pet_ownership`). Desde la fase 8, con la precondición
+  `updated_at = <versión editada>` y desde el motor de sincronización: 0 filas = otra versión, sin
+  permiso (RLS, `can_edit_pet` falso) o no existe, y se decide leyendo la fila (§5, fase 8).
 - **Raza:** `breeds` activas filtradas por `species_id` + `catalog_translations` (`entity_type='breed'`,
   `field='name'` y `field='aliases'` con valores separados por `|`), combinadas en
   `features/pets/api/breeds-api.ts`. Para mostrar la raza guardada se pide por id (aunque esté
@@ -172,7 +175,8 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
 - **Query keys:** `['pets',userId,'list']`, `['pets',userId,'detail',id]`,
   `['pets',userId,'detail',id,'can-edit']`, `['pets',userId,'detail',id,'streak']`, copias del
   dispositivo `['pets',userId,'local',…]`, `['pets','photo',path]`, `['species',locale]`,
-  `['breeds','list',speciesId,locale]`, `['breeds','detail',breedId,locale]`. Crear/editar/borrar
+  `['breeds','list',speciesId,locale]`, `['breeds','detail',breedId,locale]`, operaciones del dispositivo
+  `['pets',userId,'local','operations']`. Crear/editar/borrar
   invalidan la lista y actualizan o eliminan el detalle (y la copia local). La caché se vacía al
   cambiar de usuario (AuthProvider).
 - **Errores** (`features/pets/pet-errors.ts`, por código y nombre de constraint): `42501` → `not_allowed`,
@@ -654,13 +658,18 @@ Supabase falso que actúa como el usuario del token) y `offline/daily-log-sessio
   Nunca se marca nada como sincronizado sin la confirmación del servidor o una lectura con el mismo
   contenido; una respuesta perdida se reconcilia como siempre (precondición → conflicto → lectura).
 
-**Cerrar sesión** (`features/auth/sign-out-flow.ts`, `useSignOutFlow`, pantalla `(app)/sign-out`).
-«Cerrar sesión» en inicio lee del dispositivo los registros pendientes, en conflicto o fallidos:
+**Cerrar sesión** (`features/auth/sign-out-flow.ts`; desde la fase 8.5, `createAppSignOutFlow` en
+`unsynced-changes.ts`, proveedor `sign-out-provider.tsx` con `useSignOutFlow` y `useUnsyncedChanges`,
+pantalla `(app)/sign-out`). «Cerrar sesión» lee del dispositivo **los registros diarios y las altas y
+ediciones de mascotas** (fase 8.5: pendientes de crear, ediciones pendientes, enviadas sin confirmar,
+en conflicto, fallidas, sin permiso e ilegibles). Si cualquiera de los dos almacenes no se puede leer,
+no se da por vacío:
 - Ninguno: cierra sesión como siempre.
 - Alguno, o no se pudo leer el dispositivo: no cierra y abre la pantalla de decisión, con cuántos hay
   de cada tipo, que esos cambios solo existen en este dispositivo y el acceso a «Registros sin
   sincronizar» (resolver, copiar o descartar uno a uno, como siempre). No hay descarte masivo.
-  - **A. Intentar sincronizar y cerrar sesión** (`engine.syncNow`, 15 s como máximo): como
+  - **A. Intentar sincronizar y cerrar sesión** (`syncNow` de los dos motores a la vez, 15 s como
+    máximo cada uno; las mascotas «sin permiso» no se reintentan, no lo arregla reenviar): como
     «Reintentar» en cada registro (fallido → pendiente, espera del backoff anulada, conflicto → volver a
     leer el servidor) y una pasada. Cierra sesión solo si después el dispositivo no tiene nada sin
     sincronizar. Si no, vuelve a mostrar las opciones con lo que queda y el motivo: quedan cambios,
@@ -771,8 +780,8 @@ como `status`, `canUseServer`, `recoverSession` y `serverCall`):
   mascota: «Información de la mascota no disponible sin conexión» y, sin el permiso, se permite editar
   con el aviso de que el servidor decidirá al sincronizar (`daily-log-pet-context.ts`; si no hay permiso, queda «No se pudo
   sincronizar» con los datos intactos).
-- No disponibles: alta, edición y borrado de mascotas, fotos (necesitan el servidor). La ficha, desde
-  la fase 7, con la copia del dispositivo.
+- No disponibles: borrado de mascotas y fotos (necesitan el servidor). La ficha, desde la fase 7, con
+  la copia del dispositivo; alta y edición, desde la fase 8, guardadas en el dispositivo.
 
 ### Estabilización de la sesión (fase 6.5)
 
@@ -907,16 +916,181 @@ servidor. La siguiente lectura corrige un orden equivocado. Escrituras de una en
 pero el `queryFn` en curso termina: por eso la comprobación de `isCurrentUser` antes de guardar). Las
 copias de otras cuentas se quedan en el dispositivo, aisladas por su clave, y no se borran.
 
-**Escrituras y fotos.** Crear y editar necesitan conexión: sin ella, si el formulario aún no se puede
-mostrar, «Necesitas conexión…»; si ya estaba abierto, aviso y envío deshabilitado (lo escrito se
-conserva). La edición nunca se abre sobre la copia. Sin servidor, el perfil no ofrece editar la
-mascota ni su foto (el permiso no se guarda ni se da por vigente); el registro del día sigue su propia
-regla. Foto sin conexión, sin sesión o con la URL caducada: «La foto no está disponible ahora mismo» (y
+**Escrituras y fotos.** En la fase 7, crear y editar necesitaban conexión. Desde la fase 8 se guardan
+en el dispositivo; ver «Pets: altas y ediciones sin conexión (fase 8)». La foto sigue necesitando
+servidor y permiso conocido (el permiso no se guarda ni se da por vigente). Foto sin conexión, sin sesión o con la URL caducada: «La foto no está disponible ahora mismo» (y
 la inicial en los avatares); `photo_path` no se toca. El flujo de subir/quitar no cambia.
 
 **Pendiente:** limpieza (no automática) de copias de cuentas que no vuelven; una mascota creada o
 compartida en otro dispositivo no aparece sin conexión hasta leerla con conexión; si el sistema dice
 «conectado» pero el servidor no responde, postgrest-js reintenta (~7 s) antes de pasar a la copia.
+
+### Pets: altas y ediciones sin conexión (fase 8)
+
+Crear y editar mascotas se guarda primero en el dispositivo y lo envía un motor de sincronización. Las
+fotos y el borrado siguen necesitando conexión. Decisiones: `DECISIONS.md` (2026-10-20, migración; y
+2026-10-21, fase 8). Código: `features/pets/offline/` (puro: `pet-operation.ts`,
+`pet-operation-repository.ts`, `pet-sync-engine.ts`, `pet-write-view.ts`, `pet-form-gate.ts`,
+`species-snapshot.ts`), `api/pet-writes-remote.ts`, `sync/pet-sync-provider.tsx` y
+`hooks/use-pet-writes.ts`. Pruebas: `pet-operation.test.mjs`, `pet-sync-engine.test.mjs` (servidor
+falso `fake-pet-server.mjs`), `pet-view.test.mjs`, `pets-offline-writes.integration.test.mjs` (Supabase
+**local** con la migración) y `supabase/tests/concurrency/pets_concurrency.sh`.
+
+**Operación local** (`kitom:v1:<userId>:pet-ops:<localId>`, v1, validada al leer). Hay una por mascota:
+
+| Campo | Alta | Edición |
+|---|---|---|
+| `localId` | `local-<uuid>` (no tiene forma de id del servidor) | el id de la mascota |
+| `petId` | `null` hasta confirmarse; después, el id del servidor (mapeo persistente) | el id de la mascota |
+| `content` | columnas editables validadas (`parsePetFields`; nunca `owner_id`, `id`, `photo_path` ni `is_active`) | igual |
+| `baseRow` | `null` | la fila del servidor (o de la copia) sobre la que se editó, con su `updated_at` exacto |
+| `operationId` | UUID v4 estable = `client_request_id` del alta | UUID v4 estable |
+| `status` | `pending` · `failed` · `forbidden` · `synced` (mapeo) | `pending` · `conflict` · `failed` · `forbidden` (confirmada: se borra) |
+| `attempts`, `nextAttemptAt`, `lastError` | fallos con respuesta del servidor y backoff (como Daily Logs) | igual |
+| `inFlightSince` | se envió y no se sabe el resultado (respuesta perdida o app cerrada) | igual |
+| `conflictRemote` | — | la fila del servidor con la que choca |
+
+Si se edita varias veces sin conexión, todo se consolida en la misma operación: contenido nuevo y la
+misma base. Editar un alta que aún no se ha confirmado cambia lo que se va a crear, con la misma clave.
+Con un conflicto o sin permiso no se edita hasta decidir qué hacer con lo guardado. Lo ilegible no se
+lista ni se envía, y tampoco se sobrescribe.
+
+**Idempotencia del alta** (migración `20261020135440`): el `INSERT` lleva `client_request_id` =
+`operationId`. Reenviarlo da `23505` en `pets_owner_client_request_id_key` y la fila se lee por la
+clave (`findByRequestId`), así que nunca se crea una segunda mascota. Esto vale también con reenvíos
+simultáneos o tras cerrar la app con el alta en vuelo (`inFlightSince` se anota antes de enviar). Si
+alguien edita el borrador mientras se envía, el alta se confirma y lo nuevo queda como edición sobre la
+fila creada.
+
+**Ediciones con precondición** (sin cambios de esquema): se envían con `update … eq('id', …).eq('updated_at', base)`,
+que es un compare-and-set atómico (probado con sesiones simultáneas reales). Si actualiza 0 filas, se
+lee la fila:
+
+| Fila leída | Resultado |
+|---|---|
+| ya tiene exactamente lo local | sincronizada (respuesta perdida o el mismo cambio) |
+| no existe o no se ve | `forbidden` (`not_visible`), datos intactos |
+| misma versión que la base | `forbidden` (`not_editable`: lo filtró RLS, no hay permiso) |
+| otra versión, cambios en otros campos | se reaplica lo local sobre la versión nueva y se reenvía |
+| otra versión, los mismos campos con otros valores | `conflict`: decide el usuario |
+| versión anterior a la base o que no se puede comparar | `conflict` (no se demuestra cuál es la actual) |
+
+La fusión se hace por grupos: especie y raza van juntas. Nunca se unen textos ni se sobrescribe un
+campo que cambió en el servidor sin que el usuario lo decida (`(app)/pets/[id]/resolve`). Al guardar
+la decisión se vuelve a leer el servidor: si cambió otra vez, se vuelve a pedir. Un `42501` o una sesión
+rechazada nunca se reintentan solos.
+
+Límites:
+- `updated_at` es `now()`. En teoría, dos versiones podrían coincidir al microsegundo.
+- Un cambio solo de foto en otro dispositivo también cambia `updated_at`. Como no choca, se reaplica lo
+  local sin preguntar.
+- Si la mascota se creó y otro dispositivo la borró antes de recuperar la respuesta, el reenvío la
+  vuelve a crear. No es un duplicado, porque la original ya no existe.
+
+**Envío.** Mismas reglas que Daily Logs:
+- Una pasada a la vez y una operación detrás de otra, con las altas primero.
+- Solo con conectividad, la sesión del dueño (`setSessionUserId`) y el token del dueño en la cabecera
+  (`createOwnerAccessToken`).
+- Un 401 bloquea los envíos hasta tener una sesión nueva.
+- La red no cuenta como intento; tras `MAX_SYNC_ATTEMPTS` fallos del servidor, pasa a `failed`.
+- Disparadores: arranque, conectividad, primer plano, cada guardado y la sesión renovada.
+- Lo confirmado pasa a la copia de mascotas (`cache.applyPet`) con la marca tomada antes de enviar.
+- Una respuesta que llega tras cambiar de cuenta se guarda en los almacenes de su dueño, pero no toca la
+  caché de TanStack Query ni la interfaz de la cuenta nueva (`isCurrentUser`).
+
+**Interfaz.**
+- Lista, ficha, pestaña Perfil y formulario muestran la mascota con lo local encima, con su estado como
+  etiqueta y aviso (texto e icono, nunca solo color):
+  - Pendiente de crear.
+  - Cambios pendientes.
+  - Sincronizando.
+  - Comprobando si se guardó (resultado incierto).
+  - Conflicto.
+  - No se pudo sincronizar (con «Corregir» si el servidor rechazó los datos y «Reintentar» si fue un
+    error suyo).
+  - Sin permiso: los datos se muestran para copiarlos o descartarlos.
+- Descartar es solo local y con confirmación. No se puede descartar un envío de resultado incierto.
+- Las altas sin confirmar van aparte («Guardadas solo en este dispositivo»), nunca pasan a ser la
+  mascota activa y no tienen registros diarios ni foto. Las rutas de Daily Logs con un id local muestran
+  «disponibles cuando la mascota se sincronice» (`withServerPetId`), sin montar nada de Daily Logs, y el
+  servidor rechaza un id temporal en `save_daily_log` (`22P02`).
+- Al confirmarse el alta, el id local redirige al del servidor.
+
+**Formularios** (`pet-form-gate.ts`). Sin conexión se abren si hay con qué rellenarlos:
+- El catálogo de especies: del servidor o de su copia en el dispositivo
+  (`kitom:v1:<userId>:species-catalog:<locale>`, guardada al leerlo con conexión).
+- En la edición, la mascota: del servidor, de la copia o el borrador.
+
+Avisan de que se guardará en el dispositivo. Con conexión esperan hasta 5 s (`SUBMIT_WAIT_MS`) a que el
+servidor confirme. Si el servidor rechaza los datos, el error se muestra en el formulario y los datos
+siguen guardados.
+
+El permiso de edición no se guarda nunca. Sin poder comprobarlo se permite editar y el servidor decide
+al sincronizar. Si se sabe que no hay permiso, no se ofrece.
+
+La foto y el borrado necesitan conexión:
+- El alta sin conexión no permite elegir foto.
+- Con conexión, la foto se sube cuando el servidor confirma el alta, como antes.
+- Borrar una mascota descarta su edición pendiente en el dispositivo.
+
+**Validación y endurecimiento (fase 8.5).** Verificado a mano en el emulador Android (Expo Go contra
+el Supabase local en `10.0.2.2`, modo avión, peticiones contadas en los registros de Kong) y en web
+(Chromium con Playwright, sin red o con el Supabase bloqueado):
+
+| Caso | Android | Web | Resultado |
+|---|---|---|---|
+| Crear con conexión | sí | — | una fila con `client_request_id` |
+| Editar sin conexión, cerrar la app y reabrir | sí | recarga de pestaña | el cambio sigue en el dispositivo |
+| Volver la red | sí | sí | **un** `PATCH` con `updated_at=eq.<base>` |
+| Crear sin conexión, reiniciar y sincronizar | sí | sí | **un** `POST`; el borrador pasa a la lista del servidor |
+| Respuesta perdida tras un alta confirmada | no (no se puede cortar solo la respuesta) | no | cubierto en integración (`pets-offline-writes`) |
+| Mismo campo cambiado en otro dispositivo | sí | — | conflicto, `PATCH` de 0 filas, el usuario elige, sin sobrescribir |
+| Acceso revocado (co-tutor) | sí | — | «sin permiso», datos para copiar o descartar |
+| Cambio de cuenta con pendientes | sí | sí | ni se ven ni se envían con la otra cuenta (0 escrituras) |
+| Cerrar sesión conservando y volver el propietario | sí | sí | se envía **una** vez |
+| Fotos y borrado sin conexión | sí | — | no se ofrecen |
+| Dos pestañas de la misma cuenta | — | sí | alta: `201` + `409` (una mascota); edición: dos `PATCH`, uno aplica y el otro 0 filas → sincronizada |
+
+Defectos encontrados y corregidos:
+- El cierre de sesión no contaba las operaciones de mascotas: con solo mascotas pendientes se cerraba
+  sin preguntar.
+- El formulario seguía bloqueando el envío sin conexión (resto de la fase 7): botón deshabilitado.
+- Las ediciones de mascotas que ya no se ven (sin permiso, borradas) no aparecían en la lista: ahora
+  están en «Cambios de mascotas que ya no ves» (`orphanedEdits`).
+- Sin el catálogo de razas no se podía escribir la raza a mano; el nombre de una raza del catálogo se
+  quedaba «Cargando…» y en la ficha salía «Sin indicar». Ahora se ofrece «Otra / no aparece», se dice
+  que el nombre no está disponible sin conexión y la ficha muestra «Con raza».
+
+**Concurrencia de la edición.** El `UPDATE … eq('updated_at', base)` es atómico (comprobado con
+sesiones simultáneas en `pets_concurrency.sh`). `photo_path` no se envía nunca: un cambio de foto en
+otro dispositivo solo cambia `updated_at`, así que la edición se reaplica sobre la versión nueva y la
+foto nueva se conserva (un `PATCH` más). Límite: `updated_at` es `now()` (inicio de la transacción); dos
+ediciones que empiecen en el mismo microsegundo podrían dejar el mismo valor y la segunda no se
+detectaría. Sin migración, la alternativa sería comparar en el `WHERE` todas las columnas editables de
+la base, pero las listas de texto en filtros de PostgREST obligan a escapar comillas y comas, y un error
+daría conflictos falsos o, peor, una precondición incompleta. Se deja documentado; la solución robusta
+es una fase `db/` aparte con una columna de versión (p. ej. `row_version bigint` que incremente un
+trigger) y la precondición sobre ella.
+
+**Dos pestañas (web).** No hay coordinación de colas entre pestañas: cada una tiene su motor sobre el
+mismo `localStorage` y las dos pueden enviar la misma operación. No duplica ni sobrescribe (clave del
+alta y precondición de la edición, verificado). Queda una ventana de milisegundos: si se edita una
+mascota en una pestaña justo mientras la otra confirma el envío de una edición anterior de esa misma
+mascota, la confirmación puede borrar del dispositivo la edición nueva antes de enviarla (las
+escrituras locales son atómicas dentro de una pestaña, no entre pestañas). Solución futura: Web Locks o
+`BroadcastChannel` para que una sola pestaña sincronice.
+
+**Catálogo de razas sin conexión** (comprobado en web con el Supabase bloqueado y la pestaña recargada):
+el de especies sale de la copia del dispositivo; el de razas no. Sin él se puede elegir «mestizo»,
+«desconocida», «sin contestar» y, desde la fase 8.5, escribir la raza a mano. Cambio mínimo propuesto
+para elegir del catálogo sin conexión: guardar en `LocalStore` la lista de razas de cada especie al
+cargarla (`breeds-catalog:<speciesId>:<locale>`, como `species-catalog`) y usarla solo sin conexión.
+
+**Pendiente:**
+- Copia del catálogo de razas (ver arriba) y columna de versión para la edición (fase `db/`).
+- Coordinación entre pestañas en web.
+- No hay registros diarios para mascotas aún no creadas en el servidor.
+- Limpieza (no automática) de las operaciones de cuentas que no vuelven.
 
 ### Infraestructura (fase 1 del frontend)
 

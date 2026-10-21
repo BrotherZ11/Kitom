@@ -3,6 +3,34 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-21
+
+- Pets offline, fase 8.5 (validación manual en Android y web y correcciones):
+  - Cerrar sesión cuenta también las altas y ediciones de mascotas pendientes. Antes, con solo mascotas
+    pendientes se cerraba sin preguntar.
+  - El formulario de mascota se puede guardar sin conexión; antes el botón seguía deshabilitado.
+  - Los cambios de mascotas que ya no ves (sin permiso o borradas) aparecen en «Mis mascotas» para
+    copiarlos o descartarlos.
+  - Sin el catálogo de razas se puede escribir la raza a mano, y la ficha ya no dice «Sin indicar»
+    para una raza del catálogo cuyo nombre no se conoce.
+  - Documentados los límites de `updated_at` y de varias pestañas en web.
+  - Detalle en `FRONTEND_ARCHITECTURE.md` §5; decisión en `DECISIONS.md`.
+
+- Pets offline, fase 8: crear y editar mascotas sin conexión. Se guarda en el dispositivo y se envía al
+  volver la red.
+  - Las altas llevan una clave que impide duplicarlas aunque se pierda la respuesta o se cierre la app.
+  - Las ediciones se consolidan y se envían con la versión que se editó. Si otro dispositivo cambió los
+    mismos datos, decide el usuario; si cambió otros, se conservan los dos.
+  - Sin permiso, o si la mascota ya no está, los cambios se conservan para copiarlos o descartarlos.
+  - La lista, la ficha y el perfil muestran el estado de cada mascota (pendiente, sincronizando,
+    comprobando, conflicto, error, sin permiso).
+  - Una mascota aún no creada en el servidor no tiene registros diarios ni foto.
+  - El catálogo de especies se guarda en el dispositivo.
+  - Fotos y borrado siguen necesitando conexión.
+  - La migración `20261020135440` está aplicada en `kitom-dev` y los tipos regenerados.
+  - Decisión en `DECISIONS.md`; contrato en `FRONTEND_ARCHITECTURE.md` §5 «Pets: altas y ediciones sin
+    conexión (fase 8)».
+
 ## 2026-10-20
 
 - BD: migración `20261020135440_pets_client_request_id.sql` (rama `db/pets-client-request-id`):

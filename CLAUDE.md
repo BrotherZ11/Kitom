@@ -55,7 +55,14 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   red que vuelve en segundo plano. Fase 7 (Pets offline, solo lectura): copia por usuario de la lista y
   las fichas en `LocalStore` (lista, ficha, pestañas y nombre en los registros sin conexión); crear,
   editar, borrar y fotos siguen necesitando conexión (`docs/FRONTEND_ARCHITECTURE.md` §5 «Pets sin
-  conexión (fase 7)»). Pendiente: la limpieza (no automática) de datos locales de cuentas que no vuelven. En móvil las queries caducadas se vuelven a pedir al reconectar
+  conexión (fase 7)»). Fase 8: crear y editar mascotas sin conexión (operación local por mascota, motor
+  con alta idempotente por `client_request_id` y edición con precondición `updated_at`, conflictos que
+  decide el usuario); fotos y borrado siguen online; una mascota aún sin crear en el servidor no tiene
+  registros diarios (§5 «Pets: altas y ediciones sin conexión (fase 8)»). Fase 8.5: validada a mano en
+  el emulador Android y en web; el cierre de sesión cuenta Daily Logs y Pets
+  (`features/auth/sign-out-provider.tsx`). Pendiente: la limpieza (no automática) de datos locales de
+  cuentas que no vuelven, la copia del catálogo de razas, la coordinación entre pestañas en web y una
+  columna de versión para la edición (fase `db/`). En móvil las queries caducadas se vuelven a pedir al reconectar
   (`refetchOnReconnect`, 2026-10-20).
 - Diseño v2 (`docs/design/`): F0–F5 implementadas en la rama `feat/ui-brand-implementation`: tokens,
   tema claro/oscuro según el sistema y fuentes (`frontend/src/theme/`), componentes
@@ -72,8 +79,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   (`npx expo prebuild --platform android` + `gradlew assembleRelease`; `/android` está ignorado por git
   y la release va firmada con la clave de depuración: no vale para Google Play). Sin EAS.
 - Migración `20261020135440_pets_client_request_id.sql` (alta idempotente de mascotas para Pets offline,
-  fase 8): validada en local, **pendiente de aplicar en `kitom-dev`** (`db push` del usuario) y de
-  regenerar tipos; el frontend todavía no la usa.
+  fase 8): aplicada en `kitom-dev` (`db push` del usuario) y tipos regenerados.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 

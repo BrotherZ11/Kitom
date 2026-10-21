@@ -31,8 +31,15 @@ error y «sin mascotas».
   combinadas servidor + copia; las pantallas usan `view`, nunca `isError` para decidir «no existe») y
   `pet-form-gate.ts`. Lista y ficha con `api/pets-remote.ts` (token del dueño en la cabecera) y
   `enabled: canUseServer`; query keys de lista/ficha con `userId`. Nunca guardar URLs firmadas ni
-  `can_edit_pet`; las escrituras de mascotas siguen necesitando conexión. Contrato:
-  `docs/FRONTEND_ARCHITECTURE.md` §5 «Pets sin conexión (fase 7)».
+  `can_edit_pet`. Contrato: `docs/FRONTEND_ARCHITECTURE.md` §5 «Pets sin conexión (fase 7)».
+  Altas y ediciones sin conexión (fase 8): siempre en el dispositivo primero (`hooks/use-pet-writes.ts`;
+  nunca `insert`/`update` de `pets` desde pantallas), operación por mascota (`offline/pet-operation.ts`,
+  `pet-operation-repository.ts`), motor `pet-sync-engine.ts` (proveedor en `sync/pet-sync-provider.tsx`,
+  montado en `(app)/_layout.tsx`) y remoto `api/pet-writes-remote.ts` (token del dueño; alta con
+  `client_request_id`, edición con `eq('updated_at', base)`). Un id local (`local-<uuid>`, `isLocalPetId`)
+  nunca se pide al servidor ni tiene registros diarios (`withServerPetId` en las rutas de Daily Logs).
+  `Pet` no incluye `client_request_id`. Conflictos: `(app)/pets/[id]/resolve`. Pruebas del motor:
+  `offline/fake-pet-server.mjs`. Contrato: §5 «Pets: altas y ediciones sin conexión (fase 8)».
 - `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`
   sobre `chunked-storage.ts`, clave `AUTH_STORAGE_KEY` = la de supabase-js por defecto: no cambiarla). Su
   `fetch` es `src/lib/user-token-fetch.ts` (ninguna petición de datos sale como `anon`) sobre
@@ -81,8 +88,9 @@ error y «sin mascotas».
   `createDailyLogRemote`; nunca la sesión vigente del cliente compartido); una instancia de almacén y
   motor por usuario (`daily-log-sync-sessions.ts`); todas las query keys de Daily Logs llevan `userId`;
   caché y copias de lecturas solo si `isCurrentUser` (AuthProvider). Cerrar sesión en la zona
-  autenticada siempre con `useSignOutFlow` (`features/auth/sign-out-flow.ts`, pantalla `(app)/sign-out`),
-  nunca `signOut` directo. Ayudantes de pruebas del motor:
+  autenticada siempre con `useSignOutFlow` (`features/auth/sign-out-provider.tsx`, que suma Daily Logs y
+  Pets con `createAppSignOutFlow`; flujo en `sign-out-flow.ts`; pantalla `(app)/sign-out`), nunca
+  `signOut` directo. Toda fuente nueva de cambios locales se añade a `createAppSignOutFlow`. Ayudantes de pruebas del motor:
   `offline/sync-test-helpers.mjs` y `fake-daily-log-server.mjs`. `updated_at` siempre como la cadena del servidor (nunca por `Date`).
   Contrato: `docs/FRONTEND_ARCHITECTURE.md` §5.
 - `src/lib/local-store/` — `createLocalStore(storage, userId)`: datos locales por usuario, validados
@@ -177,6 +185,10 @@ error y «sin mascotas».
   solo admite un directorio `.icon` de Icon Composer (iOS 26); crearlo requiere macOS (pendiente).
 
 ## Probar contra el Supabase local (`npm run start:local`)
+
+- Aviso (fase 8.5): en esta máquina Metro puede seguir sirviendo una transformación antigua de un archivo
+  cambiado (sobre todo la variante con React Compiler que pide el dispositivo). Si un cambio no aparece,
+  reiniciar Metro con `--clear` y comprobar el bundle antes de dar por buena una prueba manual.
 
 - `npm run start:local` (o `npm run start:local -- --web --port 8091`; los argumentos van a
   `expo start`). Requiere el Supabase local arrancado (`npx supabase start` desde la raíz).

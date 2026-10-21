@@ -38,8 +38,8 @@
   índice único parcial `pets_owner_client_request_id_key` sobre `(owner_id, client_request_id)` y
   `GRANT INSERT (client_request_id)` a `authenticated` (sin UPDATE): alta idempotente para Pets offline
   (fase 8). Sin cambios de RLS, triggers ni `pets.id` (sigue sin GRANT de INSERT: ver la decisión).
-  Validada en local con `migration up` (sin `db reset`); **pendiente de aplicar en `kitom-dev`** y de
-  regenerar tipos. Decisión: `docs/DECISIONS.md`.
+  Validada en local con `migration up` (sin `db reset`); aplicada en `kitom-dev` (`db push` del usuario,
+  2026-10-21) y tipos regenerados. Decisión: `docs/DECISIONS.md`.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
   `pets_client_request_id`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres

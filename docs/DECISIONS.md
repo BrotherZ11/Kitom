@@ -3,6 +3,82 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-21 — Pets offline, fase 8.5: cierre de sesión con todas las fuentes y endurecimiento
+
+**Contexto.** En la validación manual de la fase 8 (emulador Android y web contra el Supabase local) se
+reprodujeron varios defectos. El cierre de sesión solo contaba los registros diarios: con altas o
+ediciones de mascotas pendientes y ningún registro, cerraba sin preguntar. El formulario bloqueaba el
+envío sin conexión. Las ediciones de mascotas que ya no se ven no aparecían en ningún sitio. Y sin el
+catálogo de razas no se podía escribir la raza a mano.
+
+**Decisión.**
+
+- El flujo de cierre de sesión (`sign-out-flow.ts`, sin cambios de comportamiento) recibe un resumen de
+  las dos fuentes (`createAppSignOutFlow` en `unsynced-changes.ts`) y se monta en un proveedor propio
+  (`features/auth/sign-out-provider.tsx`) dentro de los de Daily Logs y Pets; deja de vivir en el de
+  Daily Logs.
+  - Cuentan como no sincronizadas: altas, ediciones, enviadas sin confirmar, conflictos, fallidas,
+    sin permiso e ilegibles.
+  - «Sincronizar y cerrar» cierra solo si el total es 0.
+  - Si un almacén no se puede leer, se pide decisión.
+- `PetForm` ya no bloquea el envío con `offline`: solo avisa.
+- La lista de mascotas muestra aparte las ediciones de mascotas que ya no devuelve el servidor
+  (`orphanedEdits`).
+- El selector de razas ofrece el texto libre aunque el catálogo no cargue. `formatBreed` muestra «Con
+  raza» si no conoce el nombre de una raza del catálogo.
+- No se cambia la precondición `updated_at`. El límite de dos `now()` iguales se documenta y se propone
+  una fase `db/` con columna de versión. Se descartó comparar todas las columnas en el `WHERE` sin
+  migración: es frágil con listas de texto.
+- No hay coordinación entre pestañas en web. La idempotencia evita duplicados; la ventana restante
+  queda documentada.
+
+**Consecuencias.** El cierre de sesión ya no puede ocultar operaciones de mascotas: ni cierra sin
+avisar ni las descarta, y cada cuenta conserva las suyas aisladas. El resultado de la validación
+manual está en `FRONTEND_ARCHITECTURE.md` §5 («Validación y endurecimiento (fase 8.5)»).
+
+## 2026-10-21 — Pets offline, fase 8: altas y ediciones guardadas en el dispositivo
+
+**Contexto.** Con la fase 7 se podían ver mascotas sin conexión, pero no crearlas ni editarlas. La
+migración del 2026-10-20 (`client_request_id`) hace el alta idempotente. Ya está aplicada en
+`kitom-dev` (lo hizo el usuario) y los tipos están regenerados.
+
+**Decisión.**
+
+- Una operación local por mascota en `LocalStore` (`pet-ops`): alta con id local `local-<uuid>` o
+  edición con su fila base. Contenido editable validado, `operationId` estable, estado, intentos, último
+  error e `inFlightSince`. Las ediciones se consolidan en una operación. El alta confirmada queda como
+  mapeo persistente `localId → petId`.
+- Un motor propio (`pet-sync-engine.ts`) con las reglas del de Daily Logs: guardar es local, envía el
+  motor, una pasada a la vez, sesión y token del dueño, backoff y 401 hasta una sesión nueva. El motor
+  de Daily Logs no cambia; se reutilizan la clasificación de errores, el backoff, los disparadores y las
+  sesiones por usuario.
+- Alta: el `INSERT` con `client_request_id`. Un reenvío da `23505` y se lee por la clave, así que no se
+  repite nunca a ciegas sin la clave. Edición: compare-and-set con `updated_at`. Ante 0 filas, la fila
+  leída decide si ya está, si no hay permiso, si se reaplica o si hay conflicto; un conflicto lo decide
+  el usuario por grupos de campos, sin unir textos. Nada se marca sincronizado sin la fila del servidor.
+- Las mascotas pendientes de crear no tienen registros diarios hasta existir en el servidor (decisión
+  del usuario). Así ningún registro queda con un id temporal y el motor de Daily Logs no cambia.
+- El alta y la edición online pasan por el mismo camino (dispositivo → motor) y esperan hasta 5 s a la
+  confirmación. Se retiran `useCreatePet` y `useUpdatePet`. Borrar sigue siendo online, y la foto se
+  sube tras la confirmación del alta.
+- Esto modifica la fase 7: los formularios se abren sin conexión si hay datos con qué rellenarlos,
+  editando también sobre la copia del dispositivo (la precondición detecta si cambió). Para eso se
+  guarda en el dispositivo el catálogo de especies. Se descartó guardar el de razas (tamaño, y es
+  opcional).
+- `Pet` es la fila sin `client_request_id`: la app no la lee.
+
+**Consecuencias.**
+- Crear y editar funcionan sin conexión, con estados visibles y recuperación tras perder la respuesta o
+  cerrar la app.
+- Garantías reales:
+  - Un alta no se duplica.
+  - Una edición nunca pisa un cambio del servidor en los mismos campos.
+  - Lo que el servidor rechaza se conserva.
+- Límites:
+  - Una mascota borrada en otro dispositivo antes de recuperar la respuesta se vuelve a crear.
+  - El aviso de cerrar sesión no cuenta las operaciones de mascotas (se conservan). Corregido en la fase 8.5.
+  - Sin conexión, la raza del catálogo solo se puede elegir si se cargó en la sesión.
+
 ## 2026-10-20 — Pets: clave de cliente para el alta idempotente (migración, fase 8)
 
 **Contexto.** La fase 8 (crear y editar mascotas sin conexión) envía al volver la red el alta guardada
