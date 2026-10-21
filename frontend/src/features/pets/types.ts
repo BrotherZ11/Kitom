@@ -1,6 +1,10 @@
 import type { Enums, Tables, TablesInsert } from '@/types/database.types';
 
-export type Pet = Tables<'pets'>;
+/**
+ * Mascota tal como la lee la app (`PET_COLUMNS`). `client_request_id` no se lee: es la clave de un alta
+ * idempotente que solo envía la sincronización de altas sin conexión (`offline/`).
+ */
+export type Pet = Omit<Tables<'pets'>, 'client_request_id'>;
 export type PetSex = Enums<'pet_sex'>;
 
 export const PET_SEX_VALUES = ['male', 'female', 'unknown'] as const satisfies readonly PetSex[];

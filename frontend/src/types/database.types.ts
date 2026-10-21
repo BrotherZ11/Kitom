@@ -580,6 +580,7 @@ export type Database = {
           breed: string | null
           breed_id: string | null
           breed_status: Database["public"]["Enums"]["breed_status"] | null
+          client_request_id: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -600,6 +601,7 @@ export type Database = {
           breed?: string | null
           breed_id?: string | null
           breed_status?: Database["public"]["Enums"]["breed_status"] | null
+          client_request_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -620,6 +622,7 @@ export type Database = {
           breed?: string | null
           breed_id?: string | null
           breed_status?: Database["public"]["Enums"]["breed_status"] | null
+          client_request_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
