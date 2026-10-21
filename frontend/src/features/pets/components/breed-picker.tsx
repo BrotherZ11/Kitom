@@ -41,7 +41,11 @@ export function BreedPicker({
   );
 
   if (selectedBreedId !== '') {
-    const name = selectedInList?.name ?? selectedOutsideList.data?.name ?? t('common.loading');
+    // Sin el catálogo (sin conexión y sin cargarlo en la sesión) no se conoce el nombre: se dice.
+    const name =
+      selectedInList?.name ??
+      selectedOutsideList.data?.name ??
+      (breeds.isError ? t('pets.breedPicker.nameUnavailable') : t('common.loading'));
     return (
       <View style={styles.container}>
         <Text variant="caption" color="inkMuted">
@@ -63,7 +67,13 @@ export function BreedPicker({
 
   if (breeds.isPending) return <LoadingState variant="inline" />;
   if (breeds.isError) {
-    return <ErrorState message={petErrorMessage(breeds.error)} onRetry={() => breeds.refetch()} />;
+    // Sin el catálogo se puede seguir escribiendo la raza a mano (no lo necesita).
+    return (
+      <View style={styles.container}>
+        <ErrorState message={petErrorMessage(breeds.error)} onRetry={() => breeds.refetch()} />
+        <Button variant="ghost" size="md" label={t('pets.breedPicker.other')} onPress={onChooseOther} />
+      </View>
+    );
   }
 
   const results = searchBreeds(breeds.data, query);

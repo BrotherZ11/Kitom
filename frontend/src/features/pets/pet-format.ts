@@ -36,7 +36,8 @@ export function formatBreed(
 ): string | null {
   switch (pet.breed_status) {
     case 'known':
-      return pet.breed_id ? catalogName : pet.breed;
+      // Una raza del catálogo cuyo nombre aún no se conoce (cargando o sin conexión): «Con raza», no «Sin indicar».
+      return pet.breed_id ? (catalogName ?? t('pets.breedStatus.known')) : pet.breed;
     case 'mixed':
       return t('pets.breedDisplay.mixed');
     case 'unknown':

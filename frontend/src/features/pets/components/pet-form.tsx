@@ -49,8 +49,8 @@ type PetFormProps = {
   /** Mensaje del último error al guardar (ya traducido). */
   submitError: string | null;
   /**
-   * Sin conexión o sin sesión utilizable: se avisa y no se puede enviar (guardar necesita el servidor;
-   * no hay escrituras de mascotas sin conexión). Lo escrito se conserva hasta que vuelva la conexión.
+   * Sin conexión o sin sesión utilizable: se avisa de que se guardará en el dispositivo y se enviará al
+   * volver la conexión (fase 8). Guardar sigue disponible.
    */
   offline?: boolean;
   onSubmit: (fields: PetFields) => void;
@@ -119,7 +119,6 @@ export function PetForm({
     species.find((item) => item.id === values.speciesId)?.name ?? t('common.notSpecified');
 
   const handleSubmit = () => {
-    if (offline) return;
     const nextErrors = validatePetForm(values);
     setErrors(nextErrors);
     if (hasPetFormErrors(nextErrors)) return;
@@ -140,7 +139,7 @@ export function PetForm({
           <Button
             label={submitLabel}
             loading={isSubmitting}
-            disabled={offline || speciesOptions.length === 0 || (variant === 'new' && otherSpecies)}
+            disabled={speciesOptions.length === 0 || (variant === 'new' && otherSpecies)}
             onPress={handleSubmit}
           />
         </>

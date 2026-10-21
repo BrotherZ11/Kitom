@@ -323,7 +323,71 @@ export const en: Translations = {
       notFound: "We couldn't find this pet or you no longer have access to it.",
       backToList: 'Back to my pets',
     },
-    /** Offline (phase 7): data saved on the device; writes blocked. */
+    /** Pets created and edited on the device until the server confirms them (phase 8). */
+    sync: {
+      status: {
+        pending_create: 'Waiting to be created',
+        pending_update: 'Pending changes',
+        syncing: 'Syncing…',
+        uncertain: 'Checking whether it was saved',
+        conflict: 'Conflict: you decide',
+        failed: "Couldn't sync",
+        forbidden: 'No permission',
+      },
+      detail: {
+        pending_create:
+          "This pet is only saved on this device. It will be created in Kitom when there's a connection; until then it has no daily logs or photo.",
+        pending_update: "Your changes are saved on this device and will be sent when there's a connection.",
+        syncing: 'Sending the changes saved on this device…',
+        uncertain:
+          "It was sent but the answer didn't arrive. It will be checked when the connection is back, without creating a duplicate pet.",
+        conflict:
+          'This pet changed on another device while you were editing it. Review which data to keep; your changes are still on this device.',
+        failed: "The server didn't accept the data. Fix it or try again; it's still on this device.",
+        failedServer: "Couldn't sync after several attempts. Your data is still on this device.",
+        forbidden:
+          "You can no longer edit this pet or it's no longer available. Your changes are still on this device: you can copy or discard them.",
+      },
+      retry: 'Try again',
+      resolve: 'Review the conflict',
+      fix: 'Fix the data',
+      discard: 'Discard the changes on this device',
+      discardDraft: 'Discard this pet',
+      discardTitle: 'Discard what is saved on this device?',
+      discardText: "It's removed from this device only; the server doesn't change. This can't be undone.",
+      discardConfirm: 'Discard',
+      discarded: 'Changes discarded',
+      localData: 'Your data on this device (to copy it)',
+      savedLocally: "Saved on this device. It will be sent when there's a connection.",
+      createdLocally: "Pet saved on this device. It will be created when there's a connection.",
+      operationsReadFailed: "We couldn't read the changes saved on this device. This doesn't mean there are none: try again.",
+      drafts: 'Saved only on this device',
+      orphans: 'Changes to pets you can no longer see',
+      editBlocked: 'Before editing again, review the conflict or discard the changes on this device.',
+      permissionUnknown:
+        "Offline we can't check whether you can edit this pet. It will be saved on this device and the server will decide when syncing.",
+      photoOffline: "You'll be able to add the photo when there's a connection.",
+      photoNotUploaded: "The pet was saved on this device, but the photo wasn't: you can add it once it syncs.",
+      dailyLogsUnavailable: 'Daily logs will be available once the pet syncs',
+      dailyLogsUnavailableText: "This pet is only saved on this device. Once it's created in Kitom you can log its day.",
+      speciesUnavailable: 'To create a pet offline, the species must have been loaded with a connection before.',
+      resolveScreen: {
+        title: 'Review the conflict',
+        intro: 'These details changed in both places. Choose which one to keep for each.',
+        kept: "The other changes don't clash and are kept: yours and the server's.",
+        yours: 'On this device',
+        theirs: 'In Kitom (another device)',
+        save: 'Save my choice',
+        nothing: 'There is no conflict to review.',
+        changedAgain: 'It changed on the server again. Review it again.',
+        unavailable: "Offline we can't check the server version. Try again when you're back online.",
+        forbidden: "You can no longer edit this pet or it's no longer available.",
+        saved: 'Changes saved',
+        savedLocally: "Choice saved on this device. It will be sent when there's a connection.",
+        failed: "The server didn't accept the data. It's still on this device.",
+      },
+    },
+    /** Offline (phase 7): data saved on the device (writes: `sync`, phase 8). */
     offline: {
       savedBanner: 'Offline: showing data saved on this device. It may be out of date.',
       savedBannerAt: 'Offline: showing data saved on this device (updated: {date}). It may be out of date.',
@@ -339,7 +403,7 @@ export const en: Translations = {
       newTitle: 'You need a connection to add a pet',
       editTitle: 'You need a connection to edit this pet',
       formText: "Pet changes can't be saved offline. Nothing has been changed.",
-      formBanner: "Offline: changes can't be saved until the connection is back.",
+      formBanner: 'Offline: it will be saved on this device and sent when the connection is back.',
       photoUnavailable: "The photo isn't available right now (offline or expired link). It is still saved.",
     },
     fields: {
@@ -368,6 +432,7 @@ export const en: Translations = {
       unknown: 'No defined breed',
     },
     breedPicker: {
+      nameUnavailable: 'Breed from the catalog (its name is not available offline)',
       hint: 'Optional: you can add it later.',
       clear: "I'd rather not say for now",
       searchLabel: 'Search breed',

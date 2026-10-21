@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { ListItem } from '@/components/ui/list-item';
 import { PetPhoto } from '@/features/pets/components/pet-photo';
 import type { Pet } from '@/features/pets/types';
@@ -9,11 +11,13 @@ type PetListItemProps = {
   /** Mascota de otro propietario a la que el usuario tiene acceso como co-tutor. */
   isShared: boolean;
   divider?: boolean;
+  /** Estado de sincronización (cambios guardados solo en el dispositivo). */
+  trailing?: ReactNode;
   onPress: () => void;
 };
 
 /** Fila de «Mis mascotas»: foto, nombre, especie y si es compartida (PetCard compacta). */
-export function PetListItem({ pet, speciesName, isShared, divider = false, onPress }: PetListItemProps) {
+export function PetListItem({ pet, speciesName, isShared, divider = false, trailing, onPress }: PetListItemProps) {
   const subtitle = [speciesName, isShared ? t('pets.list.shared') : null].filter(Boolean).join(' · ');
 
   return (
@@ -22,6 +26,7 @@ export function PetListItem({ pet, speciesName, isShared, divider = false, onPre
       subtitle={subtitle || undefined}
       leading={<PetPhoto name={pet.name} photoPath={pet.photo_path} size="md" />}
       divider={divider}
+      trailing={trailing}
       onPress={onPress}
     />
   );

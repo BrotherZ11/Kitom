@@ -21,12 +21,16 @@ import { capitalizeFirst, formatLogDateLabel, formatWeekdayDay } from '@/feature
 import { useCanEditPet, usePet } from '@/features/pets/hooks/use-pets';
 import { petErrorMessage, toPetError } from '@/features/pets/pet-errors';
 import { getLocale, t } from '@/i18n';
+import { withServerPetId } from '@/features/pets/components/local-pet-logs-unavailable';
 
 /**
  * Un registro guardado: detalle del día (tablero 6.3) y, con `?edit=1`, su edición (5.4). Nunca
  * crea: si ese día no tiene registro, lo indica. La fecha es la de la ruta/fila guardada, no la de hoy.
  */
-export default function DailyLogEntryScreen() {
+/** Con un id local (alta sin confirmar) no hay registros diarios: ver `LocalPetLogsUnavailable`. */
+export default withServerPetId(DailyLogEntryScreen);
+
+function DailyLogEntryScreen() {
   const { id, date, edit } = useLocalSearchParams<{ id: string; date: string; edit?: string }>();
   const router = useRouter();
   const toast = useToast();

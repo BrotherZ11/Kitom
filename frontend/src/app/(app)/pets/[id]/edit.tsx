@@ -1,6 +1,7 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Trash } from '@/components/ui/icons';
@@ -11,25 +12,29 @@ import { TopBar, TopBarText } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
 import { PetForm } from '@/features/pets/components/pet-form';
 import { PetPhotoEditor } from '@/features/pets/components/pet-photo-editor';
-import { useCanEditPet, useDeletePet, usePet, useUpdatePet } from '@/features/pets/hooks/use-pets';
+import { useSavePetEdit } from '@/features/pets/hooks/use-pet-writes';
+import { useCanEditPet, useDeletePet, usePet } from '@/features/pets/hooks/use-pets';
 import { useSpecies } from '@/features/pets/hooks/use-species';
 import { resolveEditPetForm } from '@/features/pets/offline/pet-form-gate';
+import { isLocalPetId } from '@/features/pets/offline/pet-operation';
+import { PetEditRejectedError } from '@/features/pets/offline/pet-sync-engine';
 import { isPetOfflineError, petErrorMessage } from '@/features/pets/pet-errors';
 import { toPetFormValues } from '@/features/pets/pet-form';
 import { missingProfileFields, PROFILE_FIELDS } from '@/features/pets/pet-profile';
 import type { PetFields } from '@/features/pets/types';
 import { useIsOnline } from '@/hooks/use-is-online';
 import { t, tf } from '@/i18n';
+import { createSubmitGuard } from '@/lib/submit-guard';
 
 /**
  * Editar el perfil (tablero 3.8): todo opcional salvo el nombre; la especie no cambia si solo hay una
  * disponible. La foto se gestiona aparte (hoja 3.2). Eliminar (solo el propietario) se confirma con
  * sus consecuencias (3.11). Al guardar, vuelve con «Cambios guardados» (3.7).
  *
- * Guardar y eliminar necesitan conexión (no hay escrituras de mascotas sin conexión): sin ella, si no
- * se puede mostrar el formulario se explica; si ya estaba abierto, se avisa, no se puede enviar y lo
- * escrito se conserva. Sin conexión no se edita sobre la copia del dispositivo (puede estar
- * desactualizada).
+ * Guardar es siempre en el dispositivo primero (fase 8) y lo envía la sincronización con la
+ * precondición de la versión editada (`serverPet`); con conexión espera brevemente al servidor. Sin
+ * conexión se edita la copia del dispositivo (o el borrador de un alta local) y se avisa. Eliminar y la
+ * foto siguen necesitando conexión. Con un conflicto o sin permiso, primero se decide qué hacer.
  */
 export default function EditPetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -38,21 +43,44 @@ export default function EditPetScreen() {
   const { user, canUseServer } = useAuth();
   const online = useIsOnline();
   const writable = canUseServer && online;
+  const isLocal = isLocalPetId(id);
   const pet = usePet(id);
   const { view } = pet;
   const canEdit = useCanEditPet(id);
   const species = useSpecies();
-  const updatePet = useUpdatePet(id);
+  const save = useSavePetEdit(id);
   const deletePet = useDeletePet(id);
+  const [guard] = useState(createSubmitGuard);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const back = () => (router.canGoBack() ? router.back() : router.replace({ pathname: '/pets/[id]', params: { id } }));
 
   const handleSubmit = (fields: PetFields) => {
-    updatePet.mutate(fields, {
-      onSuccess: () => {
-        toast({ message: t('pets.edit.saved') });
+    void guard.run(async () => {
+      setSubmitting(true);
+      setSubmitError(null);
+      try {
+        const outcome = await save(fields, isLocal ? null : pet.serverPet, { waitForServer: writable });
+        const op = outcome.op;
+        if (op?.status === 'failed' && op.lastError?.kind === 'validation') {
+          // Sigue guardado en el dispositivo; se corrige aquí mismo y se vuelve a guardar.
+          setSubmitError(t('pets.sync.detail.failed'));
+          return;
+        }
+        setSaved(true);
+        if (op?.status === 'conflict') {
+          router.replace({ pathname: '/pets/[id]/resolve', params: { id } });
+          return;
+        }
+        toast({ message: outcome.synced ? t('pets.edit.saved') : t('pets.sync.savedLocally') });
         back();
-      },
+      } catch (error) {
+        setSubmitError(error instanceof PetEditRejectedError ? t('pets.sync.editBlocked') : t('pets.errors.unknown'));
+      } finally {
+        setSubmitting(false);
+      }
     });
   };
 
@@ -63,7 +91,10 @@ export default function EditPetScreen() {
     </Screen>
   );
 
-  const gate = resolveEditPetForm({ pet: view, species, writable, isOfflineError: isPetOfflineError });
+  // Un alta ya confirmada se edita con su id del servidor.
+  if (pet.redirectTo) return <Redirect href={{ pathname: '/pets/[id]/edit', params: { id: pet.redirectTo } }} />;
+
+  const gate = resolveEditPetForm({ pet: view, op: pet.op, species, writable, isOfflineError: isPetOfflineError });
 
   if (gate.state === 'loading') return frame(<LoadingState />);
   if (gate.state === 'offline') {
@@ -71,11 +102,24 @@ export default function EditPetScreen() {
       <ErrorState
         offline
         message={t('pets.offline.editTitle')}
-        description={t('pets.offline.formText')}
+        description={species.isError ? t('pets.sync.speciesUnavailable') : t('pets.offline.detailUnavailableText')}
         onRetry={() => {
           pet.refetch();
           void species.refetch();
         }}
+      />
+    );
+  }
+  if (gate.state === 'blocked') {
+    return frame(
+      <Alert
+        tone="warning"
+        message={t('pets.sync.editBlocked')}
+        action={
+          pet.op?.status === 'conflict'
+            ? { label: t('pets.sync.resolve'), onPress: () => router.replace({ pathname: '/pets/[id]/resolve', params: { id } }) }
+            : { label: t('common.back'), onPress: back }
+        }
       />
     );
   }
@@ -95,7 +139,7 @@ export default function EditPetScreen() {
 
   const current = view.pet;
   const filled = PROFILE_FIELDS.length - missingProfileFields(current).length;
-  // Solo UX: ocultar lo que RLS rechazaría (borrar: propietario).
+  // Solo UX: ocultar lo que RLS rechazaría (borrar: propietario). Borrar y fotos necesitan conexión.
   const isOwner = current.owner_id === user?.id;
 
   return (
@@ -103,6 +147,7 @@ export default function EditPetScreen() {
       <PetForm
         variant="edit"
         // Los valores iniciales se leen una vez: el formulario no se resetea si la caché se refresca.
+        // Con cambios pendientes, son los del dispositivo (se consolidan con esta edición).
         initialValues={toPetFormValues(current)}
         species={species.data}
         header={
@@ -112,9 +157,9 @@ export default function EditPetScreen() {
             right={<TopBarText mono text={`${filled}/${PROFILE_FIELDS.length}`} />}
           />
         }
-        photo={<PetPhotoEditor pet={current} canEdit={canEdit.data === true && writable} />}
+        photo={isLocal ? null : <PetPhotoEditor pet={current} canEdit={canEdit.data === true && writable} />}
         footerExtra={
-          isOwner && writable ? (
+          isOwner && writable && !isLocal ? (
             <Button
               variant="dangerGhost"
               size="md"
@@ -127,9 +172,9 @@ export default function EditPetScreen() {
             />
           ) : undefined
         }
-        isSubmitting={updatePet.isPending}
-        leaveAllowed={confirmingDelete || updatePet.isSuccess}
-        submitError={updatePet.isError ? petErrorMessage(updatePet.error) : null}
+        isSubmitting={submitting}
+        leaveAllowed={confirmingDelete || saved}
+        submitError={submitError}
         offline={gate.offline}
         onSubmit={handleSubmit}
       />

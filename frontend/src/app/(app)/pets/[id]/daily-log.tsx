@@ -19,6 +19,7 @@ import { formatWeekdayDay } from '@/features/daily-logs/log-date';
 import { useCanEditPet, usePet } from '@/features/pets/hooks/use-pets';
 import { petErrorMessage, toPetError } from '@/features/pets/pet-errors';
 import { getLocale, t, tf } from '@/i18n';
+import { withServerPetId } from '@/features/pets/components/local-pet-logs-unavailable';
 
 /**
  * Registro de hoy de una mascota (crear o editar; tableros 5.1–5.3, 5.5–5.8), a pantalla completa.
@@ -26,7 +27,10 @@ import { getLocale, t, tf } from '@/i18n';
  * servidor; sin conexión (o si el servidor tarda) muestra lo último conocido y, si no hay nada,
  * permite empezarlo. Tras crear el de hoy, «Hecho» (5.3); tras editarlo, vuelve con un aviso.
  */
-export default function DailyLogScreen() {
+/** Con un id local (alta sin confirmar) no hay registros diarios: ver `LocalPetLogsUnavailable`. */
+export default withServerPetId(DailyLogScreen);
+
+function DailyLogScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const toast = useToast();

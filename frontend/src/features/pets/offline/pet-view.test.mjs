@@ -149,32 +149,33 @@ describe('13. foto', () => {
   });
 });
 
-describe('12. formularios de alta y edición: escrituras que necesitan conexión', () => {
+describe('formularios de alta y edición (fase 8: se guardan en el dispositivo)', () => {
   const species = { ok: { status: 'success', error: null }, pending: { status: 'pending', error: null } };
 
-  it('alta: sin conexión, «necesitas conexión»; si el formulario se puede mostrar, con envío bloqueado', () => {
-    assert.deepEqual(resolveNewPetForm({ species: species.pending, writable: false, isOfflineError }), { state: 'offline' });
-    assert.deepEqual(resolveNewPetForm({ species: { status: 'error', error: OFFLINE }, writable: true, isOfflineError }), {
-      state: 'offline',
-    });
+  it('alta: sin conexión se abre con el catálogo (del servidor o del dispositivo) y avisa; sin catálogo, «necesitas conexión»', () => {
     assert.deepEqual(resolveNewPetForm({ species: species.ok, writable: false, isOfflineError }), { state: 'form', offline: true });
     assert.deepEqual(resolveNewPetForm({ species: species.ok, writable: true, isOfflineError }), { state: 'form', offline: false });
+    assert.deepEqual(resolveNewPetForm({ species: { status: 'error', error: OFFLINE }, writable: false, isOfflineError }), {
+      state: 'offline',
+    });
+    assert.deepEqual(resolveNewPetForm({ species: species.pending, writable: false, isOfflineError }), { state: 'loading' });
   });
 
-  it('edición: nunca sobre la copia del dispositivo; sin conexión con datos del servidor, envío bloqueado', () => {
+  it('edición: también sobre la copia del dispositivo; sin copia, «necesitas conexión»; con conflicto o sin permiso, bloqueada', () => {
     const luna = makePet();
     const fromDevice = { state: 'ready', pet: luna, source: 'device', stale: true, savedAt: SAVED_AT };
     const fromServer = { state: 'ready', pet: luna, source: 'server', stale: false, savedAt: null };
-    const gate = (pet, writable, speciesQuery = species.ok) =>
-      resolveEditPetForm({ pet, species: speciesQuery, writable, isOfflineError });
+    const gate = (pet, writable, { speciesQuery = species.ok, op = null } = {}) =>
+      resolveEditPetForm({ pet, op, species: speciesQuery, writable, isOfflineError });
 
-    assert.deepEqual(gate(fromDevice, false), { state: 'offline' });
-    assert.deepEqual(gate({ state: 'offline_unavailable' }, false), { state: 'offline' });
-    assert.deepEqual(gate({ state: 'loading' }, false), { state: 'offline' });
-    assert.deepEqual(gate(fromServer, false), { state: 'form', offline: true });
+    assert.deepEqual(gate(fromDevice, false), { state: 'form', offline: true });
     assert.deepEqual(gate(fromServer, true), { state: 'form', offline: false });
+    assert.deepEqual(gate({ state: 'offline_unavailable' }, false), { state: 'offline' });
     assert.deepEqual(gate({ state: 'not_found' }, true), { state: 'not_found' });
-    assert.deepEqual(gate(fromServer, true, { status: 'error', error: FORBIDDEN }), {
+    assert.deepEqual(gate(fromDevice, false, { op: { status: 'conflict' } }), { state: 'blocked' });
+    assert.deepEqual(gate(fromServer, true, { op: { status: 'forbidden' } }), { state: 'blocked' });
+    assert.deepEqual(gate(fromServer, true, { op: { status: 'pending' } }), { state: 'form', offline: false });
+    assert.deepEqual(gate(fromServer, true, { speciesQuery: { status: 'error', error: FORBIDDEN } }), {
       state: 'error',
       error: FORBIDDEN,
       source: 'species',

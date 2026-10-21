@@ -7,13 +7,17 @@ import { PetHistory } from '@/features/daily-logs/components/pet-history';
 import { useCanEditPet, usePet } from '@/features/pets/hooks/use-pets';
 import { petErrorMessage, toPetError } from '@/features/pets/pet-errors';
 import { t } from '@/i18n';
+import { withServerPetId } from '@/features/pets/components/local-pet-logs-unavailable';
 
 /**
  * Historial de una mascota concreta (`/pets/[id]/daily-logs`), el mismo que la pestaña Historial. Sin
  * conexión, con el nombre de la copia del dispositivo si la hay; sin ella, se muestra igualmente lo
  * guardado en el dispositivo, sin nombre ni foto: no se inventan.
  */
-export default function DailyLogHistoryScreen() {
+/** Con un id local (alta sin confirmar) no hay registros diarios: ver `LocalPetLogsUnavailable`. */
+export default withServerPetId(DailyLogHistoryScreen);
+
+function DailyLogHistoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const pet = usePet(id);

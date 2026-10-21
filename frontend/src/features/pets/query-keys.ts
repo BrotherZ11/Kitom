@@ -20,6 +20,8 @@ export const petKeys = {
   local: (userId: string) => [...petKeys.user(userId), 'local'] as const,
   localList: (userId: string) => [...petKeys.local(userId), 'list'] as const,
   localDetail: (userId: string, petId: string) => [...petKeys.local(userId), 'detail', petId] as const,
+  /** Altas y ediciones guardadas en el dispositivo pendientes del servidor (`offline/pet-operation.ts`). */
+  operations: (userId: string) => [...petKeys.local(userId), 'operations'] as const,
   photo: (photoPath: string) => [...petKeys.all, 'photo', photoPath] as const,
 };
 

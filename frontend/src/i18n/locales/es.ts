@@ -336,7 +336,72 @@ export const es = {
       notFound: 'No hemos encontrado esta mascota o ya no tienes acceso a ella.',
       backToList: 'Volver a mis mascotas',
     },
-    /** Sin conexión (fase 7): datos guardados en el dispositivo; escrituras bloqueadas. */
+    /** Altas y ediciones guardadas en el dispositivo hasta que el servidor las confirma (fase 8). */
+    sync: {
+      status: {
+        pending_create: 'Pendiente de crear',
+        pending_update: 'Cambios pendientes',
+        syncing: 'Sincronizando…',
+        uncertain: 'Comprobando si se guardó',
+        conflict: 'Conflicto: decide tú',
+        failed: 'No se pudo sincronizar',
+        forbidden: 'Sin permiso',
+      },
+      detail: {
+        pending_create:
+          'Esta mascota solo está guardada en este dispositivo. Se creará en Kitom cuando haya conexión; hasta entonces no tiene registros diarios ni foto.',
+        pending_update: 'Tus cambios están guardados en este dispositivo y se enviarán cuando haya conexión.',
+        syncing: 'Enviando los cambios guardados en este dispositivo…',
+        uncertain:
+          'Se envió, pero no llegó la respuesta. Se comprobará al volver la conexión, sin crear una mascota repetida.',
+        conflict:
+          'Esta mascota cambió en otro dispositivo mientras la editabas. Revisa qué datos conservar; tus cambios siguen en este dispositivo.',
+        failed: 'El servidor no ha aceptado los datos. Corrígelos o vuelve a intentarlo; siguen en este dispositivo.',
+        failedServer: 'No se pudo sincronizar tras varios intentos. Tus datos siguen en este dispositivo.',
+        forbidden:
+          'Ya no puedes editar esta mascota o ya no está disponible. Tus cambios siguen en este dispositivo: puedes copiarlos o descartarlos.',
+      },
+      retry: 'Reintentar',
+      resolve: 'Revisar el conflicto',
+      fix: 'Corregir los datos',
+      discard: 'Descartar los cambios de este dispositivo',
+      discardDraft: 'Descartar esta mascota',
+      discardTitle: '¿Descartar lo guardado en este dispositivo?',
+      discardText: 'Se borra solo de este dispositivo; el servidor no cambia. No se puede deshacer.',
+      discardConfirm: 'Descartar',
+      discarded: 'Cambios descartados',
+      localData: 'Tus datos en este dispositivo (para copiarlos)',
+      savedLocally: 'Guardado en este dispositivo. Se enviará cuando haya conexión.',
+      createdLocally: 'Mascota guardada en este dispositivo. Se creará cuando haya conexión.',
+      operationsReadFailed:
+        'No se han podido leer los cambios guardados en este dispositivo. Esto no significa que no haya: inténtalo de nuevo.',
+      drafts: 'Guardadas solo en este dispositivo',
+      orphans: 'Cambios de mascotas que ya no ves',
+      editBlocked: 'Antes de volver a editar, revisa el conflicto o descarta los cambios de este dispositivo.',
+      permissionUnknown:
+        'Sin conexión no se puede comprobar si puedes editar esta mascota. Se guardará en este dispositivo y el servidor decidirá al sincronizar.',
+      photoOffline: 'La foto se podrá añadir cuando haya conexión.',
+      photoNotUploaded: 'La mascota se ha guardado en este dispositivo, pero la foto no: podrás añadirla cuando se sincronice.',
+      dailyLogsUnavailable: 'Los registros diarios estarán disponibles cuando la mascota se sincronice',
+      dailyLogsUnavailableText: 'Esta mascota solo está guardada en este dispositivo. Cuando se cree en Kitom podrás registrar su día.',
+      speciesUnavailable: 'Para crear una mascota sin conexión hace falta haber cargado antes las especies con conexión.',
+      resolveScreen: {
+        title: 'Revisar el conflicto',
+        intro: 'Estos datos cambiaron en los dos sitios. Elige cuál conservar en cada uno.',
+        kept: 'Los demás cambios no chocan y se conservan: los tuyos y los del servidor.',
+        yours: 'En este dispositivo',
+        theirs: 'En Kitom (otro dispositivo)',
+        save: 'Guardar mi elección',
+        nothing: 'No hay ningún conflicto que revisar.',
+        changedAgain: 'Ha vuelto a cambiar en el servidor. Revisa de nuevo.',
+        unavailable: 'Sin conexión no se puede comprobar la versión del servidor. Inténtalo cuando vuelva.',
+        forbidden: 'Ya no puedes editar esta mascota o ya no está disponible.',
+        saved: 'Cambios guardados',
+        savedLocally: 'Elección guardada en este dispositivo. Se enviará cuando haya conexión.',
+        failed: 'El servidor no ha aceptado los datos. Siguen en este dispositivo.',
+      },
+    },
+    /** Sin conexión (fase 7): datos guardados en el dispositivo (escrituras: `sync`, fase 8). */
     offline: {
       savedBanner: 'Sin conexión: datos guardados en este dispositivo. Pueden no estar al día.',
       savedBannerAt: 'Sin conexión: datos guardados en este dispositivo (actualizados: {date}). Pueden no estar al día.',
@@ -352,7 +417,7 @@ export const es = {
       newTitle: 'Necesitas conexión para añadir una mascota',
       editTitle: 'Necesitas conexión para editar esta mascota',
       formText: 'Sin conexión no se pueden guardar cambios en las mascotas. No se ha modificado nada.',
-      formBanner: 'Sin conexión: los cambios no se pueden guardar hasta que vuelva la conexión.',
+      formBanner: 'Sin conexión: se guardará en este dispositivo y se enviará cuando vuelva la conexión.',
       photoUnavailable: 'La foto no está disponible ahora mismo (sin conexión o enlace caducado). Sigue guardada.',
     },
     fields: {
@@ -381,6 +446,7 @@ export const es = {
       unknown: 'Sin raza definida',
     },
     breedPicker: {
+      nameUnavailable: 'Raza del catálogo (su nombre no está disponible sin conexión)',
       hint: 'Opcional: puedes indicarlo más adelante.',
       clear: 'Prefiero no indicarlo ahora',
       searchLabel: 'Buscar raza',

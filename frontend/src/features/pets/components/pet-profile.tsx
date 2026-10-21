@@ -51,6 +51,8 @@ type PetProfileProps = {
   notice?: ReactNode;
   /** Origen de los datos: si pueden estar desactualizados (sin conexión), se avisa. */
   freshness?: PetFreshness;
+  /** Estado de los cambios guardados solo en el dispositivo (`PetSyncNotice`). */
+  syncNotice?: ReactNode;
 };
 
 /** Foto de cabecera: 220 desde el borde superior, barra de estado (44 en el tablero) incluida. */
@@ -62,19 +64,25 @@ const BOARD_STATUS_BAR = 44;
  * servidor (`pet_streaks`) y los permisos (`can_edit_pet`, solo para decidir qué se ofrece). Lo que
  * aún no existe (consultas con foto, co-tutores, informe) se marca «Próximamente» y no se pulsa.
  *
- * Sin conexión (o con la sesión sin comprobar) los datos pueden venir de la copia del dispositivo:
- * se avisa y no se ofrece editar la mascota ni su foto (el permiso no se puede comprobar y guardar
- * necesita el servidor). El registro del día sigue su propia regla (se guarda en el dispositivo).
+ * Sin conexión (o con la sesión sin comprobar) los datos pueden venir de la copia del dispositivo y
+ * se avisa. Editar los datos se guarda en el dispositivo (fase 8): se ofrece con el permiso conocido o,
+ * sin poder comprobarlo, desconocido (el servidor decide al sincronizar; nunca se da por vigente un
+ * permiso guardado). La foto necesita el servidor: solo con permiso conocido y conexión. El registro
+ * del día sigue su propia regla.
  */
-export function PetProfile({ pet, mode, onOpenHistory, notice, freshness }: PetProfileProps) {
+export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNotice }: PetProfileProps) {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { user, canUseServer } = useAuth();
   const online = useIsOnline();
-  const canEditLog = useCanEditPet(pet.id).data === true;
-  // Editar la mascota o su foto: con permiso conocido, servidor utilizable y datos al día.
-  const canEdit = canEditLog && canUseServer && online && freshness?.stale !== true;
+  const permission = useCanEditPet(pet.id);
+  const canEditLog = permission.data === true;
+  // Sin poder preguntarlo (sin conexión o sesión sin comprobar): desconocido, no denegado.
+  const permissionUnknown = permission.data === undefined && (!canUseServer || (permission.isError && isPetOfflineError(permission.error)));
+  const canEdit = canEditLog || permissionUnknown;
+  // La foto se sube al momento: con permiso conocido, servidor utilizable y datos al día.
+  const canEditPhoto = canEditLog && canUseServer && online && freshness?.stale !== true;
   const species = useSpecies();
   const breed = useBreed(pet.breed_id);
   const streak = usePetStreak(pet.id);
@@ -164,7 +172,7 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness }: PetP
           <View style={styles.photoAction}>
             <PetPhotoEditor
               pet={pet}
-              canEdit={canEdit}
+              canEdit={canEditPhoto}
               trigger={(open) => (
                 <IconButton
                   variant="soft"
@@ -179,6 +187,7 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness }: PetP
 
         <View style={styles.body}>
           <PetSavedBanner freshness={freshness} />
+          {syncNotice}
           {notice}
           {photo.state === 'unavailable' || photo.state === 'error' ? (
             <Alert
