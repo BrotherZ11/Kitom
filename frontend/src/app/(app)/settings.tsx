@@ -14,8 +14,9 @@ import { Text } from '@/components/ui/text';
 import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
+import { useSignOutFlow, useUnsyncedChanges } from '@/features/auth/sign-out-provider';
 import { useUnsyncedDailyLogs } from '@/features/daily-logs/hooks/use-daily-log';
-import { useSignOutFlow } from '@/features/daily-logs/sync/daily-log-sync-provider';
+import { petUnsyncedTotal } from '@/features/pets/offline/pet-operation';
 import { useProfileName } from '@/features/profile/hooks/use-profile-name';
 import { useProfileTimeZone } from '@/features/profile/hooks/use-profile-timezone';
 import { t, tf } from '@/i18n';
@@ -34,6 +35,8 @@ export default function SettingsScreen() {
   const timeZone = useProfileTimeZone();
   const { view } = useUnsyncedDailyLogs();
   const { flow, state } = useSignOutFlow();
+  const changes = useUnsyncedChanges();
+  const petChanges = changes.view.state === 'ready' && petUnsyncedTotal(changes.view.summary.pets) > 0;
   const [error, setError] = useState<AuthErrorCode | null>(null);
 
   const handleSignOut = async () => {
@@ -79,7 +82,14 @@ export default function SettingsScreen() {
           {t('settings.data')}
         </Text>
         <Card flush>
-          <ListItem plain icon={House} title={t('settings.myPets')} onPress={() => router.push('/pets')} divider />
+          <ListItem
+            plain
+            icon={House}
+            title={t('settings.myPets')}
+            subtitle={petChanges ? t('settings.petsUnsynced') : undefined}
+            onPress={() => router.push('/pets')}
+            divider
+          />
           <ListItem
             plain
             icon={CloudUpload}

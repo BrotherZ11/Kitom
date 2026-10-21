@@ -49,7 +49,7 @@ type AuthContextValue = {
   /**
    * Cierra la sesión sin más comprobaciones (función estable). Llamadas simultáneas comparten el
    * mismo cierre. En la zona autenticada no se llama directamente: el cierre con cambios sin
-   * sincronizar pasa por `useSignOutFlow` (`features/daily-logs/sync/`).
+   * sincronizar pasa por `useSignOutFlow` (`features/auth/sign-out-provider.tsx`).
    */
   signOut: () => Promise<AuthResult>;
   /**

@@ -32,33 +32,39 @@ export function unsyncedTotal(summary: UnsyncedSummary): number {
  */
 export type SyncAttemptResult = 'incomplete' | 'timed_out' | 'offline' | 'session';
 
-export type SignOutOutcome<E> =
+export type SignOutOutcome<E, S = UnsyncedSummary> =
   | { status: 'signed_out'; error: E | null }
   /** `summary: null` = no se pudo leer lo guardado en el dispositivo (no significa que no haya nada). */
-  | { status: 'needs_decision'; summary: UnsyncedSummary | null; attempt: SyncAttemptResult | null }
+  | { status: 'needs_decision'; summary: S | null; attempt: SyncAttemptResult | null }
   | { status: 'cancelled' }
   | { status: 'busy' };
 
 export type SignOutFlowState = 'idle' | 'checking' | 'syncing' | 'signing_out';
 
-export type SignOutFlowDeps<E> = {
+export type SignOutFlowDeps<E, S = UnsyncedSummary> = {
   /** Cambios sin confirmar de la cuenta activa, leídos del dispositivo. Lanza si no se pueden leer. */
-  checkUnsynced(): Promise<UnsyncedSummary>;
+  checkUnsynced(): Promise<S>;
+  /**
+   * Cuántos cambios hay en el resumen (por defecto, `unsyncedTotal` de registros diarios). Con varias
+   * fuentes (`unsynced-changes.ts`), la suma de todas: se cierra sesión solo si es 0.
+   */
+  total?: (summary: S) => number;
   /** Pasada acotada de sincronización (`engine.syncNow`). */
   syncNow(): Promise<SyncNowOutcome>;
   signOut(): Promise<{ error: E | null }>;
 };
 
-export type SignOutFlow<E> = {
-  request(): Promise<SignOutOutcome<E>>;
-  syncAndSignOut(): Promise<SignOutOutcome<E>>;
-  keepAndSignOut(): Promise<SignOutOutcome<E>>;
+export type SignOutFlow<E, S = UnsyncedSummary> = {
+  request(): Promise<SignOutOutcome<E, S>>;
+  syncAndSignOut(): Promise<SignOutOutcome<E, S>>;
+  keepAndSignOut(): Promise<SignOutOutcome<E, S>>;
   cancel(): void;
   getState(): SignOutFlowState;
   subscribe(listener: () => void): () => void;
 };
 
-export function createSignOutFlow<E>(deps: SignOutFlowDeps<E>): SignOutFlow<E> {
+export function createSignOutFlow<E, S = UnsyncedSummary>(deps: SignOutFlowDeps<E, S>): SignOutFlow<E, S> {
+  const total = deps.total ?? ((summary: S) => unsyncedTotal(summary as unknown as UnsyncedSummary));
   const listeners = new Set<() => void>();
   let state: SignOutFlowState = 'idle';
   // Cada `cancel` invalida lo que esté en curso: una pasada que termina después ya no cierra sesión.
@@ -69,7 +75,7 @@ export function createSignOutFlow<E>(deps: SignOutFlowDeps<E>): SignOutFlow<E> {
     for (const listener of listeners) listener();
   };
 
-  const check = async (): Promise<UnsyncedSummary | null> => {
+  const check = async (): Promise<S | null> => {
     try {
       return await deps.checkUnsynced();
     } catch {
@@ -77,7 +83,7 @@ export function createSignOutFlow<E>(deps: SignOutFlowDeps<E>): SignOutFlow<E> {
     }
   };
 
-  const signOut = async (): Promise<SignOutOutcome<E>> => {
+  const signOut = async (): Promise<SignOutOutcome<E, S>> => {
     setState('signing_out');
     try {
       const { error } = await deps.signOut();
@@ -90,8 +96,8 @@ export function createSignOutFlow<E>(deps: SignOutFlowDeps<E>): SignOutFlow<E> {
   /** Ejecuta `task` si no hay otra en curso. */
   const exclusive = async (
     first: SignOutFlowState,
-    task: (isCurrent: () => boolean) => Promise<SignOutOutcome<E>>
-  ): Promise<SignOutOutcome<E>> => {
+    task: (isCurrent: () => boolean) => Promise<SignOutOutcome<E, S>>
+  ): Promise<SignOutOutcome<E, S>> => {
     if (state !== 'idle') return { status: 'busy' };
     const mine = ++generation;
     setState(first);
@@ -108,7 +114,7 @@ export function createSignOutFlow<E>(deps: SignOutFlowDeps<E>): SignOutFlow<E> {
     request: () =>
       exclusive('checking', async () => {
         const summary = await check();
-        if (summary && unsyncedTotal(summary) === 0) return signOut();
+        if (summary && total(summary) === 0) return signOut();
         return { status: 'needs_decision', summary, attempt: null };
       }),
 
@@ -125,7 +131,7 @@ export function createSignOutFlow<E>(deps: SignOutFlowDeps<E>): SignOutFlow<E> {
         const summary = await check();
         if (!isCurrent()) return { status: 'cancelled' };
         // Solo se cierra sesión si lo leído del dispositivo confirma que no queda nada.
-        if (summary && unsyncedTotal(summary) === 0) return signOut();
+        if (summary && total(summary) === 0) return signOut();
         return { status: 'needs_decision', summary, attempt };
       }),
 

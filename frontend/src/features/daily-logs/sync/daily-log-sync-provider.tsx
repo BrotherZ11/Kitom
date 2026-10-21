@@ -2,15 +2,9 @@ import { onlineManager, useQueryClient } from '@tanstack/react-query';
 import { createContext, use, useEffect, useState, useSyncExternalStore, type PropsWithChildren } from 'react';
 import { AppState } from 'react-native';
 
-import { useAuth, type AuthResult } from '@/features/auth/auth-context';
-import type { AuthErrorCode } from '@/features/auth/auth-errors';
+import { useAuth } from '@/features/auth/auth-context';
 import { createOwnerAccessToken } from '@/features/auth/owner-session';
-import { createSignOutFlow, type SignOutFlow, type SignOutFlowState } from '@/features/auth/sign-out-flow';
-import {
-  applyLocalChangeToCache,
-  ownerScopedSnapshots,
-  summarizeUnsynced,
-} from '@/features/daily-logs/offline/daily-log-cache';
+import { applyLocalChangeToCache, ownerScopedSnapshots } from '@/features/daily-logs/offline/daily-log-cache';
 import { createDailyLogRemote } from '@/features/daily-logs/offline/daily-log-remote';
 import {
   createDailyLogRepository,
@@ -49,13 +43,9 @@ type DailyLogSync = {
 type DailyLogSyncContextValue = DailyLogSync & {
   /** El almacén para las lecturas del servidor: copia solo si la sesión sigue siendo del dueño. */
   snapshots: ReturnType<typeof ownerScopedSnapshots>;
-  signOutFlow: SignOutFlow<AuthErrorCode>;
 };
 
 const DailyLogSyncContext = createContext<DailyLogSyncContextValue | null>(null);
-
-/** Tiempo máximo de la pasada de «Intentar sincronizar y cerrar sesión». */
-export const SIGN_OUT_SYNC_TIMEOUT_MS = 15_000;
 
 const sessions = createDailyLogSyncSessions((userId): DailyLogSync => {
   const repository = createDailyLogRepository(createLocalStore(deviceStorage, userId));
@@ -85,18 +75,13 @@ export function DailyLogSyncProvider({ children }: PropsWithChildren) {
 
 function DailyLogSyncSession({ userId, children }: PropsWithChildren<{ userId: string }>) {
   const queryClient = useQueryClient();
-  const { session, signOut, isCurrentUser } = useAuth();
+  const { session, isCurrentUser } = useAuth();
 
   const [value] = useState<DailyLogSyncContextValue>(() => {
     const sync = sessions.get(userId);
     return {
       ...sync,
       snapshots: ownerScopedSnapshots(sync.repository, () => isCurrentUser(userId)),
-      signOutFlow: createSignOutFlow<AuthErrorCode>({
-        checkUnsynced: async () => summarizeUnsynced(await sync.repository.list()),
-        syncNow: () => sync.engine.syncNow({ timeoutMs: SIGN_OUT_SYNC_TIMEOUT_MS }),
-        signOut: (): Promise<AuthResult> => signOut(),
-      }),
     };
   });
 
@@ -117,7 +102,6 @@ function DailyLogSyncSession({ userId, children }: PropsWithChildren<{ userId: s
       },
     });
     return () => {
-      value.signOutFlow.cancel();
       disconnect();
       unsubscribeCache();
       sessions.deactivate(userId);
@@ -145,15 +129,4 @@ export function useDailyLogSync(): DailyLogSyncContextValue {
 export function useSyncingKey(): string | null {
   const { engine } = useDailyLogSync();
   return useSyncExternalStore(engine.subscribe, engine.getSyncingKey);
-}
-
-/**
- * Cierre de sesión de la zona autenticada (`features/auth/sign-out-flow.ts`): con cambios sin
- * sincronizar en el dispositivo no cierra sin una decisión del usuario. Una operación a la vez para
- * toda la sesión (inicio y pantalla de cierre comparten el flujo).
- */
-export function useSignOutFlow(): { flow: SignOutFlow<AuthErrorCode>; state: SignOutFlowState } {
-  const { signOutFlow } = useDailyLogSync();
-  const state = useSyncExternalStore(signOutFlow.subscribe, signOutFlow.getState);
-  return { flow: signOutFlow, state };
 }

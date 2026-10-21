@@ -197,6 +197,7 @@ export const en: Translations = {
     unsyncedNone: 'Everything is uploaded',
     unsyncedSome: 'There are changes only on this phone',
     unsyncedError: "Couldn't check",
+    petsUnsynced: 'There are pet changes only on this phone',
     signOut: 'Sign out',
     version: 'Kitom {version} · Made for Atom and Kika',
   },
@@ -208,7 +209,7 @@ export const en: Translations = {
   },
   signOut: {
     title: 'Sign out',
-    intro: 'Some daily logs have changes that are not saved on the server yet.',
+    intro: 'Some changes are not saved on the server yet.',
     localOnly:
       'These changes only exist on this device. If you sign out without syncing them, they will not be on the server or on other devices.',
     checkFailed: 'We could not check whether there are changes saved only on this device. There may be some.',
@@ -218,7 +219,19 @@ export const en: Translations = {
       conflict: 'In conflict',
       failed: 'Could not be synced',
     },
-    needsReview: 'Logs in conflict or that could not be synced need your review: syncing does not resolve them on its own.',
+    dailyLogs: 'Daily logs',
+    pets: 'Pets',
+    petCounts: {
+      pendingCreate: 'Waiting to be created',
+      pendingUpdate: 'Pending edits',
+      uncertain: 'Sent but not confirmed',
+      conflict: 'In conflict',
+      failed: 'Could not be synced',
+      forbidden: 'No permission or no longer available',
+      unreadable: 'Cannot be read',
+    },
+    needsReview:
+      'What is in conflict, could not be synced, has no permission or cannot be read needs your review: syncing does not resolve it on its own.',
     syncAndSignOut: 'Try to sync and sign out',
     syncExplanation: 'We try to send everything for a few seconds. You are only signed out if nothing is left pending.',
     keepAndSignOut: 'Keep on this device and sign out',
@@ -226,8 +239,9 @@ export const en: Translations = {
       'The changes stay saved on this device, hidden and unsent until you sign in again. If you sign in again on this device with this same account, they are recovered and synced. They are not saved on the server: you will not see them on other devices or with another account.',
     cancel: 'Cancel and stay signed in',
     review: 'Review unsynced logs',
+    reviewPets: 'Review pets',
     result: {
-      incomplete: 'Not every log could be synced. They are still saved on this device.',
+      incomplete: 'Not every change could be synced. They are still saved on this device.',
       timed_out: 'Syncing is taking too long and continues in the background. Your changes are still saved on this device.',
       offline: 'You are offline, so nothing can be synced. Your changes are still saved on this device.',
       session: 'Your session cannot sync right now (it may have expired). Your changes are still saved on this device.',

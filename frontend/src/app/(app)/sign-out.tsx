@@ -12,23 +12,27 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TopBar } from '@/components/ui/top-bar';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
-import type { SignOutOutcome, SyncAttemptResult } from '@/features/auth/sign-out-flow';
-import { summarizeUnsynced } from '@/features/daily-logs/offline/daily-log-cache';
-import { useUnsyncedDailyLogs } from '@/features/daily-logs/hooks/use-daily-log';
-import { useSignOutFlow } from '@/features/daily-logs/sync/daily-log-sync-provider';
+import { unsyncedTotal, type SignOutOutcome, type SyncAttemptResult } from '@/features/auth/sign-out-flow';
+import { useSignOutFlow, useUnsyncedChanges } from '@/features/auth/sign-out-provider';
+import { needsReview, signOutTotal, type SignOutSummary } from '@/features/auth/unsynced-changes';
+import { petUnsyncedTotal, type PetUnsyncedSummary } from '@/features/pets/offline/pet-operation';
 import { t } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 
+const DAILY_LOG_COUNTS = ['pending', 'conflict', 'failed'] as const;
+const PET_COUNTS = ['pendingCreate', 'pendingUpdate', 'uncertain', 'conflict', 'failed', 'forbidden', 'unreadable'] as const satisfies readonly (keyof PetUnsyncedSummary)[];
+
 /**
- * Cerrar sesión con registros diarios sin sincronizar (`features/auth/sign-out-flow.ts`). Se llega
- * desde «Cerrar sesión» solo si hay cambios pendientes, en conflicto o fallidos, o si no se pudo
- * comprobar. Ninguna opción borra datos del dispositivo. Salir de la pantalla (atrás o «Cancelar»)
- * no cambia nada y anula el cierre de un intento de sincronización en curso.
+ * Cerrar sesión con cambios que solo existen en el dispositivo (`features/auth/sign-out-flow.ts`): de
+ * registros diarios y de mascotas (altas, ediciones, envíos sin confirmar, conflictos, fallos, sin
+ * permiso e ilegibles). Se llega desde «Cerrar sesión» solo si hay alguno, o si no se pudo comprobar.
+ * Ninguna opción borra datos del dispositivo. Salir de la pantalla (atrás o «Cancelar») no cambia nada
+ * y anula el cierre de un intento de sincronización en curso.
  */
 export default function SignOutScreen() {
   const router = useRouter();
   const { flow, state } = useSignOutFlow();
-  const { view } = useUnsyncedDailyLogs();
+  const { view } = useUnsyncedChanges();
   const [attempt, setAttempt] = useState<SyncAttemptResult | null>(null);
   const [error, setError] = useState<AuthErrorCode | null>(null);
   const busy = state !== 'idle';
@@ -36,7 +40,7 @@ export default function SignOutScreen() {
   // Al salir de la pantalla, una pasada en curso ya no cierra la sesión al terminar.
   useEffect(() => () => flow.cancel(), [flow]);
 
-  const handle = (outcome: SignOutOutcome<AuthErrorCode>) => {
+  const handle = (outcome: SignOutOutcome<AuthErrorCode, SignOutSummary>) => {
     if (outcome.status === 'signed_out') setError(outcome.error);
     if (outcome.status === 'needs_decision') setAttempt(outcome.attempt);
   };
@@ -58,8 +62,11 @@ export default function SignOutScreen() {
     );
   }
 
-  const summary = view.state === 'ready' ? summarizeUnsynced(view.items.map((item) => item.record)) : null;
-  const total = summary ? summary.pending + summary.conflict + summary.failed : null;
+  // Si un almacén no se pudo leer, no se afirma que no haya nada: se ofrecen las mismas opciones.
+  const summary = view.state === 'ready' ? view.summary : null;
+  const total = summary ? signOutTotal(summary) : null;
+  const dailyLogs = summary ? unsyncedTotal(summary.dailyLogs) : 0;
+  const pets = summary ? petUnsyncedTotal(summary.pets) : 0;
 
   return (
     <Screen align="top">
@@ -71,19 +78,50 @@ export default function SignOutScreen() {
       ) : (
         <>
           <Text variant="title3">{t('signOut.intro')}</Text>
-          <View accessibilityLiveRegion="polite">
-            <Card flush>
-              {(['pending', 'conflict', 'failed'] as const).map((status, index) => (
-                <ListItem key={status} plain title={t(`signOut.counts.${status}`)} value={String(summary[status])} divider={index < 2} />
-              ))}
-            </Card>
+          <View accessibilityLiveRegion="polite" style={styles.counts}>
+            {dailyLogs > 0 ? (
+              <>
+                <Text variant="overline" color="inkMuted" accessibilityRole="header">
+                  {t('signOut.dailyLogs')}
+                </Text>
+                <Card flush>
+                  {DAILY_LOG_COUNTS.map((status, index) => (
+                    <ListItem
+                      key={status}
+                      plain
+                      title={t(`signOut.counts.${status}`)}
+                      value={String(summary.dailyLogs[status])}
+                      divider={index < DAILY_LOG_COUNTS.length - 1}
+                    />
+                  ))}
+                </Card>
+              </>
+            ) : null}
+            {pets > 0 ? (
+              <>
+                <Text variant="overline" color="inkMuted" accessibilityRole="header">
+                  {t('signOut.pets')}
+                </Text>
+                <Card flush>
+                  {PET_COUNTS.filter((status) => summary.pets[status] > 0).map((status, index, shown) => (
+                    <ListItem
+                      key={status}
+                      plain
+                      title={t(`signOut.petCounts.${status}`)}
+                      value={String(summary.pets[status])}
+                      divider={index < shown.length - 1}
+                    />
+                  ))}
+                </Card>
+              </>
+            ) : null}
           </View>
           <Alert tone="warning" message={t('signOut.localOnly')} />
-          {summary.conflict + summary.failed > 0 && (
+          {needsReview(summary) ? (
             <Text variant="caption" color="inkMuted">
               {t('signOut.needsReview')}
             </Text>
-          )}
+          ) : null}
         </>
       )}
 
@@ -91,11 +129,7 @@ export default function SignOutScreen() {
       <FormMessage message={error ? authErrorMessage(error) : null} />
 
       {total === 0 ? (
-        <Button
-          label={t('settings.signOut')}
-          loading={busy}
-          onPress={async () => handle(await flow.request())}
-        />
+        <Button label={t('settings.signOut')} loading={busy} onPress={async () => handle(await flow.request())} />
       ) : (
         <>
           <Button
@@ -126,13 +160,18 @@ export default function SignOutScreen() {
             {t('signOut.keepExplanation')}
           </Text>
 
-          <Button
-            variant="ghost"
-            size="md"
-            label={t('signOut.review')}
-            disabled={busy}
-            onPress={() => router.push('/daily-logs/unsynced')}
-          />
+          {summary === null || dailyLogs > 0 ? (
+            <Button
+              variant="ghost"
+              size="md"
+              label={t('signOut.review')}
+              disabled={busy}
+              onPress={() => router.push('/daily-logs/unsynced')}
+            />
+          ) : null}
+          {summary === null || pets > 0 ? (
+            <Button variant="ghost" size="md" label={t('signOut.reviewPets')} disabled={busy} onPress={() => router.push('/pets')} />
+          ) : null}
         </>
       )}
 
@@ -143,6 +182,9 @@ export default function SignOutScreen() {
 }
 
 const styles = StyleSheet.create({
+  counts: {
+    gap: spacing['2'],
+  },
   // La explicación va pegada a su botón.
   explanation: {
     marginTop: -spacing['2'],

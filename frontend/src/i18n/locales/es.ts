@@ -202,6 +202,7 @@ export const es = {
     unsyncedNone: 'Todo está subido',
     unsyncedSome: 'Hay cambios solo en este móvil',
     unsyncedError: 'No se ha podido comprobar',
+    petsUnsynced: 'Hay cambios de mascotas solo en este móvil',
     signOut: 'Cerrar sesión',
     version: 'Kitom {version} · Hecha para Atom y Kika',
   },
@@ -213,7 +214,7 @@ export const es = {
   },
   signOut: {
     title: 'Cerrar sesión',
-    intro: 'Hay registros diarios con cambios que todavía no están guardados en el servidor.',
+    intro: 'Hay cambios que todavía no están guardados en el servidor.',
     localOnly:
       'Estos cambios solo existen en este dispositivo. Si cierras sesión sin sincronizarlos, no estarán en el servidor ni en otros dispositivos.',
     checkFailed:
@@ -224,8 +225,19 @@ export const es = {
       conflict: 'En conflicto',
       failed: 'No se pudieron sincronizar',
     },
+    dailyLogs: 'Registros diarios',
+    pets: 'Mascotas',
+    petCounts: {
+      pendingCreate: 'Altas pendientes',
+      pendingUpdate: 'Ediciones pendientes',
+      uncertain: 'Enviadas sin confirmar',
+      conflict: 'En conflicto',
+      failed: 'No se pudieron sincronizar',
+      forbidden: 'Sin permiso o ya no disponibles',
+      unreadable: 'No se pueden leer',
+    },
     needsReview:
-      'Los registros en conflicto o que no se pudieron sincronizar necesitan que los revises: sincronizar no los resuelve solo.',
+      'Lo que está en conflicto, no se pudo sincronizar, no tiene permiso o no se puede leer necesita que lo revises: sincronizar no lo resuelve solo.',
     syncAndSignOut: 'Intentar sincronizar y cerrar sesión',
     syncExplanation:
       'Se intenta enviar todo durante unos segundos. Solo se cierra la sesión si no queda nada pendiente.',
@@ -234,8 +246,9 @@ export const es = {
       'Los cambios se quedan guardados en este dispositivo, ocultos y sin enviarse mientras no vuelvas a entrar. Si vuelves a iniciar sesión en este dispositivo con esta misma cuenta, se recuperan y se sincronizan. No están guardados en el servidor: no los verás en otros dispositivos ni con otra cuenta.',
     cancel: 'Cancelar y seguir con la sesión',
     review: 'Revisar registros sin sincronizar',
+    reviewPets: 'Revisar mascotas',
     result: {
-      incomplete: 'No se han podido sincronizar todos los registros. Siguen guardados en este dispositivo.',
+      incomplete: 'No se han podido sincronizar todos los cambios. Siguen guardados en este dispositivo.',
       timed_out:
         'La sincronización está tardando demasiado y sigue en segundo plano. Tus cambios siguen guardados en este dispositivo.',
       offline: 'Sin conexión no se puede sincronizar. Tus cambios siguen guardados en este dispositivo.',
