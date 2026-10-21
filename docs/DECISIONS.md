@@ -3,6 +3,38 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-20 — Pets: clave de cliente para el alta idempotente (migración, fase 8)
+
+**Contexto.** La fase 8 (crear y editar mascotas sin conexión) envía al volver la red el alta guardada
+en el dispositivo. Si el servidor la crea pero la respuesta se pierde, el cliente no puede saber si
+existe: `authenticated` no puede fijar `pets.id` (no tiene GRANT de INSERT sobre `id`; comprobado en
+local: `42501`), no hay más restricción única que la PK, ni columna de clave de operación, ni RPC de
+alta. Repetir el `INSERT` podría duplicar la mascota y buscarla por contenido es heurístico (la petición
+puede seguir en curso en el servidor y dos mascotas iguales son legítimas).
+
+**Decisión.**
+
+- Migración `20261020135440_pets_client_request_id.sql`: `pets.client_request_id uuid` (nullable), índice
+  único parcial `(owner_id, client_request_id)` y `GRANT INSERT (client_request_id)` (sin UPDATE). El
+  cliente genera la clave por alta (UUID v4, `createOperationId`) y la guarda con la operación; reenviar
+  el alta es siempre seguro: `23505` en `pets_owner_client_request_id_key` → se lee la fila por la
+  clave. Ligada al propietario (no revela claves de otras cuentas). RLS, triggers e `id` sin cambios.
+- Descartado `GRANT INSERT (id)`: los objetos de Storage de una mascota borrada se quedan en
+  `{pet_id}/…`, y quien conociera ese id (p. ej. un antiguo co-tutor) podría crear otra mascota con el
+  mismo id y pasar `is_pet_member` sobre esas fotos. Descartada también una RPC `create_pet` con tabla de
+  claves (más backend que mantener para lo mismo) y la reconciliación por contenido sin backend
+  (heurística; puede duplicar por decisión del usuario).
+- Ediciones sin cambios de esquema: `update … where id = … and updated_at = <base>` es un compare-and-set
+  atómico (0 filas si otra escritura cambió la versión; también 0 sin permiso, por RLS: el cliente lo
+  distingue leyendo la fila y `can_edit_pet`). Probado con sesiones simultáneas reales
+  (`supabase/tests/concurrency/pets_concurrency.sh`).
+- Daily Logs: una mascota pendiente de crear no admite registros diarios hasta existir en el servidor
+  (no se cambia el motor de Daily Logs ni queda ningún registro con un id temporal).
+
+**Consecuencias.** PR `db/` propio; el usuario aplica la migración en `kitom-dev` y se regeneran los
+tipos antes de usar la columna en el frontend. Límite: si la mascota se creó y otro dispositivo la
+borró antes de que este recupere la respuesta, el reenvío la vuelve a crear (no es un duplicado).
+
 ## 2026-10-20 — Pets offline, fase 7: copia de solo lectura de la lista y las fichas
 
 **Contexto.** Hasta ahora Pets solo funcionaba con conexión: en un arranque en frío sin red (o con la

@@ -5,6 +5,12 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-20
 
+- BD: migración `20261020135440_pets_client_request_id.sql` (rama `db/pets-client-request-id`):
+  `pets.client_request_id` con índice único por propietario y solo GRANT de INSERT, para que crear una
+  mascota sin conexión y enviarla al volver la red no la duplique aunque se pierda la respuesta. Sin
+  cambios de RLS, triggers ni `pets.id`. Pruebas pgTAP y de concurrencia nuevas (incluida la edición con
+  precondición sobre `updated_at`, que no necesita cambios de esquema). Validada en local; pendiente de
+  aplicar en `kitom-dev`. Decisión en `DECISIONS.md`; contrato en `README.md` §5.
 - Android: identificador de paquete `com.kitom.app` en `app.json` (necesario para compilar la APK de
   prueba en local; no se debe cambiar). La APK de prueba va firmada con la clave de depuración y
   apunta al Supabase del `.env` (`kitom-dev`).

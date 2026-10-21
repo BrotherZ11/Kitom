@@ -53,6 +53,17 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 | `analytics_events` | — | propios | — | — |
 | `organizations` / `organization_members` | miembros de la org | — | — | — |
 
+> Cambio posterior (migración `20261020135440_pets_client_request_id.sql`, decisión en `DECISIONS.md`):
+> `pets.client_request_id uuid` (nullable) con índice único parcial `pets_owner_client_request_id_key`
+> sobre `(owner_id, client_request_id)` y `GRANT INSERT (client_request_id)` a `authenticated` (sin
+> UPDATE). Hace idempotente el alta desde el cliente: la app genera una clave por alta y, si se pierde
+> la respuesta, reenviar el mismo `INSERT` da `23505` y la fila se lee por la clave. `pets.id` sigue sin
+> GRANT de INSERT (con él, quien conociera el id de una mascota borrada podría recrearla y pasar
+> `is_pet_member` sobre sus fotos, que se quedan en Storage). RLS y triggers sin cambios. La edición
+> concurrente no necesita cambios: `update … where id = … and updated_at = <base>` es atómico (en READ
+> COMMITTED la segunda escritura vuelve a evaluar el `WHERE` y actualiza 0 filas), probado en
+> `supabase/tests/concurrency/pets_concurrency.sh`.
+
 ## 6. RPCs (funciones con `EXECUTE` para `authenticated`)
 
 | Función | Tabla(s) que toca |

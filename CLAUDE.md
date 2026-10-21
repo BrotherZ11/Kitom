@@ -71,6 +71,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   instalada); `ios.bundleIdentifier` sin definir. APK de prueba compilada en local
   (`npx expo prebuild --platform android` + `gradlew assembleRelease`; `/android` está ignorado por git
   y la release va firmada con la clave de depuración: no vale para Google Play). Sin EAS.
+- Migración `20261020135440_pets_client_request_id.sql` (alta idempotente de mascotas para Pets offline,
+  fase 8): validada en local, **pendiente de aplicar en `kitom-dev`** (`db push` del usuario) y de
+  regenerar tipos; el frontend todavía no la usa.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 
