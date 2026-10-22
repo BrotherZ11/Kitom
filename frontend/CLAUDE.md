@@ -106,6 +106,14 @@ error y «sin mascotas».
   fijar otro por feature sin revisar `docs/DECISIONS.md` (2026-10-13).
 - `src/lib/submit-guard.ts` — evita envíos dobles (toques antes de que el botón se deshabilite).
   `src/lib/single-flight.ts` — llamadas simultáneas comparten una ejecución (`signOut` de AuthProvider).
+- MVP (2026-10-21): `src/features/profile/onboarding.ts` + `hooks/use-profile.ts` (configuración
+  inicial, `useOnboardingGate` en el layout de `(tabs)`; rutas `(app)/setup/*`), `src/features/reminders/`
+  (agenda; lógica pura en `reminder-model.ts`/`reminder-format.ts`; escrituras siempre con precondición
+  `updated_at`), `src/features/notifications/` (avisos locales: `notification-plan.ts` puro,
+  `device-notifications.ts` carga `expo-notifications` con `require` protegido —nunca importarlo
+  directamente: rompe Expo Go 57.0.9—, `NotificationSync` en `(app)/_layout.tsx`),
+  `src/features/achievements/` y `(app)/settings/*`. Contratos: `docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4
+  y §7. Errores genéricos de servidor: `src/lib/server-errors.ts`.
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
   `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`
@@ -122,7 +130,7 @@ error y «sin mascotas».
   relativa con extensión (`./otro.ts`).
   Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
   Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
-  Pendiente: login por teléfono (OTP), cambio de contraseña desde ajustes; en Pets: limpieza de fotos huérfanas,
+  Pendiente: login por teléfono (OTP); en Pets: limpieza de fotos huérfanas,
   archivar (`is_active`), selector de fecha nativo, gestión de co-tutores y límite de mascotas del plan free.
 
 ## Tema y diseño (diseño v2, `docs/design/`)
@@ -138,8 +146,10 @@ error y «sin mascotas».
 - `src/theme/tokens.ts` — copia de `docs/design/tokens/tokens.ts` (generado: no editar a mano; se cambia
   `docs/design/fuente/brand.py`, se regenera y se vuelve a copiar). Colores, tipografía, espaciado,
   radios, elevación, movimiento y urgencias.
-- `src/theme/theme-provider.tsx` — `AppThemeProvider` (layout raíz): claro/oscuro según el sistema,
-  tema de Expo Router y fondo de la ventana nativa. `useAppTheme()` da `{ scheme, colors }`.
+- `src/theme/theme-provider.tsx` — `AppThemeProvider` (layout raíz): sistema/claro/oscuro (preferencia
+  del dispositivo en AsyncStorage `kitom-theme-preference`; no pinta hasta leerla), tema de Expo Router,
+  barra de estado y fondo de la ventana nativa. `useAppTheme()` da `{ scheme, colors, preference,
+  setPreference }`.
 - `src/theme/fonts.ts` — Hanken Grotesk 400/500/600 e IBM Plex Mono 500, importadas por peso; el
   layout raíz mantiene el splash hasta que cargan (si fallan, sigue con las del sistema). El peso va en
   `fontFamily` (tokens), nunca en `fontWeight`.
@@ -161,7 +171,9 @@ error y «sin mascotas».
   `onBack` reserva la fila igualmente; `subtitle`, `backIcon` y `TopBarText` para «2/4»), `TextLink`
   (enlace de texto 15/22 · 600), `TabBar`, `WeekRing` (anillo semanal; `caption`, `textSize`),
   `ProgressBar`, `Sparkline`, `TrendChart`, `MonthCalendar` (geometría pura en `chart-geometry.ts`),
-  `Logotype`. `Dialog` (`icon`; `danger` pone «Cancelar» arriba; `onDismiss` para el velo),
+  `Logotype`, `Checkbox`, `StepDots` (pasos de la configuración inicial) y `PickerField` (campo que
+  abre un selector). `MonthCalendar` admite `selectedDate`, `isDayPressable` y `dimFuture` (agenda y
+  selector de día). `Dialog` (`icon`; `danger` pone «Cancelar» arriba; `onDismiss` para el velo),
   `ListItem` (`trailing`, `plain`, `titleColor`, `chevron`), `Chip` (`marker`), `Tag` (`danger`). Salir
   con cambios: `hooks/use-leave-confirmation.ts`. `Button` admite
   `leading` (p. ej. el logo de Google); `EmptyState`, `icon` propio, `prominent` (pantalla completa,
@@ -201,6 +213,14 @@ error y «sin mascotas».
   local, `adb reverse tcp:54321 tcp:54321` (y `adb reverse tcp:8081 tcp:8081` para Metro). Un móvil
   físico no puede usar `start:local` (necesitaría la IP de la red local, que el script rechaza).
 - Cuentas de prueba: crearlas desde la propia app (el Supabase local no pide confirmar el email).
+- Avisos locales: no funcionan en Expo Go 57.0.9 (falta un módulo nativo; la app lo dice). Para
+  probarlos, build de depuración local: `npx expo prebuild --platform android --no-install` (revierte
+  después los `scripts` que cambia en `package.json`), `cd android` y `./gradlew assembleDebug` con
+  `JAVA_HOME` = JDK 17 (el `jbr` de Android Studio) y `ANDROID_HOME` = el SDK; instalar
+  `app/build/outputs/apk/debug/app-debug.apk`, Metro de `start:local` en el 8081 y `adb reverse tcp:8081
+  tcp:8081`. En el emulador la descarga del bundle por `10.0.2.2` puede fallar: fija `debug_http_host`
+  = `localhost:8081` en las preferencias de la app (`run-as com.kitom.app`, archivo
+  `shared_prefs/com.kitom.app_preferences.xml`) o desde el menú de desarrollo.
 - Si ya hay otro Metro en el puerto 8081 (p. ej. un `npx expo start` normal, que usa el `.env`
   remoto), usar otro puerto (`-- --port 8083`) y no abrir Expo Go contra el 8081.
 

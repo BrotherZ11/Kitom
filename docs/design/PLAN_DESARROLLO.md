@@ -10,9 +10,10 @@ Implementado en `feat/ui-brand-implementation` por fases de trabajo F0–F5 (no 
 las de este plan): base visual y componentes, bienvenida y acceso (1.1–1.5, 1.8, 1.9), mascotas (3.1–3.3,
 3.6–3.11), Hoy (4.1, 4.3, 4.6; sin señales ni agenda), registro (5.1–5.8, 5.10; el conflicto 5.9 como
 pantalla, no hoja), historial (6.1–6.3, 6.5), agenda «Próximamente», «Tu cuenta» mínima (10.1) y estados
-globales (12.1–12.3). Pendiente: 1.6–1.7 y 2.x (onboarding de perfil, aviso, privacidad), 3.4–3.5
-(recordatorio y permiso de avisos), 4.2/4.5 y 6.4 (señales), 6.6 (límite del plan), 7.x (IA), 8.x
-(agenda), 9.x (logros), 10.2–10.9, 11.x (Premium) y 12.4. Detalle: `docs/CHANGELOG.md` y `docs/DECISIONS.md`.
+globales (12.1–12.3). MVP (2026-10-21, `feat/mvp-completion`): 2.1, 2.3, 2.4, 3.4, 3.5, 8.1–8.7 (sin
+adjuntos ni avisos por tipo), 9.1–9.2, 10.1–10.4, 10.7 y 10.8. Pendiente: 1.6–1.7 (teléfono), 2.2
+(solo español), 4.2/4.5 y 6.4 (señales), 6.6 (límite del plan), 7.x (IA), 9.3, 10.5, 10.6, 10.9, 11.x
+(Premium) y 12.4. Detalle: `docs/CHANGELOG.md` y `docs/DECISIONS.md`.
 
 ## Reglas para todas las fases
 

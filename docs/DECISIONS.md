@@ -3,6 +3,49 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-21 — MVP: configuración inicial, agenda, avisos locales, logros y ajustes
+
+**Contexto.** Con mascotas y registro diario terminados, faltaban partes *Must* del PRD que el esquema
+ya soporta: aviso veterinario aceptado y configuración inicial (§8.1, §13), agenda y recordatorios
+(§8.8), avisos (§8.9) y gamificación básica (§8.6). Sin cambios de esquema (ninguna migración).
+
+**Decisiones.**
+- **Configuración inicial dentro de `(app)`** (`setup/*`), no como stack separado: el layout de
+  `(tabs)` redirige mientras `onboarding_completed_at` sea `NULL`. Una marca del dispositivo evita una
+  petición al arrancar; sin sesión utilizable nunca se bloquea (no se encierra a nadie sin conexión).
+  Las cuentas existentes pasan una vez por los pasos (deben aceptar el aviso); si ya tienen mascotas,
+  terminan en Privacidad. `DISCLAIMER_VERSION = '1.0'`: cambiar el texto del aviso obliga a subirla.
+- **Recordatorio que se repite = una fila.** «Hecho» avanza `due_at` a la siguiente vez futura (sigue
+  `pending`) y «Deshacer» la restaura; no se crea una fila por ocurrencia (no hay columna de serie ni
+  RPC, y duplicar filas complicaría editar y borrar). Consecuencia: no queda historial de cada toma de
+  medicación; si se necesita, requerirá una tabla de ocurrencias (migración aparte).
+- **Agenda solo con conexión** (sin copia en el dispositivo): escrituras con precondición
+  `eq('updated_at', base)`; un cambio concurrente recarga la versión nueva en vez de pisarla.
+- **Fechas de la agenda en hora local del dispositivo** (la de los avisos); el registro diario sigue
+  usando la zona del perfil.
+- **Avisos locales con `expo-notifications`** (aprobado por David, 2026-10-21): avisos de fecha concreta
+  (no repetitivos) recalculados en la app, para no avisar del registro de un día ya hecho; diferencia
+  con lo programado por identificador y huella. Sin push remoto ni `push_tokens` (necesitaría EAS/FCM).
+- **Carga protegida de `expo-notifications`**: la última Expo Go de SDK 57 (57.0.9) no trae el módulo
+  nativo `ExpoTopicSubscriptionModule` que importa el índice del paquete 57.0.23 y la app se cerraba al
+  arrancar. Se carga con `require` dentro de `try` y, si falla, los avisos quedan «no disponibles» con
+  un texto que lo dice. En builds nativas funciona.
+- **Tema claro/oscuro/sistema como preferencia del dispositivo** (AsyncStorage), no de la cuenta (no hay
+  columna, `PANTALLAS.md` §6.4). El proveedor no pinta hasta leerla (sin destello del otro tema).
+- **Cambiar contraseña con «Repite la contraseña»** (tablero 10.3): la pantalla es nueva y no cambia el
+  comportamiento de la recuperación. La longitud mínima sigue siendo la de Supabase Auth (sin regla
+  visible, decisión del 2026-10-16 pendiente).
+- **`MonthCalendar` en filas de 7 celdas `flex: 1`**: con anchos de `100/7 %` el redondeo pasaba el
+  domingo a la fila siguiente en algunos anchos de contenedor (visto en la agenda).
+- **Selectores de día y hora propios** (hojas con calendario y pasos de hora/minuto) en lugar de un
+  paquete nativo: funcionan igual en Android, iOS y web y siguen la marca.
+
+**Pendiente (requiere backend, migración o decisión).** Adjuntos de recordatorios (Storage), avisos por
+tipo y antelación (sin columnas), señales automáticas e historial de alertas (deben venir del servidor),
+orientación con foto (Edge Function `ai-analysis-process`), invitar co-tutores (no hay forma de buscar un
+usuario por email: `invite_pet_member` pide su id), límite de mascotas del plan gratuito (el servidor no
+lo aplica), exportar/eliminar la cuenta, Premium y la clínica propia.
+
 ## 2026-10-21 — Pets offline, fase 8.5: cierre de sesión con todas las fuentes y endurecimiento
 
 **Contexto.** En la validación manual de la fase 8 (emulador Android y web contra el Supabase local) se

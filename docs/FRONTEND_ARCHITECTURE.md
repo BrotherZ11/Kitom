@@ -39,17 +39,20 @@ Destinos lógicos. **Implementado (diseño v2, F2–F5)** con Expo Router; las U
 ```
 (auth)  welcome · onboarding · login · register · forgot-password · auth-callback   (+ update-password)
 (app)   Stack, sin cabecera nativa (cada pantalla lleva su TopBar)
-├── (tabs)  barra Hoy · Historial · [Registrar] · Agenda · Perfil
-│   ├── index        /            Hoy (mascota activa)
+├── (tabs)  barra Hoy · Historial · [Registrar] · Agenda · Perfil (redirige a setup/profile si falta la configuración inicial)
+│   ├── index        /            Hoy (mascota activa; «Próximo» de la agenda)
 │   ├── history      /history     Historial de la mascota activa
-│   ├── agenda       /agenda      «Próximamente» (sin recordatorios todavía)
+│   ├── agenda       /agenda      Agenda de la mascota activa (lista y mes)
 │   └── profile      /profile     Perfil de la mascota activa
-├── pets/index, pets/new, pets/[id] (perfil), pets/[id]/edit
+├── setup/profile · setup/disclaimer (`?review=1` solo lectura) · setup/privacy · setup/pet-created
+├── pets/index, pets/new (`?setup=1` en la configuración inicial), pets/[id] (perfil), pets/[id]/edit
+├── pets/[id]/achievements              logros y racha
 ├── pets/[id]/daily-log                 registro de hoy (modal a pantalla completa)
 ├── pets/[id]/daily-logs                historial de esa mascota
 ├── pets/[id]/daily-logs/[date]         detalle del día; `?edit=1` lo edita
 ├── pets/[id]/daily-logs/resolve/[date] · daily-logs/unsynced · sign-out
-└── settings                             Tu cuenta (mínima)
+├── reminders/new (`?petId=&date=&type=`) · reminders/[id] (detalle) · reminders/[id]/edit
+└── settings (Tu cuenta) · settings/notifications · security · password · privacy · help · legal
 ```
 
 «Registrar» es una acción, no una pestaña: abre `pets/[id]/daily-log` de la mascota activa (punto sol si
@@ -63,7 +66,20 @@ que se recuerda por usuario en el dispositivo; si ya no es visible, se usa la pr
 **Implementado (sesión):** `loading` → `signed_in` | `offline` | `signed_out` (`features/auth/auth-state.ts`).
 `offline` = sesión guardada de un usuario identificado que Supabase no ha podido renovar ni comprobar
 (sin conexión): se ve la app con sus datos locales y no se usa el servidor. Detalle: §5 «Arranque en
-frío sin conexión». El onboarding sigue pendiente.
+frío sin conexión».
+
+**Configuración inicial (implementada, 2026-10-21).** No es un stack aparte: las rutas `(app)/setup/*`
+viven en `(app)` y el layout de `(tabs)` redirige a `setup/profile` mientras
+`profiles.onboarding_completed_at` sea `NULL` (`useOnboardingGate`; lógica pura en
+`features/profile/onboarding.ts`, `resolveOnboardingGate`). Reglas: una marca en el dispositivo
+(`LocalStore`, colección `onboarding`, solo se escribe cuando el servidor lo confirma) evita esperar al
+servidor en cada arranque; sin sesión utilizable (`offline`) o si la comprobación falla por la red, nunca
+se bloquea; con servidor manda la
+columna. Pasos: Tu perfil (`full_name`) → Aviso veterinario (`disclaimer_accepted_at`,
+`disclaimer_version` = `DISCLAIMER_VERSION`, casilla obligatoria) → Privacidad (`marketing_opt_in`,
+desactivado por defecto) → si no tiene mascotas, `pets/new?setup=1` → «Mascota creada» (hora del
+recordatorio diario en `notification_preferences`; permiso de avisos explicado antes del diálogo del
+sistema) → `onboarding_completed_at` → primer registro. Quien ya tiene mascotas termina en Privacidad.
 
 ```
 loading                 -> splash, comprobando sesión
@@ -227,8 +243,10 @@ validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use
   y ánimo; último valor tal cual) desde 3. Avisos: sin conexión, sesión sin comprobar y registros sin
   sincronizar. Aviso «El registro de hoy ya está subido» cuando, con la pantalla abierta, pasa de
   pendiente a sincronizado. Sin mascotas: tablero 3.10.
-- **No se muestra** (sin datos o sin servicio): señales/alertas, «Consultar», voz de la mascota, idea del
-  día y «Próximo» de la agenda.
+- **«Próximo» de la agenda** (`NextReminderCard`): el siguiente recordatorio pendiente (o el vencido,
+  marcado «Pendiente») o, sin nada apuntado y con permiso de edición, «Apuntar». Solo con servidor.
+- **No se muestra** (sin datos o sin servicio): señales/alertas, «Consultar», voz de la mascota e idea
+  del día.
 - **WRITE:** — · **RPC:** ninguno
 
 ### DailyLogScreen
@@ -378,10 +396,27 @@ en `history-view.ts`.
   borrado en esta fase.
 
 ### RemindersScreen
-- **READ:** `reminders`
-- **WRITE:** `reminders` (insert/update sobre columnas permitidas — nunca `pet_id`/`created_by`/`created_at`)
-- **RPC:** ninguno
-- **Storage:** `reminder-attachments` (insert/delete)
+**Implementado (2026-10-21)**: pestaña `/agenda` (mascota activa), `reminders/new`, `reminders/[id]` y
+`reminders/[id]/edit`. Código: `features/reminders/` (lógica pura y probada en `reminder-model.ts` y
+`reminder-format.ts`; acceso a datos en `api/reminders-api.ts`; hooks en `hooks/use-reminders.ts`).
+- **READ:** `reminders` de la mascota: pendientes y hechos en los últimos 30 días
+  (`or(status.eq.pending, completed_at.gte.…)`, `order(due_at)`); pendientes de todas las mascotas para
+  los avisos. RLS `is_pet_member` decide qué se ve.
+- **WRITE:** insert con `pet_id`, `created_by = auth.uid()`, `status = 'pending'` y las columnas del
+  formulario (`type`, `title`, `description`, `due_at`, `recurrence_rule`); update solo de `type`,
+  `title`, `description`, `due_at`, `recurrence_rule`, `snooze_until` y `status`, siempre con
+  precondición `eq('updated_at', base)` (si no toca filas: `ReminderChangedError` y se recarga la
+  versión nueva); delete con `select('id')`. Nunca `pet_id`/`created_by`/`created_at`/`completed_at`
+  (lo pone el trigger `sync_reminder_completion`).
+- **Repetición:** `recurrence_rule` = `FREQ=DAILY|WEEKLY|MONTHLY|YEARLY` (sin más partes). Un
+  recordatorio que se repite es **una sola fila**: «Hecho» avanza `due_at` a la siguiente vez futura y
+  quita `snooze_until` (sigue `pending`); «Deshacer» restaura ambos. Sin repetición, `status =
+  'completed'`. El calendario del mes proyecta las repeticiones de los pendientes.
+- **Posponer:** `snooze_until` (una hora; mañana o en una semana a la hora prevista). Editar lo anula.
+- **Fechas:** día y hora locales del dispositivo (los avisos usan la misma), guardadas como instante.
+- **Sin conexión:** se ve lo ya cargado; escribir necesita conexión (sin copia en el dispositivo). Una
+  mascota aún sin crear en el servidor (id local) no tiene agenda.
+- **Storage:** `reminder-attachments` — **pendiente** (adjuntos no implementados).
 
 ### AIAnalysisScreen
 - **READ:** `pets`, `ai_analysis_requests` (columnas públicas solamente — `select('*')` fallará a propósito), `symptoms_catalog` + `symptom_species` (filtrado por especie), `ai_analysis_symptoms`
@@ -391,7 +426,12 @@ en `history-view.ts`.
 - **Storage:** `pet-photos` (insert, antes de llamar al RPC)
 
 ### AchievementsScreen
-- **READ:** `pet_achievements`, `achievements_catalog`, `catalog_translations` (`entity_type='achievement'`)
+**Implementado (2026-10-21)**: `pets/[id]/achievements` (entrada desde el perfil y la tarjeta de racha).
+- **READ:** `pet_achievements` (`achievement_id`, `earned_at`), `achievements_catalog`
+  (`id, code, sort_order, criteria`) y `catalog_translations` (`entity_type='achievement'`, `title` y
+  `description`), `pet_streaks` y la semana del historial combinado.
+- **Progreso** (`achievements-model.ts`, puro): rachas con `actual/días`; los recuentos de métricas que
+  aún no existen en la app (p. ej. `ai_analysis_requests`) se marcan «Próximamente».
 - **WRITE:** ninguna — se otorgan solos en el backend
 
 ### CoOwnersScreen
@@ -412,10 +452,16 @@ en `history-view.ts`.
 - **Storage:** `shared-reports` (solo lectura vía signed URL)
 
 ### SettingsScreen
-**Versión mínima implementada** (`(app)/settings.tsx`, tablero 10.1): nombre y email, «Mis mascotas»,
-«Registros sin sincronizar», zona horaria del perfil (solo lectura) y cerrar sesión (mismo flujo con
-pendientes, §5 «Sesión»). El resto del tablero (idioma, tema, notificaciones, seguridad, privacidad,
-fotos, exportar, suscripción, eliminar cuenta) no se muestra hasta tener servicio.
+**Implementado (2026-10-21)** (`(app)/settings/index.tsx` y subpantallas, tableros 10.1–10.4, 10.7,
+10.8 y 8.7): nombre (editable), email y plan (`subscriptions.plan`, solo lectura); idioma (solo
+español), zona horaria (ver y «usar la de este móvil»: `profiles.timezone`), tema sistema/claro/oscuro
+(preferencia **del dispositivo**, AsyncStorage `kitom-theme-preference`; no hay columna), notificaciones
+(`notification_preferences.daily_reminder_enabled/_time` y estado del permiso), seguridad (email
+verificado, métodos de `user.identities`, cambiar contraseña con `updateUser`), privacidad (aviso
+aceptado con fecha y versión, `marketing_opt_in`), ayuda y legal, «Mis mascotas», «Registros sin
+sincronizar» y cerrar sesión (mismo flujo con pendientes, §5 «Sesión»). Sin servicio todavía, no se
+muestran: exportar, suscripción, eliminar la cuenta, fotos de consultas, teléfono («Próximamente»),
+clínica propia y voz de la mascota.
 - **READ:** `profiles`, `notification_preferences`, `push_tokens`
 - **WRITE:** `profiles` (columnas permitidas), `notification_preferences`, `push_tokens`
 - **RPC:** `register_push_token(token, platform, device_id, app_version, os_version)` — llamar en login, en app launch y en cada refresh de token (ver sección 10)
@@ -1247,7 +1293,26 @@ reinicio. Sin probar: iOS, dispositivo Android físico y development build propi
 | `has_pets` (respuesta 409 de `delete-account`) | dirigir a `OwnershipTransferScreen`, mensaje "transfiere tus mascotas antes de eliminar la cuenta" |
 | `invalid_timezone` | si ocurre, es un bug del cliente: revisar que se está enviando un nombre IANA (ver sección 9), nunca una abreviatura |
 
-## 7. Push tokens — ciclo de vida (nuevo en v2.2.1)
+## 7. Avisos locales (implementado, 2026-10-21) y push tokens
+
+**Avisos locales** (`features/notifications/`, `expo-notifications`): se programan en el dispositivo, sin
+push remoto ni `push_tokens`. `NotificationSync` (montado en `(app)/_layout.tsx`) calcula los avisos con
+`notification-plan.ts` (puro y probado) y aplica solo la diferencia con lo programado (identificadores
+`daily-log:YYYY-MM-DD` y `reminder:<id>`; huella en `data.fp`):
+- Recordatorio diario: avisos de fecha concreta para los próximos 14 días a la hora de
+  `daily_reminder_time`; hoy no, si la mascota activa ya tiene el registro o la hora ya pasó. Se
+  recalcula al abrir la app y al cambiar el registro de hoy o las preferencias.
+- Agenda: uno a la hora efectiva (`snooze_until` o `due_at`) de cada pendiente futuro. Máximo 60.
+- Solo con permiso, sesión utilizable y datos del servidor (sin ellos no se toca lo programado). Al
+  cerrar sesión se quitan todos. Tocar un aviso abre su ruta (`data.url`, solo rutas internas).
+- El módulo se carga bajo demanda (`device-notifications.ts`): si falta su parte nativa (Expo Go 57.0.9
+  no trae `ExpoTopicSubscriptionModule`, que importa `expo-notifications` 57.0.23) o en web, los avisos
+  quedan «no disponibles» y la app sigue funcionando. Funcionan en un development o production build.
+- Android programa estos avisos como alarmas **inexactas** (ventana de hasta 1 h, comportamiento por
+  defecto de expo-notifications): pueden llegar algo después de la hora. Avisos exactos exigirían el
+  permiso `SCHEDULE_EXACT_ALARM` (decisión pendiente).
+
+**Push tokens:** no implementado (los avisos actuales son locales). Cuando haya push remoto:
 
 `push_tokens.token` es único a nivel global (es un identificador del dispositivo/instalación emitido por el sistema operativo, no algo exclusivo de una cuenta). El mismo teléfono puede tener sesiones de distintos usuarios a lo largo del tiempo, así que el frontend debe seguir esta disciplina exacta:
 

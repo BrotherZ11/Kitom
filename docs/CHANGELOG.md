@@ -5,6 +5,22 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-21
 
+- MVP (rama `feat/mvp-completion`, sin cambios de esquema):
+  - Configuración inicial tras crear la cuenta: tu nombre, aviso veterinario (obligatorio, con fecha y
+    versión), privacidad (comunicaciones desactivadas por defecto), primera mascota y hora del
+    recordatorio diario. Las cuentas existentes pasan una vez por los pasos.
+  - Agenda: recordatorios de vacunas, medicación, citas, baño, desparasitación y otros cuidados con día,
+    hora, repetición y notas; lista (pendientes, hoy, próximos y hechos) y mes; hecho con «Deshacer»,
+    posponer, editar y eliminar con confirmación. «Próximo» en Hoy y acceso desde el perfil.
+  - Avisos locales (`expo-notifications`): recordatorio diario (no avisa si ya registraste) y aviso de
+    cada recordatorio; tocar un aviso abre su pantalla. En Expo Go 57.0.9 no están disponibles (la app lo
+    dice y sigue funcionando); en builds nativas sí.
+  - Logros y racha: insignias del servidor con progreso, semana y detalle de cada insignia.
+  - Tu cuenta: editar el nombre, plan, zona horaria («usar la de este móvil»), tema claro/oscuro/sistema,
+    notificaciones, seguridad y cambio de contraseña, privacidad, ayuda y legal.
+  - Corregido: el calendario del mes podía pasar el domingo a la fila siguiente.
+  - Decisión en `DECISIONS.md`; contratos en `FRONTEND_ARCHITECTURE.md` §1, §2, §4 y §7.
+
 - Pets offline, fase 8.5 (validación manual en Android y web y correcciones):
   - Cerrar sesión cuenta también las altas y ediciones de mascotas pendientes. Antes, con solo mascotas
     pendientes se cerraba sin preguntar.
