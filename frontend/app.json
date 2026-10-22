@@ -33,6 +33,13 @@
       ],
       "expo-secure-store",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/brand/app-icon/android-notification.png",
+          "color": "#0E3B39"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Kitom necesita acceder a tus fotos para añadir la foto de tu mascota.",
