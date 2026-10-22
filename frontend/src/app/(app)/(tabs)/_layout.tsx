@@ -1,9 +1,12 @@
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import type { ReactElement } from 'react';
 import { Tabs, type BottomTabBarProps } from 'expo-router/js-tabs';
 
 import { Calendar, ChartLine, House, User, type LucideIcon } from '@/components/ui/icons';
+import { ErrorState, LoadingState } from '@/components/ui/query-state';
+import { Screen } from '@/components/ui/screen';
 import { TabBar, type TabBarAction, type TabBarItem } from '@/components/ui/tab-bar';
+import { useOnboardingGate } from '@/features/profile/hooks/use-profile';
 import { useWeekOverview } from '@/features/daily-logs/hooks/use-week-overview';
 import { useActivePet } from '@/features/pets/active-pet-context';
 import type { Pet } from '@/features/pets/types';
@@ -23,6 +26,23 @@ const TABS: Record<string, { label: TranslationKey; icon: LucideIcon }> = {
  * de `(app)`, sin barra.
  */
 export default function TabsLayout() {
+  // Configuración inicial pendiente (`profiles.onboarding_completed_at`): primero, sus pasos.
+  const onboarding = useOnboardingGate();
+  if (onboarding.gate === 'pending') return <Redirect href="/setup/profile" />;
+  if (onboarding.gate === 'loading') {
+    return (
+      <Screen>
+        <LoadingState />
+      </Screen>
+    );
+  }
+  if (onboarding.gate === 'error') {
+    return (
+      <Screen>
+        <ErrorState message={t('setup.errors.load')} description={t('setup.errors.loadText')} onRetry={onboarding.retry} />
+      </Screen>
+    );
+  }
   return (
     <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <AppTabBar {...props} />}>
       <Tabs.Screen name="index" />
