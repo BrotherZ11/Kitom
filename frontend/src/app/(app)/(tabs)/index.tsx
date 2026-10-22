@@ -25,6 +25,7 @@ import { PetSelectorSheet } from '@/features/pets/components/pet-selector-sheet'
 import { useCanEditPet } from '@/features/pets/hooks/use-pets';
 import type { Pet } from '@/features/pets/types';
 import { useProfileName } from '@/features/profile/hooks/use-profile-name';
+import { NextReminderCard } from '@/features/reminders/components/next-reminder-card';
 import { getLocale, t, tf } from '@/i18n';
 import { radius, size, spacing } from '@/theme/tokens';
 
@@ -70,6 +71,7 @@ function PetToday({ pet }: { pet: Pet }) {
           canEdit={canEdit.data ?? null}
           onOpenLog={openLog}
         />
+        <NextReminderCard petId={pet.id} petName={pet.name} canEdit={canEdit.data === true} />
         {overview.loggedCount < TREND_THRESHOLD ? (
           <EvolutionCard petName={pet.name} loggedCount={overview.loggedCount} />
         ) : (

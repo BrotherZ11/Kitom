@@ -9,12 +9,14 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { IconButton } from '@/components/ui/icon-button';
-import { ArrowLeftRight, Camera, ChartLine, ChevronLeft, FileText, Pencil, Plus, Settings, Users } from '@/components/ui/icons';
+import { ArrowLeftRight, Calendar, Camera, ChartLine, ChevronLeft, FileText, Medal, Pencil, Plus, Settings, Users } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
 import { WeekRing } from '@/components/ui/week-ring';
+import { earnedCount, buildBadges } from '@/features/achievements/achievements-model';
+import { useAchievementCatalog, usePetAchievements } from '@/features/achievements/hooks/use-achievements';
 import { lastDays } from '@/components/ui/chart-geometry';
 import { useAuth } from '@/features/auth/auth-context';
 import { useTodayLogDate } from '@/features/daily-logs/hooks/use-today-log-date';
@@ -26,7 +28,9 @@ import { PetSelectorSheet } from '@/features/pets/components/pet-selector-sheet'
 import { useBreed } from '@/features/pets/hooks/use-breeds';
 import { usePetPhotoUrl } from '@/features/pets/hooks/use-pet-photo';
 import { useCanEditPet, usePetStreak } from '@/features/pets/hooks/use-pets';
+import { isLocalPetId } from '@/features/pets/offline/pet-operation';
 import { useSpecies } from '@/features/pets/hooks/use-species';
+import { useActivePet } from '@/features/pets/active-pet-context';
 import { PetSavedBanner } from '@/features/pets/components/pet-saved-banner';
 import { resolvePetPhotoState, type PetFreshness } from '@/features/pets/offline/pet-view';
 import { isPetOfflineError, petErrorMessage } from '@/features/pets/pet-errors';
@@ -126,6 +130,20 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
   const yesterday = today ? lastDays(today, 2)[0] : null;
   const current = streak.data && yesterday ? currentStreak(streak.data, yesterday) : 0;
   const best = streak.data?.longest_streak ?? 0;
+  const catalog = useAchievementCatalog();
+  const earned = usePetAchievements(pet.id);
+  const { setActivePet } = useActivePet();
+  const serverPet = !isLocalPetId(pet.id);
+  const badges =
+    catalog.data && earned.data
+      ? buildBadges(catalog.data, earned.data, { currentStreak: current, loggedAny: streak.data?.last_log_date != null })
+      : null;
+  const openAchievements = () => router.push({ pathname: '/pets/[id]/achievements', params: { id: pet.id } });
+  const openAgenda = () => {
+    // La agenda es la de la mascota activa: esta pasa a serlo.
+    setActivePet(pet.id);
+    router.navigate('/agenda');
+  };
 
   return (
     <View style={[styles.flex, { backgroundColor: theme.bg }]}>
@@ -237,6 +255,11 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
           ) : null}
 
           {streak.data !== undefined ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityHint={t('achievements.entry')}
+              onPress={openAchievements}
+              style={({ pressed }) => pressed && styles.pressed}>
             <Card style={styles.streak}>
               <WeekRing
                 days={week.state === 'ready' ? week.overview.days : ['off', 'off', 'off', 'off', 'off', 'off']}
@@ -265,6 +288,7 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
                 </Text>
               </View>
             </Card>
+            </Pressable>
           ) : null}
 
           {/* Desde una ficha concreta (no la mascota activa), el registro de hoy de esa mascota. */}
@@ -280,6 +304,28 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
               onPress={onOpenHistory}
               divider
             />
+            {serverPet ? (
+              <ListItem
+                icon={Calendar}
+                title={t('agenda.title')}
+                subtitle={t('agenda.entryText')}
+                onPress={openAgenda}
+                divider
+              />
+            ) : null}
+            {serverPet ? (
+              <ListItem
+                icon={Medal}
+                title={t('achievements.entry')}
+                subtitle={
+                  badges
+                    ? tf('achievements.entryText', { count: earnedCount(badges), total: badges.length })
+                    : t('achievements.entryTextNone')
+                }
+                onPress={openAchievements}
+                divider
+              />
+            ) : null}
             <ListItem
               icon={Camera}
               title={t('pets.profile.consult')}
@@ -395,6 +441,9 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: spacing['2'],
+  },
+  pressed: {
+    opacity: 0.85,
   },
   soon: {
     paddingVertical: 2,
