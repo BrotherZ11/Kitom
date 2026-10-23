@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
 import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
+import { ExactAlarmsNotice } from '@/features/notifications/components/exact-alarms-notice';
 import { notificationsUnavailableReason, openSystemSettings } from '@/features/notifications/device-notifications';
 import { useNotificationPermission } from '@/features/notifications/hooks/use-notification-permission';
 import { formatTimeOfDay, parseTimeOfDay, toTimeColumn } from '@/features/notifications/notification-plan';
@@ -83,6 +84,7 @@ export default function NotificationSettingsScreen() {
     <Screen align="top">
       <TopBar onBack={back} title={t('notifications.title')} />
       {permissionNotice}
+      <ExactAlarmsNotice />
       {!writable ? <Alert tone="warning" message={t('settings.offline')} /> : null}
       {error ? <Alert tone="error" message={error} /> : null}
 

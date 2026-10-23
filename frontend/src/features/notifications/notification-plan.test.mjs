@@ -94,4 +94,12 @@ describe('diffSchedule', () => {
     assert.deepEqual(cancel.sort(), ['daily-log:2026-10-17', 'reminder:gone']);
     assert.deepEqual(schedule, [b]);
   });
+
+  it('si cambia el modo (p. ej. pasan a ser exactos), se reprograma todo', () => {
+    const scheduled = [{ id: 'reminder:a', fingerprint: fingerprint(a, 'inexact') }];
+    const { cancel, schedule } = diffSchedule(scheduled, [a], 'exact');
+    assert.deepEqual(cancel, ['reminder:a']);
+    assert.deepEqual(schedule, [a]);
+    assert.deepEqual(diffSchedule(scheduled, [a], 'inexact'), { cancel: [], schedule: [] });
+  });
 });

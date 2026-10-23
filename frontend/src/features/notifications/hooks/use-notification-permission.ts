@@ -3,16 +3,19 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
 import {
+  canScheduleExactAlarms,
   getNotificationPermission,
   requestNotificationPermission,
   type PermissionState,
 } from '@/features/notifications/device-notifications';
 
 const permissionKey = ['notifications', 'permission'] as const;
+const exactAlarmsKey = ['notifications', 'exact-alarms'] as const;
 
 /**
- * Permiso de avisos del sistema. Se vuelve a leer al volver a la app (el usuario puede cambiarlo en
- * los ajustes del sistema). En web: `unavailable`.
+ * Permiso de avisos del sistema y, en Android, el de alarmas exactas (`null` si no aplica). Se vuelven a
+ * leer al volver a la app (el usuario puede cambiarlos en los ajustes del sistema). En web:
+ * `unavailable`.
  */
 export function useNotificationPermission() {
   const queryClient = useQueryClient();
@@ -22,9 +25,17 @@ export function useNotificationPermission() {
     staleTime: Infinity,
   });
 
+  const exact = useQuery({
+    queryKey: exactAlarmsKey,
+    queryFn: () => canScheduleExactAlarms(),
+    staleTime: Infinity,
+  });
+
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void queryClient.invalidateQueries({ queryKey: permissionKey });
+      if (state !== 'active') return;
+      void queryClient.invalidateQueries({ queryKey: permissionKey });
+      void queryClient.invalidateQueries({ queryKey: exactAlarmsKey });
     });
     return () => subscription.remove();
   }, [queryClient]);
@@ -34,5 +45,5 @@ export function useNotificationPermission() {
     onSuccess: (state: PermissionState) => queryClient.setQueryData(permissionKey, state),
   });
 
-  return { permission: query.data, request };
+  return { permission: query.data, exactAlarms: exact.data ?? null, request };
 }

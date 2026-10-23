@@ -454,6 +454,10 @@ export const en: Translations = {
     deniedTitle: 'Notifications are off on your phone',
     deniedText: "Turn them on in the system settings to get Kitom's.",
     openSettings: 'Open settings',
+    exactTitle: 'Notifications may arrive late',
+    exactText:
+      'So medication and appointments notify you on time, allow Kitom "Alarms & reminders" in the phone settings.',
+    exactAction: 'Allow',
     undeterminedTitle: 'Turn on notifications',
     undeterminedText: 'To get the daily reminder and the agenda ones.',
     enable: 'Turn on notifications',

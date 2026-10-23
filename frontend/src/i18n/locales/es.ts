@@ -464,6 +464,10 @@ export const es = {
     deniedTitle: 'Los avisos están desactivados en tu móvil',
     deniedText: 'Actívalos en los ajustes del sistema para recibir los de Kitom.',
     openSettings: 'Abrir ajustes',
+    exactTitle: 'Los avisos pueden llegar con retraso',
+    exactText:
+      'Para que la medicación y las citas te avisen a su hora, permite «Alarmas y recordatorios» a Kitom en los ajustes del móvil.',
+    exactAction: 'Permitir',
     undeterminedTitle: 'Activa los avisos',
     undeterminedText: 'Para recibir el recordatorio diario y los de la agenda.',
     enable: 'Activar avisos',

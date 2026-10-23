@@ -1,6 +1,8 @@
 import type * as NotificationsModule from 'expo-notifications';
 import { Linking, Platform } from 'react-native';
 
+import ExactAlarms from '../../../modules/kitom-exact-alarms';
+
 import {
   DAILY_LOG_PREFIX,
   diffSchedule,
@@ -111,6 +113,36 @@ export function openSystemSettings(): void {
   void Linking.openSettings();
 }
 
+/**
+ * ¿Puede la app programar alarmas exactas? (Android 12+, «Alarmas y recordatorios»; módulo local
+ * `modules/kitom-exact-alarms`). `null` = no aplica o no se puede saber: iOS, web, Expo Go o sin avisos.
+ * Sin este permiso, Android puede retrasar los avisos (hasta 1 h).
+ */
+export function canScheduleExactAlarms(): boolean | null {
+  if (Platform.OS !== 'android' || !notificationsSupported || !ExactAlarms) return null;
+  try {
+    return ExactAlarms.canScheduleExactAlarms();
+  } catch {
+    return null;
+  }
+}
+
+/** Abre «Alarmas y recordatorios» de Kitom en los ajustes del sistema. `false` si no se puede. */
+export function openExactAlarmSettings(): boolean {
+  if (!ExactAlarms) return false;
+  try {
+    return ExactAlarms.openExactAlarmSettings();
+  } catch {
+    return false;
+  }
+}
+
+/** Modo de programación (parte de la huella): al pasar a exactos, se reprograma todo. */
+function schedulingMode(): string {
+  const exact = canScheduleExactAlarms();
+  return exact === null ? '' : exact ? 'exact' : 'inexact';
+}
+
 function isOurs(identifier: string): boolean {
   return identifier.startsWith(DAILY_LOG_PREFIX) || identifier.startsWith(REMINDER_PREFIX);
 }
@@ -124,19 +156,21 @@ export async function syncScheduledNotifications(desired: readonly PlannedNotifi
   if (!N) return 0;
   await configureNotifications();
   const scheduled = await N.getAllScheduledNotificationsAsync();
+  const mode = schedulingMode();
   const { cancel, schedule } = diffSchedule(
     scheduled.map((request) => {
       const fp = request.content.data?.fp;
       return { id: request.identifier, fingerprint: typeof fp === 'string' ? fp : null };
     }),
-    desired
+    desired,
+    mode
   );
   await Promise.all(cancel.map((id) => N.cancelScheduledNotificationAsync(id).catch(() => undefined)));
   for (const item of schedule) {
     try {
       await N.scheduleNotificationAsync({
         identifier: item.id,
-        content: { title: item.title, body: item.body, data: { url: item.url, fp: fingerprint(item) } },
+        content: { title: item.title, body: item.body, data: { url: item.url, fp: fingerprint(item, mode) } },
         trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: item.date, channelId: CHANNEL_ID },
       });
     } catch (error) {

@@ -59,7 +59,7 @@ function PetNotificationPlanner({ pet }: { pet: Pet }) {
 function NotificationPlanner({ pet, loggedToday }: { pet: Pet | null; loggedToday: boolean }) {
   const { canUseServer } = useAuth();
   const { pets } = useActivePet();
-  const { permission } = useNotificationPermission();
+  const { permission, exactAlarms } = useNotificationPermission();
   const granted = permission?.status === 'granted';
   const preferences = useNotificationPreferences();
   const reminders = usePendingReminders(granted);
@@ -105,7 +105,8 @@ function NotificationPlanner({ pet, loggedToday }: { pet: Pet | null; loggedToda
     void syncScheduledNotifications(plan).catch((error: unknown) => {
       if (__DEV__) console.warn('[notifications] sync', error);
     });
-  }, [granted, canUseServer, preferences.data, reminders.data, petNames, petId, petName, loggedToday]);
+    // `exactAlarms`: al conceder las alarmas exactas se reprograma todo (forma parte de la huella).
+  }, [granted, exactAlarms, canUseServer, preferences.data, reminders.data, petNames, petId, petName, loggedToday]);
 
   return null;
 }

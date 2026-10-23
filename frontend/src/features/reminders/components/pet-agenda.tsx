@@ -16,6 +16,7 @@ import { Text } from '@/components/ui/text';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/auth-context';
 import { formatLogDateLabel } from '@/features/daily-logs/log-date';
+import { ExactAlarmsNotice } from '@/features/notifications/components/exact-alarms-notice';
 import { notificationsSupported, openSystemSettings } from '@/features/notifications/device-notifications';
 import { useNotificationPermission } from '@/features/notifications/hooks/use-notification-permission';
 import { TAB_SCREEN_EDGES } from '@/features/pets/components/active-pet-gate';
@@ -138,6 +139,7 @@ export function PetAgenda({ pet, petCount }: { pet: Pet; petCount: number }) {
         <Banner icon={WifiOff} message={t('agenda.errors.network')} />
       ) : null}
       <NotificationsNotice />
+      <ExactAlarmsNotice />
       {permission.data === false ? <Alert tone="info" message={tf('agenda.detail.readOnly', { name: pet.name })} /> : null}
       {body()}
       <PetSelectorSheet visible={selectorOpen} onClose={() => setSelectorOpen(false)} />

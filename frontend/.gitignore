@@ -42,5 +42,9 @@ example
 /ios
 /android
 
+# build output of local native modules (modules/<name>/android)
+/modules/*/android/build/
+/modules/*/android/.cxx/
+
 # visual:compare (capturas y perfil de Chrome de desarrollo)
 /.visual

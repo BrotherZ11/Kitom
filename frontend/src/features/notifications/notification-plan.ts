@@ -110,9 +110,16 @@ export function planNotifications({ now, daily, reminders, reminderBody }: PlanI
   return planned.slice(0, MAX_SCHEDULED);
 }
 
-/** Huella de un aviso: si cambia (fecha o texto), hay que volver a programarlo. */
-export function fingerprint(notification: Pick<PlannedNotification, 'date' | 'title' | 'body' | 'url'>): string {
-  return [notification.date.toISOString(), notification.title, notification.body, notification.url].join('|');
+/**
+ * Huella de un aviso: si cambia (fecha, texto o modo de programación), hay que volver a programarlo.
+ * `mode` distingue, p. ej., avisos exactos de inexactos en Android: al conceder el permiso de alarmas
+ * exactas, los ya programados se vuelven a programar para que pasen a ser exactos.
+ */
+export function fingerprint(
+  notification: Pick<PlannedNotification, 'date' | 'title' | 'body' | 'url'>,
+  mode = ''
+): string {
+  return [notification.date.toISOString(), notification.title, notification.body, notification.url, mode].join('|');
 }
 
 export type ScheduledSummary = { id: string; fingerprint: string | null };
@@ -123,7 +130,8 @@ export type ScheduledSummary = { id: string; fingerprint: string | null };
  */
 export function diffSchedule(
   scheduled: readonly ScheduledSummary[],
-  desired: readonly PlannedNotification[]
+  desired: readonly PlannedNotification[],
+  mode = ''
 ): { cancel: string[]; schedule: PlannedNotification[] } {
   const ours = scheduled.filter((item) => item.id.startsWith(DAILY_LOG_PREFIX) || item.id.startsWith(REMINDER_PREFIX));
   const wanted = new Map(desired.map((item) => [item.id, item]));
@@ -131,9 +139,9 @@ export function diffSchedule(
   const cancel = ours
     .filter((item) => {
       const target = wanted.get(item.id);
-      return !target || fingerprint(target) !== item.fingerprint;
+      return !target || fingerprint(target, mode) !== item.fingerprint;
     })
     .map((item) => item.id);
-  const schedule = desired.filter((item) => current.get(item.id) !== fingerprint(item));
+  const schedule = desired.filter((item) => current.get(item.id) !== fingerprint(item, mode));
   return { cancel, schedule };
 }
