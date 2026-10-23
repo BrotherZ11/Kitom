@@ -1308,9 +1308,13 @@ push remoto ni `push_tokens`. `NotificationSync` (montado en `(app)/_layout.tsx`
 - El módulo se carga bajo demanda (`device-notifications.ts`): si falta su parte nativa (Expo Go 57.0.9
   no trae `ExpoTopicSubscriptionModule`, que importa `expo-notifications` 57.0.23) o en web, los avisos
   quedan «no disponibles» y la app sigue funcionando. Funcionan en un development o production build.
-- Android programa estos avisos como alarmas **inexactas** (ventana de hasta 1 h, comportamiento por
-  defecto de expo-notifications): pueden llegar algo después de la hora. Avisos exactos exigirían el
-  permiso `SCHEDULE_EXACT_ALARM` (decisión pendiente).
+- **Alarmas exactas (Android 12+).** expo-notifications usa `setExactAndAllowWhileIdle` solo si
+  `canScheduleExactAlarms()`; si no, Android puede retrasar el aviso hasta 1 h. La app declara
+  `SCHEDULE_EXACT_ALARM` (`app.json`) y el módulo nativo local `modules/kitom-exact-alarms` consulta el
+  permiso y abre «Alarmas y recordatorios» (`ExactAlarmsNotice` en la Agenda y en Notificaciones, solo
+  si los avisos están activados y el permiso no). El modo (`exact`/`inexact`) forma parte de la huella:
+  al conceder el permiso y volver a la app, todo se reprograma como exacto. En iOS, web y Expo Go el
+  módulo no existe (`null`) y no se muestra nada.
 
 **Push tokens:** no implementado (los avisos actuales son locales). Cuando haya push remoto:
 

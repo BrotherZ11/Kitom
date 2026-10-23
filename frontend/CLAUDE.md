@@ -111,7 +111,9 @@ error y «sin mascotas».
   (agenda; lógica pura en `reminder-model.ts`/`reminder-format.ts`; escrituras siempre con precondición
   `updated_at`), `src/features/notifications/` (avisos locales: `notification-plan.ts` puro,
   `device-notifications.ts` carga `expo-notifications` con `require` protegido —nunca importarlo
-  directamente: rompe Expo Go 57.0.9—, `NotificationSync` en `(app)/_layout.tsx`),
+  directamente: rompe Expo Go 57.0.9—, `NotificationSync` en `(app)/_layout.tsx`; alarmas exactas de
+  Android con el módulo nativo local `modules/kitom-exact-alarms`, autoenlazado desde `modules/`: su
+  `android/build` está ignorado; cambiarlo exige una build nativa nueva),
   `src/features/achievements/` y `(app)/settings/*`. Contratos: `docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4
   y §7. Errores genéricos de servidor: `src/lib/server-errors.ts`.
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación

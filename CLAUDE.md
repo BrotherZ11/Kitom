@@ -71,7 +71,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `docs/FRONTEND_ARCHITECTURE.md` §1). MVP (rama `feat/mvp-completion`, 2026-10-21, sin migraciones):
   configuración inicial (`(app)/setup/*`, `onboarding_completed_at`, aviso veterinario obligatorio),
   agenda (`reminders`: CRUD, repetición, posponer), avisos locales (`expo-notifications`, aprobado; no
-  disponibles en Expo Go 57.0.9, sí en builds nativas), logros (`pet_achievements`), ajustes completos
+  disponibles en Expo Go 57.0.9, sí en builds nativas; exactos en Android con `SCHEDULE_EXACT_ALARM` y el
+  módulo local `frontend/modules/kitom-exact-alarms`), logros (`pet_achievements`), ajustes completos
   (tema del dispositivo, notificaciones, seguridad, privacidad, ayuda, legal) y «Próximo» en Hoy
   (`docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4 y §7). Sin implementar (backend o decisión pendiente):
   teléfono, adjuntos de la agenda, señales y alertas, IA, co-tutores, Premium, exportar/eliminar

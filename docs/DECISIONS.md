@@ -3,6 +3,22 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-23 — Avisos exactos en Android con un módulo nativo local
+
+**Contexto.** Los avisos de la agenda se programaban como alarmas inexactas (ventana de hasta 1 h): para
+la medicación es demasiado. expo-notifications ya usa alarmas exactas cuando Android lo permite, pero
+ningún módulo instalado deja consultar ni pedir ese permiso desde JavaScript.
+
+**Decisión** (David, 2026-10-23). Declarar `SCHEDULE_EXACT_ALARM` (no `USE_EXACT_ALARM`, que Google Play
+reserva a apps de alarma y calendario) y añadir un módulo local de Expo, `modules/kitom-exact-alarms`
+(Kotlin, solo Android, sin paquetes nuevos), con `canScheduleExactAlarms` y `openExactAlarmSettings`. La
+app lo explica y ofrece «Permitir» solo cuando los avisos están activados y el permiso no. El modo de
+programación entra en la huella del aviso, así que al concederlo se reprograma todo como exacto.
+
+**Consecuencias.** Requiere una build nativa nueva. Desde Android 14 el permiso empieza denegado y lo
+concede el usuario en Ajustes; Google Play puede pedir justificar su uso (recordatorios de medicación).
+Comprobado en el emulador (Android 16): sin permiso, ventana de 1 h; tras concederlo, `window=0`.
+
 ## 2026-10-21 — MVP: configuración inicial, agenda, avisos locales, logros y ajustes
 
 **Contexto.** Con mascotas y registro diario terminados, faltaban partes *Must* del PRD que el esquema

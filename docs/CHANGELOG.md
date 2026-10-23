@@ -3,6 +3,14 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-23
+
+- Avisos exactos en Android: si los avisos de Kitom pueden retrasarse (sin «Alarmas y recordatorios»), la
+  Agenda y Ajustes › Notificaciones lo dicen y llevan a ese ajuste; al concederlo, todos los avisos se
+  reprograman para llegar a su hora. Permiso `SCHEDULE_EXACT_ALARM` y módulo nativo local
+  `modules/kitom-exact-alarms` (necesita una build nativa nueva). Decisión en `DECISIONS.md`; contrato en
+  `FRONTEND_ARCHITECTURE.md` §7.
+
 ## 2026-10-21
 
 - MVP (rama `feat/mvp-completion`, sin cambios de esquema):
