@@ -15,6 +15,7 @@ const catalog = [
     description: null,
   },
   { id: 'a4', code: 'streak_30', sortOrder: 4, criteria: { type: 'streak', days: 30 }, title: '30', description: null },
+  { id: 'a5', code: 'future', sortOrder: 5, criteria: { type: 'count', metric: 'reports', value: 1 }, title: null, description: null },
 ];
 
 describe('parseCriteria', () => {
@@ -41,8 +42,9 @@ describe('buildBadges', () => {
       [
         ['first_log', 'earned', null],
         ['streak_7', 'progress', { count: 4, total: 7 }],
-        ['first_photo_scan', 'soon', null],
+        ['first_photo_scan', 'locked', null],
         ['streak_30', 'progress', { count: 4, total: 30 }],
+        ['future', 'soon', null],
       ]
     );
     assert.equal(badges[0].earnedAt, '2026-10-10T10:00:00Z');
@@ -55,5 +57,16 @@ describe('buildBadges', () => {
     assert.equal(none.find((b) => b.code === 'first_log').state, 'locked');
     const long = buildBadges(catalog, [], { currentStreak: 12, loggedAny: true });
     assert.deepEqual(long.find((b) => b.code === 'streak_7').progress, { count: 7, total: 7 });
+  });
+
+  it('la consulta con foto se mide aparte de los registros: sin pedirla, sigue por conseguir', () => {
+    const logged = buildBadges(catalog, [], { currentStreak: 3, loggedAny: true });
+    assert.equal(logged.find((b) => b.code === 'first_log').state, 'progress');
+    assert.equal(logged.find((b) => b.code === 'first_photo_scan').state, 'locked');
+    const got = buildBadges(catalog, [{ achievementId: 'a3', earnedAt: '2026-10-23T10:00:00Z' }], {
+      currentStreak: 0,
+      loggedAny: false,
+    });
+    assert.equal(got.find((b) => b.code === 'first_photo_scan').state, 'earned');
   });
 });

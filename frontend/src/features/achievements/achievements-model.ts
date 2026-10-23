@@ -48,13 +48,13 @@ export function parseCriteria(criteria: unknown): Criteria {
 }
 
 /** Métricas de recuento que la app ya sabe medir (las demás dependen de funciones aún no disponibles). */
-const MEASURABLE_COUNTS = new Set(['daily_logs']);
+const MEASURABLE_COUNTS = new Set(['daily_logs', 'ai_analysis_requests']);
 
 /**
  * Insignias en el orden del catálogo, con su estado:
  * - `earned`: la ha otorgado el servidor (con su fecha).
  * - `progress`: una racha en curso (`currentStreak` días de `days`).
- * - `locked`: aún no; `soon`: depende de una función que todavía no existe (consulta con foto).
+ * - `locked`: aún no; `soon`: depende de una función que todavía no existe.
  */
 export function buildBadges(
   catalog: readonly CatalogAchievement[],
@@ -80,7 +80,7 @@ export function buildBadges(
       if (criteria.type === 'count' && !MEASURABLE_COUNTS.has(criteria.metric)) {
         return { ...base, state: 'soon' as const, progress: null };
       }
-      if (criteria.type === 'count' && loggedAny) {
+      if (criteria.type === 'count' && criteria.metric === 'daily_logs' && loggedAny) {
         // Ya hay registros pero el servidor aún no la ha dado (p. ej. justo al sincronizar).
         return { ...base, state: 'progress' as const, progress: null };
       }

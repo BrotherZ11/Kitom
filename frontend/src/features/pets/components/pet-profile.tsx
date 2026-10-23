@@ -139,6 +139,7 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
       ? buildBadges(catalog.data, earned.data, { currentStreak: current, loggedAny: streak.data?.last_log_date != null })
       : null;
   const openAchievements = () => router.push({ pathname: '/pets/[id]/achievements', params: { id: pet.id } });
+  const openConsults = () => router.push({ pathname: '/pets/[id]/consult', params: { id: pet.id } });
   const openAgenda = () => {
     // La agenda es la de la mascota activa: esta pasa a serlo.
     setActivePet(pet.id);
@@ -326,12 +327,14 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
                 divider
               />
             ) : null}
-            <ListItem
-              icon={Camera}
-              title={t('pets.profile.consult')}
-              subtitle={t('pets.profile.consultText')}
-              trailing={<SoonMark />}
-            />
+            {serverPet ? (
+              <ListItem
+                icon={Camera}
+                title={t('pets.profile.consult')}
+                subtitle={t('pets.profile.consultText')}
+                onPress={openConsults}
+              />
+            ) : null}
           </Section>
 
           {mode === 'tab' ? (
