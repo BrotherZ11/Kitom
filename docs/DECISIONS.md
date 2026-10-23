@@ -47,6 +47,28 @@ AI Studio respondía 402 (prepago sin saldo), así que no se ha visto aún una o
 la función lo registra como `failed` (`ai_misconfigured`) sin gastar cupo. Sin probar tampoco la subida
 de la foto (en local no hay buckets).
 
+## 2026-10-23 — Co-tutores en la app: gestión, invitaciones y configuración inicial
+
+**Contexto.** Con la migración `20261023082848` aplicada en `kitom-dev` faltaba la interfaz de co-tutores
+(PRD §8, fase 2 y solo Premium en la tabla de planes; el diseño la marcaba «Próximamente»).
+
+**Decisiones** (David pidió terminarla, 2026-10-23).
+- Pantalla por mascota con titular y co-tutores; solo quien es titular invita, cambia el permiso y quita
+  el acceso. Permisos con nombres de uso: «Solo ver» (`viewer`) y «Puede editar» (`editor`).
+- Invitaciones recibidas en su propia pantalla, avisadas en Hoy y en «sin mascotas». En la configuración
+  inicial, quien no tiene mascotas pero sí invitaciones no está obligado a crear una: puede aceptar y
+  terminar.
+- **Sin límite por plan en la app**: el servidor no exige Premium para invitar y el cliente nunca decide
+  el plan (CLAUDE.md). Si se quiere reservar a Premium, tiene que hacerlo una migración (pendiente de
+  decisión, como el límite de mascotas).
+- Tipos: las tres RPC se añadieron a mano a `database.types.ts` con las firmas que da
+  `supabase gen types --local` (mismas migraciones que `kitom-dev`); regenerarlo entero desde el local
+  cambia el formato de todo el archivo.
+
+**Consecuencias.** Un co-tutor no puede dejar una mascota por sí mismo ni ver el nombre de quien es
+titular (RLS). Probado en el emulador contra el Supabase local: invitar, aceptar desde la configuración
+inicial, ver como co-tutora (solo lectura), cambiar el permiso y quitar el acceso.
+
 ## 2026-10-23 — Co-tutores: invitar por email sin revelar cuentas (migración)
 
 **Contexto.** `invite_pet_member` pide el id del invitado y RLS no deja buscar usuarios; quien recibe una

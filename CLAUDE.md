@@ -78,7 +78,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   módulo local `frontend/modules/kitom-exact-alarms`), logros (`pet_achievements`), ajustes completos
   (tema del dispositivo, notificaciones, seguridad, privacidad, ayuda, legal) y «Próximo» en Hoy
   (`docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4 y §7). Sin implementar (backend o decisión pendiente):
-  teléfono, adjuntos de la agenda, señales y alertas, co-tutores, Premium, exportar/eliminar
+  teléfono, adjuntos de la agenda, señales y alertas, Premium, exportar/eliminar
   cuenta, clínica propia y voz de la mascota; del acceso, texto legal, reenviar el email, repetir la
   contraseña y la regla visible de longitud (`docs/DECISIONS.md`).
   Marca enlazada en `app.json` (nombre «Kitom», icono iOS/Android, splash y favicon desde
@@ -89,8 +89,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   y la release va firmada con la clave de depuración: no vale para Google Play). Sin EAS.
 - Migración `20261020135440_pets_client_request_id.sql` (alta idempotente de mascotas para Pets offline,
   fase 8): aplicada en `kitom-dev` (`db push` del usuario) y tipos regenerados.
-- Migración `20261023082848_pet_invitations_by_email.sql` (co-tutores por email, 3 RPC): validada en
-  local, **pendiente de aplicar en `kitom-dev`** (`db push` del usuario) y de regenerar los tipos.
+- Migración `20261023082848_pet_invitations_by_email.sql` (co-tutores por email, 3 RPC): aplicada en
+  `kitom-dev` (`db push` del usuario) y tipos añadidos. Frontend de co-tutores e invitaciones hecho
+  (`frontend/src/features/co-owners/`, rama `feat/co-owners`); sin límite por plan (decisión pendiente).
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 
