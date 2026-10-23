@@ -2,13 +2,14 @@
   "expo": {
     "name": "Kitom",
     "slug": "frontend",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/brand/app-icon/app-icon-ios.png",
     "scheme": "kitom",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "com.kitom.app",
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#0E3B39",
         "foregroundImage": "./assets/brand/app-icon/android-adaptive-foreground.png",
