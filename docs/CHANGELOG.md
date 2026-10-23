@@ -3,6 +3,14 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-23
+
+- BD: migración `20261023082848_pet_invitations_by_email.sql` (rama `db/pet-invitations-by-email`):
+  invitar co-tutores por email sin revelar qué emails tienen cuenta, ver las invitaciones pendientes con el
+  nombre de la mascota y de quien invita, y ver los co-tutores de una mascota con su nombre. Solo funciones
+  nuevas (sin cambios de tablas ni RLS). Pruebas pgTAP nuevas. Validada en local; pendiente de aplicar en
+  `kitom-dev`. Decisión en `DECISIONS.md`; contrato en `README.md` §13.
+
 ## 2026-10-21
 
 - Pets offline, fase 8.5 (validación manual en Android y web y correcciones):

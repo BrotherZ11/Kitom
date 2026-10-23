@@ -72,6 +72,8 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 | `owner_has_pets()` | lectura, `pets` (solo sobre `auth.uid()`, sin parámetro) |
 | `invite_pet_member(pet_id, invitee, role)` | `pet_co_owners` |
 | `accept_pet_invitation` / `decline_pet_invitation` / `revoke_pet_invitation` / `change_pet_member_role` | `pet_co_owners` |
+| `invite_pet_member_by_email(pet_id, email, role)` (migración `20261023082848`) | `pet_co_owners` (vía `invite_pet_member`) |
+| `get_my_pet_invitations()` / `get_pet_members(pet_id)` (migración `20261023082848`) | — (lectura) |
 | `transfer_pet_ownership(pet_id, new_owner_id)` | `pets`, `pet_co_owners` |
 | `get_ai_analysis_entitlement()` | lectura, `subscriptions` + `ai_analysis_requests` (siempre sobre `auth.uid()`) |
 | `request_ai_analysis(pet_id, photo_path, symptom_ids[])` | `ai_analysis_requests`, `ai_analysis_symptoms`, `pet_achievements` |
@@ -156,6 +158,8 @@ Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza
 ## 13. Co-tutores
 
 `UNIQUE(pet_id, user_id)` se mantiene. Transiciones soportadas: `pending→accepted`, `pending→declined`, `accepted→revoked`, y reinvitación (`declined→pending`, `revoked→pending`) vía `invite_pet_member()`, que reutiliza la fila existente en vez de intentar un segundo `INSERT` que chocaría con el `UNIQUE`. Ningún camino permite `viewer→editor→owner` por `UPDATE` directo: no hay policy de `UPDATE` para `authenticated` sobre `pet_co_owners`, todo pasa por RPCs que validan la transición y quién puede pedirla. Un usuario con invitación `pending` puede ver su propia fila (`user_id = auth.uid()` en la policy de select) aunque `is_pet_member()` todavía no lo considere miembro.
+
+**Invitar por email (migración `20261023082848_pet_invitations_by_email.sql`).** `invite_pet_member_by_email` comprueba primero que quien llama es el propietario de una mascota activa (`hint` `not_pet_owner`) y que el email tiene forma válida (`invalid_email`); después responde igual si el email no tiene cuenta, es el del propio usuario o ya tiene una invitación activa, para no revelar qué emails están registrados. `get_my_pet_invitations()` da las invitaciones pendientes del usuario con el nombre de la mascota y de quien invita (que RLS no le deja leer todavía); `get_pet_members(pet_id)` da los co-tutores pendientes y aceptados con su nombre, solo a miembros (`not_pet_member`). Sin límite de frecuencia de invitaciones (pendiente).
 
 ## 14. Timezone
 
