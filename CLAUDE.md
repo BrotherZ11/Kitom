@@ -31,8 +31,11 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 
 - `organizations` / `organization_members` / `is_org_member()` (archivo 27 de `database/v2.2.1/`):
   **no desplegados** en el remoto. Fuera del MVP; no crear migración salvo petición expresa.
-- Edge Functions (`ai-analysis-process`, `generate-pet-report`, `delete-account`, `revenuecat-webhook`):
-  **pendientes**. La carpeta `edge-functions/` que citan los docs no está en el repo.
+- Edge Functions: `ai-analysis-process` implementada en `supabase/functions/` (rama `feat/ai-guidance`,
+  Gemini de Google AI Studio por defecto; prompt y reglas en borrador hasta que los valide un
+  veterinario). Para `kitom-dev` faltan el secreto `GEMINI_API_KEY` y el despliegue, ambos del usuario. `generate-pet-report`,
+  `delete-account` y `revenuecat-webhook`: **pendientes**; la carpeta `edge-functions/` que citan los
+  docs no está en el repo.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
 - Migraciones `20261007172110_pets_select_policy_owner.sql` (crear mascotas) y
   `20261007182429_grant_safe_pet_id_from_path.sql` (Storage de mascotas): aplicadas en `kitom-dev`.
@@ -68,10 +71,16 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   tema claro/oscuro según el sistema y fuentes (`frontend/src/theme/`), componentes
   (`frontend/src/components/ui/`), bienvenida y acceso, mascotas, registro e historial, pestañas
   (Hoy · Historial · Registrar · Agenda · Perfil) y Hoy (`frontend/CLAUDE.md` › «Tema y diseño»,
-  `docs/FRONTEND_ARCHITECTURE.md` §1). Sin implementar (backend o decisión pendiente): onboarding de
-  perfil/aviso/privacidad, teléfono, recordatorios y avisos, agenda, señales y alertas, IA, logros,
-  ajustes completos, Premium, preferencia de tema y voz de la mascota; del acceso, texto legal,
-  reenviar el email, repetir la contraseña y la regla visible de longitud (`docs/DECISIONS.md`).
+  `docs/FRONTEND_ARCHITECTURE.md` §1). MVP (rama `feat/mvp-completion`, 2026-10-21, sin migraciones):
+  configuración inicial (`(app)/setup/*`, `onboarding_completed_at`, aviso veterinario obligatorio),
+  agenda (`reminders`: CRUD, repetición, posponer), avisos locales (`expo-notifications`, aprobado; no
+  disponibles en Expo Go 57.0.9, sí en builds nativas; exactos en Android con `SCHEDULE_EXACT_ALARM` y el
+  módulo local `frontend/modules/kitom-exact-alarms`), logros (`pet_achievements`), ajustes completos
+  (tema del dispositivo, notificaciones, seguridad, privacidad, ayuda, legal) y «Próximo» en Hoy
+  (`docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4 y §7). Sin implementar (backend o decisión pendiente):
+  teléfono, adjuntos de la agenda, señales y alertas, co-tutores, Premium, exportar/eliminar
+  cuenta, clínica propia y voz de la mascota; del acceso, texto legal, reenviar el email, repetir la
+  contraseña y la regla visible de longitud (`docs/DECISIONS.md`).
   Marca enlazada en `app.json` (nombre «Kitom», icono iOS/Android, splash y favicon desde
   `frontend/assets/brand/app-icon/`); `slug` (`frontend`) y esquema (`kitom`) sin cambiar.
   `android.package` = `com.kitom.app` (2026-10-20, no cambiarlo: otra APK no actualizaría la

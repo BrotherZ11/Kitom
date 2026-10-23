@@ -3,6 +3,50 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-23 — Orientación con IA: Edge Function con Gemini y reglas de urgencia
+
+**Contexto.** El análisis orientativo con foto y señales (PRD §8.4) era la parte *Must* que faltaba. El
+esquema ya lo soporta (`request_ai_analysis`, cupo, `claim_ai_analysis_for_processing`, feedback), pero no
+existían la Edge Function `ai-analysis-process` ni las pantallas. Sin cambios de esquema.
+
+**Decisiones** (proveedor elegido por David, 2026-10-23: primero OpenAI, después Gemini).
+- **Gemini (Google AI Studio)** por defecto: `generateContent` con `responseMimeType: application/json`
+  y `responseJsonSchema` (el mismo esquema estricto), clave en la cabecera `x-goog-api-key`, 60 s de
+  límite y sin `temperature` (Google recomienda el valor por defecto en Gemini 3). Modelo por defecto
+  `gemini-3.8-flash` (estable, con imagen y plan gratuito; la documentación lo recomienda junto a
+  `gemini-3.5-flash-lite` para proyectos nuevos), cambiable con `GEMINI_MODEL` sin tocar código. El
+  razonamiento se cuenta como salida. 400/401/402/403/404 → `ai_misconfigured`; 429, 5xx, bloqueo o
+  respuesta cortada → `ai_unavailable`. OpenAI (Chat Completions con Structured Outputs) se mantiene
+  como alternativa (`AI_PROVIDER=openai`); el proveedor es intercambiable (`providers.ts`).
+- **Plan gratuito de Gemini**: según los precios de Google, el contenido del plan gratuito se usa para
+  mejorar sus productos. Vale para pruebas; antes de abrirlo a usuarios hay que pasar al plan de pago o
+  avisarlo en la política de privacidad (la app dice que la foto no se usa para nada más).
+- **La función se autoriza sola** (JWT → uid → parámetros → `requested_by` → `service_role` → reclamar
+  la fila). Una fila `processing` de más de 3 min se marca `failed` (`timeout`) para poder reintentar.
+- **Datos mínimos al proveedor**: especie, raza, edad en meses, sexo, esterilizado, peso, enfermedades y
+  alergias, señales, registros de 7 días (30 con historial completo) y la foto. Ningún nombre. La
+  intro lo dice antes de enviar.
+- **Salida validada en el servidor**: nivel conocido, máximo 4 causas y 5 recomendaciones de 240
+  caracteres, y se descarta toda frase con «diagnóstico». Si no queda nada útil, `failed` (no gasta
+  cupo).
+- **Suelo de urgencia por reglas**: decaimiento + falta de apetito, o herida + decaimiento, nunca por
+  debajo de `consult_soon`. El mínimo se le indica al modelo en el prompt y, si aun así hay que subir el
+  nivel, se antepone una recomendación acorde (para que no diga «vigila unos días» junto a «pide cita»).
+- **Borrador**: `PROMPT_VERSION = 'draft-2026-10-23'`. El prompt y las reglas deben revisarlos un
+  veterinario antes de abrirlo a usuarios.
+- **Simulador** (`AI_PROVIDER=mock`): solo se acepta si `SUPABASE_URL` es local; permite probar de punta
+  a punta sin clave ni coste.
+- **Frontend**: polling de la fila (sin Realtime) y una reinvocación si sigue `pending`; límite del plan
+  gratuito con pantalla propia, sin paywall («esperar a Premium»); urgencias cercanas como búsqueda en
+  mapas (no hay clínica propia guardada).
+
+**Consecuencias.** Para usarlo en `kitom-dev`, David define `GEMINI_API_KEY` (y, si quiere `cost_usd`,
+`AI_INPUT_USD_PER_MTOK`/`AI_OUTPUT_USD_PER_MTOK`) y despliega la función. Probado en local con el
+simulador (integración y emulador) y con Gemini real: la clave entregada es válida, pero su proyecto de
+AI Studio respondía 402 (prepago sin saldo), así que no se ha visto aún una orientación real de Gemini;
+la función lo registra como `failed` (`ai_misconfigured`) sin gastar cupo. Sin probar tampoco la subida
+de la foto (en local no hay buckets).
+
 ## 2026-10-23 — Co-tutores: invitar por email sin revelar cuentas (migración)
 
 **Contexto.** `invite_pet_member` pide el id del invitado y RLS no deja buscar usuarios; quien recibe una
@@ -17,7 +61,66 @@ una invitación activa. No se envían emails: la invitación se ve en la app.
 
 **Consecuencias.** La interfaz no puede confirmar que la persona tenga cuenta («si tiene cuenta, le llegará»).
 Queda pendiente un límite de frecuencia de invitaciones y que un co-tutor pueda dejar una mascota por sí
-mismo (hoy solo el propietario revoca). Validada en local (pgTAP); aplicar en `kitom-dev` lo hace David.
+mismo (hoy solo el propietario revoca). Validada en local (pgTAP); aplicada en `kitom-dev` por David.
+
+## 2026-10-23 — Avisos exactos en Android con un módulo nativo local
+
+**Contexto.** Los avisos de la agenda se programaban como alarmas inexactas (ventana de hasta 1 h): para
+la medicación es demasiado. expo-notifications ya usa alarmas exactas cuando Android lo permite, pero
+ningún módulo instalado deja consultar ni pedir ese permiso desde JavaScript.
+
+**Decisión** (David, 2026-10-23). Declarar `SCHEDULE_EXACT_ALARM` (no `USE_EXACT_ALARM`, que Google Play
+reserva a apps de alarma y calendario) y añadir un módulo local de Expo, `modules/kitom-exact-alarms`
+(Kotlin, solo Android, sin paquetes nuevos), con `canScheduleExactAlarms` y `openExactAlarmSettings`. La
+app lo explica y ofrece «Permitir» solo cuando los avisos están activados y el permiso no. El modo de
+programación entra en la huella del aviso, así que al concederlo se reprograma todo como exacto.
+
+**Consecuencias.** Requiere una build nativa nueva. Desde Android 14 el permiso empieza denegado y lo
+concede el usuario en Ajustes; Google Play puede pedir justificar su uso (recordatorios de medicación).
+Comprobado en el emulador (Android 16): sin permiso, ventana de 1 h; tras concederlo, `window=0`.
+
+## 2026-10-21 — MVP: configuración inicial, agenda, avisos locales, logros y ajustes
+
+**Contexto.** Con mascotas y registro diario terminados, faltaban partes *Must* del PRD que el esquema
+ya soporta: aviso veterinario aceptado y configuración inicial (§8.1, §13), agenda y recordatorios
+(§8.8), avisos (§8.9) y gamificación básica (§8.6). Sin cambios de esquema (ninguna migración).
+
+**Decisiones.**
+- **Configuración inicial dentro de `(app)`** (`setup/*`), no como stack separado: el layout de
+  `(tabs)` redirige mientras `onboarding_completed_at` sea `NULL`. Una marca del dispositivo evita una
+  petición al arrancar; sin sesión utilizable nunca se bloquea (no se encierra a nadie sin conexión).
+  Las cuentas existentes pasan una vez por los pasos (deben aceptar el aviso); si ya tienen mascotas,
+  terminan en Privacidad. `DISCLAIMER_VERSION = '1.0'`: cambiar el texto del aviso obliga a subirla.
+- **Recordatorio que se repite = una fila.** «Hecho» avanza `due_at` a la siguiente vez futura (sigue
+  `pending`) y «Deshacer» la restaura; no se crea una fila por ocurrencia (no hay columna de serie ni
+  RPC, y duplicar filas complicaría editar y borrar). Consecuencia: no queda historial de cada toma de
+  medicación; si se necesita, requerirá una tabla de ocurrencias (migración aparte).
+- **Agenda solo con conexión** (sin copia en el dispositivo): escrituras con precondición
+  `eq('updated_at', base)`; un cambio concurrente recarga la versión nueva en vez de pisarla.
+- **Fechas de la agenda en hora local del dispositivo** (la de los avisos); el registro diario sigue
+  usando la zona del perfil.
+- **Avisos locales con `expo-notifications`** (aprobado por David, 2026-10-21): avisos de fecha concreta
+  (no repetitivos) recalculados en la app, para no avisar del registro de un día ya hecho; diferencia
+  con lo programado por identificador y huella. Sin push remoto ni `push_tokens` (necesitaría EAS/FCM).
+- **Carga protegida de `expo-notifications`**: la última Expo Go de SDK 57 (57.0.9) no trae el módulo
+  nativo `ExpoTopicSubscriptionModule` que importa el índice del paquete 57.0.23 y la app se cerraba al
+  arrancar. Se carga con `require` dentro de `try` y, si falla, los avisos quedan «no disponibles» con
+  un texto que lo dice. En builds nativas funciona.
+- **Tema claro/oscuro/sistema como preferencia del dispositivo** (AsyncStorage), no de la cuenta (no hay
+  columna, `PANTALLAS.md` §6.4). El proveedor no pinta hasta leerla (sin destello del otro tema).
+- **Cambiar contraseña con «Repite la contraseña»** (tablero 10.3): la pantalla es nueva y no cambia el
+  comportamiento de la recuperación. La longitud mínima sigue siendo la de Supabase Auth (sin regla
+  visible, decisión del 2026-10-16 pendiente).
+- **`MonthCalendar` en filas de 7 celdas `flex: 1`**: con anchos de `100/7 %` el redondeo pasaba el
+  domingo a la fila siguiente en algunos anchos de contenedor (visto en la agenda).
+- **Selectores de día y hora propios** (hojas con calendario y pasos de hora/minuto) en lugar de un
+  paquete nativo: funcionan igual en Android, iOS y web y siguen la marca.
+
+**Pendiente (requiere backend, migración o decisión).** Adjuntos de recordatorios (Storage), avisos por
+tipo y antelación (sin columnas), señales automáticas e historial de alertas (deben venir del servidor),
+orientación con foto (Edge Function `ai-analysis-process`), invitar co-tutores (no hay forma de buscar un
+usuario por email: `invite_pet_member` pide su id), límite de mascotas del plan gratuito (el servidor no
+lo aplica), exportar/eliminar la cuenta, Premium y la clínica propia.
 
 ## 2026-10-21 — Pets offline, fase 8.5: cierre de sesión con todas las fuentes y endurecimiento
 

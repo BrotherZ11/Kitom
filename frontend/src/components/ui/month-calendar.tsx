@@ -19,6 +19,15 @@ type MonthCalendarProps = {
   dayLabel: (date: string, state: { logged: boolean; today: boolean }) => string;
   /** Solo los días con registro (u hoy) son pulsables: abren su detalle. */
   onPressDay: (date: string) => void;
+  /** Día elegido (agenda, selector de fecha): contorno `primary`. */
+  selectedDate?: string | null;
+  /**
+   * Qué días se pueden pulsar. Por defecto, los del mes con registro y hoy (historial). La agenda y el
+   * selector de fecha pasan su propia regla.
+   */
+  isDayPressable?: (date: string, state: { logged: boolean; today: boolean }) => boolean;
+  /** Atenuar los días posteriores a hoy (por defecto, sí: en el historial aún no tienen datos). */
+  dimFuture?: boolean;
 };
 
 /**
@@ -33,75 +42,95 @@ export function MonthCalendar({
   weekdayLabels,
   dayLabel,
   onPressDay,
+  selectedDate = null,
+  isDayPressable,
+  dimFuture = true,
 }: MonthCalendarProps) {
   const theme = useTheme();
   const cells = monthGrid(year, monthIndex);
 
+  const renderCell = (cell: (typeof cells)[number]) => {
+    const logged = cell.inMonth && loggedDates.has(cell.date);
+    const isToday = cell.date === today;
+    const future = dimFuture && cell.date > today;
+    const selected = cell.inMonth && cell.date === selectedDate;
+    const state = { logged, today: isToday };
+    const pressable = cell.inMonth && (isDayPressable ? isDayPressable(cell.date, state) : logged || isToday);
+    const content = (
+      <View
+        style={[
+          styles.day,
+          isToday && { backgroundColor: theme.surfaceInverse },
+          selected && { borderWidth: 2, borderColor: theme.primary },
+        ]}>
+        <Text
+          color={isToday ? 'inkInverse' : cell.inMonth && !future && (pressable || !isDayPressable) ? 'ink' : 'inkSubtle'}
+          style={styles.dayNumber}>
+          {String(cell.day)}
+        </Text>
+        <View
+          style={[
+            styles.dot,
+            { backgroundColor: isToday ? theme.accent : logged ? theme.primary : 'transparent' },
+          ]}
+        />
+      </View>
+    );
+    return (
+      <View key={cell.date} style={styles.cell}>
+        {pressable ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={dayLabel(cell.date, state)}
+            accessibilityState={selectedDate !== null ? { selected } : undefined}
+            onPress={() => onPressDay(cell.date)}>
+            {content}
+          </Pressable>
+        ) : (
+          <View
+            accessible={cell.inMonth}
+            accessibilityLabel={cell.inMonth ? dayLabel(cell.date, { logged, today: isToday }) : undefined}
+            importantForAccessibility={cell.inMonth ? 'yes' : 'no-hide-descendants'}>
+            {content}
+          </View>
+        )}
+      </View>
+    );
+  };
+  // Filas explícitas de 7 celdas `flex: 1`: con anchos en porcentaje (100/7 %), el redondeo podía
+  // pasar el séptimo día a la fila siguiente según el ancho del contenedor.
+  const rows = Array.from({ length: cells.length / 7 }, (_, row) => cells.slice(row * 7, row * 7 + 7));
+
   return (
     <View style={styles.grid}>
-      {weekdayLabels.map((label) => (
-        <View key={label} style={styles.cell}>
-          <Text variant="caption" color="inkMuted" style={styles.weekday}>
-            {label}
-          </Text>
+      <View style={styles.row}>
+        {weekdayLabels.map((label, index) => (
+          // Índice como clave: en inglés las iniciales se repiten (T, T, S, S).
+          <View key={index} style={styles.cell}>
+            <Text variant="caption" color="inkMuted" style={styles.weekday}>
+              {label}
+            </Text>
+          </View>
+        ))}
+      </View>
+      {rows.map((row) => (
+        <View key={row[0].date} style={styles.row}>
+          {row.map(renderCell)}
         </View>
       ))}
-      {cells.map((cell) => {
-        const logged = cell.inMonth && loggedDates.has(cell.date);
-        const isToday = cell.date === today;
-        const future = cell.date > today;
-        const content = (
-          <View
-            style={[
-              styles.day,
-              isToday && { backgroundColor: theme.surfaceInverse },
-            ]}>
-            <Text
-              color={isToday ? 'inkInverse' : cell.inMonth && !future ? 'ink' : 'inkSubtle'}
-              style={styles.dayNumber}>
-              {String(cell.day)}
-            </Text>
-            <View
-              style={[
-                styles.dot,
-                { backgroundColor: isToday ? theme.accent : logged ? theme.primary : 'transparent' },
-              ]}
-            />
-          </View>
-        );
-        const pressable = cell.inMonth && (logged || isToday);
-        return (
-          <View key={cell.date} style={styles.cell}>
-            {pressable ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={dayLabel(cell.date, { logged, today: isToday })}
-                onPress={() => onPressDay(cell.date)}>
-                {content}
-              </Pressable>
-            ) : (
-              <View
-                accessible={cell.inMonth}
-                accessibilityLabel={cell.inMonth ? dayLabel(cell.date, { logged, today: isToday }) : undefined}
-                importantForAccessibility={cell.inMonth ? 'yes' : 'no-hide-descendants'}>
-                {content}
-              </View>
-            )}
-          </View>
-        );
-      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   grid: {
+    gap: spacing['1'],
+  },
+  row: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    rowGap: spacing['1'],
   },
   cell: {
-    width: `${100 / 7}%`,
+    flex: 1,
     paddingHorizontal: 2,
   },
   weekday: {

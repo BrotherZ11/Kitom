@@ -5,13 +5,45 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-23
 
+- Orientación con IA (rama `feat/ai-guidance`, sin cambios de esquema): Edge Function
+  `ai-analysis-process` (Gemini de Google AI Studio con salida JSON por esquema; OpenAI como
+  alternativa; validación sin «diagnóstico», suelo de urgencia
+  por señales y simulador solo en local) y pantallas de consulta: asistente con foto opcional y señales,
+  resultado por nivel con aviso, urgencias cercanas, valoración y cita en la agenda, consultas
+  anteriores y pantalla de límite del plan gratuito. Entradas en Hoy y en el perfil de la mascota. La
+  insignia «Primera consulta con foto» deja de ser «Próximamente». Prompt y reglas: borrador pendiente
+  de validación veterinaria. Decisión en `DECISIONS.md`; contratos en `README.md` §8–9 y
+  `FRONTEND_ARCHITECTURE.md` §1 y §4.
+- Corregido (Android): un botón que pasaba de `secondary` a `primary` ya montado se quedaba sin icono
+  ni texto (al quitar su borde). `Button` fija siempre `borderWidth`.
+- Avisos exactos en Android: si los avisos de Kitom pueden retrasarse (sin «Alarmas y recordatorios»), la
+  Agenda y Ajustes › Notificaciones lo dicen y llevan a ese ajuste; al concederlo, todos los avisos se
+  reprograman para llegar a su hora. Permiso `SCHEDULE_EXACT_ALARM` y módulo nativo local
+  `modules/kitom-exact-alarms` (necesita una build nativa nueva). Decisión en `DECISIONS.md`; contrato en
+  `FRONTEND_ARCHITECTURE.md` §7.
 - BD: migración `20261023082848_pet_invitations_by_email.sql` (rama `db/pet-invitations-by-email`):
   invitar co-tutores por email sin revelar qué emails tienen cuenta, ver las invitaciones pendientes con el
   nombre de la mascota y de quien invita, y ver los co-tutores de una mascota con su nombre. Solo funciones
-  nuevas (sin cambios de tablas ni RLS). Pruebas pgTAP nuevas. Validada en local; pendiente de aplicar en
-  `kitom-dev`. Decisión en `DECISIONS.md`; contrato en `README.md` §13.
+  nuevas (sin cambios de tablas ni RLS). Pruebas pgTAP nuevas. Validada en local; aplicada en `kitom-dev`
+  (`db push` del usuario). Decisión en `DECISIONS.md`; contrato en `README.md` §13.
 
 ## 2026-10-21
+
+- MVP (rama `feat/mvp-completion`, sin cambios de esquema):
+  - Configuración inicial tras crear la cuenta: tu nombre, aviso veterinario (obligatorio, con fecha y
+    versión), privacidad (comunicaciones desactivadas por defecto), primera mascota y hora del
+    recordatorio diario. Las cuentas existentes pasan una vez por los pasos.
+  - Agenda: recordatorios de vacunas, medicación, citas, baño, desparasitación y otros cuidados con día,
+    hora, repetición y notas; lista (pendientes, hoy, próximos y hechos) y mes; hecho con «Deshacer»,
+    posponer, editar y eliminar con confirmación. «Próximo» en Hoy y acceso desde el perfil.
+  - Avisos locales (`expo-notifications`): recordatorio diario (no avisa si ya registraste) y aviso de
+    cada recordatorio; tocar un aviso abre su pantalla. En Expo Go 57.0.9 no están disponibles (la app lo
+    dice y sigue funcionando); en builds nativas sí.
+  - Logros y racha: insignias del servidor con progreso, semana y detalle de cada insignia.
+  - Tu cuenta: editar el nombre, plan, zona horaria («usar la de este móvil»), tema claro/oscuro/sistema,
+    notificaciones, seguridad y cambio de contraseña, privacidad, ayuda y legal.
+  - Corregido: el calendario del mes podía pasar el domingo a la fila siguiente.
+  - Decisión en `DECISIONS.md`; contratos en `FRONTEND_ARCHITECTURE.md` §1, §2, §4 y §7.
 
 - Pets offline, fase 8.5 (validación manual en Android y web y correcciones):
   - Cerrar sesión cuenta también las altas y ediciones de mascotas pendientes. Antes, con solo mascotas

@@ -122,7 +122,9 @@ export function Button({
               backgroundColor:
                 pressed && variant === 'primary' && !isDisabled ? theme.primaryPressed : background,
             },
-            spec.bordered && !isInactive && { borderWidth: 1.5, borderColor: theme.line },
+            // Siempre con `borderWidth` explícito: en Android, quitar el borde de un botón ya montado (p. ej.
+            // de `secondary` a `primary`) dejaba el icono y el texto sin pintar.
+            spec.bordered && !isInactive ? { borderWidth: 1.5, borderColor: theme.line } : { borderWidth: 0 },
             variant === 'inverseOutline' && { borderWidth: 1.5, borderColor: withAlpha(theme.inkInverse, 0.5) },
             loading && styles.loading,
             feedback.animatedStyle,

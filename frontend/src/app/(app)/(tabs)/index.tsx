@@ -4,7 +4,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Card } from '@/components/ui/card';
-import { WifiOff } from '@/components/ui/icons';
+import { IconButton } from '@/components/ui/icon-button';
+import { Stethoscope, WifiOff } from '@/components/ui/icons';
 import { ErrorState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,8 +24,10 @@ import { ActivePetGate, TAB_SCREEN_EDGES } from '@/features/pets/components/acti
 import { PetHeader } from '@/features/pets/components/pet-header';
 import { PetSelectorSheet } from '@/features/pets/components/pet-selector-sheet';
 import { useCanEditPet } from '@/features/pets/hooks/use-pets';
+import { isLocalPetId } from '@/features/pets/offline/pet-operation';
 import type { Pet } from '@/features/pets/types';
 import { useProfileName } from '@/features/profile/hooks/use-profile-name';
+import { NextReminderCard } from '@/features/reminders/components/next-reminder-card';
 import { getLocale, t, tf } from '@/i18n';
 import { radius, size, spacing } from '@/theme/tokens';
 
@@ -70,6 +73,7 @@ function PetToday({ pet }: { pet: Pet }) {
           canEdit={canEdit.data ?? null}
           onOpenLog={openLog}
         />
+        <NextReminderCard petId={pet.id} petName={pet.name} canEdit={canEdit.data === true} />
         {overview.loggedCount < TREND_THRESHOLD ? (
           <EvolutionCard petName={pet.name} loggedCount={overview.loggedCount} />
         ) : (
@@ -85,7 +89,17 @@ function PetToday({ pet }: { pet: Pet }) {
         pet={pet}
         overline={week.state === 'ready' ? formatShortDateLabel(week.today, getLocale()) : ' '}
         onPress={() => setSelectorOpen(true)}
-        right={offline ? <Tag label={t('home.offline')} icon={WifiOff} /> : null}
+        right={
+          offline ? (
+            <Tag label={t('home.offline')} icon={WifiOff} />
+          ) : canEdit.data === true && !isLocalPetId(pet.id) ? (
+            <IconButton
+              icon={Stethoscope}
+              accessibilityLabel={tf('home.consult', { name: pet.name })}
+              onPress={() => router.push({ pathname: '/pets/[id]/consult/new', params: { id: pet.id } })}
+            />
+          ) : null
+        }
       />
       {offline ? <Banner icon={WifiOff} message={t('home.offlineBanner')} /> : null}
       {/* Sesión guardada sin comprobar (arranque sin conexión con el token caducado). */}

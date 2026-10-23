@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -40,6 +40,9 @@ import { borderWidth, fontFamily, radius, spacing } from '@/theme/tokens';
  */
 export default function NewPetScreen() {
   const router = useRouter();
+  // Primera mascota de la configuración inicial: al crearla sigue con «Mascota creada» (tablero 3.4).
+  const { setup } = useLocalSearchParams<{ setup?: string }>();
+  const inSetup = setup === '1';
   const theme = useTheme();
   const species = useSpecies();
   const saveNew = useSaveNewPet();
@@ -75,12 +78,21 @@ export default function NewPetScreen() {
               photoFailed = true;
             }
           }
+          if (inSetup) {
+            if (photoFailed) toast({ message: t('pets.errors.photo_upload_failed') });
+            router.replace({ pathname: '/setup/pet-created', params: { petId, name: fields.name } });
+            return;
+          }
           // Sustituye el formulario por el perfil: «atrás» no vuelve al formulario.
           router.replace({ pathname: '/pets/[id]', params: photoFailed ? { id: petId, photoFailed: '1' } : { id: petId } });
           return;
         }
         // Guardada solo en el dispositivo: la foto no (necesita el id del servidor).
         toast({ message: photo ? t('pets.sync.photoNotUploaded') : t('pets.sync.createdLocally') });
+        if (inSetup && outcome.op) {
+          router.replace({ pathname: '/setup/pet-created', params: { petId: outcome.op.localId, name: fields.name } });
+          return;
+        }
         if (outcome.op) router.replace({ pathname: '/pets/[id]', params: { id: outcome.op.localId } });
       } catch {
         setSubmitError(t('pets.errors.unknown'));
