@@ -80,6 +80,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   y la release va firmada con la clave de depuración: no vale para Google Play). Sin EAS.
 - Migración `20261020135440_pets_client_request_id.sql` (alta idempotente de mascotas para Pets offline,
   fase 8): aplicada en `kitom-dev` (`db push` del usuario) y tipos regenerados.
+- Migración `20261023082848_pet_invitations_by_email.sql` (co-tutores por email, 3 RPC): validada en
+  local, **pendiente de aplicar en `kitom-dev`** (`db push` del usuario) y de regenerar los tipos.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
 

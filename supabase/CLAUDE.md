@@ -40,8 +40,13 @@
   (fase 8). Sin cambios de RLS, triggers ni `pets.id` (sigue sin GRANT de INSERT: ver la decisión).
   Validada en local con `migration up` (sin `db reset`); aplicada en `kitom-dev` (`db push` del usuario,
   2026-10-21) y tipos regenerados. Decisión: `docs/DECISIONS.md`.
+- Migración `20261023082848_pet_invitations_by_email.sql` (rama `db/pet-invitations-by-email`): RPC
+  `invite_pet_member_by_email` (solo el propietario; no revela si un email tiene cuenta),
+  `get_my_pet_invitations` y `get_pet_members`, `SECURITY DEFINER`, sin EXECUTE para anon. Sin cambios de
+  tablas, RLS ni triggers. Validada en local con `migration up` (sin `db reset`) y pgTAP; **pendiente
+  de aplicar en `kitom-dev`** (`db push` del usuario) y de regenerar los tipos. Contrato: `docs/README.md` §13.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
-  `pets_client_request_id`; pgTAP, en
+  `pets_client_request_id`, `pet_invitations`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
   -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.
 - Pruebas de concurrencia: `bash supabase/tests/concurrency/daily_logs_concurrency.sh` y

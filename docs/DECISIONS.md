@@ -3,6 +3,22 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-23 — Co-tutores: invitar por email sin revelar cuentas (migración)
+
+**Contexto.** `invite_pet_member` pide el id del invitado y RLS no deja buscar usuarios; quien recibe una
+invitación no puede leer la mascota ni el nombre de quien le invita (`is_pet_member` exige la invitación
+aceptada; `profiles` solo propio). Sin cambios, el cliente no podía invitar ni mostrar invitaciones.
+
+**Decisión** (aprobada por David el 2026-10-23). Tres RPC `SECURITY DEFINER`, sin tocar tablas, RLS ni las
+RPC existentes: `invite_pet_member_by_email` (delega en `invite_pet_member`), `get_my_pet_invitations` y
+`get_pet_members`. Para no convertirse en un buscador de cuentas, la invitación comprueba primero la
+propiedad de la mascota y después responde lo mismo exista o no la cuenta, sea el propio email o haya ya
+una invitación activa. No se envían emails: la invitación se ve en la app.
+
+**Consecuencias.** La interfaz no puede confirmar que la persona tenga cuenta («si tiene cuenta, le llegará»).
+Queda pendiente un límite de frecuencia de invitaciones y que un co-tutor pueda dejar una mascota por sí
+mismo (hoy solo el propietario revoca). Validada en local (pgTAP); aplicar en `kitom-dev` lo hace David.
+
 ## 2026-10-21 — Pets offline, fase 8.5: cierre de sesión con todas las fuentes y endurecimiento
 
 **Contexto.** En la validación manual de la fase 8 (emulador Android y web contra el Supabase local) se

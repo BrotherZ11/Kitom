@@ -395,9 +395,13 @@ en `history-view.ts`.
 - **WRITE:** ninguna — se otorgan solos en el backend
 
 ### CoOwnersScreen
-- **READ:** `pet_co_owners`, `pets`
+- **READ:** `pet_co_owners`, `pets`; con la migración `20261023082848`: `get_my_pet_invitations()` (invitaciones
+  pendientes con el nombre de la mascota y de quien invita) y `get_pet_members(pet_id)` (co-tutores con su nombre)
 - **WRITE:** ninguna directa
-- **RPC:** `invite_pet_member`, `accept_pet_invitation`, `decline_pet_invitation`, `revoke_pet_invitation`, `change_pet_member_role`
+- **RPC:** `invite_pet_member_by_email(pet_id, email, role)` (el cliente no conoce ids de otros usuarios; responde
+  igual exista o no la cuenta: decir «Si tiene cuenta en Kitom, le llegará la invitación»), `accept_pet_invitation`,
+  `decline_pet_invitation`, `revoke_pet_invitation`, `change_pet_member_role`. Errores: `hint` `not_pet_owner`,
+  `invalid_email`, `not_pet_member`
 
 ### OwnershipTransferScreen
 - **READ:** `pets`, `pet_co_owners` (co-tutores aceptados, candidatos a nuevo propietario)
