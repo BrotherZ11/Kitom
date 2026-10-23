@@ -37,8 +37,11 @@ export type Provider = (request: ProviderRequest) => Promise<ProviderResponse>;
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-/** Modelo de Gemini si no se define `GEMINI_MODEL` (estable, con imagen y salida JSON por esquema). */
-export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+/**
+ * Modelo de Gemini si no se define `GEMINI_MODEL`: estable, con imagen y salida JSON por esquema. Medido
+ * el 2026-10-23: ~5 s por consulta; `gemini-3.8-flash` tardaba 64–80 s (más que `TIMEOUT_MS`).
+ */
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 const TIMEOUT_MS = 60_000;
 
 /** `data:image/jpeg;base64,…` → tipo y datos para `inlineData`. */

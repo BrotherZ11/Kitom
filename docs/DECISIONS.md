@@ -13,8 +13,10 @@ existían la Edge Function `ai-analysis-process` ni las pantallas. Sin cambios d
 - **Gemini (Google AI Studio)** por defecto: `generateContent` con `responseMimeType: application/json`
   y `responseJsonSchema` (el mismo esquema estricto), clave en la cabecera `x-goog-api-key`, 60 s de
   límite y sin `temperature` (Google recomienda el valor por defecto en Gemini 3). Modelo por defecto
-  `gemini-3.8-flash` (estable, con imagen y plan gratuito; la documentación lo recomienda junto a
-  `gemini-3.5-flash-lite` para proyectos nuevos), cambiable con `GEMINI_MODEL` sin tocar código. El
+  `gemini-3.5-flash-lite` (estable, con imagen y plan gratuito; la documentación lo recomienda para
+  proyectos nuevos junto a `gemini-3.8-flash`, que en la prueba real tardó 64–80 s por consulta incluso
+  con razonamiento bajo, por encima del límite de 60 s; flash-lite, unos 5 s), cambiable con
+  `GEMINI_MODEL` sin tocar código. El
   razonamiento se cuenta como salida. 400/401/402/403/404 → `ai_misconfigured`; 429, 5xx, bloqueo o
   respuesta cortada → `ai_unavailable`. OpenAI (Chat Completions con Structured Outputs) se mantiene
   como alternativa (`AI_PROVIDER=openai`); el proveedor es intercambiable (`providers.ts`).
@@ -42,10 +44,11 @@ existían la Edge Function `ai-analysis-process` ni las pantallas. Sin cambios d
 
 **Consecuencias.** Para usarlo en `kitom-dev`, David define `GEMINI_API_KEY` (y, si quiere `cost_usd`,
 `AI_INPUT_USD_PER_MTOK`/`AI_OUTPUT_USD_PER_MTOK`) y despliega la función. Probado en local con el
-simulador (integración y emulador) y con Gemini real: la clave entregada es válida, pero su proyecto de
-AI Studio respondía 402 (prepago sin saldo), así que no se ha visto aún una orientación real de Gemini;
-la función lo registra como `failed` (`ai_misconfigured`) sin gastar cupo. Sin probar tampoco la subida
-de la foto (en local no hay buckets).
+simulador (integración y emulador) y con Gemini real (2026-10-23): orientación completa en ~2 s con
+`gemini-3.5-flash-lite`; un proyecto sin saldo (402) o una llamada que pasa de 60 s quedan como `failed`
+sin gastar cupo. Si la función no está desplegada o no responde, la fila se queda `pending` y **sí** cuenta
+en el cupo (regla del servidor: cuenta todo lo que no es `failed`). Sin probar la subida de la foto (en
+local no hay buckets).
 
 ## 2026-10-23 — Co-tutores en la app: gestión, invitaciones y configuración inicial
 

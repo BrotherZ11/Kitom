@@ -116,7 +116,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 (`index.ts` manejador, `guidance.ts` prompt y validación puros, `providers.ts` Gemini, OpenAI o simulador). Las otras
 tres siguen pendientes y la carpeta `edge-functions/` no está en el repo. Secretos de `ai-analysis-process`
 (los define el usuario con `supabase secrets set`): `GEMINI_API_KEY` obligatoria; opcionales
-`GEMINI_MODEL` (por defecto `gemini-3.8-flash`), `AI_PROVIDER` (`gemini` por defecto, `openai` con
+`GEMINI_MODEL` (por defecto `gemini-3.5-flash-lite`), `AI_PROVIDER` (`gemini` por defecto, `openai` con
 `OPENAI_API_KEY` y `OPENAI_MODEL`, o `mock`, que solo vale contra un Supabase local) y
 `AI_INPUT_USD_PER_MTOK`/`AI_OUTPUT_USD_PER_MTOK` (sin ellos `cost_usd` queda `NULL`). Respuestas: `401 not_authenticated`,
 `400 invalid_request`, `404 not_found`, `403 not_authorized`, `200 { status: 'completed' | 'failed' |
