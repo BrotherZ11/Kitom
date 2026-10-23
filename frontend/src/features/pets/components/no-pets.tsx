@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons';
 import { EmptyState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
+import { InvitationsEntry } from '@/features/co-owners/components/invitations-entry';
 import { t } from '@/i18n';
 
 /**
@@ -23,6 +24,8 @@ export function NoPetsScreen() {
         </>
       }>
       <EmptyState prominent title={t('home.noPets.title')} description={t('home.noPets.text')} />
+      {/* Quien llega invitado puede aceptar en vez de crear una mascota. */}
+      <InvitationsEntry />
     </Screen>
   );
 }

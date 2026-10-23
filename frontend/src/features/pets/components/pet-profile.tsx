@@ -140,6 +140,7 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
       : null;
   const openAchievements = () => router.push({ pathname: '/pets/[id]/achievements', params: { id: pet.id } });
   const openConsults = () => router.push({ pathname: '/pets/[id]/consult', params: { id: pet.id } });
+  const openCoOwners = () => router.push({ pathname: '/pets/[id]/co-owners', params: { id: pet.id } });
   const openAgenda = () => {
     // La agenda es la de la mascota activa: esta pasa a serlo.
     setActivePet(pet.id);
@@ -333,6 +334,15 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
                 title={t('pets.profile.consult')}
                 subtitle={t('pets.profile.consultText')}
                 onPress={openConsults}
+                divider
+              />
+            ) : null}
+            {serverPet ? (
+              <ListItem
+                icon={Users}
+                title={t('pets.profile.coTutors')}
+                subtitle={tf('pets.profile.coTutorsText', { name: pet.name })}
+                onPress={openCoOwners}
               />
             ) : null}
           </Section>
@@ -344,13 +354,6 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
           ) : null}
 
           <Section title={t('pets.profile.soon')}>
-            <ListItem
-              icon={Users}
-              title={t('pets.profile.coTutors')}
-              subtitle={tf('pets.profile.coTutorsText', { name: pet.name })}
-              trailing={<SoonMark />}
-              divider
-            />
             <ListItem
               icon={FileText}
               title={t('pets.profile.report')}
