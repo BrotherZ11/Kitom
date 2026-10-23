@@ -3,6 +3,40 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-23 — Orientación con IA: Edge Function con OpenAI y reglas de urgencia
+
+**Contexto.** El análisis orientativo con foto y señales (PRD §8.4) era la parte *Must* que faltaba. El
+esquema ya lo soporta (`request_ai_analysis`, cupo, `claim_ai_analysis_for_processing`, feedback), pero no
+existían la Edge Function `ai-analysis-process` ni las pantallas. Sin cambios de esquema.
+
+**Decisiones** (proveedor elegido por David, 2026-10-23).
+- **OpenAI**, Chat Completions con Structured Outputs (`json_schema` estricto), temperatura 0.2, imagen
+  con `detail: low` y 60 s de límite. El modelo va en el secreto `OPENAI_MODEL`, no en el código. El
+  proveedor es intercambiable (`providers.ts`).
+- **La función se autoriza sola** (JWT → uid → parámetros → `requested_by` → `service_role` → reclamar
+  la fila). Una fila `processing` de más de 3 min se marca `failed` (`timeout`) para poder reintentar.
+- **Datos mínimos al proveedor**: especie, raza, edad en meses, sexo, esterilizado, peso, enfermedades y
+  alergias, señales, registros de 7 días (30 con historial completo) y la foto. Ningún nombre. La
+  intro lo dice antes de enviar.
+- **Salida validada en el servidor**: nivel conocido, máximo 4 causas y 5 recomendaciones de 240
+  caracteres, y se descarta toda frase con «diagnóstico». Si no queda nada útil, `failed` (no gasta
+  cupo).
+- **Suelo de urgencia por reglas**: decaimiento + falta de apetito, o herida + decaimiento, nunca por
+  debajo de `consult_soon`. El mínimo se le indica al modelo en el prompt y, si aun así hay que subir el
+  nivel, se antepone una recomendación acorde (para que no diga «vigila unos días» junto a «pide cita»).
+- **Borrador**: `PROMPT_VERSION = 'draft-2026-10-23'`. El prompt y las reglas deben revisarlos un
+  veterinario antes de abrirlo a usuarios.
+- **Simulador** (`AI_PROVIDER=mock`): solo se acepta si `SUPABASE_URL` es local; permite probar de punta
+  a punta sin clave ni coste.
+- **Frontend**: polling de la fila (sin Realtime) y una reinvocación si sigue `pending`; límite del plan
+  gratuito con pantalla propia, sin paywall («esperar a Premium»); urgencias cercanas como búsqueda en
+  mapas (no hay clínica propia guardada).
+
+**Consecuencias.** Para usarlo en `kitom-dev`, David define `OPENAI_API_KEY` y `OPENAI_MODEL` (y, si
+quiere `cost_usd`, los precios por millón de tokens) y despliega la función; cada consulta tiene coste.
+Probado en local con el simulador (pruebas de integración y emulador). Sin probar: la llamada real a
+OpenAI y la subida de la foto (en local no hay buckets).
+
 ## 2026-10-23 — Avisos exactos en Android con un módulo nativo local
 
 **Contexto.** Los avisos de la agenda se programaban como alarmas inexactas (ventana de hasta 1 h): para

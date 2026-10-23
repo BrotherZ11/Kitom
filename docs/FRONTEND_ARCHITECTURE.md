@@ -47,6 +47,7 @@ Destinos lógicos. **Implementado (diseño v2, F2–F5)** con Expo Router; las U
 ├── setup/profile · setup/disclaimer (`?review=1` solo lectura) · setup/privacy · setup/pet-created
 ├── pets/index, pets/new (`?setup=1` en la configuración inicial), pets/[id] (perfil), pets/[id]/edit
 ├── pets/[id]/achievements              logros y racha
+├── pets/[id]/consult · consult/new · consult/[analysisId]   orientación con IA (lista, asistente, resultado)
 ├── pets/[id]/daily-log                 registro de hoy (modal a pantalla completa)
 ├── pets/[id]/daily-logs                historial de esa mascota
 ├── pets/[id]/daily-logs/[date]         detalle del día; `?edit=1` lo edita
@@ -425,13 +426,30 @@ en `history-view.ts`.
 - **Edge Function:** `ai-analysis-process(analysis_id)`, invocada justo después de que el RPC devuelva el `analysis_id`. **Importante para frontend:** esta llamada NO es un mero "disparo y olvido" confiando en que `request_ai_analysis()` ya autorizó todo — la Edge Function vuelve a validar el JWT y `requested_by` por su cuenta en cada invocación; si el frontend la reintenta o la llama para un `analysis_id` ajeno, recibirá `403 not_authorized`
 - **Storage:** `pet-photos` (insert, antes de llamar al RPC)
 
+**Implementado (2026-10-23)** en `features/ai-analysis/` y `(app)/pets/[id]/consult/*`. Entradas: botón
+del estetoscopio en Hoy (si puede editar la mascota) y «Consultar con una foto» en el perfil.
+- **Asistente** (`consult/new`): intro con el cupo («N de 3 este mes»), qué se envía al proveedor y
+  señales de urgencia; foto opcional (`pet-photos/{pet_id}/{uuid}.jpg`, subida solo al enviar), señales
+  de la especie (al menos una) y revisión. Sin cupo: pantalla de límite con la fecha en que vuelve
+  (sin paywall: Premium aún no existe). Errores de `request_ai_analysis` según el mensaje
+  (`ai-analysis-model.ts › toRequestErrorCode`).
+- **Resultado** (`consult/[analysisId]`): polling de la fila cada 2 s mientras no sea terminal; si sigue
+  `pending` a los 8 s se reinvoca la función una vez (el servidor no reprocesa) y a los 60 s se ofrece
+  reintentar. Nivel con color + icono + texto; en `urgent`, primero «Urgencias veterinarias cercanas»
+  (búsqueda en mapas); aviso informativo siempre visible; valoración solo para quien la pidió; en
+  `consult_soon`/`urgent`, «Añadir la cita a la agenda» (`reminders/new?type=appointment`). `failed`:
+  reintento con las mismas señales y `photo_path` (gasta cupo solo si se completa).
+- **Lista** (`consult`): todas las consultas de la mascota (cualquier miembro), con nivel o estado.
+- Todo necesita conexión y una mascota ya creada en el servidor (`ConsultGate`).
+
 ### AchievementsScreen
 **Implementado (2026-10-21)**: `pets/[id]/achievements` (entrada desde el perfil y la tarjeta de racha).
 - **READ:** `pet_achievements` (`achievement_id`, `earned_at`), `achievements_catalog`
   (`id, code, sort_order, criteria`) y `catalog_translations` (`entity_type='achievement'`, `title` y
   `description`), `pet_streaks` y la semana del historial combinado.
-- **Progreso** (`achievements-model.ts`, puro): rachas con `actual/días`; los recuentos de métricas que
-  aún no existen en la app (p. ej. `ai_analysis_requests`) se marcan «Próximamente».
+- **Progreso** (`achievements-model.ts`, puro): rachas con `actual/días`; recuentos medibles
+  (`daily_logs`, `ai_analysis_requests`) por conseguir o conseguidos; los de métricas que aún no existen
+  en la app se marcan «Próximamente».
 - **WRITE:** ninguna — se otorgan solos en el backend
 
 ### CoOwnersScreen

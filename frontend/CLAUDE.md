@@ -116,6 +116,10 @@ error y «sin mascotas».
   `android/build` está ignorado; cambiarlo exige una build nativa nueva),
   `src/features/achievements/` y `(app)/settings/*`. Contratos: `docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4
   y §7. Errores genéricos de servidor: `src/lib/server-errors.ts`.
+- Orientación con IA (2026-10-23): `src/features/ai-analysis/` (modelo puro `ai-analysis-model.ts`,
+  `api/`, `hooks/`, `components/` con `ConsultGate` y las piezas del resultado) y rutas
+  `(app)/pets/[id]/consult/*`. La app nunca llama al proveedor: solo `request_ai_analysis` y
+  `functions.invoke('ai-analysis-process')`. Aviso informativo en cada resultado (`ConsultDisclaimer`).
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
   `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`
@@ -239,7 +243,9 @@ BOM; git lo trata como binario y ESLint falla ("File appears to be binary"). Com
 ## Rutas tipadas
 
 `typedRoutes` genera `.expo/types/router.d.ts` (ignorado por git) al arrancar `npx expo start`.
-Si `tsc` falla con rutas nuevas, arrancar el dev server una vez para regenerarlo.
+Si `tsc` falla con rutas nuevas, arrancar el dev server una vez para regenerarlo. Con Metro ya
+arrancado, el regenerado incremental puede dejar rutas erróneas (`.../index`, archivos de `features/`):
+reiniciar Metro lo regenera entero.
 
 ## Arquitectura objetivo (fuente: docs/FRONTEND_ARCHITECTURE.md)
 

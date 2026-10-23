@@ -67,8 +67,8 @@
   con 2+ filas hijas.
 - Lección upsert: PostgREST hace `ON CONFLICT DO UPDATE SET` de todas las columnas enviadas, así que
   necesita UPDATE sobre las columnas inmutables. En tablas con GRANT por columna, usar una RPC.
-- Edge Functions: **pendientes**. No existe `supabase/functions/` y la carpeta `edge-functions/` que
-  citan los docs no está en el repo.
+- Edge Functions: `functions/ai-analysis-process/` implementada (ver abajo); las demás, **pendientes**
+  (la carpeta `edge-functions/` que citan los docs no está en el repo).
 - Esquema v2.2.1 **congelado**: solo cambia por bugs reales detectados construyendo el frontend.
 
 ## Congelado (no tocar sin aprobación explícita + migración nueva)
@@ -109,8 +109,14 @@ solo en local (`supabase start`/`db reset` local); en `kitom-dev` lo ejecuta el 
    `npx supabase gen types typescript --linked --schema public > frontend/src/types/database.types.ts`
 7. Actualizar `docs/README.md` / `docs/FRONTEND_ARCHITECTURE.md` si cambia el contrato. PR propio.
 
-## Edge Functions (futuras: `supabase/functions/<nombre>/index.ts`)
-`ai-analysis-process`, `generate-pet-report`, `delete-account`, `revenuecat-webhook`.
+## Edge Functions (`supabase/functions/<nombre>/index.ts`)
+Hecha: `ai-analysis-process`. Pendientes: `generate-pet-report`, `delete-account`, `revenuecat-webhook`.
 Orden obligatorio: validar JWT → `auth.uid()` del JWT (nunca del body) → validar parámetros →
 re-autorizar contra la BD → solo entonces `service_role`. Bucket hardcodeado, nunca del cliente.
-Proveedor de IA intercambiable. Secretos vía `supabase secrets set`, ejecutado por el usuario.
+Proveedor de IA intercambiable. Secretos vía `supabase secrets set` y despliegue con `functions deploy`:
+los ejecuta el usuario (bloqueados para Claude).
+- Lógica pura en módulos sin imports de Deno (p. ej. `guidance.ts`), probada con
+  `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON supabase/functions/ai-analysis-process/guidance.test.mjs`.
+- Probar en local sin clave ni coste: archivo de entorno fuera del repo con `AI_PROVIDER=mock` y
+  `npx supabase functions serve ai-analysis-process --env-file <archivo>` (el simulador se niega si
+  `SUPABASE_URL` no es local). Nunca poner claves reales en archivos del repo.

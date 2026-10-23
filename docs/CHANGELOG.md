@@ -5,6 +5,17 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-23
 
+- Orientación con IA (rama `feat/ai-guidance`, sin cambios de esquema): Edge Function
+  `ai-analysis-process` (OpenAI con salida JSON estricta, validación sin «diagnóstico», suelo de urgencia
+  por señales y simulador solo en local) y pantallas de consulta: asistente con foto opcional y señales,
+  resultado por nivel con aviso, urgencias cercanas, valoración y cita en la agenda, consultas
+  anteriores y pantalla de límite del plan gratuito. Entradas en Hoy y en el perfil de la mascota. La
+  insignia «Primera consulta con foto» deja de ser «Próximamente». Prompt y reglas: borrador pendiente
+  de validación veterinaria. Decisión en `DECISIONS.md`; contratos en `README.md` §8–9 y
+  `FRONTEND_ARCHITECTURE.md` §1 y §4.
+- Corregido (Android): un botón que pasaba de `secondary` a `primary` ya montado se quedaba sin icono
+  ni texto (al quitar su borde). `Button` fija siempre `borderWidth`.
+
 - Avisos exactos en Android: si los avisos de Kitom pueden retrasarse (sin «Alarmas y recordatorios»), la
   Agenda y Ajustes › Notificaciones lo dicen y llevan a ese ajuste; al concederlo, todos los avisos se
   reprograman para llegar a su hora. Permiso `SCHEDULE_EXACT_ALARM` y módulo nativo local

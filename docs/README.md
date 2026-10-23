@@ -110,6 +110,15 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 >
 > El código de referencia de las tres funciones está en `edge-functions/` dentro de esta misma carpeta.
 
+**Estado (2026-10-23):** `ai-analysis-process` está implementada en `supabase/functions/ai-analysis-process/`
+(`index.ts` manejador, `guidance.ts` prompt y validación puros, `providers.ts` OpenAI o simulador). Las otras
+tres siguen pendientes y la carpeta `edge-functions/` no está en el repo. Secretos de `ai-analysis-process`
+(los define el usuario con `supabase secrets set`): `OPENAI_API_KEY` y `OPENAI_MODEL` obligatorios;
+`OPENAI_INPUT_USD_PER_MTOK` y `OPENAI_OUTPUT_USD_PER_MTOK` opcionales (sin ellos `cost_usd` queda `NULL`);
+`AI_PROVIDER=mock` solo vale contra un Supabase local. Respuestas: `401 not_authenticated`,
+`400 invalid_request`, `404 not_found`, `403 not_authorized`, `200 { status: 'completed' | 'failed' |
+'already_processing_or_done' }`. Una fila `processing` de más de 3 min se marca `failed` (`timeout`).
+
 **Protección contra doble procesamiento de IA:** `ai-analysis-process` reclama el análisis de forma atómica antes de procesarlo (`claim_ai_analysis_for_processing()`: `UPDATE ... SET status='processing' WHERE status='pending'`, backend-only). Si dos invocaciones llegan casi a la vez para el mismo `analysis_id`, como mucho una consigue el cambio de estado — la otra recibe `false` y no vuelve a llamar al proveedor de IA ni a cobrar coste. `ai_request_status` pasa a tener 4 valores: `pending → processing → completed|failed`.
 
 ## 9. Flujo de IA
@@ -126,6 +135,8 @@ Mobile: sube foto a Storage (pet-photos/{pet_id}/{uuid})
       — reclama el análisis de forma atómica: pending -> processing
       — llama al proveedor de IA, actualiza status/urgency_level/
         recommendations/cost_usd/... con service_role -> completed | failed
+      — valida la salida (nunca «diagnóstico») y aplica el suelo de urgencia
+        por combinaciones de señales (borrador pendiente de validación veterinaria)
   ↓ Mobile hace poll o se suscribe (Realtime) a esa fila hasta ver
     status != 'pending' y status != 'processing'
   ↓ opcional: rpc('submit_ai_feedback', { analysis_id, feedback })
@@ -244,5 +255,5 @@ El bucket nunca viaja como parámetro desde el cliente — cada Edge Function y 
 - `catalog_translations` es una asociación polimórfica: Postgres no puede garantizar una FK real hacia la tabla correcta según `entity_type`; la integridad depende del seed/backend.
 - No existe `received_at` separado de `occurred_at` en `subscription_events`.
 - `organizations` es solo estructura, sin ningún flujo de producto construido encima.
-- Las implementaciones de `callAiProvider()` (en `ai-analysis-process`) y `generatePdf()` (en `generate-pet-report`) son contratos definidos, pendientes de la integración real con el proveedor de IA y la librería de generación de PDF respectivamente — fuera de alcance de una revisión de arquitectura de base de datos.
+- `generatePdf()` (en `generate-pet-report`) es un contrato definido, pendiente de la librería de generación de PDF. El proveedor de IA de `ai-analysis-process` ya está integrado (OpenAI, 2026-10-23); su prompt y las reglas de urgencia son un borrador a validar por un veterinario (`docs/DECISIONS.md`).
 - Ver `CHANGELOG_v2.2.1.md` y `CHANGELOG_v2.2.md` para el historial completo de decisiones.
