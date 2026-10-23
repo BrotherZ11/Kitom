@@ -5,6 +5,11 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-23
 
+- Co-tutores (rama `feat/co-owners`): «Co-tutores» en el perfil de la mascota (titular y co-tutores,
+  invitar por email con permiso «Solo ver» o «Puede editar», cambiar el permiso y quitar el acceso),
+  invitaciones recibidas con aceptar/rechazar (aviso en Hoy y en «sin mascotas») y, en la configuración
+  inicial, aceptar una invitación en lugar de crear una mascota. Tipos de las tres RPC nuevas añadidos.
+  Decisión en `DECISIONS.md`; contrato en `FRONTEND_ARCHITECTURE.md` §1 y §4 (CoOwnersScreen).
 - Orientación con IA (rama `feat/ai-guidance`, sin cambios de esquema): Edge Function
   `ai-analysis-process` (Gemini de Google AI Studio con salida JSON por esquema; OpenAI como
   alternativa; validación sin «diagnóstico», suelo de urgencia

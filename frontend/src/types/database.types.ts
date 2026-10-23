@@ -1106,10 +1106,41 @@ export type Database = {
           would_use_full_history: boolean
         }[]
       }
+      get_my_pet_invitations: {
+        Args: never
+        Returns: {
+          invitation_id: string
+          invited_at: string
+          invited_by_name: string
+          pet_id: string
+          pet_name: string
+          role: Database["public"]["Enums"]["co_owner_role"]
+        }[]
+      }
+      get_pet_members: {
+        Args: { target_pet_id: string }
+        Returns: {
+          accepted_at: string
+          full_name: string
+          invitation_id: string
+          invited_at: string
+          role: Database["public"]["Enums"]["co_owner_role"]
+          status: Database["public"]["Enums"]["co_owner_status"]
+          user_id: string
+        }[]
+      }
       invite_pet_member: {
         Args: {
           initial_role?: Database["public"]["Enums"]["co_owner_role"]
           invitee_user_id: string
+          target_pet_id: string
+        }
+        Returns: undefined
+      }
+      invite_pet_member_by_email: {
+        Args: {
+          initial_role?: Database["public"]["Enums"]["co_owner_role"]
+          invitee_email: string
           target_pet_id: string
         }
         Returns: undefined

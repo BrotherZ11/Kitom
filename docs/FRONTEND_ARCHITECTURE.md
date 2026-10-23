@@ -48,6 +48,8 @@ Destinos lógicos. **Implementado (diseño v2, F2–F5)** con Expo Router; las U
 ├── pets/index, pets/new (`?setup=1` en la configuración inicial), pets/[id] (perfil), pets/[id]/edit
 ├── pets/[id]/achievements              logros y racha
 ├── pets/[id]/consult · consult/new · consult/[analysisId]   orientación con IA (lista, asistente, resultado)
+├── pets/[id]/co-owners · co-owners/invite   co-tutores de la mascota e invitar por email
+├── invitations (`?setup=1` en la configuración inicial)   invitaciones recibidas
 ├── pets/[id]/daily-log                 registro de hoy (modal a pantalla completa)
 ├── pets/[id]/daily-logs                historial de esa mascota
 ├── pets/[id]/daily-logs/[date]         detalle del día; `?edit=1` lo edita
@@ -460,6 +462,24 @@ del estetoscopio en Hoy (si puede editar la mascota) y «Consultar con una foto�
   igual exista o no la cuenta: decir «Si tiene cuenta en Kitom, le llegará la invitación»), `accept_pet_invitation`,
   `decline_pet_invitation`, `revoke_pet_invitation`, `change_pet_member_role`. Errores: `hint` `not_pet_owner`,
   `invalid_email`, `not_pet_member`
+
+**Implementado (2026-10-23)** en `features/co-owners/` y las rutas `pets/[id]/co-owners`, `pets/[id]/co-owners/invite`
+e `invitations`. Entrada: «Co-tutores» en el perfil de la mascota.
+- **Lista** (todos los miembros la ven): titular («Tú» o «Titular»: su nombre no es legible por RLS) y
+  co-tutores aceptados y pendientes. Solo quien es titular ve «Invitar a alguien» y, al tocar a alguien,
+  «Permitir editar» / «Cambiar a solo ver» (solo aceptados) y «Quitar acceso» / «Anular invitación» con
+  confirmación. Ser titular solo decide qué se ofrece (`pets.owner_id`); el servidor lo vuelve a comprobar.
+- **Invitar**: email (comprobación previa mínima) y permiso («Solo ver» = `viewer`, «Puede editar» =
+  `editor`). Tras enviar: «Si … tiene cuenta en Kitom, verá la invitación al abrir la app» (no se envían
+  correos).
+- **Invitaciones recibidas**: aviso en Hoy y en «sin mascotas», pantalla con aceptar/rechazar. Al aceptar
+  se vuelve a pedir la lista de mascotas. En la configuración inicial, quien no tiene mascotas pero sí
+  invitaciones va a `invitations?setup=1` (puede aceptar y terminar, o añadir su mascota).
+- Errores por `hint` o, en las RPC anteriores sin `hint`, por el mensaje (`co-owners-model.ts ›
+  toCoOwnerErrorCode`). Todo necesita conexión y una mascota creada en el servidor (`CoOwnersGate`).
+- Sin límite por plan en la app: el PRD reserva los co-tutores a Premium, pero el servidor no lo exige y
+  el cliente no decide el plan (decisión pendiente en `docs/DECISIONS.md`). Un co-tutor no puede dejar una
+  mascota por sí mismo (no hay RPC).
 
 ### OwnershipTransferScreen
 - **READ:** `pets`, `pet_co_owners` (co-tutores aceptados, candidatos a nuevo propietario)

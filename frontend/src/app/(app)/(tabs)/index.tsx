@@ -13,6 +13,7 @@ import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
 import { useToast } from '@/components/ui/toast';
 import { OfflineSessionNotice } from '@/features/auth/components/offline-session-notice';
+import { InvitationsEntry } from '@/features/co-owners/components/invitations-entry';
 import { DayCard } from '@/features/daily-logs/components/day-card';
 import { UnsyncedDailyLogsEntry } from '@/features/daily-logs/components/unsynced-entry';
 import { EvolutionCard, WeekSummary } from '@/features/daily-logs/components/week-summary';
@@ -106,6 +107,8 @@ function PetToday({ pet }: { pet: Pet }) {
       <OfflineSessionNotice />
       {/* Registros con cambios solo en el dispositivo, también de mascotas que ya no se ven. */}
       <UnsyncedDailyLogsEntry />
+      {/* Invitaciones para cuidar mascotas de otras personas. */}
+      <InvitationsEntry />
       {content()}
       <PetSelectorSheet visible={selectorOpen} onClose={() => setSelectorOpen(false)} />
     </Screen>

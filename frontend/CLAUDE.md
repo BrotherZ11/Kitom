@@ -120,6 +120,8 @@ error y «sin mascotas».
   `api/`, `hooks/`, `components/` con `ConsultGate` y las piezas del resultado) y rutas
   `(app)/pets/[id]/consult/*`. La app nunca llama al proveedor: solo `request_ai_analysis` y
   `functions.invoke('ai-analysis-process')`. Aviso informativo en cada resultado (`ConsultDisclaimer`).
+- Co-tutores (2026-10-23): `src/features/co-owners/` (modelo puro `co-owners-model.ts`, `api/` solo con RPC,
+  `hooks/`, `CoOwnersGate` e `InvitationsEntry`) y rutas `(app)/pets/[id]/co-owners/*` e `(app)/invitations`.
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
   `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`

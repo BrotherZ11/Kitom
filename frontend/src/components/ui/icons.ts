@@ -62,6 +62,8 @@ export { default as Trash } from 'lucide-react-native/icons/trash';
 export { default as TriangleAlert } from 'lucide-react-native/icons/triangle-alert';
 export { default as Trophy } from 'lucide-react-native/icons/trophy';
 export { default as User } from 'lucide-react-native/icons/user';
+export { default as UserMinus } from 'lucide-react-native/icons/user-minus';
+export { default as UserPlus } from 'lucide-react-native/icons/user-plus';
 export { default as Users } from 'lucide-react-native/icons/users';
 export { default as WifiOff } from 'lucide-react-native/icons/wifi-off';
 export { default as X } from 'lucide-react-native/icons/x';
