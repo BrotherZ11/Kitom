@@ -14,10 +14,11 @@
 //     (claim_ai_analysis_for_processing), lee el contexto, llama a la IA y
 //     guarda el resultado. Un fallo deja status = 'failed' (no gasta cupo).
 //
-// Variables (supabase secrets set, las pone el usuario): OPENAI_API_KEY,
-// OPENAI_MODEL (modelo con visión), opcionales AI_PROVIDER (openai | mock,
-// mock solo en local), OPENAI_INPUT_USD_PER_MTOK y
-// OPENAI_OUTPUT_USD_PER_MTOK (para cost_usd). SUPABASE_URL,
+// Variables (supabase secrets set, las pone el usuario): GEMINI_API_KEY y,
+// opcionales, GEMINI_MODEL (por defecto DEFAULT_GEMINI_MODEL), AI_PROVIDER
+// (gemini | openai | mock; mock solo en local; openai usa OPENAI_API_KEY y
+// OPENAI_MODEL), AI_INPUT_USD_PER_MTOK y AI_OUTPUT_USD_PER_MTOK (para
+// cost_usd). SUPABASE_URL,
 // SUPABASE_ANON_KEY y SUPABASE_SERVICE_ROLE_KEY las da la plataforma.
 // =====================================================================
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.117.2';
@@ -269,8 +270,8 @@ Deno.serve(async (req) => {
         ai_model: response.model,
         prompt_version: PROMPT_VERSION,
         cost_usd: estimateCostUsd(response.usage, {
-          inputPerMillion: numberEnv('OPENAI_INPUT_USD_PER_MTOK'),
-          outputPerMillion: numberEnv('OPENAI_OUTPUT_USD_PER_MTOK'),
+          inputPerMillion: numberEnv('AI_INPUT_USD_PER_MTOK'),
+          outputPerMillion: numberEnv('AI_OUTPUT_USD_PER_MTOK'),
         }),
         latency_ms: Date.now() - started,
         error_message: null,

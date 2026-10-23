@@ -1,8 +1,8 @@
 import { GUIDANCE_JSON_SCHEMA } from './guidance.ts';
 
 /**
- * Proveedores de IA intercambiables (PRD §10 y §16). Se elige con `AI_PROVIDER` (`openai` por defecto).
- * `mock` devuelve una respuesta fija y solo se permite contra un Supabase local (pruebas sin coste).
+ * Proveedores de IA intercambiables (PRD §10 y §16). Se elige con `AI_PROVIDER`: `gemini` (por defecto,
+ * Google AI Studio), `openai` o `mock` (respuesta fija, solo contra un Supabase local: pruebas sin coste).
  */
 
 export type ProviderRequest = {
@@ -36,7 +36,86 @@ export class ProviderError extends Error {
 export type Provider = (request: ProviderRequest) => Promise<ProviderResponse>;
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+/** Modelo de Gemini si no se define `GEMINI_MODEL` (estable, con imagen y salida JSON por esquema). */
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
 const TIMEOUT_MS = 60_000;
+
+/** `data:image/jpeg;base64,…` → tipo y datos para `inlineData`. */
+function splitDataUrl(dataUrl: string): { mimeType: string; data: string } | null {
+  const match = /^data:([^;,]+);base64,(.+)$/.exec(dataUrl);
+  return match ? { mimeType: match[1], data: match[2] } : null;
+}
+
+/** Código del proveedor según el estado HTTP: clave, saldo, modelo o petición mal configurados, o caída. */
+function httpErrorCode(status: number): 'ai_unavailable' | 'ai_misconfigured' {
+  return [400, 401, 402, 403, 404].includes(status) ? 'ai_misconfigured' : 'ai_unavailable';
+}
+
+function geminiProvider(apiKey: string, model: string): Provider {
+  return async ({ system, user, imageDataUrl }) => {
+    const parts: unknown[] = [{ text: user }];
+    const image = imageDataUrl ? splitDataUrl(imageDataUrl) : null;
+    if (image) parts.push({ inlineData: image });
+    let response: Response;
+    try {
+      response = await fetch(`${GEMINI_URL}/${encodeURIComponent(model)}:generateContent`, {
+        method: 'POST',
+        headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        // Sin `temperature`: en los modelos Gemini 3 Google recomienda dejar el valor por defecto.
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: 'user', parts }],
+          generationConfig: { responseMimeType: 'application/json', responseJsonSchema: GUIDANCE_JSON_SCHEMA },
+        }),
+      });
+    } catch (error) {
+      throw new ProviderError('ai_unavailable', `gemini_request_failed: ${(error as Error).name}`);
+    }
+    if (!response.ok) {
+      // Solo el estado (p. ej. RESOURCE_EXHAUSTED); el cuerpo puede repetir datos de la petición.
+      let status = '';
+      try {
+        status = String((await response.json())?.error?.status ?? '');
+      } catch {
+        status = '';
+      }
+      throw new ProviderError(httpErrorCode(response.status), `gemini_http_${response.status}${status ? `_${status}` : ''}`);
+    }
+    const body = await response.json();
+    if (body?.promptFeedback?.blockReason) throw new ProviderError('ai_unavailable', `gemini_blocked_${body.promptFeedback.blockReason}`);
+    const candidate = body?.candidates?.[0];
+    const finishReason = candidate?.finishReason ?? null;
+    if (finishReason && finishReason !== 'STOP') throw new ProviderError('ai_unavailable', `gemini_finish_${finishReason}`);
+    // Las partes de razonamiento (`thought`) no son la respuesta.
+    const text = ((candidate?.content?.parts ?? []) as { text?: string; thought?: boolean }[])
+      .filter((part) => typeof part.text === 'string' && !part.thought)
+      .map((part) => part.text)
+      .join('');
+    let output: unknown = null;
+    try {
+      output = JSON.parse(text || 'null');
+    } catch {
+      output = null;
+    }
+    const meta = body?.usageMetadata;
+    // El razonamiento se cobra como salida.
+    const usage = meta
+      ? {
+          inputTokens: Number(meta.promptTokenCount ?? 0),
+          outputTokens: Number(meta.candidatesTokenCount ?? 0) + Number(meta.thoughtsTokenCount ?? 0),
+        }
+      : null;
+    return {
+      provider: 'gemini',
+      model: String(body?.modelVersion ?? model),
+      output,
+      usage,
+      raw: { id: body?.responseId ?? null, model: body?.modelVersion ?? model, finish_reason: finishReason, output, usage: meta ?? null },
+    };
+  };
+}
 
 function openAiProvider(apiKey: string, model: string): Provider {
   return async ({ system, user, imageDataUrl }) => {
@@ -65,9 +144,7 @@ function openAiProvider(apiKey: string, model: string): Provider {
       throw new ProviderError('ai_unavailable', `openai_request_failed: ${(error as Error).name}`);
     }
     if (!response.ok) {
-      // 401/403/404: clave o modelo mal configurados; el resto, indisponibilidad.
-      const code = [401, 403, 404].includes(response.status) ? 'ai_misconfigured' : 'ai_unavailable';
-      throw new ProviderError(code, `openai_http_${response.status}`);
+      throw new ProviderError(httpErrorCode(response.status), `openai_http_${response.status}`);
     }
     const body = await response.json();
     const choice = body?.choices?.[0];
@@ -120,10 +197,15 @@ function isLocalSupabase(url: string | undefined): boolean {
 
 /** Proveedor según el entorno. Los fallos de configuración se dicen sin exponer valores. */
 export function providerFromEnv(env: { get(name: string): string | undefined }): Provider {
-  const name = (env.get('AI_PROVIDER') ?? 'openai').toLowerCase();
+  const name = (env.get('AI_PROVIDER') ?? 'gemini').toLowerCase();
   if (name === 'mock') {
     if (!isLocalSupabase(env.get('SUPABASE_URL'))) throw new ProviderError('ai_misconfigured', 'mock_provider_not_local');
     return mockProvider();
+  }
+  if (name === 'gemini') {
+    const apiKey = env.get('GEMINI_API_KEY');
+    if (!apiKey) throw new ProviderError('ai_misconfigured', 'gemini_env_missing');
+    return geminiProvider(apiKey, env.get('GEMINI_MODEL') || DEFAULT_GEMINI_MODEL);
   }
   if (name === 'openai') {
     const apiKey = env.get('OPENAI_API_KEY');
