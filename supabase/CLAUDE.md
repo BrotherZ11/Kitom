@@ -115,8 +115,8 @@ Orden obligatorio: validar JWT → `auth.uid()` del JWT (nunca del body) → val
 re-autorizar contra la BD → solo entonces `service_role`. Bucket hardcodeado, nunca del cliente.
 Proveedor de IA intercambiable. Secretos vía `supabase secrets set` y despliegue con `functions deploy`:
 los ejecuta el usuario (bloqueados para Claude).
-- Lógica pura en módulos sin imports de Deno (p. ej. `guidance.ts`), probada con
-  `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON supabase/functions/ai-analysis-process/guidance.test.mjs`.
+- Módulos sin imports de Deno (`guidance.ts`, `providers.ts` con `fetch` simulado), probados con
+  `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON supabase/functions/ai-analysis-process/*.test.mjs`.
 - Probar en local sin clave ni coste: archivo de entorno fuera del repo con `AI_PROVIDER=mock` y
   `npx supabase functions serve ai-analysis-process --env-file <archivo>` (el simulador se niega si
   `SUPABASE_URL` no es local). Nunca poner claves reales en archivos del repo.

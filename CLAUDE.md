@@ -32,8 +32,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - `organizations` / `organization_members` / `is_org_member()` (archivo 27 de `database/v2.2.1/`):
   **no desplegados** en el remoto. Fuera del MVP; no crear migración salvo petición expresa.
 - Edge Functions: `ai-analysis-process` implementada en `supabase/functions/` (rama `feat/ai-guidance`,
-  OpenAI; prompt y reglas en borrador hasta que los valide un veterinario). Para `kitom-dev` faltan los
-  secretos `OPENAI_API_KEY`/`OPENAI_MODEL` y el despliegue, ambos del usuario. `generate-pet-report`,
+  Gemini de Google AI Studio por defecto; prompt y reglas en borrador hasta que los valide un
+  veterinario). Para `kitom-dev` faltan el secreto `GEMINI_API_KEY` y el despliegue, ambos del usuario. `generate-pet-report`,
   `delete-account` y `revenuecat-webhook`: **pendientes**; la carpeta `edge-functions/` que citan los
   docs no está en el repo.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.

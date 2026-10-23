@@ -6,7 +6,8 @@ decisión permanece en su documento de referencia.
 ## 2026-10-23
 
 - Orientación con IA (rama `feat/ai-guidance`, sin cambios de esquema): Edge Function
-  `ai-analysis-process` (OpenAI con salida JSON estricta, validación sin «diagnóstico», suelo de urgencia
+  `ai-analysis-process` (Gemini de Google AI Studio con salida JSON por esquema; OpenAI como
+  alternativa; validación sin «diagnóstico», suelo de urgencia
   por señales y simulador solo en local) y pantallas de consulta: asistente con foto opcional y señales,
   resultado por nivel con aviso, urgencias cercanas, valoración y cita en la agenda, consultas
   anteriores y pantalla de límite del plan gratuito. Entradas en Hoy y en el perfil de la mascota. La

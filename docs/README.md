@@ -111,11 +111,12 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 > El código de referencia de las tres funciones está en `edge-functions/` dentro de esta misma carpeta.
 
 **Estado (2026-10-23):** `ai-analysis-process` está implementada en `supabase/functions/ai-analysis-process/`
-(`index.ts` manejador, `guidance.ts` prompt y validación puros, `providers.ts` OpenAI o simulador). Las otras
+(`index.ts` manejador, `guidance.ts` prompt y validación puros, `providers.ts` Gemini, OpenAI o simulador). Las otras
 tres siguen pendientes y la carpeta `edge-functions/` no está en el repo. Secretos de `ai-analysis-process`
-(los define el usuario con `supabase secrets set`): `OPENAI_API_KEY` y `OPENAI_MODEL` obligatorios;
-`OPENAI_INPUT_USD_PER_MTOK` y `OPENAI_OUTPUT_USD_PER_MTOK` opcionales (sin ellos `cost_usd` queda `NULL`);
-`AI_PROVIDER=mock` solo vale contra un Supabase local. Respuestas: `401 not_authenticated`,
+(los define el usuario con `supabase secrets set`): `GEMINI_API_KEY` obligatoria; opcionales
+`GEMINI_MODEL` (por defecto `gemini-3.8-flash`), `AI_PROVIDER` (`gemini` por defecto, `openai` con
+`OPENAI_API_KEY` y `OPENAI_MODEL`, o `mock`, que solo vale contra un Supabase local) y
+`AI_INPUT_USD_PER_MTOK`/`AI_OUTPUT_USD_PER_MTOK` (sin ellos `cost_usd` queda `NULL`). Respuestas: `401 not_authenticated`,
 `400 invalid_request`, `404 not_found`, `403 not_authorized`, `200 { status: 'completed' | 'failed' |
 'already_processing_or_done' }`. Una fila `processing` de más de 3 min se marca `failed` (`timeout`).
 
@@ -255,5 +256,5 @@ El bucket nunca viaja como parámetro desde el cliente — cada Edge Function y 
 - `catalog_translations` es una asociación polimórfica: Postgres no puede garantizar una FK real hacia la tabla correcta según `entity_type`; la integridad depende del seed/backend.
 - No existe `received_at` separado de `occurred_at` en `subscription_events`.
 - `organizations` es solo estructura, sin ningún flujo de producto construido encima.
-- `generatePdf()` (en `generate-pet-report`) es un contrato definido, pendiente de la librería de generación de PDF. El proveedor de IA de `ai-analysis-process` ya está integrado (OpenAI, 2026-10-23); su prompt y las reglas de urgencia son un borrador a validar por un veterinario (`docs/DECISIONS.md`).
+- `generatePdf()` (en `generate-pet-report`) es un contrato definido, pendiente de la librería de generación de PDF. El proveedor de IA de `ai-analysis-process` ya está integrado (Gemini, con OpenAI como alternativa; 2026-10-23); su prompt y las reglas de urgencia son un borrador a validar por un veterinario (`docs/DECISIONS.md`).
 - Ver `CHANGELOG_v2.2.1.md` y `CHANGELOG_v2.2.md` para el historial completo de decisiones.

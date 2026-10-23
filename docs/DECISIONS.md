@@ -3,16 +3,24 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
-## 2026-10-23 — Orientación con IA: Edge Function con OpenAI y reglas de urgencia
+## 2026-10-23 — Orientación con IA: Edge Function con Gemini y reglas de urgencia
 
 **Contexto.** El análisis orientativo con foto y señales (PRD §8.4) era la parte *Must* que faltaba. El
 esquema ya lo soporta (`request_ai_analysis`, cupo, `claim_ai_analysis_for_processing`, feedback), pero no
 existían la Edge Function `ai-analysis-process` ni las pantallas. Sin cambios de esquema.
 
-**Decisiones** (proveedor elegido por David, 2026-10-23).
-- **OpenAI**, Chat Completions con Structured Outputs (`json_schema` estricto), temperatura 0.2, imagen
-  con `detail: low` y 60 s de límite. El modelo va en el secreto `OPENAI_MODEL`, no en el código. El
-  proveedor es intercambiable (`providers.ts`).
+**Decisiones** (proveedor elegido por David, 2026-10-23: primero OpenAI, después Gemini).
+- **Gemini (Google AI Studio)** por defecto: `generateContent` con `responseMimeType: application/json`
+  y `responseJsonSchema` (el mismo esquema estricto), clave en la cabecera `x-goog-api-key`, 60 s de
+  límite y sin `temperature` (Google recomienda el valor por defecto en Gemini 3). Modelo por defecto
+  `gemini-3.8-flash` (estable, con imagen y plan gratuito; la documentación lo recomienda junto a
+  `gemini-3.5-flash-lite` para proyectos nuevos), cambiable con `GEMINI_MODEL` sin tocar código. El
+  razonamiento se cuenta como salida. 400/401/402/403/404 → `ai_misconfigured`; 429, 5xx, bloqueo o
+  respuesta cortada → `ai_unavailable`. OpenAI (Chat Completions con Structured Outputs) se mantiene
+  como alternativa (`AI_PROVIDER=openai`); el proveedor es intercambiable (`providers.ts`).
+- **Plan gratuito de Gemini**: según los precios de Google, el contenido del plan gratuito se usa para
+  mejorar sus productos. Vale para pruebas; antes de abrirlo a usuarios hay que pasar al plan de pago o
+  avisarlo en la política de privacidad (la app dice que la foto no se usa para nada más).
 - **La función se autoriza sola** (JWT → uid → parámetros → `requested_by` → `service_role` → reclamar
   la fila). Una fila `processing` de más de 3 min se marca `failed` (`timeout`) para poder reintentar.
 - **Datos mínimos al proveedor**: especie, raza, edad en meses, sexo, esterilizado, peso, enfermedades y
@@ -32,10 +40,12 @@ existían la Edge Function `ai-analysis-process` ni las pantallas. Sin cambios d
   gratuito con pantalla propia, sin paywall («esperar a Premium»); urgencias cercanas como búsqueda en
   mapas (no hay clínica propia guardada).
 
-**Consecuencias.** Para usarlo en `kitom-dev`, David define `OPENAI_API_KEY` y `OPENAI_MODEL` (y, si
-quiere `cost_usd`, los precios por millón de tokens) y despliega la función; cada consulta tiene coste.
-Probado en local con el simulador (pruebas de integración y emulador). Sin probar: la llamada real a
-OpenAI y la subida de la foto (en local no hay buckets).
+**Consecuencias.** Para usarlo en `kitom-dev`, David define `GEMINI_API_KEY` (y, si quiere `cost_usd`,
+`AI_INPUT_USD_PER_MTOK`/`AI_OUTPUT_USD_PER_MTOK`) y despliega la función. Probado en local con el
+simulador (integración y emulador) y con Gemini real: la clave entregada es válida, pero su proyecto de
+AI Studio respondía 402 (prepago sin saldo), así que no se ha visto aún una orientación real de Gemini;
+la función lo registra como `failed` (`ai_misconfigured`) sin gastar cupo. Sin probar tampoco la subida
+de la foto (en local no hay buckets).
 
 ## 2026-10-23 — Avisos exactos en Android con un módulo nativo local
 
