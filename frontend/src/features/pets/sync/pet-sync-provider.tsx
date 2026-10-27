@@ -8,12 +8,15 @@ import { createDailyLogSyncSessions } from '@/features/daily-logs/offline/daily-
 import { connectSyncTriggers } from '@/features/daily-logs/offline/sync-triggers';
 import { createPetWritesRemote } from '@/features/pets/api/pet-writes-remote';
 import { petCacheFor } from '@/features/pets/offline/device-pet-cache';
+import { petPhotoOpsFor } from '@/features/pets/offline/device-pet-photo-ops';
 import { createPetOperationRepository, type PetOperationRepository } from '@/features/pets/offline/pet-operation-repository';
 import { createPetSyncEngine, type PetSyncEngine } from '@/features/pets/offline/pet-sync-engine';
+import { processPhotoJournal } from '@/features/pets/pet-photo-ops';
 import { petKeys } from '@/features/pets/query-keys';
 import { createOperationId } from '@/lib/device-operation-id';
 import { deviceStorage } from '@/lib/local-store/device-storage';
 import { createLocalStore } from '@/lib/local-store/local-store';
+import { singleFlight } from '@/lib/single-flight';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -25,7 +28,11 @@ import { supabase } from '@/lib/supabase';
  * - Cada envío va autorizado con el token de la sesión del dueño (`createOwnerAccessToken`).
  * - Lo que termina después de un cambio de cuenta se guarda en los almacenes de su dueño, pero no toca
  *   la caché ni la interfaz de la cuenta nueva (`isCurrentUser`).
- * Contrato: `docs/FRONTEND_ARCHITECTURE.md` §5 «Pets: altas y ediciones sin conexión (fase 8)».
+ * Además (fase 10) resuelve el diario de fotos del usuario (`pet-photo-ops.ts`): objetos que una
+ * operación de foto no pudo cerrar. Solo con la sesión de ese usuario y con conexión, con los mismos
+ * disparadores que el motor; nunca borra un objeto que `photo_path` siga usando.
+ * Contrato: `docs/FRONTEND_ARCHITECTURE.md` §5 «Pets: altas y ediciones sin conexión (fase 8)» y
+ * «Pets: eliminación sin conexión y fotos (fase 10)».
  */
 
 type PetSync = { userId: string; operations: PetOperationRepository; engine: PetSyncEngine };
@@ -98,6 +105,27 @@ function PetSyncSession({ userId, children }: PropsWithChildren<{ userId: string
     value.engine.setSessionUserId(session?.user.id ?? null);
     if (session) void value.engine.requestSync();
   }, [session, value]);
+
+  // Diario de fotos: una pasada a la vez, solo con la sesión de este usuario.
+  const sessionUserId = session?.user.id ?? null;
+  useEffect(() => {
+    if (sessionUserId !== userId) return;
+    const deps = petPhotoOpsFor(userId);
+    const run = singleFlight(() =>
+      processPhotoJournal({ ...deps, canRun: () => isCurrentUser(userId) && onlineManager.isOnline() })
+        // Si el almacenamiento local falla, se reintenta con el siguiente disparador.
+        .catch(() => undefined)
+    );
+    return connectSyncTriggers(run, {
+      subscribeOnline: (listener) => onlineManager.subscribe(listener),
+      subscribeForeground: (listener) => {
+        const subscription = AppState.addEventListener('change', (state) => {
+          if (state === 'active') listener();
+        });
+        return () => subscription.remove();
+      },
+    });
+  }, [sessionUserId, userId, isCurrentUser]);
 
   return <PetSyncContext value={value}>{children}</PetSyncContext>;
 }

@@ -22,6 +22,10 @@ export type PetErrorCode =
   | 'photo_delete_failed'
   | 'photo_url_failed'
   | 'photo_storage'
+  // Fase 10: otro dispositivo cambió la foto antes; no se sabe si el cambio se aplicó; no se pudo anotar.
+  | 'photo_changed'
+  | 'photo_unconfirmed'
+  | 'photo_local_failed'
   | 'unknown';
 
 export class PetError extends Error {

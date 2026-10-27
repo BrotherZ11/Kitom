@@ -55,36 +55,9 @@ export async function updatePet(petId: string, fields: PetFields): Promise<Pet> 
   return data;
 }
 
-/**
- * Borra la mascota (solo el propietario, `pets: delete owner`). En cascada se borran sus registros
- * diarios, recordatorios, análisis, logros, rachas, co-tutores e informes.
- */
-export async function deletePet(petId: string): Promise<void> {
-  const { data, error } = await supabase.from('pets').delete().eq('id', petId).select('id');
-  if (error) throw toPetError(error);
-  if (data.length === 0) throw new PetError('not_allowed');
-}
-
 /** UX: indica si mostrar acciones de edición. La autorización real sigue siendo RLS. */
 export async function fetchCanEditPet(petId: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('can_edit_pet', { target_pet_id: petId });
   if (error) throw toPetError(error);
-  return data;
-}
-
-/**
- * Cambia solo `photo_path` (path de Storage, nunca una URL). Separado de `updatePet` para que un
- * fallo de la foto no afecte a la edición de los datos. Lo usa `api/pet-photos-api.ts`.
- */
-export async function updatePetPhotoPath(petId: string, photoPath: string | null): Promise<Pet> {
-  const { data, error } = await supabase
-    .from('pets')
-    .update({ photo_path: photoPath })
-    .eq('id', petId)
-    .select(PET_COLUMNS)
-    .maybeSingle();
-  if (error) throw toPetError(error);
-  // Igual que en `updatePet`: RLS (`can_edit_pet`) filtró la fila.
-  if (!data) throw new PetError('not_allowed');
   return data;
 }
