@@ -14,6 +14,8 @@
 #   4. RLS: un co-tutor editor con la versión correcta borra 0 filas (`pets: delete owner`); el
 #      propietario, 1.
 #   5. N cambios de photo_path a la vez esperando «sin foto»: se aplica exactamente uno.
+#   6. Dos sesiones del propietario borran a la vez con la misma versión (dos dispositivos, o un
+#      reintento tras perder la respuesta): una borra y la otra espera y borra 0 filas, sin error.
 #
 # Solo local: `docker exec` sobre el contenedor de Supabase local, nunca una URL remota. Ids fijos que
 # se borran al terminar (también si falla). Uso, desde la raíz del repo:
@@ -211,6 +213,20 @@ wait
 check "5: de $WRITERS cambios de foto simultáneos se aplica exactamente 1" "$(grep -l 'photo:' "$WORK"/5_* | wc -l | tr -d ' ')" "1"
 winner="$(cat "$WORK"/5_* | grep -o 'photo:[^ ]*' | cut -d: -f2)"
 check "5: photo_path es el del ganador" "$(query "select photo_path from public.pets where id = '$PET'")" "$winner"
+
+# ---------------------------------------------------------------------
+# 6. Dos borrados simultáneos del propietario con la misma versión
+# ---------------------------------------------------------------------
+BASE="$(seed_pet)"
+delete_sql "$OWNER" "$BASE" 2 commit | run_psql kitom_pd_a > "$WORK/6_a" 2>&1 &
+wait_until "$(holding kitom_pd_a)" || fail "6: el primer borrado no llegó a retener la fila"
+delete_sql "$OWNER" "$BASE" 0 commit | run_psql kitom_pd_b > "$WORK/6_b" 2>&1 &
+wait_until "$(blocked kitom_pd_b)" && pass "6: el segundo borrado espera al primero" || fail "6: el segundo borrado no llegó a bloquearse"
+wait
+check_contains "6: el primero borra" "$WORK/6_a" "deleted:"
+check "6: el segundo borra 0 filas" "$(grep -c 'deleted:' "$WORK/6_b")" "0"
+check "6: el segundo no da error" "$(grep -ci 'error' "$WORK/6_b")" "0"
+check "6: la mascota no existe" "$(pet_exists)" "0"
 
 if [ "$FAILED" -eq 0 ]; then
   echo "Concurrencia de la eliminación de pets: todas las comprobaciones pasan."
