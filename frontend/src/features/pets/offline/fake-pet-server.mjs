@@ -4,6 +4,8 @@
 // - alta: id del servidor; `client_request_id` único por propietario (reenvío → 23505 del índice);
 // - edición: `update … eq('updated_at', base)` → la fila o 0 filas (otra versión, sin permiso o no existe);
 // - `updated_at` nuevo en cada edición; lectura: la fila si el usuario es miembro.
+// - eliminación (fase 10): `delete … eq('updated_at', base)` solo del propietario (`pets: delete owner`)
+//   → `true` o `false` (0 filas: otra versión, no es el propietario o ya no existe).
 // `net.online = false`: ninguna petición llega. `loseNextResponse()`: la siguiente se aplica pero la
 // respuesta se pierde (error de red). `holdNext()`: retiene la siguiente respuesta hasta soltarla.
 // No es un test (no termina en `.test.mjs`).
@@ -92,6 +94,15 @@ export function createFakePetServer({ owner }) {
       return respond(() => {
         const pet = pets.get(petId);
         return { ok: true, data: pet && visible(pet, userId) ? row(pet) : null };
+      });
+    },
+    delete(petId, baseUpdatedAt) {
+      calls.push({ userId, op: 'delete', petId, baseUpdatedAt });
+      return respond(() => {
+        const pet = pets.get(petId);
+        if (!pet || pet.owner_id !== userId || pet.updated_at !== baseUpdatedAt) return { ok: true, data: false };
+        pets.delete(petId);
+        return { ok: true, data: true };
       });
     },
   });
