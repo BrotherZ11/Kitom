@@ -743,7 +743,7 @@ export const es = {
     privacy: 'Privacidad y consentimientos',
     data: 'Tus datos',
     myPets: 'Mis mascotas',
-    unsynced: 'Registros sin sincronizar',
+    unsynced: 'Cambios sin sincronizar',
     unsyncedNone: 'Todo está subido',
     unsyncedSome: 'Hay cambios solo en este móvil',
     unsyncedError: 'No se ha podido comprobar',

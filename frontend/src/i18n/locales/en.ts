@@ -730,7 +730,7 @@ export const en: Translations = {
     privacy: 'Privacy and consents',
     data: 'Your data',
     myPets: 'My pets',
-    unsynced: 'Unsynced logs',
+    unsynced: 'Unsynced changes',
     unsyncedNone: 'Everything is uploaded',
     unsyncedSome: 'There are changes only on this phone',
     unsyncedError: "Couldn't check",

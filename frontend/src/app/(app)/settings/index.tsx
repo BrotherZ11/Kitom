@@ -35,7 +35,7 @@ import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { useSignOutFlow, useUnsyncedChanges } from '@/features/auth/sign-out-provider';
-import { useUnsyncedDailyLogs } from '@/features/daily-logs/hooks/use-daily-log';
+import { signOutTotal } from '@/features/auth/unsynced-changes';
 import { formatTimeOfDay, parseTimeOfDay } from '@/features/notifications/notification-plan';
 import { petUnsyncedTotal } from '@/features/pets/offline/pet-operation';
 import {
@@ -68,7 +68,6 @@ export default function SettingsScreen() {
   const timeZone = useProfileTimeZone();
   const preferences = useNotificationPreferences();
   const subscription = useSubscription();
-  const { view } = useUnsyncedDailyLogs();
   const { flow, state } = useSignOutFlow();
   const changes = useUnsyncedChanges();
   const { preference, setPreference } = useAppTheme();
@@ -88,11 +87,13 @@ export default function SettingsScreen() {
 
   const email = user?.email ?? '';
   const name = profileName.data ?? null;
+  // Lo mismo que cuenta el cierre de sesión: registros diarios y mascotas (altas, ediciones y
+  // eliminaciones). La pantalla a la que lleva los muestra todos (fase 10).
   const unsynced =
-    view.state === 'error'
+    changes.view.state === 'error'
       ? t('settings.unsyncedError')
-      : view.state === 'ready'
-        ? view.items.length === 0
+      : changes.view.state === 'ready'
+        ? signOutTotal(changes.view.summary) === 0
           ? t('settings.unsyncedNone')
           : t('settings.unsyncedSome')
         : t('common.loading');
