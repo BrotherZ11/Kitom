@@ -187,12 +187,15 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
   (del servidor o del dispositivo) dice que la raza elegida es de otra especie, el formulario no se
   envía (`validatePetForm`, `breed_species_mismatch`). La FK compuesta rechaza igualmente una raza de
   otra especie (`23503`).
-- **DELETE:** solo el propietario (`pets: delete owner`); 0 filas borradas = `not_allowed`. Borra en
+- **DELETE:** solo el propietario (`pets: delete owner`). Desde la fase 10 se guarda en el dispositivo y
+  lo envía el motor con precondición (`delete … eq('updated_at', base)`): 0 filas se decide leyendo la
+  fila (§5 «Pets: eliminación sin conexión y fotos (fase 10)»). Borra en
   cascada `daily_logs`, `reminders`, `ai_analysis_requests`, `pet_achievements`, `pet_streaks`,
   `pet_co_owners` y `pet_shared_reports`; la UI pide confirmación explícita. Con registros diarios,
   el borrado requiere la migración `20261008150202` (antes violaba la FK de `pet_streaks`). Los objetos de Storage
   de la mascota (`{pet_id}/…`) **no** se borran: tras el borrado `can_edit_pet` ya es falso y el
-  cliente no puede hacerlo. Pendiente: limpieza en backend (trigger o Edge Function).
+  cliente no puede hacerlo. Pendiente: limpieza en backend (propuesta en
+  `docs/proposals/2026-10-26-pet-photos-cleanup.md`, sin aplicar).
 - **RPC:** `can_edit_pet(pet_id)` solo para decidir si mostrar «Editar» (UX); «Eliminar» se muestra si
   `owner_id` es el usuario (UX). La autorización real es RLS.
 - **Storage:** `pet-photos`, ver «Pets: fotos».
@@ -212,20 +215,25 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
 ### Pets: fotos (implementado)
 En la ficha (`pets/[id]/index`), componente `PetPhotoEditor`, independiente del formulario de datos.
 Código: `features/pets/pet-photo.ts` (límites y path), `pet-photo-picker.ts` (permisos, galería/cámara,
-validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use-pet-photo.ts`.
+validación, resize/compresión), `pet-photo-ops.ts` (reglas, fase 10), `api/pet-photos-remote.ts` (Storage y
+`photo_path`, puro), `api/pet-photos-api.ts`, `offline/pet-photo-journal.ts` (diario) y `hooks/use-pet-photo.ts`.
 - **Bucket:** `pet-photos` (privado). Políticas existentes: SELECT `is_pet_member`, INSERT/DELETE
   `can_edit_pet`, ambas sobre `safe_pet_id_from_path(name)`; sin UPDATE. Requiere la migración
   `20261007182429_grant_safe_pet_id_from_path.sql` (EXECUTE de `safe_pet_id_from_path` a `authenticated`).
 - **Path:** `{pet_id}/{uuid}.jpg` (primer segmento = mascota, lo que leen las políticas; uuid nuevo en
-  cada subida, sin `upsert`). Se guarda en `pets.photo_path` (path, nunca URL), que solo escribe
-  `updatePetPhotoPath` (update de una columna, separado de `updatePet`).
+  cada subida, sin `upsert`; desde la fase 10, el uuid lo da `createOperationId`). Se guarda en
+  `pets.photo_path` (path, nunca URL), que solo escribe `setPhotoPath` (`api/pet-photos-remote.ts`: una
+  columna, con precondición sobre su valor actual). Las fotos de las consultas usan el mismo bucket y la
+  misma forma de ruta: nunca se borra un objeto que no haya anotado una operación de foto concreta.
 - **Imagen:** entrada JPEG/PNG/WebP/HEIC/HEIF (≤ 25 MB); salida siempre JPEG, lado mayor ≤ 1600 px,
   calidad 0.8, ≤ 5 MB. Sin recorte. Decisión: `DECISIONS.md`.
-- **Subir / cambiar:** subir objeto nuevo → `photo_path` = nuevo → borrar el anterior. Si falla la
-  subida no se toca `photo_path`; si falla el update se borra el objeto recién subido; si falla el
-  borrado del anterior queda huérfano (best-effort, aviso en dev).
-- **Quitar:** `photo_path = NULL` primero (RLS `can_edit_pet`) → borrar el objeto. Nunca queda una
-  referencia a un archivo inexistente; en un fallo parcial queda, como mucho, un objeto huérfano.
+- **Subir / cambiar:** anotar el objeto nuevo y el anterior en el diario → subir → `photo_path` = nuevo
+  **si sigue siendo el que se veía** → borrar el anterior. Si el servidor responde que no se aplicó, se
+  borra el nuevo; sin respuesta no se borra nada y el diario lo resuelve leyendo `photo_path` (antes de
+  la fase 10, un fallo sin respuesta borraba el objeto nuevo aunque pudiera estar ya referenciado).
+- **Quitar:** `photo_path = NULL` **si sigue siendo esa foto** (RLS `can_edit_pet`) → borrar el objeto.
+  Nunca queda una referencia a un archivo inexistente; lo que no se puede cerrar queda en el diario.
+  Detalle: §5 «Pets: eliminación sin conexión y fotos (fase 10)».
 - **Mostrar:** `createSignedUrl` (1 h) con query `['pets','photo',path]`: se firma una vez por path y
   se renueva a los 50 min; `expo-image` cachea por path (`cacheKey`), no por URL. Nunca `getPublicUrl`.
 - **Permisos:** se piden al pulsar la acción. Denegado → mensaje y reintento; si no se puede volver a
@@ -235,8 +243,10 @@ validación, resize/compresión), `api/pet-photos-api.ts` (Storage) y `hooks/use
   la UI bloqueada para siempre. No hay permisos que pedir; en móvil web el navegador puede ofrecer la cámara.
 - **Errores:** `camera_permission`, `gallery_permission`, `camera_unavailable`, `invalid_image_type`,
   `image_too_large`, `image_processing_failed`, `photo_upload_failed`, `photo_update_failed`,
-  `photo_delete_failed`, `photo_url_failed`, `photo_storage` (5xx), además de `not_allowed` (401/403,
-  RLS) y `network`. Mapeo de Storage en `toPetPhotoError`.
+  `photo_delete_failed`, `photo_url_failed`, `photo_storage` (5xx), `photo_changed` (otro dispositivo
+  cambió la foto antes), `photo_unconfirmed` (no se sabe si se aplicó; se comprobará) y
+  `photo_local_failed` (no se pudo anotar en el dispositivo; no se sube nada), además de `not_allowed`
+  (401/403, RLS) y `network`. Mapeo de Storage en `toPetPhotoError`.
 - **IA (futuro):** `request_ai_analysis` exige un `photo_path` del mismo bucket con el `pet_id` de la
   mascota; el flujo de análisis puede reutilizar `pickPetPhoto` y subir con la misma convención.
 
@@ -1022,7 +1032,8 @@ compartida en otro dispositivo no aparece sin conexión hasta leerla con conexi�
 ### Pets: altas y ediciones sin conexión (fase 8)
 
 Crear y editar mascotas se guarda primero en el dispositivo y lo envía un motor de sincronización. Las
-fotos y el borrado siguen necesitando conexión. Decisiones: `DECISIONS.md` (2026-10-20, migración; y
+fotos siguen necesitando conexión; el borrado, desde la fase 10, también se guarda en el dispositivo
+(«Pets: eliminación sin conexión y fotos (fase 10)»). Decisiones: `DECISIONS.md` (2026-10-20, migración; y
 2026-10-21, fase 8). Código: `features/pets/offline/` (puro: `pet-operation.ts`,
 `pet-operation-repository.ts`, `pet-sync-engine.ts`, `pet-write-view.ts`, `pet-form-gate.ts`,
 `species-snapshot.ts`), `api/pet-writes-remote.ts`, `sync/pet-sync-provider.tsx` y
@@ -1238,6 +1249,96 @@ proceso; se reintenta con la siguiente respuesta.
 **Límites**: un dispositivo solo tiene el catálogo si alguna vez abrió con conexión el formulario de
 una mascota o la ficha de una mascota con raza del catálogo. No hay coordinación entre pestañas de web.
 Las copias de cuentas que ya no se usan no se borran solas (como el resto de datos locales).
+
+### Pets: eliminación sin conexión y fotos (fase 10)
+
+Eliminar una mascota se guarda primero en el dispositivo y lo envía el motor de Pets, con precondición,
+igual que las ediciones. Las fotos cambian `photo_path` con precondición sobre su valor actual y nunca
+borran un objeto que pueda estar referenciado. Sin cambios de esquema. Decisión: `DECISIONS.md`
+(2026-10-26, fase 10). Propuesta de backend pendiente de aprobación:
+`docs/proposals/2026-10-26-pet-photos-cleanup.md`.
+
+Código: `offline/pet-operation.ts` (tipo `delete`, `requestPetDelete`, `undoPetDelete`,
+`resolveCreatedForDelete`, `reconcileDelete`), `offline/pet-sync-engine.ts` (`requestDelete`,
+`undoDelete`, `resolveDeleteConflict`), `api/pet-writes-remote.ts` (`delete`), `offline/pet-write-view.ts`
+(`pendingDeletions`, `deletedPetIds`, `unsyncedPetItems`, `dailyLogsAccess`),
+`components/pet-deletion-status.tsx`, `pet-photo-ops.ts`, `offline/pet-photo-journal.ts` y
+`api/pet-photos-remote.ts`. Pruebas: `offline/pet-delete.test.mjs`, `pet-photo-ops.test.mjs`,
+`offline/pets-offline-delete.integration.test.mjs` (Supabase **local**) y
+`supabase/tests/concurrency/pets_delete_concurrency.sh` (sesiones simultáneas reales).
+
+**Operación de eliminación** (`kind: 'delete'`, en la misma colección `pet-ops`, una por mascota).
+Sustituye a la operación que hubiera y guarda lo que vuelve al deshacerla (`restore`):
+
+| Origen | `localId` / `petId` | `baseRow` (precondición) | `restore` |
+|---|---|---|---|
+| Mascota del servidor, sin cambios locales | id / id | la versión que ve el usuario (servidor o copia) | `none` |
+| Mascota del servidor con una edición pendiente | id / id | la base de la edición | `update` (contenido de la edición) |
+| Alta enviada sin respuesta (incierta) | `local-…` / `null` hasta comprobarla | `null` hasta comprobarla | `create` |
+
+Un alta que nunca salió (o con respuesta de que no se aplicó) no crea operación: se quita del
+dispositivo (`cancelled`). Solo el propietario puede iniciarla (UX con la fila conocida; RLS decide).
+Las operaciones guardadas antes de la fase 10 no tienen `restore` y se siguen leyendo; una versión
+anterior de la app trata una eliminación como ilegible (se conserva y cuenta al cerrar sesión).
+
+**Estados** (`petDeleteDisplay`): `pending` (se enviará; se puede deshacer), `syncing`, `uncertain`
+(enviada sin respuesta: no se puede deshacer hasta comprobarla), `conflict` (cambió en el servidor),
+`failed`, `forbidden` (no es el propietario) y `deleted` (confirmada: lápida `synced`).
+
+**Envío** (`sendDelete`):
+1. Alta incierta: `findByRequestId` (su `client_request_id`). No existe → se cancela en local. Existe con
+   lo que se creó → se borra con esa versión. Existe con otros datos → `conflict`.
+2. `delete … eq('id').eq('updated_at', base)` (una sola sentencia; comprobado con sesiones simultáneas).
+   Devuelve la fila → confirmada: lápida y, en la copia, «no disponible» con una marca posterior a la
+   respuesta (ninguna lectura anterior la resucita).
+3. 0 filas → se lee la fila: no existe o no se ve → se cierra la operación (`gone`: borrada en otro
+   dispositivo o respuesta perdida de este borrado; RLS no permite distinguirlas); misma versión →
+   `forbidden`; versión nueva con el contenido de la edición de este dispositivo (que llegó sin
+   respuesta) → se borra sobre ella; otra cosa → `conflict` con la versión del servidor.
+
+**Conflicto:** la ficha enseña la versión actual y el usuario elige «Conservar la mascota» (deshacer) o
+«Eliminar igualmente» (con confirmación; se vuelve a leer y, si cambió otra vez, se enseña de nuevo).
+Nunca se borra un cambio de otro sitio sin que el usuario lo vea.
+
+**Deshacer** (`undoPetDelete`): solo si no está confirmada ni en vuelo. Vuelve la edición pendiente, nada
+(la mascota queda como en el servidor) o el alta (como incierta: reenviarla es seguro por su clave).
+
+**Interfaz:** la mascota sale de la lista y no puede ser la activa (`withLocalEdits`/`withoutDeleted`,
+también con la lápida y ante respuestas antiguas); va en «Eliminaciones pendientes» (lista de
+mascotas) y en «Cambios sin sincronizar» (`/daily-logs/unsynced`, ahora con las altas, ediciones y
+eliminaciones de mascotas). La ficha enseña el estado y las acciones (`PetDeletionNotice`); la edición
+redirige a la ficha. El diálogo explica si se descarta un borrador, si se comprobará un alta incierta,
+si se enviará al volver la conexión y cuántos registros diarios sin sincronizar tiene la mascota.
+
+**Registros diarios:** con una eliminación (de cualquier estado) no se abren el registro, el historial
+ni un día concreto (`withServerPetId` → `dailyLogsAccess`); si las operaciones no se pueden leer, se dice
+en lugar de suponer. Los registros ya guardados no se tocan: siguen en «Cambios sin sincronizar», con
+sus acciones de siempre. Si se envían antes del borrado, la cascada los borra; después, el servidor los
+rechaza y quedan en el dispositivo (sin permiso o fallidos) para revisarlos o descartarlos.
+
+**Cierre de sesión:** `pendingDelete` en el resumen; las inciertas y los conflictos cuentan como siempre.
+La lápida no cuenta. «Sincronizar y cerrar» envía las eliminaciones.
+
+**Fotos** (`pet-photo-ops.ts`):
+- `photo_path` se cambia con `eq('photo_path', esperado)` (o `is null`): una respuesta tardía nunca
+  vuelve a poner una foto que otro cambió o quitó (`photo_changed`).
+- Reemplazar: se anota el objeto nuevo, se sube, se anota la anterior y se cambia la referencia. Con
+  confirmación, la anterior se borra. Si el servidor responde que no se aplicó, se borra la nueva. Sin
+  respuesta (`photo_unconfirmed`), no se borra nada.
+- Quitar: referencia a `null` con precondición y, confirmada, el objeto. Si no se aplicó, no se toca.
+- Diario (`kitom:v1:<userId>:pet-photo-journal:<uuid>`): rutas exactas de esas operaciones, nunca un
+  barrido (las fotos de consulta comparten bucket y forma de ruta). Se resuelve al arrancar con sesión,
+  al volver la red y al volver a primer plano (`PetSyncProvider`), tras 60 s y fuera de una operación
+  en curso: `photo_path` es él → se cierra; no es él → se borra el objeto (si Storage no borra nada, se
+  pregunta `can_edit_pet`: con permiso ya no existía; sin él, `blocked`); mascota no visible →
+  `blocked` (la app ya no puede borrarlo; se conserva para una limpieza en el servidor).
+- Eliminar la mascota no depende de las fotos ni las borra: tras el borrado `can_edit_pet` es falso y
+  los objetos de `{pet_id}/` quedan huérfanos hasta que exista la limpieza en el servidor (propuesta).
+
+**Límites:** sin coordinación entre pestañas de web; `gone` no distingue «borrada» de «sin acceso»
+(propuesta opcional); la precondición `updated_at` no detecta registros diarios ni recordatorios
+añadidos por otro usuario mientras la eliminación está pendiente (la cascada los borra, como al borrar
+con conexión); las lápidas y las entradas `blocked` del diario no se limpian solas.
 
 ### Infraestructura (fase 1 del frontend)
 

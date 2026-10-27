@@ -5,6 +5,17 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-26
 
+- Pets offline, fase 10 (rama `feat/pets-offline-writes`, sin cambios de esquema): eliminar una mascota
+  se guarda en el dispositivo y lo envía el motor con precondición `updated_at`. Se puede deshacer hasta
+  que el servidor la aplique. Un cambio de otro dispositivo es un conflicto que decide el usuario, y un
+  alta sin confirmar se comprueba por su clave antes de borrarla. La mascota sale de la lista y de los
+  registros diarios mientras tanto; las eliminaciones aparecen en «Eliminaciones pendientes», en
+  «Cambios sin sincronizar» (que ahora incluye altas, ediciones y eliminaciones de mascotas) y en el
+  cierre de sesión. Fotos: `photo_path` con precondición, ningún objeto referenciado se borra (corrige
+  el borrado de la foto nueva tras un fallo sin respuesta) y un diario local resuelve lo pendiente.
+  Prueba de concurrencia `pets_delete_concurrency.sh`. Propuesta de limpieza de Storage en el servidor,
+  sin aplicar. Decisión en `DECISIONS.md`; contrato en `FRONTEND_ARCHITECTURE.md` §4 y §5.
+
 - Pets offline, fase 9 (rama `feat/pets-offline-writes`, sin cambios de esquema): el catálogo de razas
   se guarda en el dispositivo (por usuario e idioma) y se puede buscar y elegir una raza sin conexión,
   también tras reiniciar la app. El selector distingue entre catálogo guardado, no descargado aún en el

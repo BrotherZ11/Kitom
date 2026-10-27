@@ -60,12 +60,16 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   editar, borrar y fotos siguen necesitando conexión (`docs/FRONTEND_ARCHITECTURE.md` §5 «Pets sin
   conexión (fase 7)»). Fase 8: crear y editar mascotas sin conexión (operación local por mascota, motor
   con alta idempotente por `client_request_id` y edición con precondición `updated_at`, conflictos que
-  decide el usuario); fotos y borrado siguen online; una mascota aún sin crear en el servidor no tiene
+  decide el usuario); fotos online (borrar, desde la fase 10, también sin conexión); una mascota aún sin crear en el servidor no tiene
   registros diarios (§5 «Pets: altas y ediciones sin conexión (fase 8)»). Fase 8.5: validada a mano en
   el emulador Android y en web; el cierre de sesión cuenta Daily Logs y Pets
   (`features/auth/sign-out-provider.tsx`). Fase 9 (2026-10-26, sin migraciones): catálogo de razas en el
   dispositivo, por usuario e idioma, para buscar y elegir raza sin conexión (§5 «Catálogo de razas sin
-  conexión (fase 9)»); sin validar a mano todavía. Pendiente: la limpieza (no automática) de datos
+  conexión (fase 9)»); sin validar a mano todavía. Fase 10 (2026-10-26, sin migraciones): eliminación de
+  mascotas guardada en el dispositivo (con precondición, deshacer y conflictos) y fotos con precondición
+  sobre `photo_path` y diario local (§5 «Pets: eliminación sin conexión y fotos (fase 10)»); sin validar a
+  mano todavía. La limpieza de Storage tras borrar una mascota necesita backend: propuesta sin aplicar en
+  `docs/proposals/2026-10-26-pet-photos-cleanup.md`. Pendiente: la limpieza (no automática) de datos
   locales de cuentas que no vuelven, la coordinación entre pestañas en web y una columna de versión para
   la edición (fase `db/`). En móvil las queries caducadas se vuelven a pedir al reconectar
   (`refetchOnReconnect`, 2026-10-20).

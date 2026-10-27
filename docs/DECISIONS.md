@@ -3,6 +3,42 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-26 — Pets offline, fase 10: eliminación guardada en el dispositivo y ciclo de vida de las fotos
+
+**Contexto.** Borrar una mascota exigía conexión y no tenía precondición: borraba la versión que
+hubiera, aunque otro dispositivo la acabara de cambiar. Las fotos cambiaban `photo_path` sin
+precondición, y un fallo sin respuesta al referenciar una foto nueva la borraba aunque el servidor
+pudiera haber aplicado el cambio (una foto referenciada y borrada). Sin cambios de esquema.
+
+**Decisión.**
+- La eliminación es una operación más del motor de Pets (`kind: 'delete'`), no un borrado optimista:
+  una por mascota, que sustituye a la pendiente y guarda lo necesario para deshacerla (`restore`).
+  Se puede deshacer mientras el servidor no la haya podido aplicar (ni confirmada ni en vuelo).
+- Precondición `updated_at` con PostgREST (`delete … eq('updated_at', base)`): es una sola sentencia y
+  Postgres vuelve a evaluar el `WHERE` si otra transacción cambió la fila (comprobado con sesiones
+  simultáneas en `pets_delete_concurrency.sh`). No hace falta RPC ni migración. Se descartó
+  `SELECT` + `DELETE` (no es atómico).
+- Un alta incierta nunca se da por no creada: se busca por su `client_request_id` antes de decidir.
+- 0 filas se decide leyendo la fila. Ya no está, o no se ve: se cierra la operación (RLS no distingue
+  «borrada» de «sin acceso»; para quien la quería borrar, el resultado es el mismo). Misma versión: sin
+  permiso. Versión nueva: conflicto, salvo que sea la edición de este dispositivo que llegó sin
+  respuesta. Confirmada, queda una lápida (`synced`): la mascota no reaparece por una respuesta antigua.
+- Mientras hay una eliminación, la mascota no está en la lista ni puede ser la activa, y no se abren sus
+  registros diarios. Los ya guardados no se tocan nunca.
+- Fotos: precondición sobre el propio `photo_path` (no sobre `updated_at`, que cambiaría con cualquier
+  edición). Un objeto solo se borra cuando se sabe que nadie lo referencia. Lo que no se puede cerrar
+  queda en un diario local de rutas exactas (nunca un barrido: las fotos de consulta comparten bucket).
+- Lo que necesita el servidor (borrar los objetos de una mascota ya eliminada) se propone aparte y no
+  se implementa sin aprobación: `docs/proposals/2026-10-26-pet-photos-cleanup.md`.
+
+**Consecuencias.**
+- Eliminar funciona sin conexión, con estados visibles, deshacer y conflictos que decide el usuario.
+- Garantías: no se borra una versión que el usuario no vio; un alta incierta no se cancela a ciegas; una
+  eliminación confirmada no se deshace por una lectura anterior; no se borra ninguna foto referenciada.
+- Límites: los objetos de Storage de una mascota eliminada quedan huérfanos hasta la limpieza en el
+  servidor; la precondición no cubre registros o recordatorios añadidos por otro usuario mientras tanto
+  (la cascada los borra); las lápidas y el diario `blocked` no se limpian solos.
+
 ## 2026-10-26 — Pets offline, fase 9: catálogo de razas en el dispositivo
 
 **Contexto.** Sin conexión solo se podía elegir una raza del catálogo si se había cargado en la misma

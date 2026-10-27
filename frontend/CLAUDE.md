@@ -44,6 +44,12 @@ error y «sin mascotas».
   inactivas; `api/breeds-remote.ts`), copia por usuario `breed-catalog:<locale>` (`offline/breed-catalog-*.ts`)
   y `useBreedCatalog` (su `view`, nunca `isError`); el selector filtra con `selectableBreeds` y las razas
   se buscan por id con `findBreed`/`useBreed`. Contrato: §5 «Catálogo de razas sin conexión (fase 9)».
+  Eliminación y fotos (fase 10): eliminar siempre con `useDeletePet` (`hooks/use-pet-writes.ts` →
+  `engine.requestDelete`, operación `delete` con precondición; nunca `delete` de `pets` desde pantallas);
+  deshacer con `undoDelete`; una mascota con eliminación no está en las listas (`withoutDeleted`) ni abre
+  registros (`withServerPetId`). Fotos solo con `pet-photo-ops.ts` (`photo_path` con precondición, diario
+  `offline/pet-photo-journal.ts`, procesado en `PetSyncProvider`); nunca borrar un objeto de Storage que
+  no haya anotado una operación de foto. Contrato: §5 «Pets: eliminación sin conexión y fotos (fase 10)».
 - `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`
   sobre `chunked-storage.ts`, clave `AUTH_STORAGE_KEY` = la de supabase-js por defecto: no cambiarla). Su
   `fetch` es `src/lib/user-token-fetch.ts` (ninguna petición de datos sale como `anon`) sobre
