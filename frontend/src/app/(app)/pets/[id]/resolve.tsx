@@ -75,7 +75,8 @@ export default function ResolvePetConflictScreen() {
 
   const op = pet.op;
   if (pet.view.state === 'loading' && !op) return frame(<LoadingState />);
-  if (!op || op.status !== 'conflict' || !op.baseRow) {
+  // Un conflicto de eliminación se decide en la ficha (`PetDeletionNotice`), no aquí.
+  if (!op || op.kind !== 'update' || op.status !== 'conflict' || !op.baseRow) {
     return frame(<EmptyState title={t('pets.sync.resolveScreen.nothing')} actionLabel={t('common.back')} onAction={back} />);
   }
   const remoteRow = op.conflictRemote;

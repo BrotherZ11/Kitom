@@ -16,6 +16,7 @@ export type SignOutSummary = { dailyLogs: UnsyncedSummary; pets: PetUnsyncedSumm
 export const NO_PET_CHANGES: PetUnsyncedSummary = {
   pendingCreate: 0,
   pendingUpdate: 0,
+  pendingDelete: 0,
   uncertain: 0,
   conflict: 0,
   failed: 0,

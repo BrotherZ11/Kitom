@@ -1,32 +1,27 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { createOwnerAccessToken } from '@/features/auth/owner-session';
 import { localQueryOptions } from '@/features/daily-logs/offline/daily-log-cache';
-import { deletePet, fetchCanEditPet } from '@/features/pets/api/pets-api';
+import { fetchCanEditPet } from '@/features/pets/api/pets-api';
 import { createPetReads } from '@/features/pets/api/pets-remote';
 import { fetchPetStreak } from '@/features/pets/api/pet-streak-api';
 import { usePetOperations } from '@/features/pets/hooks/use-pet-writes';
 import { petCacheFor } from '@/features/pets/offline/device-pet-cache';
-import { isLocalPetId, petSyncDisplay } from '@/features/pets/offline/pet-operation';
-import {
-  fetchPetListThroughCache,
-  fetchPetThroughCache,
-  storePetWrite,
-  type PetQueryDeps,
-} from '@/features/pets/offline/pet-queries';
+import { deleteOperationFor, isLocalPetId, petDeleteDisplay, petSyncDisplay } from '@/features/pets/offline/pet-operation';
+import { fetchPetListThroughCache, fetchPetThroughCache, type PetQueryDeps } from '@/features/pets/offline/pet-queries';
 import { petDetailAsQuery, resolvePetDetailView, resolvePetListView, type PetDetailView } from '@/features/pets/offline/pet-view';
 import {
   detailWithLocalEdit,
   listWithLocalEdits,
   localDrafts,
   orphanedEdits,
+  pendingDeletions,
   resolveLocalPetDetail,
   withLocalEdits,
 } from '@/features/pets/offline/pet-write-view';
 import { isPetOfflineError, PetError, toPetError } from '@/features/pets/pet-errors';
 import { petKeys } from '@/features/pets/query-keys';
-import { usePetSync } from '@/features/pets/sync/pet-sync-provider';
 import { useIsOnline } from '@/hooks/use-is-online';
 import { supabase } from '@/lib/supabase';
 
@@ -41,8 +36,9 @@ import { supabase } from '@/lib/supabase';
  *   reciente conocida. Un id local (alta sin confirmar) nunca se pide al servidor.
  * - Sin servidor, las pantallas usan la vista combinada (`pet-view.ts`) con la copia local. La copia
  *   solo se lee cuando hace falta.
- * - Permiso de edición y racha: solo del servidor (nunca se guardan). Crear y editar: siempre en el
- *   dispositivo primero (`use-pet-writes.ts`). Borrar: solo con conexión.
+ * - Permiso de edición y racha: solo del servidor (nunca se guardan). Crear, editar y eliminar: siempre
+ *   en el dispositivo primero (`use-pet-writes.ts`). Una mascota con una eliminación guardada no está
+ *   en la lista ni puede ser la activa (fase 10); va en `deletions`.
  */
 
 /** Error de «sin conexión» de la ficha sin copia (para `petDetailAsQuery`). */
@@ -117,6 +113,8 @@ export function usePets() {
     drafts: localDrafts(operations.data, operations.syncingKey),
     /** Ediciones del dispositivo de mascotas que no están en la lista (p. ej. sin acceso ya). */
     orphans: orphanedEdits(operations.data, new Set((serverPets ?? []).map((pet) => pet.id)), operations.syncingKey),
+    /** Eliminaciones guardadas en el dispositivo aún sin confirmar (se pueden deshacer o resolver). */
+    deletions: pendingDeletions(operations.data, operations.syncingKey),
     /** Las operaciones del dispositivo no se pudieron leer: no se afirma que no haya ninguna. */
     operationsError: operations.isError,
     refetch: () => {
@@ -153,10 +151,12 @@ export function usePet(petId: string) {
   });
 
   const draft = isLocal ? resolveLocalPetDetail(petId, operations) : null;
+  // Eliminación guardada (de cualquier estado): la ficha la enseña en lugar del perfil.
+  const deletion = deleteOperationFor(operations.data, petId);
   const op =
     draft?.state === 'ready'
       ? draft.op
-      : (operations.data?.find((item) => item.kind === 'update' && item.localId === petId) ?? null);
+      : (deletion ?? operations.data?.find((item) => item.kind === 'update' && item.localId === petId) ?? null);
   const serverView: PetDetailView = !draft
     ? resolvePetDetailView({ remote, local, serverUsable, isOfflineError: isPetOfflineError })
     : draft.state === 'ready'
@@ -175,6 +175,9 @@ export function usePet(petId: string) {
     serverPet: !isLocal && serverView.state === 'ready' ? serverView.pet : null,
     op,
     display: petSyncDisplay(op, operations.syncingKey === petId),
+    /** Eliminación guardada en el dispositivo (o confirmada) y su estado. */
+    deletion,
+    deleteDisplay: petDeleteDisplay(deletion, operations.syncingKey === deletion?.localId),
     /** Alta confirmada: la mascota está en el servidor con este id. */
     redirectTo: draft?.state === 'redirect' ? draft.petId : null,
     refetch: () => {
@@ -206,31 +209,5 @@ export function usePetStreak(petId: string) {
     queryKey: petKeys.streak(user?.id ?? '', petId),
     enabled: !isLocalPetId(petId),
     queryFn: () => serverCall(() => fetchPetStreak(petId)),
-  });
-}
-
-/**
- * Borrar una mascota (solo con conexión: no hay borrados sin conexión). La copia queda «no disponible»
- * y una edición pendiente de esa mascota se descarta en el dispositivo (el usuario la ha borrado).
- */
-export function useDeletePet(petId: string) {
-  const queryClient = useQueryClient();
-  const auth = useAuth();
-  const { engine } = usePetSync();
-
-  return useMutation({
-    mutationFn: async () => {
-      if (!auth.user) throw new PetError('not_allowed');
-      const deps = queryDeps(auth.user.id, auth, queryClient);
-      const mark = deps.repository.beginRead();
-      await auth.serverCall(() => deletePet(petId));
-      await storePetWrite(deps, mark, petId, null);
-      await engine.discard(petId);
-    },
-    onSuccess: () => {
-      const userId = auth.user?.id ?? '';
-      queryClient.removeQueries({ queryKey: petKeys.detail(userId, petId) });
-      return queryClient.invalidateQueries({ queryKey: petKeys.lists(userId) });
-    },
   });
 }

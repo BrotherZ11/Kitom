@@ -10,20 +10,21 @@ import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { TopBar, TopBarText } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
+import { usePendingDailyLogCount } from '@/features/pets/components/pet-deletion-status';
 import { PetForm } from '@/features/pets/components/pet-form';
 import { PetPhotoEditor } from '@/features/pets/components/pet-photo-editor';
-import { useSavePetEdit } from '@/features/pets/hooks/use-pet-writes';
-import { useCanEditPet, useDeletePet, usePet } from '@/features/pets/hooks/use-pets';
+import { useDeletePet, useSavePetEdit, type DeletePetOutcome } from '@/features/pets/hooks/use-pet-writes';
+import { useCanEditPet, usePet } from '@/features/pets/hooks/use-pets';
 import { useSpecies } from '@/features/pets/hooks/use-species';
 import { resolveEditPetForm } from '@/features/pets/offline/pet-form-gate';
-import { isLocalPetId } from '@/features/pets/offline/pet-operation';
+import { isLocalPetId, type DeleteRejection } from '@/features/pets/offline/pet-operation';
 import { PetEditRejectedError } from '@/features/pets/offline/pet-sync-engine';
 import { isPetOfflineError, petErrorMessage } from '@/features/pets/pet-errors';
 import { toPetFormValues } from '@/features/pets/pet-form';
 import { missingProfileFields, PROFILE_FIELDS } from '@/features/pets/pet-profile';
 import type { PetFields } from '@/features/pets/types';
 import { useIsOnline } from '@/hooks/use-is-online';
-import { t, tf } from '@/i18n';
+import { t, tf, type TranslationKey } from '@/i18n';
 import { createSubmitGuard } from '@/lib/submit-guard';
 
 /**
@@ -33,9 +34,20 @@ import { createSubmitGuard } from '@/lib/submit-guard';
  *
  * Guardar es siempre en el dispositivo primero (fase 8) y lo envía la sincronización con la
  * precondición de la versión editada (`serverPet`); con conexión espera brevemente al servidor. Sin
- * conexión se edita la copia del dispositivo (o el borrador de un alta local) y se avisa. Eliminar y la
- * foto siguen necesitando conexión. Con un conflicto o sin permiso, primero se decide qué hacer.
+ * conexión se edita la copia del dispositivo (o el borrador de un alta local) y se avisa. La foto sigue
+ * necesitando conexión. Con un conflicto o sin permiso, primero se decide qué hacer.
+ *
+ * Eliminar (fase 10) también se guarda primero en el dispositivo, con la versión que se ve como
+ * precondición, y se puede deshacer hasta que el servidor la aplique. Un borrador que nunca salió se
+ * descarta sin más. Con una eliminación guardada no se edita: se vuelve a la ficha, que la enseña.
  */
+const REJECTION_MESSAGE: Record<DeleteRejection, TranslationKey> = {
+  not_owner: 'pets.deletion.notOwner',
+  no_base: 'pets.deletion.noBase',
+  synced_create: 'pets.deletion.noBase',
+  not_deletable: 'pets.deletion.notDeletable',
+};
+
 export default function EditPetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -55,6 +67,8 @@ export default function EditPetScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const pendingLogs = usePendingDailyLogCount(isLocal ? null : id);
   const back = () => (router.canGoBack() ? router.back() : router.replace({ pathname: '/pets/[id]', params: { id } }));
 
   const handleSubmit = (fields: PetFields) => {
@@ -93,6 +107,8 @@ export default function EditPetScreen() {
 
   // Un alta ya confirmada se edita con su id del servidor.
   if (pet.redirectTo) return <Redirect href={{ pathname: '/pets/[id]/edit', params: { id: pet.redirectTo } }} />;
+  // Con una eliminación guardada no se edita: la ficha enseña su estado (y deshacerla).
+  if (pet.deletion && !confirmingDelete) return <Redirect href={{ pathname: '/pets/[id]', params: { id } }} />;
 
   const gate = resolveEditPetForm({ pet: view, op: pet.op, species, writable, isOfflineError: isPetOfflineError });
 
@@ -139,8 +155,48 @@ export default function EditPetScreen() {
 
   const current = view.pet;
   const filled = PROFILE_FIELDS.length - missingProfileFields(current).length;
-  // Solo UX: ocultar lo que RLS rechazaría (borrar: propietario). Borrar y fotos necesitan conexión.
+  // Solo UX: ocultar lo que RLS rechazaría (borrar: propietario; lo decide el servidor al sincronizar).
   const isOwner = current.owner_id === user?.id;
+  // Un alta que el propietario ya no ve no se borra: se descarta lo guardado (aviso de la ficha).
+  const canDelete = isOwner && !(isLocal && pet.op?.status === 'forbidden');
+
+  // Qué pasará al confirmar: borrador sin enviar, alta sin confirmar, sin conexión o con conexión.
+  const deleteMessage = [
+    isLocal
+      ? pet.op?.inFlightSince === null
+        ? t('pets.deletion.dialogDraft')
+        : t('pets.deletion.dialogDraftUncertain')
+      : t('pets.detail.deleteConfirmDescription'),
+    !isLocal && !writable ? t('pets.deletion.dialogOffline') : null,
+    pendingLogs ? (pendingLogs === 1 ? t('pets.deletion.pendingLogsOne') : tf('pets.deletion.pendingLogs', { count: pendingLogs })) : null,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  const afterDelete = (outcome: DeletePetOutcome) => {
+    if (outcome.status === 'rejected') {
+      setDeleteError(t(REJECTION_MESSAGE[outcome.reason]));
+      return;
+    }
+    if (outcome.status === 'undone') {
+      setConfirmingDelete(false);
+      toast({ message: t('pets.deletion.undoneWhileWaiting') });
+      return;
+    }
+    if (outcome.status === 'pending' && (outcome.op.status !== 'pending' || outcome.op.inFlightSince !== null)) {
+      // Conflicto, sin permiso, fallo o sin confirmar: la ficha dice qué pasa y qué se puede hacer.
+      router.replace({ pathname: '/pets/[id]', params: { id } });
+      return;
+    }
+    const message =
+      outcome.status === 'cancelled'
+        ? t('pets.deletion.draftDiscarded')
+        : outcome.status === 'deleted'
+          ? t('pets.deletion.deleted')
+          : t('pets.deletion.savedLocally');
+    toast({ message });
+    router.dismissTo('/');
+  };
 
   return (
     <>
@@ -159,7 +215,7 @@ export default function EditPetScreen() {
         }
         photo={isLocal ? null : <PetPhotoEditor pet={current} canEdit={canEdit.data === true && writable} />}
         footerExtra={
-          isOwner && writable && !isLocal ? (
+          canDelete ? (
             <Button
               variant="dangerGhost"
               size="md"
@@ -167,6 +223,7 @@ export default function EditPetScreen() {
               label={tf('pets.edit.delete', { name: current.name })}
               onPress={() => {
                 deletePet.reset();
+                setDeleteError(null);
                 setConfirmingDelete(true);
               }}
             />
@@ -183,11 +240,12 @@ export default function EditPetScreen() {
         tone="danger"
         icon={Trash}
         title={tf('pets.detail.deleteTitleNamed', { name: current.name })}
-        message={t('pets.detail.deleteConfirmDescription')}
+        message={deleteMessage}
         confirmLabel={tf('pets.detail.deleteNamed', { name: current.name })}
         loading={deletePet.isPending}
-        error={deletePet.isError ? petErrorMessage(deletePet.error) : null}
-        onConfirm={() => deletePet.mutate(undefined, { onSuccess: () => router.dismissTo('/') })}
+        error={deleteError ?? (deletePet.isError ? petErrorMessage(deletePet.error) : null)}
+        // La versión que se ve (servidor o copia) es la precondición; un alta local no tiene.
+        onConfirm={() => deletePet.mutate(isLocal ? null : pet.serverPet, { onSuccess: afterDelete })}
         onCancel={() => setConfirmingDelete(false)}
       />
     </>

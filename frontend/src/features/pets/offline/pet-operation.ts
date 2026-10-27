@@ -21,28 +21,44 @@ import { isPetId, toCachedPet } from './pet-snapshot.ts';
  *   ediciones se consolidan en la misma operación (contenido nuevo, la misma base). Confirmada, se borra:
  *   la copia de la mascota (`pet-cache-repository.ts`) recibe la fila del servidor.
  *
+ * - Eliminación (fase 10): sustituye a la operación de la mascota y guarda lo necesario para deshacerla
+ *   (`restore`): nada, la edición pendiente (contenido y base) o el alta. Mascota del servidor: `localId` =
+ *   `petId`, con la versión que se va a borrar (`baseRow`) como precondición (`delete … eq('updated_at',
+ *   base)`, atómico). Alta incierta (enviada sin respuesta): `localId` = `local-<uuid>`, `petId: null`
+ *   hasta comprobar por su clave (`findByRequestId`) si existe; nunca se da por no creada sin
+ *   comprobarlo. Confirmada, queda como `synced` (lápida): la mascota no vuelve a mostrarse aunque llegue
+ *   una respuesta antigua. Ver `docs/FRONTEND_ARCHITECTURE.md` §5 «Pets: eliminación sin conexión (fase 10)».
+ *
  * Estados: `pending` (se enviará; `inFlightSince` ≠ null = se envió y no se sabe el resultado), `conflict`
- * (el servidor cambió los mismos datos: decide el usuario), `failed` (el servidor la rechazó o agotó
- * los reintentos: datos intactos), `forbidden` (sin permiso, o la mascota ya no se ve) y `synced` (solo
- * altas, como mapeo). Nada se marca `synced` sin la fila que devuelve el servidor.
+ * (el servidor cambió los mismos datos, o la mascota que se iba a borrar: decide el usuario), `failed`
+ * (el servidor la rechazó o agotó los reintentos: datos intactos), `forbidden` (sin permiso, o la
+ * mascota ya no se ve) y `synced` (altas, como mapeo; eliminaciones, como lápida). Nada se marca `synced`
+ * sin la fila que devuelve el servidor.
  */
 
-export type PetOperationKind = 'create' | 'update';
+export type PetOperationKind = 'create' | 'update' | 'delete';
+/** Qué vuelve si se deshace una eliminación: nada, la edición pendiente o el alta (incierta). */
+export type PetDeleteRestore = 'none' | 'update' | 'create';
 export type PetOperationStatus = 'pending' | 'conflict' | 'failed' | 'forbidden' | 'synced';
 
 export type PetOperationError = { kind: SyncErrorInfo['kind']; reason: string; at: number };
 
 export type LocalPetOperation = {
   userId: string;
-  /** Alta: `local-<uuid>`. Edición: el id de la mascota en el servidor. */
+  /** Alta: `local-<uuid>`. Edición: el id de la mascota en el servidor. Eliminación: el de su operación. */
   localId: string;
-  /** Id en el servidor (edición: siempre; alta: al confirmarse). */
+  /** Id en el servidor (edición: siempre; alta: al confirmarse; eliminación de un alta: al comprobarla). */
   petId: string | null;
   kind: PetOperationKind;
-  /** Columnas editables validadas (nunca `owner_id`, `id`, `photo_path` ni `is_active`). */
+  /**
+   * Columnas editables validadas (nunca `owner_id`, `id`, `photo_path` ni `is_active`). Eliminación: lo
+   * que vuelve al deshacerla (la edición pendiente, el alta o la versión del servidor).
+   */
   content: PetFields;
-  /** Edición: la fila del servidor sobre la que se editó. Alta: `null`. */
+  /** Edición y eliminación: la fila del servidor sobre la que se hizo. Alta: `null`. */
   baseRow: Pet | null;
+  /** Solo eliminaciones: qué vuelve al deshacerla. `null` en altas y ediciones. */
+  restore: PetDeleteRestore | null;
   /** UUID v4 estable de la operación (en un alta, su `client_request_id`). */
   operationId: string;
   status: PetOperationStatus;
@@ -172,6 +188,7 @@ const SEX = ['male', 'female', 'unknown'];
 const BREED_STATUS = ['known', 'mixed', 'unknown'];
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const STATUSES: PetOperationStatus[] = ['pending', 'conflict', 'failed', 'forbidden', 'synced'];
+const RESTORES: PetDeleteRestore[] = ['none', 'update', 'create'];
 const ERROR_KINDS = ['network', 'server', 'auth', 'permission', 'validation', 'conflict', 'unknown'];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -220,19 +237,32 @@ export function parseLocalPetOperation(data: unknown): LocalPetOperation | null 
   if (!isRecord(data)) return null;
   const { userId, localId, petId, kind, status, operationId } = data;
   if (!isPetId(userId) || typeof operationId !== 'string' || !UUID_V4.test(operationId)) return null;
-  if (kind !== 'create' && kind !== 'update') return null;
+  if (kind !== 'create' && kind !== 'update' && kind !== 'delete') return null;
   if (!STATUSES.includes(status as PetOperationStatus)) return null;
   const content = parsePetFields(data.content);
   if (!content) return null;
+  // Las operaciones guardadas antes de la fase 10 no tienen `restore`.
+  const restore = data.restore ?? null;
 
   if (kind === 'create') {
-    if (localId !== localPetIdFor(operationId) || data.baseRow !== null) return null;
+    if (localId !== localPetIdFor(operationId) || data.baseRow !== null || restore !== null) return null;
     if (status === 'synced' ? !isPetId(petId) : petId !== null) return null;
+  } else if (kind === 'update') {
+    if (!isPetId(localId) || petId !== localId || status === 'synced' || restore !== null) return null;
   } else {
-    if (!isPetId(localId) || petId !== localId || status === 'synced') return null;
+    if (!RESTORES.includes(restore as PetDeleteRestore)) return null;
+    // Eliminación de un alta (por su clave): id local; si no, el de la mascota.
+    const fromCreate = restore === 'create';
+    if (fromCreate ? localId !== localPetIdFor(operationId) : !isPetId(localId) || petId !== localId) return null;
+    if (petId !== null && !isPetId(petId)) return null;
+    // Solo se confirma (lápida) una eliminación de una mascota conocida.
+    if ((status === 'synced' || !fromCreate) && petId === null) return null;
   }
   const baseRow = data.baseRow === null ? null : toCachedPet(data.baseRow);
+  if (data.baseRow !== null && !baseRow) return null;
   if (kind === 'update' && (!baseRow || baseRow.id !== localId)) return null;
+  // Eliminación: la base es la mascota que se borra (sin base solo mientras no se sabe si existe).
+  if (kind === 'delete' && (petId === null ? baseRow !== null : !baseRow || baseRow.id !== petId)) return null;
   const conflictRemote = data.conflictRemote === null ? null : toCachedPet(data.conflictRemote);
   if (data.conflictRemote !== null && !conflictRemote) return null;
   const lastError = parseError(data.lastError);
@@ -250,6 +280,7 @@ export function parseLocalPetOperation(data: unknown): LocalPetOperation | null 
     kind,
     content,
     baseRow,
+    restore: restore as PetDeleteRestore | null,
     operationId,
     status: status as PetOperationStatus,
     attempts: data.attempts as number,
@@ -289,6 +320,7 @@ export function createPetOperation(
     kind: 'create',
     content: input.content,
     baseRow: null,
+    restore: null,
     operationId: input.operationId,
     status: 'pending',
     attempts: 0,
@@ -302,7 +334,7 @@ export function createPetOperation(
   };
 }
 
-export type EditRejection = 'not_editable' | 'synced_create';
+export type EditRejection = 'not_editable' | 'synced_create' | 'pending_delete';
 
 /**
  * Edición guardada en el dispositivo. Con una operación ya pendiente (o fallida) se consolida: mismo
@@ -315,6 +347,8 @@ export function applyPetEdit(
   input: { userId: string; petId: string; content: PetFields; baseRow: Pet; operationId: string },
   { now }: Clock
 ): LocalPetOperation | null | { rejected: EditRejection } {
+  // Con una eliminación guardada no se edita: primero se deshace (o se confirma).
+  if (current?.kind === 'delete') return { rejected: 'pending_delete' };
   if (current && (current.status === 'conflict' || current.status === 'forbidden')) return { rejected: 'not_editable' };
   if (current?.kind === 'create') {
     if (current.status === 'synced') return { rejected: 'synced_create' };
@@ -333,6 +367,7 @@ export function applyPetEdit(
     kind: 'update',
     content: input.content,
     baseRow,
+    restore: null,
     operationId: input.operationId,
     status: 'pending',
     attempts: 0,
@@ -446,7 +481,172 @@ export function isPetOperationDue(op: LocalPetOperation, now: number): boolean {
 export function canDiscardPetOperation(op: LocalPetOperation): boolean {
   if (op.status === 'synced') return false;
   if (op.inFlightSince !== null) return false;
-  return true;
+  // Una eliminación no se descarta: se deshace (vuelve lo que había, `undoPetDelete`).
+  return op.kind !== 'delete';
+}
+
+// ---------------------------------------------------------------------------------------------
+// Eliminación (fase 10)
+// ---------------------------------------------------------------------------------------------
+
+export type DeleteRejection = 'not_owner' | 'no_base' | 'synced_create' | 'not_deletable';
+
+/**
+ * Resultado de pedir la eliminación:
+ * - `cancelled`: un alta que nunca llegó al servidor (sin enviar, o con respuesta de que no se aplicó):
+ *   se quita del dispositivo y no sale nada.
+ * - `saved`: operación de eliminación guardada (o la que ya había: pedirla dos veces no duplica nada).
+ * - `rejected`: `not_owner` (solo el propietario borra, RLS `pets: delete owner`), `no_base` (sin la
+ *   versión del servidor no hay precondición), `synced_create` (se borra con el id del servidor) o
+ *   `not_deletable` (un alta que el propietario ya no ve).
+ */
+export type DeleteRequest =
+  | { result: 'cancelled' }
+  | { result: 'saved'; op: LocalPetOperation }
+  | { result: 'rejected'; reason: DeleteRejection };
+
+/**
+ * Eliminación guardada en el dispositivo. Sustituye a la operación de la mascota y guarda lo que vuelve
+ * si se deshace. `baseRow`: la versión del servidor que ve el usuario (servidor o copia); con una edición
+ * pendiente, la precondición es la base de esa edición (la versión del servidor que se editó).
+ */
+export function requestPetDelete(
+  current: LocalPetOperation | null,
+  input: { userId: string; localId: string; baseRow: Pet | null; operationId: string },
+  { now }: Clock
+): DeleteRequest {
+  if (current?.kind === 'delete') return { result: 'saved', op: current };
+  const pending = { status: 'pending' as const, attempts: 0, nextAttemptAt: null, lastError: null, conflictRemote: null, syncedAt: null };
+
+  if (current?.kind === 'create') {
+    if (current.status === 'synced') return { result: 'rejected', reason: 'synced_create' };
+    if (current.status === 'forbidden') return { result: 'rejected', reason: 'not_deletable' };
+    // Nunca salió, o el servidor respondió que no la aplicó: no existe en el servidor.
+    if (current.inFlightSince === null) return { result: 'cancelled' };
+    // Enviada sin respuesta: puede existir. Se comprobará por su clave antes de decidir.
+    return {
+      result: 'saved',
+      op: { ...current, ...pending, kind: 'delete', petId: null, baseRow: null, restore: 'create', inFlightSince: null, editedAt: now },
+    };
+  }
+
+  if (isLocalPetId(input.localId)) return { result: 'cancelled' };
+  const base = current?.kind === 'update' ? current.baseRow : input.baseRow;
+  if (!base || base.id !== input.localId) return { result: 'rejected', reason: 'no_base' };
+  // Solo UX: lo decide RLS. Se usa la versión más reciente que se conoce.
+  if ((input.baseRow ?? base).owner_id !== input.userId) return { result: 'rejected', reason: 'not_owner' };
+  return {
+    result: 'saved',
+    op: {
+      userId: input.userId,
+      localId: input.localId,
+      petId: input.localId,
+      kind: 'delete',
+      content: current?.kind === 'update' ? current.content : contentOf(base),
+      baseRow: base,
+      restore: current?.kind === 'update' ? 'update' : 'none',
+      operationId: input.operationId,
+      ...pending,
+      inFlightSince: null,
+      createdAt: now,
+      editedAt: now,
+    },
+  };
+}
+
+/** ¿Se puede deshacer? Solo mientras el servidor no la haya podido aplicar (ni confirmada ni en vuelo). */
+export function canUndoPetDelete(op: LocalPetOperation): boolean {
+  return op.kind === 'delete' && op.status !== 'synced' && op.inFlightSince === null;
+}
+
+/**
+ * Deshacer la eliminación: vuelve lo que había. `null` = no había nada pendiente (la mascota queda como
+ * en el servidor). Un alta vuelve como incierta (`inFlightSince`): reenviarla es seguro (su clave) y así
+ * no se puede descartar como si nunca hubiera salido; si ya se sabe que existe, vuelve como confirmada.
+ */
+export function undoPetDelete(
+  op: LocalPetOperation,
+  { now }: Clock
+): LocalPetOperation | null | { rejected: 'not_delete' | 'confirmed' | 'in_flight' } {
+  if (op.kind !== 'delete') return { rejected: 'not_delete' };
+  if (op.status === 'synced') return { rejected: 'confirmed' };
+  if (op.inFlightSince !== null) return { rejected: 'in_flight' };
+  const reset = { attempts: 0, nextAttemptAt: null, lastError: null, conflictRemote: null, restore: null, editedAt: now };
+  if (op.restore === 'none') return null;
+  if (op.restore === 'update') return { ...op, ...reset, kind: 'update', status: 'pending', inFlightSince: null };
+  if (op.petId !== null) {
+    return { ...op, ...reset, kind: 'create', baseRow: null, status: 'synced', inFlightSince: null, syncedAt: now };
+  }
+  return { ...op, ...reset, kind: 'create', baseRow: null, status: 'pending', inFlightSince: now };
+}
+
+/**
+ * Eliminación de un alta incierta, tras buscarla por su clave (`row`, o `null` si no existe):
+ * - no existe → `cancelled` (la operación se quita; nunca se creó);
+ * - existe con lo que se creó → se borrará con esa versión como precondición;
+ * - existe con otros datos → `conflict` (decide el usuario).
+ */
+export function resolveCreatedForDelete(
+  op: LocalPetOperation,
+  row: Pet | null
+): { result: 'cancelled' } | { result: 'resolved' | 'conflict'; op: LocalPetOperation } {
+  if (!row) return { result: 'cancelled' };
+  const known = { ...op, petId: row.id, baseRow: row, inFlightSince: null };
+  if (samePetContent(contentOf(row), op.content)) return { result: 'resolved', op: known };
+  return { result: 'conflict', op: { ...known, status: 'conflict', conflictRemote: row, nextAttemptAt: null } };
+}
+
+/** Eliminación confirmada por el servidor (devolvió la fila borrada): lápida. */
+export function applyDeleteConfirmed(op: LocalPetOperation, { now }: Clock): LocalPetOperation {
+  return { ...op, status: 'synced', inFlightSince: null, lastError: null, nextAttemptAt: null, conflictRemote: null, syncedAt: now };
+}
+
+/**
+ * El borrado no se aplicó (0 filas) y se leyó la fila actual. Decide sin enviar nada:
+ * - `gone`: ya no existe o ya no se ve (borrada en otro dispositivo, o una respuesta perdida de este
+ *   borrado). La operación se cierra; nada se borra del dispositivo.
+ * - `forbidden`: es la misma versión, así que lo filtró RLS (no es el propietario).
+ * - `rebase`: la versión nueva es la edición de este dispositivo que acababa de llegar (mismo
+ *   contenido): se borra sobre ella.
+ * - `conflict`: cambió en otro sitio; nunca se borra un cambio sin que el usuario lo vea.
+ */
+export type DeleteReconcile =
+  | { result: 'gone' }
+  | { result: 'rebase' | 'forbidden' | 'conflict'; op: LocalPetOperation };
+
+export function reconcileDelete(op: LocalPetOperation, row: Pet | null, { now }: Clock): DeleteReconcile {
+  if (!row) return { result: 'gone' };
+  const base = op.baseRow!;
+  const order = compareVersions(row.updated_at, base.updated_at);
+  if (order === 0) {
+    return {
+      result: 'forbidden',
+      op: { ...op, status: 'forbidden', inFlightSince: null, nextAttemptAt: null, lastError: { kind: 'permission', reason: 'not_owner', at: now } },
+    };
+  }
+  if (order === 1 && op.restore === 'update' && samePetContent(contentOf(row), op.content)) {
+    return { result: 'rebase', op: { ...op, baseRow: row, status: 'pending', inFlightSince: null, nextAttemptAt: null, lastError: null } };
+  }
+  return { result: 'conflict', op: { ...op, status: 'conflict', conflictRemote: row, inFlightSince: null, nextAttemptAt: null } };
+}
+
+/** «Eliminar igualmente» viendo `shownRemote`: se borra con esa versión como precondición. */
+export function resolveDeleteConflict(op: LocalPetOperation, shownRemote: Pet): LocalPetOperation {
+  return {
+    ...op,
+    petId: shownRemote.id,
+    baseRow: shownRemote,
+    status: 'pending',
+    attempts: 0,
+    nextAttemptAt: null,
+    lastError: null,
+    conflictRemote: null,
+  };
+}
+
+/** Eliminación (de cualquier estado, también la lápida) de una mascota, por su id local o del servidor. */
+export function deleteOperationFor(ops: readonly LocalPetOperation[] | undefined, id: string): LocalPetOperation | null {
+  return ops?.find((op) => op.kind === 'delete' && (op.localId === id || op.petId === id)) ?? null;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -461,6 +661,7 @@ export function canDiscardPetOperation(op: LocalPetOperation): boolean {
 export type PetUnsyncedSummary = {
   pendingCreate: number;
   pendingUpdate: number;
+  pendingDelete: number;
   uncertain: number;
   conflict: number;
   failed: number;
@@ -472,6 +673,7 @@ export function summarizePetOperations(ops: readonly LocalPetOperation[], unread
   const summary: PetUnsyncedSummary = {
     pendingCreate: 0,
     pendingUpdate: 0,
+    pendingDelete: 0,
     uncertain: 0,
     conflict: 0,
     failed: 0,
@@ -479,10 +681,12 @@ export function summarizePetOperations(ops: readonly LocalPetOperation[], unread
     unreadable,
   };
   for (const op of ops) {
+    // Altas confirmadas (mapeo) y eliminaciones confirmadas (lápida): ya están en el servidor.
     if (op.status === 'synced') continue;
     if (op.status === 'pending') {
       if (op.inFlightSince !== null) summary.uncertain += 1;
       else if (op.kind === 'create') summary.pendingCreate += 1;
+      else if (op.kind === 'delete') summary.pendingDelete += 1;
       else summary.pendingUpdate += 1;
     } else {
       summary[op.status] += 1;
@@ -495,6 +699,7 @@ export function petUnsyncedTotal(summary: PetUnsyncedSummary): number {
   return (
     summary.pendingCreate +
     summary.pendingUpdate +
+    summary.pendingDelete +
     summary.uncertain +
     summary.conflict +
     summary.failed +
@@ -516,14 +721,31 @@ export type PetSyncDisplay =
   | 'failed'
   | 'forbidden';
 
-/** Estado que se enseña (sin operación, o `synced`: «sincronizada», `null`). */
+/**
+ * Estado que se enseña de un alta o una edición (sin operación, o `synced`: «sincronizada», `null`).
+ * Las eliminaciones tienen el suyo (`petDeleteDisplay`).
+ */
 export function petSyncDisplay(op: LocalPetOperation | null | undefined, syncing: boolean): PetSyncDisplay | null {
-  if (!op || op.status === 'synced') return null;
+  if (!op || op.status === 'synced' || op.kind === 'delete') return null;
   if (syncing) return 'syncing';
   if (op.status === 'pending') {
     if (op.inFlightSince !== null) return 'uncertain';
     return op.kind === 'create' ? 'pending_create' : 'pending_update';
   }
+  return op.status;
+}
+
+/**
+ * Estado de una eliminación: `pending` (guardada, se enviará), `syncing`, `uncertain` (se envió y no
+ * llegó la respuesta), `conflict`, `failed`, `forbidden` y `deleted` (confirmada).
+ */
+export type PetDeleteDisplay = 'pending' | 'syncing' | 'uncertain' | 'conflict' | 'failed' | 'forbidden' | 'deleted';
+
+export function petDeleteDisplay(op: LocalPetOperation | null | undefined, syncing: boolean): PetDeleteDisplay | null {
+  if (!op || op.kind !== 'delete') return null;
+  if (op.status === 'synced') return 'deleted';
+  if (syncing) return 'syncing';
+  if (op.status === 'pending') return op.inFlightSince !== null ? 'uncertain' : 'pending';
   return op.status;
 }
 

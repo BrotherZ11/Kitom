@@ -8,12 +8,13 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-stat
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TopBar } from '@/components/ui/top-bar';
+import { PetDeletionNotice } from '@/features/pets/components/pet-deletion-status';
 import { PetDetails } from '@/features/pets/components/pet-details';
 import { PetProfile } from '@/features/pets/components/pet-profile';
 import { PetSyncNotice } from '@/features/pets/components/pet-sync-status';
 import { usePet } from '@/features/pets/hooks/use-pets';
 import { useSpecies } from '@/features/pets/hooks/use-species';
-import { isLocalPetId } from '@/features/pets/offline/pet-operation';
+import { isLocalPetId, petWithLocalContent } from '@/features/pets/offline/pet-operation';
 import { petErrorMessage } from '@/features/pets/pet-errors';
 import { formatBreed } from '@/features/pets/pet-format';
 import { t } from '@/i18n';
@@ -28,6 +29,9 @@ import { spacing } from '@/theme/tokens';
  * Con cambios guardados solo en el dispositivo (fase 8), su estado y lo que se puede hacer. Un id
  * local es un alta de este dispositivo: se ve el borrador (sin registros diarios ni foto, que necesitan
  * el id del servidor) y, cuando se confirma, se pasa a la mascota del servidor.
+ *
+ * Con una eliminación guardada (fase 10), su estado en lugar del perfil: se puede deshacer mientras el
+ * servidor no la haya aplicado, y un conflicto se decide aquí. Confirmada, «se ha eliminado».
  */
 export default function PetDetailScreen() {
   const { id, photoFailed } = useLocalSearchParams<{ id: string; photoFailed?: string }>();
@@ -38,6 +42,26 @@ export default function PetDetailScreen() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/pets'));
 
   if (pet.redirectTo) return <Redirect href={{ pathname: '/pets/[id]', params: { id: pet.redirectTo } }} />;
+
+  if (pet.deletion && pet.deleteDisplay) {
+    const deleted = pet.deleteDisplay === 'deleted';
+    const shown = petWithLocalContent(pet.deletion, pet.deletion.conflictRemote ?? pet.deletion.baseRow);
+    const speciesName = species.data?.find((item) => item.id === shown.species_id)?.name ?? null;
+    return (
+      <Screen align="top">
+        <TopBar onBack={back} />
+        <View style={styles.heading}>
+          <Text variant="title1" accessibilityRole="header">
+            {shown.name}
+          </Text>
+        </View>
+        <PetDeletionNotice op={pet.deletion} display={pet.deleteDisplay} onClosed={() => router.dismissTo('/')} />
+        {deleted ? null : (
+          <PetDetails pet={shown} speciesName={speciesName} breedLabel={formatBreed(shown, null)} isShared={false} />
+        )}
+      </Screen>
+    );
+  }
 
   const syncNotice = <PetSyncNotice op={pet.op} display={pet.display} onDiscarded={isLocalPetId(id) ? back : undefined} />;
 

@@ -1,6 +1,15 @@
 import type { Pet } from '@/features/pets/types';
 
-import { isLocalPetId, petSyncDisplay, petWithLocalContent, type LocalPetOperation, type PetSyncDisplay } from './pet-operation.ts';
+import {
+  deleteOperationFor,
+  isLocalPetId,
+  petDeleteDisplay,
+  petSyncDisplay,
+  petWithLocalContent,
+  type LocalPetOperation,
+  type PetDeleteDisplay,
+  type PetSyncDisplay,
+} from './pet-operation.ts';
 import type { PetDetailView, PetListView } from './pet-view.ts';
 
 /**
@@ -12,6 +21,9 @@ import type { PetDetailView, PetListView } from './pet-view.ts';
  *   del servidor ni pasa a ser la mascota activa (las pestañas usan registros diarios, que necesitan el
  *   id del servidor).
  * - Un alta confirmada es solo un mapeo: su id local lleva a la mascota del servidor (`redirect`).
+ * - Una mascota con una eliminación guardada (pendiente, en conflicto… o ya confirmada) no está en la
+ *   lista ni puede ser la activa, aunque el servidor (o una respuesta antigua) la siga devolviendo: va
+ *   aparte (`pendingDeletions`) hasta que se confirma o se deshace (fase 10).
  */
 
 type OperationsQuery = {
@@ -27,9 +39,26 @@ export type PetWithSync = { pet: Pet; op: LocalPetOperation | null; display: Pet
 const pendingUpdate = (ops: readonly LocalPetOperation[] | undefined, petId: string) =>
   ops?.find((op) => op.kind === 'update' && op.localId === petId) ?? null;
 
-/** Mascotas del servidor (o de la copia) con su edición local encima. */
+/** Ids (del servidor o locales) de las mascotas con una eliminación guardada, de cualquier estado. */
+export function deletedPetIds(ops: readonly LocalPetOperation[] | undefined): Set<string> {
+  const ids = new Set<string>();
+  for (const op of ops ?? []) {
+    if (op.kind !== 'delete') continue;
+    ids.add(op.localId);
+    if (op.petId) ids.add(op.petId);
+  }
+  return ids;
+}
+
+/** Sin las mascotas que se están eliminando (o ya eliminadas) en este dispositivo. */
+export function withoutDeleted(pets: readonly Pet[], ops: readonly LocalPetOperation[] | undefined): Pet[] {
+  const deleted = deletedPetIds(ops);
+  return pets.filter((pet) => !deleted.has(pet.id));
+}
+
+/** Mascotas del servidor (o de la copia) con su edición local encima (sin las que se eliminan). */
 export function withLocalEdits(pets: readonly Pet[], ops: readonly LocalPetOperation[] | undefined, syncingKey: string | null): PetWithSync[] {
-  return pets.map((pet) => {
+  return withoutDeleted(pets, ops).map((pet) => {
     const op = pendingUpdate(ops, pet.id);
     return { pet: op ? petWithLocalContent(op, pet) : pet, op, display: petSyncDisplay(op, syncingKey === pet.id) };
   });
@@ -59,6 +88,46 @@ export function orphanedEdits(
     .map((op) => ({ pet: petWithLocalContent(op, op.baseRow), op, display: petSyncDisplay(op, syncingKey === op.localId) }));
 }
 
+export type PetDeletion = { pet: Pet; op: LocalPetOperation; display: PetDeleteDisplay };
+
+/**
+ * Eliminaciones guardadas en el dispositivo aún sin confirmar (pendientes, inciertas, en conflicto,
+ * fallidas o sin permiso), de la más antigua a la más reciente. Se ven con lo que se deshace al
+ * cancelarlas. Las confirmadas (lápidas) no.
+ */
+export function pendingDeletions(ops: readonly LocalPetOperation[] | undefined, syncingKey: string | null): PetDeletion[] {
+  return (ops ?? [])
+    .filter((op) => op.kind === 'delete' && op.status !== 'synced')
+    .sort((a, b) => a.editedAt - b.editedAt)
+    .map((op) => ({ pet: petWithLocalContent(op, op.baseRow), op, display: petDeleteDisplay(op, syncingKey === op.localId)! }));
+}
+
+/** Un cambio de mascota guardado solo en el dispositivo, para la pantalla global de cambios sin sincronizar. */
+export type UnsyncedPetItem = {
+  key: string;
+  /** Ruta de la mascota (id local o del servidor) donde se ve y se decide. */
+  routeId: string;
+  name: string;
+  kind: LocalPetOperation['kind'];
+  sync: PetSyncDisplay | null;
+  deletion: PetDeleteDisplay | null;
+};
+
+/** Altas, ediciones y eliminaciones sin confirmar (nunca las confirmadas), de la más antigua a la más reciente. */
+export function unsyncedPetItems(ops: readonly LocalPetOperation[] | undefined, syncingKey: string | null): UnsyncedPetItem[] {
+  return (ops ?? [])
+    .filter((op) => op.status !== 'synced')
+    .sort((a, b) => a.editedAt - b.editedAt)
+    .map((op) => ({
+      key: op.localId,
+      routeId: op.localId,
+      name: op.content.name,
+      kind: op.kind,
+      sync: petSyncDisplay(op, syncingKey === op.localId),
+      deletion: petDeleteDisplay(op, syncingKey === op.localId),
+    }));
+}
+
 /** La lista con las ediciones locales encima (los borradores van aparte). */
 export function listWithLocalEdits(view: PetListView, ops: readonly LocalPetOperation[] | undefined): PetListView {
   if (view.state !== 'ready') return view;
@@ -67,6 +136,7 @@ export function listWithLocalEdits(view: PetListView, ops: readonly LocalPetOper
 
 export type LocalPetDetailView =
   | { state: 'loading' }
+  /** `op`: el alta o, si se pidió borrarla mientras estaba en vuelo, su eliminación. */
   | { state: 'ready'; pet: Pet; op: LocalPetOperation }
   /** Alta ya confirmada: ir a la mascota del servidor. */
   | { state: 'redirect'; petId: string }
@@ -78,9 +148,10 @@ export type LocalPetDetailView =
 export function resolveLocalPetDetail(localId: string, operations: OperationsQuery): LocalPetDetailView {
   if (operations.status === 'error') return { state: 'local_error', error: operations.error };
   if (operations.data === undefined) return { state: 'loading' };
-  const op = operations.data.find((item) => item.localId === localId && item.kind === 'create');
+  const op = operations.data.find((item) => item.localId === localId && (item.kind === 'create' || item.kind === 'delete'));
   // Recién guardada, la lectura anterior aún no la tiene: no se dice «no existe» mientras se relee.
   if (!op) return operations.fetchStatus === 'fetching' ? { state: 'loading' } : { state: 'not_found' };
+  if (op.kind === 'delete') return { state: 'ready', pet: petWithLocalContent(op, op.baseRow), op };
   if (op.status === 'synced' && op.petId) return { state: 'redirect', petId: op.petId };
   return { state: 'ready', pet: petWithLocalContent(op, null), op };
 }
@@ -97,4 +168,14 @@ export function detailWithLocalEdit(view: PetDetailView, op: LocalPetOperation |
  */
 export function canHaveDailyLogs(petId: string): boolean {
   return !isLocalPetId(petId);
+}
+
+/**
+ * ¿Se pueden abrir sus registros diarios (nuevos o el historial)? No con un id local ni con una
+ * eliminación guardada (fase 10). Los registros ya guardados de esa mascota no se tocan: siguen en
+ * «Cambios sin sincronizar».
+ */
+export function dailyLogsAccess(petId: string, ops: readonly LocalPetOperation[] | undefined): 'allowed' | 'local_pet' | 'deleting' {
+  if (!canHaveDailyLogs(petId)) return 'local_pet';
+  return deleteOperationFor(ops, petId) ? 'deleting' : 'allowed';
 }

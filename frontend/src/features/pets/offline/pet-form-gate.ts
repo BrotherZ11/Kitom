@@ -11,7 +11,8 @@ import type { PetDetailView } from './pet-view.ts';
  *   edición es esa versión: la precondición `updated_at` del envío detecta si cambió en el servidor.
  * Con `offline`, el formulario avisa de que se guardará en el dispositivo. Sin datos con qué rellenarlo,
  * «necesitas conexión». Una mascota con un conflicto o sin permiso no se vuelve a editar hasta decidir
- * qué hacer con lo guardado (`blocked`). Borrar y las fotos siguen necesitando conexión.
+ * qué hacer con lo guardado (`blocked`). Las fotos siguen necesitando conexión; eliminar se guarda en el
+ * dispositivo (fase 10) y una mascota con una eliminación guardada no se edita (la ficha la enseña).
  */
 
 type QueryLike = { status: 'pending' | 'success' | 'error'; error: unknown };

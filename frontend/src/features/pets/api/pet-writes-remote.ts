@@ -19,7 +19,11 @@ import { PET_COLUMNS } from './pets-remote.ts';
  * - Edición: solo columnas editables y con precondición `updated_at = base` (compare-and-set atómico).
  *   0 filas (`data: null`) = no se aplicó (otra versión, sin permiso o no existe): lo decide quien llama
  *   leyendo la fila.
- * - Nunca borra ni toca fotos (`photo_path` no se envía).
+ * - Eliminación (fase 10): con la misma precondición (`delete … eq('updated_at', base)`, una sola
+ *   sentencia: si otra transacción cambia la fila, Postgres vuelve a evaluar el `WHERE` y no la borra).
+ *   0 filas (`data: false`) = no se aplicó (otra versión, sin permiso o ya no existe): lo decide quien
+ *   llama leyendo la fila. RLS: solo el propietario (`pets: delete owner`).
+ * - Nunca toca fotos (`photo_path` no se envía; los objetos de Storage no se borran desde aquí).
  *
  * Nunca lanza: devuelve el error original y el `status` HTTP. Sin respuesta → `status: null`. Sin
  * reintentos de supabase-js: los decide el motor.
@@ -36,6 +40,8 @@ export type PetWritesRemote = {
   update(petId: string, content: PetFields, baseUpdatedAt: string): Promise<RemoteResult<Pet | null>>;
   /** Fila actual (`null` = no existe o no se ve). */
   fetch(petId: string): Promise<RemoteResult<Pet | null>>;
+  /** Eliminación con precondición; `data: true` = borrada, `false` = 0 filas (no se aplicó). */
+  delete(petId: string, baseUpdatedAt: string): Promise<RemoteResult<boolean>>;
 };
 
 export const REMOTE_TIMEOUT_MS = 20_000;
@@ -181,6 +187,21 @@ export function createPetWritesRemote(
             .abortSignal(signal)
             .maybeSingle(),
         asPetOrNull
+      ),
+
+    delete: (petId, baseUpdatedAt) =>
+      run(
+        (signal, authorization) =>
+          client
+            .from('pets')
+            .delete()
+            .eq('id', petId)
+            .eq('updated_at', baseUpdatedAt)
+            .select('id')
+            .setHeader('Authorization', authorization)
+            .abortSignal(signal)
+            .maybeSingle(),
+        (data: { id: string } | null) => (data === null ? false : data.id === petId ? true : undefined)
       ),
   };
 }

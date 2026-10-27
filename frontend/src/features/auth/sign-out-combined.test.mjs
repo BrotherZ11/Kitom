@@ -90,6 +90,7 @@ describe('cerrar sesión con registros diarios y mascotas pendientes', () => {
     assert.deepEqual(outcome.summary.pets, {
       pendingCreate: 1,
       pendingUpdate: 0,
+      pendingDelete: 0,
       uncertain: 0,
       conflict: 0,
       failed: 0,

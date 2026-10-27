@@ -20,12 +20,12 @@ import { t } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 
 const DAILY_LOG_COUNTS = ['pending', 'conflict', 'failed'] as const;
-const PET_COUNTS = ['pendingCreate', 'pendingUpdate', 'uncertain', 'conflict', 'failed', 'forbidden', 'unreadable'] as const satisfies readonly (keyof PetUnsyncedSummary)[];
+const PET_COUNTS = ['pendingCreate', 'pendingUpdate', 'pendingDelete', 'uncertain', 'conflict', 'failed', 'forbidden', 'unreadable'] as const satisfies readonly (keyof PetUnsyncedSummary)[];
 
 /**
  * Cerrar sesión con cambios que solo existen en el dispositivo (`features/auth/sign-out-flow.ts`): de
- * registros diarios y de mascotas (altas, ediciones, envíos sin confirmar, conflictos, fallos, sin
- * permiso e ilegibles). Se llega desde «Cerrar sesión» solo si hay alguno, o si no se pudo comprobar.
+ * registros diarios y de mascotas (altas, ediciones, eliminaciones, envíos sin confirmar, conflictos,
+ * fallos, sin permiso e ilegibles). Se llega desde «Cerrar sesión» solo si hay alguno, o si no se pudo comprobar.
  * Ninguna opción borra datos del dispositivo. Salir de la pantalla (atrás o «Cancelar») no cambia nada
  * y anula el cierre de un intento de sincronización en curso.
  */

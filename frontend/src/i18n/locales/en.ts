@@ -834,6 +834,7 @@ export const en: Translations = {
     petCounts: {
       pendingCreate: 'Waiting to be created',
       pendingUpdate: 'Pending edits',
+      pendingDelete: 'Pending deletions',
       uncertain: 'Sent but not confirmed',
       conflict: 'In conflict',
       failed: 'Could not be synced',
@@ -941,13 +942,71 @@ export const en: Translations = {
     },
     detail: {
       deleteConfirmDescription:
-        'Their daily logs, reminders, analyses, achievements and reports will also be deleted. This cannot be undone.',
+        'Their daily logs, reminders, analyses, achievements and reports will also be deleted. Once Kitom confirms it, it cannot be undone.',
       deleteTitleNamed: 'Delete {name}?',
       deleteNamed: 'Delete {name}',
       notFound: "We couldn't find this pet or you no longer have access to it.",
       backToList: 'Back to my pets',
     },
     /** Pets created and edited on the device until the server confirms them (phase 8). */
+    /** Pet deletion saved on the device (phase 10). */
+    deletion: {
+      status: {
+        pending: 'Deletion pending',
+        syncing: 'Deleting…',
+        uncertain: 'Checking whether it was deleted',
+        conflict: 'Changed before it was deleted',
+        failed: "Couldn't delete",
+        forbidden: 'No permission to delete',
+        deleted: 'Deleted',
+      },
+      detail: {
+        pending: "It will be deleted from Kitom when you're online. Nothing has been deleted yet: you can undo it.",
+        syncing: 'Deleting it from Kitom…',
+        uncertain:
+          "The deletion was sent, but no response arrived. It will be checked when you're back online; until then it can't be undone.",
+        conflict:
+          "This pet changed on another device after you asked to delete it. Review the current version and decide: it won't be deleted unless you confirm.",
+        conflictChecking: "The current version in Kitom still has to be checked. It will be when you're online.",
+        failed: "Kitom didn't accept the deletion. The pet is still there: you can try again or undo it.",
+        forbidden: 'Only the pet owner can delete it. It is still in Kitom: undo the deletion to see it again.',
+        deleted: 'This pet has been deleted from Kitom.',
+      },
+      section: 'Pending deletions',
+      undo: 'Undo deletion',
+      undone: 'Deletion undone',
+      undoUnavailable: "It can't be undone: it was already deleted or it's being checked.",
+      retry: 'Try again',
+      keep: 'Keep the pet',
+      kept: 'The pet is kept',
+      deleteAnyway: 'Delete anyway',
+      deleteAnywayTitle: 'Delete the current version of {name}?',
+      deleteAnywayText:
+        "It will be deleted with the other person's or device's changes, along with its daily logs, reminders, analyses, achievements and reports. This can't be undone.",
+      currentVersion: 'Current version in Kitom',
+      checkUnavailable: "The current version can't be checked offline. Try again when you're back online.",
+      changedAgain: 'It changed again in Kitom. Review the new version.',
+      gone: 'It was no longer in Kitom: it was deleted on another device or you no longer have access.',
+      pendingLogs:
+        "It has {count} unsynced daily logs. They're kept on this device, but if the deletion is confirmed they can no longer be sent. You can review them in “Unsynced changes”.",
+      pendingLogsOne:
+        "It has 1 unsynced daily log. It's kept on this device, but if the deletion is confirmed it can no longer be sent. You can review it in “Unsynced changes”.",
+      dialogOffline: "Offline: it will be deleted when you're back online. Until then you can undo it.",
+      dialogDraft: "This pet is only on this device: it will be discarded and won't be created in Kitom.",
+      dialogDraftUncertain:
+        'It was sent without confirmation: before deleting it, Kitom will check whether it was created. Until then you can undo it.',
+      savedLocally: "It will be deleted when you're online. You can undo it until then.",
+      deleted: 'Pet deleted',
+      draftDiscarded: 'Pet discarded from this device',
+      undoneWhileWaiting: 'The deletion was undone',
+      notOwner: 'Only the owner can delete this pet.',
+      noBase: "This device doesn't have a copy of this pet to delete it with. Try again online.",
+      notDeletable: "This pet is no longer available. You can discard what's saved on this device.",
+      dailyLogsBlocked: 'This pet has a pending deletion',
+      dailyLogsBlockedText: "You can't add logs to a pet that's being deleted. Undo the deletion to keep logging its day.",
+      dailyLogsCheckFailed:
+        "The changes saved on this device couldn't be read, so it isn't known whether this pet is being deleted.",
+    },
     sync: {
       status: {
         pending_create: 'Waiting to be created',
@@ -1135,6 +1194,10 @@ export const en: Translations = {
       photo_update_failed: "We couldn't save the photo to the profile. Please try again.",
       photo_delete_failed: "We couldn't remove the photo. Please try again.",
       photo_url_failed: "We couldn't load the photo.",
+      photo_changed: 'The photo changed on another device in the meantime. Check the current one before changing it.',
+      photo_unconfirmed:
+        "The photo change couldn't be confirmed. It will be checked when you're online; no photo is deleted until then.",
+      photo_local_failed: "The photo couldn't be prepared on this device. Please try again.",
       photo_storage: 'Photo storage is not responding. Please try again later.',
       unknown: 'Something went wrong. Please try again.',
     },
@@ -1288,8 +1351,10 @@ export const en: Translations = {
       none: 'There are no daily logs saved on this device.',
     },
     unsynced: {
-      title: 'Unsynced logs',
-      none: 'There are no logs waiting to sync.',
+      title: 'Unsynced changes',
+      none: 'There are no changes waiting to sync.',
+      logsSection: 'Daily logs',
+      petsSection: 'Pets',
       description:
         "Changes saved on this device that aren't on the server yet. Tap one to see its data and what you can do.",
       unknownPet: 'Pet not available (no access or deleted)',

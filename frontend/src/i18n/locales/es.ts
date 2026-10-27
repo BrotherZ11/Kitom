@@ -851,6 +851,7 @@ export const es = {
     petCounts: {
       pendingCreate: 'Altas pendientes',
       pendingUpdate: 'Ediciones pendientes',
+      pendingDelete: 'Eliminaciones pendientes',
       uncertain: 'Enviadas sin confirmar',
       conflict: 'En conflicto',
       failed: 'No se pudieron sincronizar',
@@ -964,13 +965,73 @@ export const es = {
     },
     detail: {
       deleteConfirmDescription:
-        'Se borrarán también sus registros diarios, recordatorios, análisis, logros e informes. Esta acción no se puede deshacer.',
+        'Se borrarán también sus registros diarios, recordatorios, análisis, logros e informes. Cuando Kitom lo confirme, no se podrá deshacer.',
       deleteTitleNamed: '¿Eliminar a {name}?',
       deleteNamed: 'Eliminar a {name}',
       notFound: 'No hemos encontrado esta mascota o ya no tienes acceso a ella.',
       backToList: 'Volver a mis mascotas',
     },
     /** Altas y ediciones guardadas en el dispositivo hasta que el servidor las confirma (fase 8). */
+    /** Eliminación de mascotas guardada en el dispositivo (fase 10). */
+    deletion: {
+      status: {
+        pending: 'Eliminación pendiente',
+        syncing: 'Eliminando…',
+        uncertain: 'Comprobando si se eliminó',
+        conflict: 'Cambió antes de eliminarla',
+        failed: 'No se pudo eliminar',
+        forbidden: 'Sin permiso para eliminarla',
+        deleted: 'Eliminada',
+      },
+      detail: {
+        pending: 'Se eliminará de Kitom cuando haya conexión. Todavía no se ha borrado nada: puedes deshacerlo.',
+        syncing: 'Eliminándola de Kitom…',
+        uncertain:
+          'Se envió la eliminación, pero no llegó la respuesta. Se comprobará al volver la conexión; hasta entonces no se puede deshacer.',
+        conflict:
+          'Esta mascota cambió en otro dispositivo después de que pidieras eliminarla. Revisa la versión actual y decide: no se eliminará sin que lo confirmes.',
+        conflictChecking: 'Falta comprobar la versión actual en Kitom. Se hará cuando haya conexión.',
+        failed: 'Kitom no ha aceptado la eliminación. La mascota sigue allí: puedes reintentarlo o deshacerlo.',
+        forbidden:
+          'Solo el propietario de la mascota puede eliminarla. Sigue en Kitom: deshaz la eliminación para volver a verla.',
+        deleted: 'Esta mascota se ha eliminado de Kitom.',
+      },
+      section: 'Eliminaciones pendientes',
+      undo: 'Deshacer la eliminación',
+      undone: 'Eliminación deshecha',
+      undoUnavailable: 'No se puede deshacer: ya se eliminó o se está comprobando si se eliminó.',
+      retry: 'Reintentar',
+      keep: 'Conservar la mascota',
+      kept: 'La mascota se conserva',
+      deleteAnyway: 'Eliminar igualmente',
+      deleteAnywayTitle: '¿Eliminar la versión actual de {name}?',
+      deleteAnywayText:
+        'Se eliminará con los cambios de la otra persona o dispositivo, y también sus registros diarios, recordatorios, análisis, logros e informes. No se puede deshacer.',
+      currentVersion: 'Versión actual en Kitom',
+      checkUnavailable: 'Sin conexión no se puede comprobar la versión actual. Inténtalo cuando vuelva.',
+      changedAgain: 'Ha vuelto a cambiar en Kitom. Revisa la versión nueva.',
+      gone: 'Ya no estaba en Kitom: se eliminó en otro dispositivo o ya no tienes acceso.',
+      pendingLogs:
+        'Tiene {count} registros diarios sin sincronizar. Se conservan en este dispositivo, pero si la eliminación se confirma ya no se podrán enviar. Puedes revisarlos en «Cambios sin sincronizar».',
+      pendingLogsOne:
+        'Tiene 1 registro diario sin sincronizar. Se conserva en este dispositivo, pero si la eliminación se confirma ya no se podrá enviar. Puedes revisarlo en «Cambios sin sincronizar».',
+      dialogOffline: 'Sin conexión: se eliminará cuando vuelva. Hasta entonces podrás deshacerlo.',
+      dialogDraft: 'Esta mascota solo está en este dispositivo: se descartará y no llegará a crearse en Kitom.',
+      dialogDraftUncertain:
+        'Se envió sin confirmación: antes de eliminarla se comprobará si llegó a crearse en Kitom. Hasta entonces podrás deshacerlo.',
+      savedLocally: 'Se eliminará cuando haya conexión. Puedes deshacerlo hasta entonces.',
+      deleted: 'Mascota eliminada',
+      draftDiscarded: 'Mascota descartada de este dispositivo',
+      undoneWhileWaiting: 'La eliminación se ha deshecho',
+      notOwner: 'Solo el propietario puede eliminar esta mascota.',
+      noBase: 'Este dispositivo no tiene una copia de esta mascota con la que eliminarla. Inténtalo con conexión.',
+      notDeletable: 'Esta mascota ya no está disponible. Puedes descartar lo guardado en este dispositivo.',
+      dailyLogsBlocked: 'Esta mascota tiene una eliminación pendiente',
+      dailyLogsBlockedText:
+        'No se pueden añadir registros a una mascota que se está eliminando. Deshaz la eliminación para seguir registrando su día.',
+      dailyLogsCheckFailed:
+        'No se han podido leer los cambios guardados en este dispositivo, así que no se sabe si esta mascota se está eliminando.',
+    },
     sync: {
       status: {
         pending_create: 'Pendiente de crear',
@@ -1160,6 +1221,10 @@ export const es = {
       photo_update_failed: 'No se ha podido guardar la foto en la ficha. Inténtalo de nuevo.',
       photo_delete_failed: 'No se ha podido eliminar la foto. Inténtalo de nuevo.',
       photo_url_failed: 'No se ha podido cargar la foto.',
+      photo_changed: 'La foto cambió en otro dispositivo mientras tanto. Revisa la actual antes de cambiarla.',
+      photo_unconfirmed:
+        'No se ha podido confirmar el cambio de foto. Se comprobará cuando haya conexión; no se borra ninguna foto hasta saberlo.',
+      photo_local_failed: 'No se ha podido preparar la foto en este dispositivo. Inténtalo de nuevo.',
       photo_storage: 'El almacenamiento de fotos no responde. Inténtalo más tarde.',
       unknown: 'Algo ha salido mal. Inténtalo de nuevo.',
     },
@@ -1318,8 +1383,10 @@ export const es = {
       none: 'No hay registros diarios guardados en este dispositivo.',
     },
     unsynced: {
-      title: 'Registros sin sincronizar',
-      none: 'No hay registros pendientes de sincronizar.',
+      title: 'Cambios sin sincronizar',
+      none: 'No hay cambios pendientes de sincronizar.',
+      logsSection: 'Registros diarios',
+      petsSection: 'Mascotas',
       description:
         'Cambios guardados en este dispositivo que todavía no están en el servidor. Toca uno para ver sus datos y qué puedes hacer.',
       unknownPet: 'Mascota no disponible (sin acceso o eliminada)',
