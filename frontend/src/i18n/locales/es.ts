@@ -1093,6 +1093,13 @@ export const es = {
       otherHint: 'Escribe el nombre de la raza tal como la conoces.',
       backToCatalog: 'Buscar en el catálogo',
       chooseSpeciesFirst: 'Elige primero la especie.',
+      emptyCatalog: 'Todavía no hay razas en el catálogo para esta especie.',
+      savedCatalog: 'Sin conexión: catálogo guardado en este dispositivo ({date}).',
+      savedCatalogUndated: 'Sin conexión: catálogo guardado en este dispositivo.',
+      offlineUnavailable: 'El catálogo de razas aún no está guardado en este dispositivo.',
+      offlineUnavailableHint:
+        'Se descargará cuando tengas conexión. Mientras tanto, puedes escribir la raza a mano o elegir otra respuesta.',
+      localError: 'No hemos podido leer el catálogo de razas guardado en este dispositivo.',
     },
     photo: {
       fromLibrary: 'Elegir de la galería',
@@ -1127,6 +1134,7 @@ export const es = {
     validation: {
       required: 'Este campo es obligatorio.',
       breed_required: 'Elige una raza de la lista o escribe su nombre.',
+      breed_species_mismatch: 'Esta raza no corresponde a la especie elegida. Elige otra.',
       invalid_date: 'Introduce una fecha válida con el formato AAAA-MM-DD.',
       future_date: 'La fecha de nacimiento no puede ser futura.',
       invalid_weight: 'Introduce un peso mayor que 0, con hasta 3 decimales.',

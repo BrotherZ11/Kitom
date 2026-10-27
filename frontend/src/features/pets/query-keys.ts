@@ -30,10 +30,15 @@ export const speciesKeys = {
   list: (locale: Locale) => [...speciesKeys.all, locale] as const,
 };
 
+/**
+ * Catálogo de razas: uno por idioma (todas las especies, activas e inactivas; el selector filtra). Lleva
+ * el usuario porque pasa por su copia del dispositivo (`offline/breed-catalog-repository.ts`).
+ */
 export const breedKeys = {
   all: ['breeds'] as const,
-  /** Razas activas de una especie. */
-  list: (speciesId: string, locale: Locale) => [...breedKeys.all, 'list', speciesId, locale] as const,
-  /** Una raza concreta (activa o no), para mostrar la de una mascota existente. */
+  catalog: (userId: string, locale: Locale) => [...breedKeys.all, userId, 'catalog', locale] as const,
+  /** Copia del catálogo en el dispositivo. */
+  localCatalog: (userId: string, locale: Locale) => [...breedKeys.all, userId, 'local', locale] as const,
+  /** Una raza concreta (activa o no) que no está en el catálogo en memoria. */
   detail: (breedId: string, locale: Locale) => [...breedKeys.all, 'detail', breedId, locale] as const,
 };

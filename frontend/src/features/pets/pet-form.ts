@@ -25,6 +25,7 @@ export type PetFormField = keyof PetFormValues;
 export type PetFieldError =
   | 'required'
   | 'breed_required'
+  | 'breed_species_mismatch'
   | 'invalid_date'
   | 'future_date'
   | 'invalid_weight';
@@ -107,8 +108,14 @@ function toNullableText(value: string): string | null {
 /**
  * Validación de formulario respaldada por el esquema: `name` y `species_id` NOT NULL,
  * `weight_kg` numeric(9,3) > 0, `birth_date` fecha real no futura (trigger validate_pet_birth_date).
+ * `breedSpeciesId`: especie de la raza elegida según el catálogo (del servidor o del dispositivo), si
+ * se conoce; una raza de otra especie no se envía nunca (la FK `pets_breed_species_fkey` la rechazaría
+ * y, sin conexión, el alta o la edición se quedaría sin poder sincronizar).
  */
-export function validatePetForm(values: PetFormValues): PetFormErrors {
+export function validatePetForm(
+  values: PetFormValues,
+  { breedSpeciesId }: { breedSpeciesId?: string } = {}
+): PetFormErrors {
   const errors: PetFormErrors = {};
 
   if (values.name.trim() === '') errors.name = 'required';
@@ -116,6 +123,14 @@ export function validatePetForm(values: PetFormValues): PetFormErrors {
 
   if (values.breedStatus === 'known') {
     if (values.breedSource === 'catalog' && values.breedId === '') errors.breedId = 'breed_required';
+    if (
+      values.breedSource === 'catalog' &&
+      values.breedId !== '' &&
+      breedSpeciesId !== undefined &&
+      breedSpeciesId !== values.speciesId
+    ) {
+      errors.breedId = 'breed_species_mismatch';
+    }
     if (values.breedSource === 'other' && values.breedText.trim() === '') {
       errors.breedText = 'breed_required';
     }

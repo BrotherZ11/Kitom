@@ -14,6 +14,8 @@ import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { TextLink } from '@/components/ui/text-link';
 import { PetBreedField, type BreedValues } from '@/features/pets/components/pet-breed-field';
+import { useBreedCatalog } from '@/features/pets/hooks/use-breeds';
+import { findBreed } from '@/features/pets/offline/breed-catalog-view';
 import {
   hasPetFormErrors,
   toPetFields,
@@ -91,6 +93,8 @@ export function PetForm({
   const [confirmingSpecies, setConfirmingSpecies] = useState(false);
   const [dirty, setDirty] = useState(false);
   const leave = useLeaveConfirmation(dirty && !isSubmitting && !leaveAllowed);
+  // Con conexión, abrir el formulario descarga el catálogo de razas (y su copia para usarlo sin conexión).
+  const breedCatalog = useBreedCatalog();
 
   const setField = <K extends keyof PetFormValues>(field: K, value: PetFormValues[K]) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -119,7 +123,9 @@ export function PetForm({
     species.find((item) => item.id === values.speciesId)?.name ?? t('common.notSpecified');
 
   const handleSubmit = () => {
-    const nextErrors = validatePetForm(values);
+    const nextErrors = validatePetForm(values, {
+      breedSpeciesId: findBreed(breedCatalog.view, values.breedId)?.speciesId,
+    });
     setErrors(nextErrors);
     if (hasPetFormErrors(nextErrors)) return;
     onSubmit(toPetFields(values));

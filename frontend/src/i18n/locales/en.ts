@@ -1069,6 +1069,12 @@ export const en: Translations = {
       otherHint: 'Type the breed name as you know it.',
       backToCatalog: 'Search the catalog',
       chooseSpeciesFirst: 'Choose the species first.',
+      emptyCatalog: 'There are no breeds in the catalog for this species yet.',
+      savedCatalog: 'Offline: catalog saved on this device ({date}).',
+      savedCatalogUndated: 'Offline: catalog saved on this device.',
+      offlineUnavailable: "The breed catalog isn't saved on this device yet.",
+      offlineUnavailableHint: "It will download when you're online. Meanwhile, you can type the breed or choose another answer.",
+      localError: "We couldn't read the breed catalog saved on this device.",
     },
     photo: {
       fromLibrary: 'Choose from gallery',
@@ -1103,6 +1109,7 @@ export const en: Translations = {
     validation: {
       required: 'This field is required.',
       breed_required: 'Choose a breed from the list or type its name.',
+      breed_species_mismatch: "This breed doesn't match the chosen species. Choose another one.",
       invalid_date: 'Enter a valid date in the format YYYY-MM-DD.',
       future_date: 'The date of birth cannot be in the future.',
       invalid_weight: 'Enter a weight greater than 0, with up to 3 decimals.',
