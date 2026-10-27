@@ -63,9 +63,11 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   decide el usuario); fotos y borrado siguen online; una mascota aún sin crear en el servidor no tiene
   registros diarios (§5 «Pets: altas y ediciones sin conexión (fase 8)»). Fase 8.5: validada a mano en
   el emulador Android y en web; el cierre de sesión cuenta Daily Logs y Pets
-  (`features/auth/sign-out-provider.tsx`). Pendiente: la limpieza (no automática) de datos locales de
-  cuentas que no vuelven, la copia del catálogo de razas, la coordinación entre pestañas en web y una
-  columna de versión para la edición (fase `db/`). En móvil las queries caducadas se vuelven a pedir al reconectar
+  (`features/auth/sign-out-provider.tsx`). Fase 9 (2026-10-26, sin migraciones): catálogo de razas en el
+  dispositivo, por usuario e idioma, para buscar y elegir raza sin conexión (§5 «Catálogo de razas sin
+  conexión (fase 9)»); sin validar a mano todavía. Pendiente: la limpieza (no automática) de datos
+  locales de cuentas que no vuelven, la coordinación entre pestañas en web y una columna de versión para
+  la edición (fase `db/`). En móvil las queries caducadas se vuelven a pedir al reconectar
   (`refetchOnReconnect`, 2026-10-20).
 - Diseño v2 (`docs/design/`): F0–F5 implementadas en la rama `feat/ui-brand-implementation`: tokens,
   tema claro/oscuro según el sistema y fuentes (`frontend/src/theme/`), componentes

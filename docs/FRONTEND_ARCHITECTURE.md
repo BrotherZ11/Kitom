@@ -166,10 +166,13 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
   GRANT de UPDATE (transferencia solo por `transfer_pet_ownership`). Desde la fase 8, con la precondición
   `updated_at = <versión editada>` y desde el motor de sincronización: 0 filas = otra versión, sin
   permiso (RLS, `can_edit_pet` falso) o no existe, y se decide leyendo la fila (§5, fase 8).
-- **Raza:** `breeds` activas filtradas por `species_id` + `catalog_translations` (`entity_type='breed'`,
-  `field='name'` y `field='aliases'` con valores separados por `|`), combinadas en
-  `features/pets/api/breeds-api.ts`. Para mostrar la raza guardada se pide por id (aunque esté
-  desactivada). En `pets`, combinaciones que envía la app (CHECK `pets_breed_status_check`):
+- **Raza:** catálogo completo del idioma en una consulta: `breeds` de todas las especies, activas e
+  inactivas, + `catalog_translations` (`entity_type='breed'`, `field='name'` y `field='aliases'` con
+  valores separados por `|`), combinadas en `features/pets/api/breeds-remote.ts` (puro; `breeds-api.ts`
+  lo usa con el cliente de la app). El selector ofrece solo las activas de la especie elegida; las
+  inactivas sirven para mostrar la raza guardada de una mascota. Si el catálogo no está en memoria, la
+  raza se pide por id. Se guarda en el dispositivo para usarlo sin conexión (§5 «Catálogo de razas sin
+  conexión (fase 9)»). En `pets`, combinaciones que envía la app (CHECK `pets_breed_status_check`):
 
   | Estado en la UI | `breed_status` | `breed_id` | `breed` |
   |---|---|---|---|
@@ -180,8 +183,10 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
   | Sin raza / desconocida | `unknown` | `NULL` | `NULL` |
 
   Al cambiar la especie en el formulario se descarta una raza concreta (catálogo o texto) y vuelve a
-  «sin contestar»; mestizo y desconocida se conservan (`pet-form.ts` → `withSpecies`). La FK compuesta
-  rechaza igualmente una raza de otra especie (`23503`).
+  «sin contestar»; mestizo y desconocida se conservan (`pet-form.ts` → `withSpecies`). Si el catálogo
+  (del servidor o del dispositivo) dice que la raza elegida es de otra especie, el formulario no se
+  envía (`validatePetForm`, `breed_species_mismatch`). La FK compuesta rechaza igualmente una raza de
+  otra especie (`23503`).
 - **DELETE:** solo el propietario (`pets: delete owner`); 0 filas borradas = `not_allowed`. Borra en
   cascada `daily_logs`, `reminders`, `ai_analysis_requests`, `pet_achievements`, `pet_streaks`,
   `pet_co_owners` y `pet_shared_reports`; la UI pide confirmación explícita. Con registros diarios,
@@ -194,7 +199,8 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
 - **Query keys:** `['pets',userId,'list']`, `['pets',userId,'detail',id]`,
   `['pets',userId,'detail',id,'can-edit']`, `['pets',userId,'detail',id,'streak']`, copias del
   dispositivo `['pets',userId,'local',…]`, `['pets','photo',path]`, `['species',locale]`,
-  `['breeds','list',speciesId,locale]`, `['breeds','detail',breedId,locale]`, operaciones del dispositivo
+  `['breeds',userId,'catalog',locale]`, su copia `['breeds',userId,'local',locale]`,
+  `['breeds','detail',breedId,locale]`, operaciones del dispositivo
   `['pets',userId,'local','operations']`. Crear/editar/borrar
   invalidan la lista y actualizan o eliminan el detalle (y la copia local). La caché se vacía al
   cambiar de usuario (AuthProvider).
@@ -1169,16 +1175,69 @@ escrituras locales son atómicas dentro de una pestaña, no entre pestañas). So
 `BroadcastChannel` para que una sola pestaña sincronice.
 
 **Catálogo de razas sin conexión** (comprobado en web con el Supabase bloqueado y la pestaña recargada):
-el de especies sale de la copia del dispositivo; el de razas no. Sin él se puede elegir «mestizo»,
-«desconocida», «sin contestar» y, desde la fase 8.5, escribir la raza a mano. Cambio mínimo propuesto
-para elegir del catálogo sin conexión: guardar en `LocalStore` la lista de razas de cada especie al
-cargarla (`breeds-catalog:<speciesId>:<locale>`, como `species-catalog`) y usarla solo sin conexión.
+el de especies salía de la copia del dispositivo; el de razas no. Sin él se podía elegir «mestizo»,
+«desconocida», «sin contestar» y, desde la fase 8.5, escribir la raza a mano. Resuelto en la fase 9
+(«Catálogo de razas sin conexión (fase 9)», abajo), con una copia por idioma en vez de por especie.
 
 **Pendiente:**
-- Copia del catálogo de razas (ver arriba) y columna de versión para la edición (fase `db/`).
+- Columna de versión para la edición (fase `db/`).
 - Coordinación entre pestañas en web.
 - No hay registros diarios para mascotas aún no creadas en el servidor.
 - Limpieza (no automática) de las operaciones de cuentas que no vuelven.
+
+### Catálogo de razas sin conexión (fase 9)
+
+Buscar y elegir una raza del catálogo sin conexión, también tras cerrar y volver a abrir la app. Sin
+cambios de esquema ni de las reglas de raza (tabla de §4 «Pets»). Decisión: `DECISIONS.md` (2026-10-26).
+Código: `features/pets/api/breeds-remote.ts`, `offline/breed-catalog-snapshot.ts`,
+`breed-catalog-repository.ts`, `breed-catalog-queries.ts` y `breed-catalog-view.ts` (puros),
+`offline/device-breed-catalog.ts` y `hooks/use-breeds.ts` (`useBreedCatalog`, `useBreed`). Pruebas:
+`offline/breed-catalog.test.mjs` y `breed-catalog.integration.test.mjs` (Supabase **local** con
+`supabase/seeds/breeds.sql`).
+
+**Copia** (`kitom:v1:<userId>:breed-catalog:<locale>`, v1, validada al leer): `{ locale, savedAt, breeds }`,
+con el catálogo completo del idioma tal como lo devuelve el servidor (ids de raza y especie, `code`,
+nombre traducido, alias, `isActive`), en orden alfabético. Sin tokens, URLs ni datos del usuario. Por
+usuario, aunque el catálogo es el mismo para todos: `LocalStore` aísla por usuario y así no cambia su
+contrato (unos 30 KB por idioma). Una cuenta nueva en un dispositivo no ve la copia de otra.
+
+**Query** (`useBreedCatalog`): `['breeds',userId,'catalog',locale]`, `staleTime: Infinity`, solo con la
+sesión utilizable y con conexión según el sistema (sin red no se intenta; al volver se pide sola) y a
+través de `serverCall`. Sin reintento en errores de red. Cada respuesta correcta pasa por la copia
+(`fetchBreedCatalogThroughCache`): solo se guarda si al terminar la sesión sigue siendo del dueño. Si
+PostgREST recorta una de las dos respuestas (`max_rows`), `IncompleteBreedCatalogError`: un catálogo a
+medias ni se muestra ni se guarda.
+
+**Orden**: marca de lectura antes de pedir (como la copia de mascotas). Una respuesta con una marca
+anterior a la del último catálogo aceptado de ese idioma no lo sustituye; se devuelve el más reciente.
+Entre procesos se acepta la primera respuesta correcta (se pidió después de todo lo guardado).
+
+**Vista** (`resolveBreedCatalogView`; el selector nunca decide con `isError`):
+
+| Situación | Vista | Selector |
+|---|---|---|
+| Catálogo del servidor en memoria | `ready`, `source: 'server'` | Búsqueda |
+| Con conexión, esperando la primera respuesta | `loading` | Cargando (no enseña la copia) |
+| Sin servidor (red, sesión `offline`) o error del servidor, con copia | `ready`, `source: 'device'` | Búsqueda + «Sin conexión: catálogo guardado (fecha)» |
+| Sin conexión y sin copia (o copia no válida) | `offline_unavailable` | «Aún no está guardado en este dispositivo» + reintentar + «Otra / no aparece» |
+| El almacenamiento no se puede leer | `local_error` | Error del dispositivo + reintentar + «Otra / no aparece» |
+| Error del servidor sin copia | `error` | Error + reintentar + «Otra / no aparece» |
+| El servidor confirma que la especie no tiene razas | `ready` con 0 razas de la especie | «Todavía no hay razas…» + «Otra / no aparece» |
+
+Mestizo, desconocida y «sin contestar» no dependen del catálogo. La raza elegida y el texto de la
+búsqueda son estado del formulario: un catálogo nuevo (p. ej. al volver la conexión) no los borra; una
+raza que pase a inactiva sigue teniendo nombre (`findBreed`). La ficha muestra el nombre de la raza
+desde la copia sin conexión (`useBreed`).
+
+**Lo que no pierde datos**: un fallo de red, de sesión o del servidor lanza antes de llegar a la copia
+(nunca la vacía ni la borra). Copia corrupta, de otra versión o de otro idioma: `invalid`, se registra
+solo el motivo (`console.warn` en desarrollo, sin contenido), se trata como «sin copia» y la sustituye la
+siguiente respuesta correcta. Si no se puede escribir, el catálogo se muestra y queda en memoria para el
+proceso; se reintenta con la siguiente respuesta.
+
+**Límites**: un dispositivo solo tiene el catálogo si alguna vez abrió con conexión el formulario de
+una mascota o la ficha de una mascota con raza del catálogo. No hay coordinación entre pestañas de web.
+Las copias de cuentas que ya no se usan no se borran solas (como el resto de datos locales).
 
 ### Infraestructura (fase 1 del frontend)
 

@@ -3,6 +3,16 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-26
+
+- Pets offline, fase 9 (rama `feat/pets-offline-writes`, sin cambios de esquema): el catálogo de razas
+  se guarda en el dispositivo (por usuario e idioma) y se puede buscar y elegir una raza sin conexión,
+  también tras reiniciar la app. El selector distingue entre catálogo guardado, no descargado aún en el
+  dispositivo, error del dispositivo y especie sin razas. La ficha muestra sin conexión el nombre de la
+  raza. El formulario no envía una raza de otra especie. El catálogo se pide entero en una consulta por
+  idioma. Decisión en `DECISIONS.md`; contrato en `FRONTEND_ARCHITECTURE.md` §4 «Pets» y §5 «Catálogo de
+  razas sin conexión (fase 9)».
+
 ## 2026-10-23
 
 - Co-tutores (rama `feat/co-owners`): «Co-tutores» en el perfil de la mascota (titular y co-tutores,

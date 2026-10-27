@@ -3,6 +3,37 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-26 — Pets offline, fase 9: catálogo de razas en el dispositivo
+
+**Contexto.** Sin conexión solo se podía elegir una raza del catálogo si se había cargado en la misma
+sesión. En la fase 8 se descartó guardarlo (tamaño, y la raza es opcional). Sin cambios de esquema.
+
+**Decisión.** Modifica la de la fase 8 (2026-10-21) en este punto.
+
+- Una consulta por idioma con el catálogo completo (todas las especies, activas e inactivas) en lugar
+  de una por especie con solo las activas. El filtro de activas y de especie y la búsqueda pasan al
+  cliente. Así sin conexión sirve cualquier especie y la ficha tiene el nombre de una raza desactivada.
+  Son unas 225 razas y 400 traducciones (la consulta de traducciones ya traía todas las del idioma). Si
+  PostgREST recorta la respuesta (`max_rows`), es un error y no se guarda.
+- Copia en `LocalStore` por usuario (`breed-catalog:<locale>`), aunque el catálogo es global. Se
+  descartó una caché global: `LocalStore` exige un usuario en cada clave y cambiar ese contrato no
+  compensa unos 30 KB por cuenta. Además, así la copia sigue las mismas reglas que el resto de datos
+  locales.
+- Mismo patrón que la copia de mascotas (fase 7): query del servidor que pasa por la copia, copia leída
+  solo sin servidor y vista combinada con «vacío confirmado», «no disponible», error del dispositivo y
+  error del servidor. Marcas de lectura para las respuestas tardías.
+- También se usa la copia ante un error del servidor que no es de red (el catálogo no es crítico y la
+  copia sigue siendo válida). Para la lista y la ficha de mascotas no cambia nada.
+- Salvaguarda nueva: si el catálogo dice que la raza elegida es de otra especie, el formulario no se
+  envía. Sin conexión, la FK la rechazaría más tarde y el alta o la edición se quedaría sin sincronizar.
+
+**Consecuencias.**
+- Con el catálogo descargado alguna vez (al abrir con conexión un formulario de mascota o la ficha de
+  una mascota con raza del catálogo), se busca y se elige raza sin conexión, también tras reiniciar.
+- Abrir la ficha de una mascota con raza descarga el catálogo completo una vez por sesión en vez de
+  pedir esa raza por id.
+- Sin coordinación entre pestañas de web; las copias de cuentas que no vuelven no se limpian solas.
+
 ## 2026-10-23 — Orientación con IA: Edge Function con Gemini y reglas de urgencia
 
 **Contexto.** El análisis orientativo con foto y señales (PRD §8.4) era la parte *Must* que faltaba. El

@@ -40,6 +40,10 @@ error y «sin mascotas».
   nunca se pide al servidor ni tiene registros diarios (`withServerPetId` en las rutas de Daily Logs).
   `Pet` no incluye `client_request_id`. Conflictos: `(app)/pets/[id]/resolve`. Pruebas del motor:
   `offline/fake-pet-server.mjs`. Contrato: §5 «Pets: altas y ediciones sin conexión (fase 8)».
+  Catálogo de razas sin conexión (fase 9): un catálogo por idioma (todas las especies, activas e
+  inactivas; `api/breeds-remote.ts`), copia por usuario `breed-catalog:<locale>` (`offline/breed-catalog-*.ts`)
+  y `useBreedCatalog` (su `view`, nunca `isError`); el selector filtra con `selectableBreeds` y las razas
+  se buscan por id con `findBreed`/`useBreed`. Contrato: §5 «Catálogo de razas sin conexión (fase 9)».
 - `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`
   sobre `chunked-storage.ts`, clave `AUTH_STORAGE_KEY` = la de supabase-js por defecto: no cambiarla). Su
   `fetch` es `src/lib/user-token-fetch.ts` (ninguna petición de datos sale como `anon`) sobre
