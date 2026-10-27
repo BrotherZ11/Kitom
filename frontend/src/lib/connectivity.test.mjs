@@ -134,3 +134,128 @@ describe('createConnectivityListener', () => {
     assert.equal(source.listeners.size, 1);
   });
 });
+
+describe('relecturas del estado (fase 11: el último evento puede quedarse atrás)', () => {
+  /** Fuente cuyo estado actual (`current`) puede no coincidir con el último evento emitido. */
+  function staleSource(current) {
+    const source = fakeSource(null);
+    source.current = current;
+    source.reads = 0;
+    source.getState = () => {
+      source.reads += 1;
+      return Promise.resolve(source.current);
+    };
+    return source;
+  }
+
+  /** Temporizadores manuales y aviso de primer plano controlable. */
+  function rechecks() {
+    const timers = new Map();
+    let next = 0;
+    const foreground = new Set();
+    return {
+      timers,
+      foreground,
+      fire: () => {
+        const pending = [...timers.values()];
+        timers.clear();
+        for (const callback of pending) callback();
+      },
+      toForeground: () => [...foreground].forEach((listener) => listener()),
+      options: {
+        subscribeForeground: (listener) => {
+          foreground.add(listener);
+          return () => foreground.delete(listener);
+        },
+        offlineRecheckMs: 10_000,
+        setTimer: (callback) => {
+          next += 1;
+          timers.set(next, callback);
+          return next;
+        },
+        clearTimer: (handle) => timers.delete(handle),
+      },
+    };
+  }
+
+  const begin = (source, extra) => {
+    const values = [];
+    const cleanup = createConnectivityListener(source, extra.options)((online) => values.push(online));
+    return { values, cleanup };
+  };
+
+  it('al volver a primer plano se relee: un «sin conexión» atrasado se corrige', async () => {
+    const source = staleSource({ isConnected: true });
+    const extra = rechecks();
+    const { values } = begin(source, extra);
+    await settle();
+    source.emit({ isConnected: false }); // evento atrasado: la Wi-Fi ya está conectada
+    assert.deepEqual(values, [true, false]);
+
+    extra.toForeground();
+    await settle();
+    assert.deepEqual(values, [true, false, true]);
+  });
+
+  it('mientras dice «sin conexión», se relee cada cierto tiempo; con conexión deja de releer', async () => {
+    const source = staleSource({ isConnected: false });
+    const extra = rechecks();
+    const { values } = begin(source, extra);
+    await settle();
+    assert.deepEqual(values, [false]);
+    assert.equal(extra.timers.size, 1, 'programada la relectura');
+
+    extra.fire();
+    await settle();
+    assert.deepEqual(values, [false, false], 'sigue sin conexión: se vuelve a programar');
+    assert.equal(extra.timers.size, 1);
+
+    source.current = { isConnected: true };
+    extra.fire();
+    await settle();
+    assert.deepEqual(values, [false, false, true]);
+    assert.equal(extra.timers.size, 0, 'con conexión no hay más relecturas');
+  });
+
+  it('una relectura no pisa un evento que llegó mientras se leía', async () => {
+    const source = staleSource({ isConnected: true });
+    const extra = rechecks();
+    const { values } = begin(source, extra);
+    await settle();
+    let resolveRead;
+    source.getState = () => new Promise((resolve) => (resolveRead = resolve));
+    extra.toForeground();
+    await Promise.resolve(); // la lectura ya empezó
+    assert.equal(typeof resolveRead, 'function');
+    source.emit({ isConnected: false });
+    resolveRead({ isConnected: true });
+    await settle();
+    assert.deepEqual(values, [true, false]);
+  });
+
+  it('un error al releer no cambia nada', async () => {
+    const source = staleSource({ isConnected: false });
+    const extra = rechecks();
+    const { values } = begin(source, extra);
+    await settle();
+    source.getState = () => Promise.reject(new Error('no disponible'));
+    extra.toForeground();
+    extra.fire();
+    await settle();
+    assert.deepEqual(values, [false]);
+  });
+
+  it('la limpieza cancela la relectura pendiente y el aviso de primer plano', async () => {
+    const source = staleSource({ isConnected: false });
+    const extra = rechecks();
+    const { values, cleanup } = begin(source, extra);
+    await settle();
+    cleanup();
+    assert.equal(extra.timers.size, 0);
+    assert.equal(extra.foreground.size, 0);
+    source.current = { isConnected: true };
+    extra.toForeground();
+    await settle();
+    assert.deepEqual(values, [false]);
+  });
+});

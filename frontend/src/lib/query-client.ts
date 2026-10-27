@@ -5,6 +5,9 @@ import { AppState, Platform } from 'react-native';
 import { createConnectivityListener } from '@/lib/connectivity';
 import { queryDefaultOptions } from '@/lib/query-defaults';
 
+/** Cada cuánto se vuelve a leer el estado de red mientras la señal diga «sin conexión». */
+const OFFLINE_RECHECK_MS = 10_000;
+
 /**
  * QueryClient único (estado servidor/caché). La sesión NO vive aquí: la gestiona AuthProvider.
  * AuthProvider vacía esta caché al cerrar sesión o cambiar de usuario.
@@ -25,9 +28,22 @@ if (Platform.OS !== 'web') {
 // renderizado estático de web no hay `window` ni red que observar.
 if (typeof window !== 'undefined') {
   onlineManager.setEventListener(
-    createConnectivityListener({
-      getState: Network.getNetworkStateAsync,
-      addListener: Network.addNetworkStateListener,
-    })
+    createConnectivityListener(
+      {
+        getState: Network.getNetworkStateAsync,
+        addListener: Network.addNetworkStateListener,
+      },
+      {
+        // Los eventos pueden quedarse atrás (`connectivity.ts`): se vuelve a leer al volver a primer
+        // plano y, mientras diga «sin conexión», cada 10 s.
+        subscribeForeground: (listener) => {
+          const subscription = AppState.addEventListener('change', (state) => {
+            if (state === 'active') listener();
+          });
+          return () => subscription.remove();
+        },
+        offlineRecheckMs: OFFLINE_RECHECK_MS,
+      }
+    )
   );
 }
