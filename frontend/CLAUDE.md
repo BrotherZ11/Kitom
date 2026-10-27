@@ -49,7 +49,9 @@ error y «sin mascotas».
   deshacer con `undoDelete`; una mascota con eliminación no está en las listas (`withoutDeleted`) ni abre
   registros (`withServerPetId`). Fotos solo con `pet-photo-ops.ts` (`photo_path` con precondición, diario
   `offline/pet-photo-journal.ts`, procesado en `PetSyncProvider`); nunca borrar un objeto de Storage que
-  no haya anotado una operación de foto. Contrato: §5 «Pets: eliminación sin conexión y fotos (fase 10)».
+  no haya anotado una operación de foto. Las fotos usan `createOwnerScopedClient`
+  (`features/auth/owner-client.ts`, fase 11): toda cola nueva que no pueda fijar el token petición a
+  petición usa ese cliente, nunca el compartido. Contrato: §5 «Pets: eliminación sin conexión y fotos (fase 10)».
 - `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`
   sobre `chunked-storage.ts`, clave `AUTH_STORAGE_KEY` = la de supabase-js por defecto: no cambiarla). Su
   `fetch` es `src/lib/user-token-fetch.ts` (ninguna petición de datos sale como `anon`) sobre
@@ -111,7 +113,8 @@ error y «sin mascotas».
 - `src/lib/operation-id.ts` + `device-operation-id.ts` — único generador de identificadores de
   operación (`createOperationId`, UUID v4 de `expo-crypto`). Nunca `Math.random` ni otro generador.
 - `src/lib/connectivity.ts` — señal de red de `expo-network` para `onlineManager` (conectada en
-  `query-client.ts`). Es una señal, no una garantía. Opciones del QueryClient en `query-defaults.ts`:
+  `query-client.ts`). Es una señal, no una garantía: los eventos pueden quedarse atrás, así que también
+  se relee al volver a primer plano y cada 10 s mientras diga «sin conexión» (fase 11). Opciones del QueryClient en `query-defaults.ts`:
   en móvil `networkMode: 'always'` (conserva el comportamiento previo a la señal); no cambiarlo ni
   fijar otro por feature sin revisar `docs/DECISIONS.md` (2026-10-13).
 - `src/lib/submit-guard.ts` — evita envíos dobles (toques antes de que el botón se deshabilite).
@@ -239,6 +242,9 @@ error y «sin mascotas».
   tcp:8081`. En el emulador la descarga del bundle por `10.0.2.2` puede fallar: fija `debug_http_host`
   = `localhost:8081` en las preferencias de la app (`run-as com.kitom.app`, archivo
   `shared_prefs/com.kitom.app_preferences.xml`) o desde el menú de desarrollo.
+- Emulador sin conexión de verdad: `adb shell svc wifi disable`, `adb shell svc data disable` y
+  `adb reverse --remove tcp:54321` (con el túnel, el Supabase local seguiría alcanzable); Metro sigue por
+  el 8081. Con Expo Go, los avisos de LogBox tapan la parte baja de la pantalla y reciben los toques.
 - Si ya hay otro Metro en el puerto 8081 (p. ej. un `npx expo start` normal, que usa el `.env`
   remoto), usar otro puerto (`-- --port 8083`) y no abrir Expo Go contra el 8081.
 

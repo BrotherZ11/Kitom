@@ -1334,11 +1334,81 @@ La lápida no cuenta. «Sincronizar y cerrar» envía las eliminaciones.
   `blocked` (la app ya no puede borrarlo; se conserva para una limpieza en el servidor).
 - Eliminar la mascota no depende de las fotos ni las borra: tras el borrado `can_edit_pet` es falso y
   los objetos de `{pet_id}/` quedan huérfanos hasta que exista la limpieza en el servidor (propuesta).
+- Desde la fase 11, las peticiones de fotos (y del diario) van con un cliente por propietario
+  (`features/auth/owner-client.ts`, opción `accessToken` de supabase-js): el token de la sesión del
+  dueño o la petición no sale; nunca con la sesión de otra cuenta.
 
 **Límites:** sin coordinación entre pestañas de web; `gone` no distingue «borrada» de «sin acceso»
 (propuesta opcional); la precondición `updated_at` no detecta registros diarios ni recordatorios
 añadidos por otro usuario mientras la eliminación está pendiente (la cascada los borra, como al borrar
 con conexión); las lápidas y las entradas `blocked` del diario no se limpian solas.
+
+### Estabilización E2E (fase 11)
+
+Validación de los flujos integrados después de las fases 1–10, sin funcionalidades nuevas ni cambios de
+esquema. Decisión: `DECISIONS.md` (2026-10-26, fase 11). Pruebas nuevas:
+`frontend/src/features/offline-flows.integration.test.mjs` (flujos que cruzan Auth, Pets, Daily Logs y
+fotos), `lib/connectivity.test.mjs` (relecturas), `features/auth/owner-session.test.mjs`
+(`ownerTokenOrThrow`) y el caso 6 de `supabase/tests/concurrency/pets_delete_concurrency.sh`.
+
+**Defectos encontrados y corregidos:**
+- **Señal de red atascada en «sin conexión»** (reproducido 2/2 en el emulador Android con Expo Go): al
+  reactivar Wi-Fi y datos con la app en segundo plano, el último evento de `expo-network` decía «sin
+  conexión» con la Wi-Fi conectada, y nada lo corregía (tampoco volver a primer plano): ni Pets ni Daily
+  Logs sincronizaban y resolver un conflicto decía «sin conexión». Ahora el estado se vuelve a leer al
+  volver a primer plano y cada 10 s mientras diga «sin conexión» (`connectivity.ts`); validado en el
+  emulador (2/2).
+- **El diario de fotos podía enviar con la sesión de otra cuenta**: usaba el cliente compartido, cuya
+  guarda solo exige el token de *algún* usuario. Demostrado contra el Supabase local: con B en el
+  cliente, la comprobación de A salió como B y A bloqueó para siempre su entrada
+  (`pet_unavailable`). Ahora las fotos usan un cliente por propietario
+  (`features/auth/owner-client.ts`): su token o nada.
+- **«Cambios sin sincronizar» en Ajustes decía «Todo está subido»** con cambios de mascotas pendientes
+  (resto de la fase 10): ahora cuenta las dos fuentes, como el cierre de sesión.
+
+**Resultados** (emulador Android `Medium_Phone_API_36.1` con Expo Go 57.0.9 y `npm run start:local`;
+web en Chromium con el mismo Supabase local). «Sin conexión» en el emulador = Wi-Fi y datos apagados y
+sin `adb reverse` al puerto 54321 (el servidor deja de ser alcanzable; Metro sigue por el 8081).
+
+| Flujo | Automatizado (local) | Emulador / web |
+|---|---|---|
+| A1–A2 Entrar, cargar datos, cerrar con la cola vacía | Sí | Sí |
+| A3 Cerrar con pendientes: sincronizar (sin red no cierra), conservar, cancelar | Sí | Sí |
+| A4 Cambio de cuenta: nada de la anterior (mascotas, registros, operaciones) | Sí | Sí |
+| A5 Recuperar la sesión tras desconexión; lo conservado sale con su dueño | Sí | Sí |
+| A6 Sesión no verificable sin conexión → «Sesión sin comprobar» | Sí | Sí |
+| B1–B3 Crear y editar con y sin conexión, reiniciar y sincronizar | Sí | Sí |
+| B4 Respuesta perdida al crear sin duplicados | Sí | No (no reproducible a mano) |
+| B5 Conflicto de edición entre dos sesiones | Sí | Sí |
+| B6–B7 Eliminar, deshacer, volver a eliminar; conflicto de eliminación | Sí | Sí |
+| B8 Pérdida de permisos con cambios pendientes | Sí | No (requiere co-tutores) |
+| B9 Una respuesta antigua no resucita una mascota | Sí | No (no reproducible a mano) |
+| C1–C5 Catálogo online, búsqueda por alias offline tras reiniciar, cambio de especie, copia no válida | Sí | C1–C3 sí |
+| D1–D3 Registro online, offline con reinicio, conflicto entre sesiones | Sí | Sí |
+| D4 Registro borrado en el servidor durante una edición local | Sí | No |
+| D5 Fecha del día con la zona del perfil | Sí (unitarias) | Fecha local correcta |
+| D6–D7 Registros pendientes al eliminar la mascota o cambiar de cuenta; sin registros nuevos | Sí | D7 sí |
+| E1–E6 Fotos (Storage) | Solo con un Storage falso y `photo_path` real | No: no hay bucket en local |
+| E7 Nunca URLs firmadas como referencia | Sí | — |
+| F1–F2 Cierre en mitad de una sincronización, operaciones inciertas | Sí | Reinicio con pendientes: sí |
+| F3–F4 Red de vuelta en primer y en segundo plano | Sí | Sí (tras la corrección) |
+| F5 Caducidad de la sesión y fallo de renovación | Sí | Parcial (A6) |
+| F6 La cola de un usuario nunca sale con otra sesión | Sí (también fotos) | Sí (A4/A5) |
+| Web, dos pestañas | — | Datos correctos; la otra pestaña muestra un estado viejo hasta recargar |
+
+**Lista para un entorno con el bucket `pet-photos`** (no ejecutada; requiere autorización):
+1. Subir una foto; `photo_path` es una ruta `{pet_id}/{uuid}.jpg`, nunca una URL.
+2. Reemplazarla: la anterior desaparece del bucket solo tras confirmarse el cambio.
+3. Quitarla: `photo_path = null` y después el objeto.
+4. Cortar la red justo tras subir (antes de referenciar): reabrir con red y comprobar, tras 60 s, que el
+   objeto huérfano se borra y que una foto referenciada nunca.
+5. Cortar la red durante un reemplazo: la anterior sigue visible hasta confirmarse; ninguna foto en uso
+   se borra.
+6. Cerrar la app con entradas en el diario y reabrir: se resuelven al arrancar con sesión.
+7. Cambiar de cuenta con entradas pendientes: no sale ninguna petición de Storage con la otra cuenta.
+
+**Notas para validar a mano** (Expo Go): los avisos de LogBox de desarrollo tapan la parte baja de la
+pantalla y reciben los toques; cerrarlos antes de pulsar los botones de abajo.
 
 ### Infraestructura (fase 1 del frontend)
 
@@ -1441,8 +1511,10 @@ cambiaron a valores distintos, **conflicto** y decide el usuario (nunca se pisa 
 **Conectividad** (`frontend/src/lib/connectivity.ts`, conectada en `lib/query-client.ts`).
 `expo-network` → `onlineManager.setEventListener` de TanStack Query, en móvil y web. Es una señal:
 solo hay «sin conexión» si el sistema afirma `isConnected === false`; estado desconocido o error de
-lectura = conectado. `isInternetReachable` no se usa. Sin polling: eventos del sistema y una lectura
-inicial. TanStack Query llama a la limpieza al sustituir el listener o quedarse sin suscriptores.
+lectura = conectado. `isInternetReachable` no se usa. Eventos del sistema, una lectura inicial y,
+desde la fase 11, relecturas al volver a primer plano y cada 10 s mientras diga «sin conexión» (los
+eventos pueden quedarse atrás; una relectura nunca pisa un evento que llegó mientras se leía).
+TanStack Query llama a la limpieza al sustituir el listener o quedarse sin suscriptores.
 
 `networkMode` (`frontend/src/lib/query-defaults.ts`, probado contra `@tanstack/query-core`): conserva
 lo que hacía cada plataforma antes de existir la señal. Solo Daily Logs fija el suyo

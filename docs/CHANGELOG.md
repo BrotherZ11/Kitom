@@ -5,6 +5,15 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-26
 
+- Fase 11, estabilización E2E (rama `feat/pets-offline-writes`, sin cambios de esquema): validación en
+  el emulador Android (Expo Go), en web y contra el Supabase local. Corregido: la señal de red podía
+  quedarse en «sin conexión» con la Wi-Fi conectada y la sincronización no volvía (ahora se relee al
+  volver a primer plano y cada 10 s sin conexión); el diario de fotos podía enviar con la sesión de otra
+  cuenta (ahora, cliente por propietario); Ajustes decía «Todo está subido» con cambios de mascotas
+  pendientes. Pruebas de flujos cruzados y un caso de concurrencia nuevos; `.gradle/` del módulo nativo
+  ignorado. Resultados y lista pendiente de Storage en `FRONTEND_ARCHITECTURE.md` §5 «Estabilización E2E
+  (fase 11)».
+
 - Pets offline, fase 10 (rama `feat/pets-offline-writes`, sin cambios de esquema): eliminar una mascota
   se guarda en el dispositivo y lo envía el motor con precondición `updated_at`. Se puede deshacer hasta
   que el servidor la aplique. Un cambio de otro dispositivo es un conflicto que decide el usuario, y un

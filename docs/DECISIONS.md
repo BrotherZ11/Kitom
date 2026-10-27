@@ -3,6 +3,33 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-26 — Fase 11: estabilización E2E (conectividad, fotos por propietario)
+
+**Contexto.** Validación de los flujos integrados en el emulador Android, en web y contra el Supabase
+local. Aparecieron dos defectos entre funcionalidades que las pruebas por módulo no cubrían. Sin cambios
+de esquema.
+
+**Decisión.**
+- La señal de red (`lib/connectivity.ts`) ya no depende solo de los eventos: se vuelve a leer al volver a
+  primer plano y cada 10 s mientras diga «sin conexión». Motivo: en el emulador, el último evento de
+  `expo-network` puede decir «sin conexión» con la Wi-Fi conectada, y los motores no sincronizaban hasta
+  otro cambio de red. Es una consulta local al sistema, no una petición; con conexión no se relee. Se
+  descartó relajar `isOnline` (seguiría el mismo evento) y hacer comprobaciones de red reales (coste y
+  falsos negativos). Completa la conectividad de 2026-10-13 (que solo usaba eventos y una lectura
+  inicial).
+- Las fotos usan un cliente de supabase-js por propietario (opción `accessToken`, sin Auth propio): el
+  token de la sesión del dueño o la petición no sale (`ownerTokenOrThrow`, nunca `null`, que supabase-js
+  convertiría en la clave anónima). Motivo: Storage no permite fijar la cabecera petición a petición, y
+  el diario de fotos es una cola de un usuario. Mismo principio que Pets y Daily Logs (fase 5).
+- La fila «Cambios sin sincronizar» de Ajustes cuenta registros y mascotas, como el cierre de sesión.
+
+**Consecuencias.**
+- La sincronización se recupera sola tras un evento de red erróneo (como mucho en 10 s o al volver a la
+  app).
+- Ninguna cola (registros, mascotas, fotos) envía con la sesión de otra cuenta.
+- Sigue pendiente: coordinación entre pestañas de web (los datos son correctos, pero la otra pestaña
+  muestra un estado viejo hasta recargar) y la limpieza de Storage en el servidor.
+
 ## 2026-10-26 — Pets offline, fase 10: eliminación guardada en el dispositivo y ciclo de vida de las fotos
 
 **Contexto.** Borrar una mascota exigía conexión y no tenía precondición: borraba la versión que

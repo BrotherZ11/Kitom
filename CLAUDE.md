@@ -69,7 +69,10 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   mascotas guardada en el dispositivo (con precondición, deshacer y conflictos) y fotos con precondición
   sobre `photo_path` y diario local (§5 «Pets: eliminación sin conexión y fotos (fase 10)»); sin validar a
   mano todavía. La limpieza de Storage tras borrar una mascota necesita backend: propuesta sin aplicar en
-  `docs/proposals/2026-10-26-pet-photos-cleanup.md`. Pendiente: la limpieza (no automática) de datos
+  `docs/proposals/2026-10-26-pet-photos-cleanup.md`. Fase 11 (2026-10-26, sin migraciones):
+  estabilización E2E validada en el emulador Android con Expo Go, en web y contra el Supabase local;
+  corregidas la señal de red atascada, el envío de fotos con otra sesión y el aviso de Ajustes (§5
+  «Estabilización E2E (fase 11)»). Las fotos siguen sin probarse contra un bucket real. Pendiente: la limpieza (no automática) de datos
   locales de cuentas que no vuelven, la coordinación entre pestañas en web y una columna de versión para
   la edición (fase `db/`). En móvil las queries caducadas se vuelven a pedir al reconectar
   (`refetchOnReconnect`, 2026-10-20).
