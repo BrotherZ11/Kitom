@@ -45,6 +45,8 @@ example
 # build output of local native modules (modules/<name>/android)
 /modules/*/android/build/
 /modules/*/android/.cxx/
+# caché de Gradle del módulo (la crean Gradle o el IDE al abrir el proyecto Android)
+/modules/*/android/.gradle/
 
 # visual:compare (capturas y perfil de Chrome de desarrollo)
 /.visual
