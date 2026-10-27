@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { describe, it } from 'node:test';
 
-import { createOwnerAccessToken, jwtSubject } from './owner-session.ts';
+import { createOwnerAccessToken, jwtSubject, ownerTokenOrThrow } from './owner-session.ts';
 
 const A = 'a0000000-0000-4000-8000-000000000001';
 const B = 'a0000000-0000-4000-8000-000000000002';
@@ -57,5 +57,30 @@ describe('createOwnerAccessToken', () => {
     assert.equal((await token()).status, 'ok');
     auth.session = sessionOf(B);
     assert.equal((await token()).status, 'other_user');
+  });
+});
+
+describe('ownerTokenOrThrow (opción `accessToken` de un cliente por propietario)', () => {
+  const refused = () => new Error('refused');
+
+  it('sesión del propietario → su token', async () => {
+    const provider = ownerTokenOrThrow(createOwnerAccessToken(authWith(sessionOf(A)), A), refused);
+    assert.equal(await provider(), fakeJwt(A));
+  });
+
+  it('otra cuenta, sin sesión o sesión ilegible → lanza (nunca `null`: supabase-js usaría la clave anónima)', async () => {
+    for (const auth of [authWith(sessionOf(B)), authWith(null), authWith(null, new Error('refresh')), authWith(sessionOf(A, 'no-jwt'))]) {
+      await assert.rejects(ownerTokenOrThrow(createOwnerAccessToken(auth, A), refused)(), /refused/);
+    }
+    const throwing = { getSession: async () => { throw new Error('storage'); } };
+    await assert.rejects(ownerTokenOrThrow(createOwnerAccessToken(throwing, A), refused)(), /refused/);
+  });
+
+  it('cada petición vuelve a comprobar la sesión: al cambiar de cuenta deja de dar el token', async () => {
+    const auth = { session: sessionOf(A), getSession: async () => ({ data: { session: auth.session }, error: null }) };
+    const provider = ownerTokenOrThrow(createOwnerAccessToken(auth, A), refused);
+    assert.equal(await provider(), fakeJwt(A));
+    auth.session = sessionOf(B);
+    await assert.rejects(provider(), /refused/);
   });
 });

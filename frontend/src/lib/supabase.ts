@@ -10,15 +10,19 @@ import type { Database } from '@/types/database.types';
 
 // Solo claves públicas (EXPO_PUBLIC_*): se incrustan en el bundle. La protección real de los datos
 // es RLS. Nunca usar aquí la service_role key ni ningún secreto de servidor.
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!url || !anonKey) {
   throw new Error(
     'Faltan EXPO_PUBLIC_SUPABASE_URL o EXPO_PUBLIC_SUPABASE_ANON_KEY. ' +
       'Copia frontend/.env.example a frontend/.env y rellénalo.'
   );
 }
+
+/** URL y clave anónima (públicas), también para los clientes por propietario (`features/auth/owner-client.ts`). */
+export const supabaseUrl: string = url;
+export const supabaseAnonKey: string = anonKey;
 
 // Renderizado estático web (Node): no hay sesión que persistir ni refrescar.
 const isServer = Platform.OS === 'web' && typeof window === 'undefined';

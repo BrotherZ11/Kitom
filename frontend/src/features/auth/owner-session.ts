@@ -60,3 +60,19 @@ export function createOwnerAccessToken(auth: SessionSource, ownerUserId: string)
     return { status: 'ok', token: session.access_token };
   };
 }
+
+/**
+ * Para la opción `accessToken` de un cliente de supabase-js dedicado a un propietario (p. ej. las fotos
+ * de mascota, fase 11): devuelve su token o **lanza** (`createError`), y así la petición no sale.
+ * Devolver `null` no vale: supabase-js enviaría la petición con la clave anónima.
+ */
+export function ownerTokenOrThrow(
+  accessToken: () => Promise<OwnerAccessToken>,
+  createError: () => Error
+): () => Promise<string> {
+  return async () => {
+    const owner = await accessToken().catch((): OwnerAccessToken => ({ status: 'unavailable' }));
+    if (owner.status !== 'ok') throw createError();
+    return owner.token;
+  };
+}
