@@ -5,6 +5,18 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-28
 
+- Fase 13, recordatorios (rama `feat/reminders-mvp`, sin cambios de esquema):
+  - Listado de lo pendiente de todas las mascotas (`/reminders`) y resumen de la agenda en la ficha.
+  - Los recordatorios de una mascota con una eliminación guardada en el dispositivo dejan de avisar y no
+    se pueden cambiar; los avisos usan solo pendientes futuros.
+  - El detalle ya no promete un aviso que no llegará (web, sin permiso, hora pasada).
+  - Un co-tutor lector que intente escribir ve «sin permiso», no «lo cambió otra persona».
+  - Un cambio de zona del dispositivo se aplica en el siguiente arranque (Hermes guarda la zona); los
+    recordatorios suenan a su hora igualmente.
+  - Acceso a datos con cliente inyectado y pruebas de integración contra el Supabase local; pruebas de
+    zona horaria y del ciclo de vida de los avisos.
+  - Propuesta de agenda sin conexión: `docs/proposals/2026-10-28-reminders-offline.md`.
+
 - Migraciones de la limpieza de Storage (`20261027194904`, `20261027194908`, `20261028114317`) aplicadas
   en `kitom-dev` (`db push` del usuario; comprobado con `migration list`) y tipos regenerados con
   `--linked` (solo las 6 RPC nuevas). La Edge Function `pet-storage-cleanup` sigue sin desplegar.

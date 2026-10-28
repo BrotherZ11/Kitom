@@ -419,26 +419,54 @@ en `history-view.ts`.
   borrado en esta fase.
 
 ### RemindersScreen
-**Implementado (2026-10-21)**: pestaña `/agenda` (mascota activa), `reminders/new`, `reminders/[id]` y
-`reminders/[id]/edit`. Código: `features/reminders/` (lógica pura y probada en `reminder-model.ts` y
-`reminder-format.ts`; acceso a datos en `api/reminders-api.ts`; hooks en `hooks/use-reminders.ts`).
+**Implementado (2026-10-21; fase 13, 2026-10-28)**: pestaña `/agenda` (mascota activa), `reminders`
+(todas las mascotas), `reminders/new`, `reminders/[id]` y `reminders/[id]/edit`; resumen en la ficha de
+la mascota (`PetRemindersSummary`: vencidos y los 3 próximos pendientes). Código: `features/reminders/`
+(lógica pura y probada en `reminder-model.ts` y `reminder-format.ts`; acceso a datos con el cliente
+inyectado en `api/reminders-remote.ts`, enlazado al de la app en `api/reminders-api.ts` y probado contra
+el Supabase local en `api/reminders.integration.test.mjs`; hooks en `hooks/use-reminders.ts`).
 - **READ:** `reminders` de la mascota: pendientes y hechos en los últimos 30 días
-  (`or(status.eq.pending, completed_at.gte.…)`, `order(due_at)`); pendientes de todas las mascotas para
-  los avisos. RLS `is_pet_member` decide qué se ve.
+  (`or(status.eq.pending, completed_at.gte.…)`, `order(due_at)`); pendientes de todas las mascotas,
+  vencidos incluidos, para el listado general (`reminderKeys.pending`); y, para los avisos, solo los
+  pendientes que aún tienen que sonar (`or(due_at.gt.ahora, snooze_until.gt.ahora)`,
+  `reminderKeys.upcoming`). RLS `is_pet_member` decide qué se ve. Tope de 300 filas por consulta.
 - **WRITE:** insert con `pet_id`, `created_by = auth.uid()`, `status = 'pending'` y las columnas del
   formulario (`type`, `title`, `description`, `due_at`, `recurrence_rule`); update solo de `type`,
   `title`, `description`, `due_at`, `recurrence_rule`, `snooze_until` y `status`, siempre con
-  precondición `eq('updated_at', base)` (si no toca filas: `ReminderChangedError` y se recarga la
-  versión nueva); delete con `select('id')`. Nunca `pet_id`/`created_by`/`created_at`/`completed_at`
+  precondición `eq('updated_at', base)`; delete con `select('id')`. Si no toca filas (RLS filtra, no da
+  error), se relee la fila: no se ve → `ReminderNotWritableError('gone')` (borrado o sin acceso); otra
+  `updated_at` → `ReminderChangedError` (se recarga la versión nueva); igual →
+  `ReminderNotWritableError('not_allowed')` (co-tutor lector). Nunca `pet_id`/`created_by`/`created_at`/`completed_at`
   (lo pone el trigger `sync_reminder_completion`).
 - **Repetición:** `recurrence_rule` = `FREQ=DAILY|WEEKLY|MONTHLY|YEARLY` (sin más partes). Un
   recordatorio que se repite es **una sola fila**: «Hecho» avanza `due_at` a la siguiente vez futura y
   quita `snooze_until` (sigue `pending`); «Deshacer» restaura ambos. Sin repetición, `status =
   'completed'`. El calendario del mes proyecta las repeticiones de los pendientes.
 - **Posponer:** `snooze_until` (una hora; mañana o en una semana a la hora prevista). Editar lo anula.
-- **Fechas:** día y hora locales del dispositivo (los avisos usan la misma), guardadas como instante.
-- **Sin conexión:** se ve lo ya cargado; escribir necesita conexión (sin copia en el dispositivo). Una
-  mascota aún sin crear en el servidor (id local) no tiene agenda.
+- **Fechas:** cada recordatorio es un instante (`timestamptz`); cada dispositivo lo muestra y avisa en su
+  hora local. Si en España suena a las 12:00, al co-tutor de Londres le suena a las 11:00 (el mismo
+  momento). Si el dispositivo cambia de zona (viaje), la app lo aplica en su siguiente arranque: Hermes
+  guarda la zona hasta reiniciar el proceso (comprobado en el emulador Android, 2026-10-28). Mientras,
+  los recordatorios suenan a su hora (son instantes); el texto y los avisos diarios esperan. Las repeticiones avanzan a la misma hora local de quien
+  marca «Hecho»: entre zonas que cambian de hora en fechas distintas (Europa y EE. UU.) puede desplazarse
+  una hora durante esas semanas (probado en `reminder-timezone.test.mjs`; arreglarlo exige una zona por
+  recordatorio, migración no propuesta). `profiles.timezone` no interviene.
+- **Permisos:** escribir requiere `can_edit_pet` (propietario o co-tutor editor con la invitación
+  aceptada); el lector ve la agenda con el aviso «Puedes ver…» y sin acciones. La UI lo oculta, pero la
+  autoridad es RLS: un lector que escribiera recibiría 42501 al crear y 0 filas al editar o borrar,
+  que la app presenta como falta de permiso (`ReminderNotWritableError`), no como conflicto. `pet_id` no se puede cambiar (sin GRANT de UPDATE y trigger
+  `protect_reminder_audit_fields`). Pruebas: `supabase/tests/database/reminders.test.sql` (rama
+  `db/reminders-active`) y la integración.
+- **Mascota con eliminación guardada en el dispositivo** (Pets offline, fase 10): ya no está en la lista,
+  así que su agenda no sale en el listado general, sus recordatorios no avisan y su detalle (abierto desde
+  un enlace o un aviso viejo) lo dice y no deja cambiar nada. Si se deshace la eliminación, todo vuelve;
+  al confirmarse, el servidor borra los recordatorios en cascada.
+- **Activar/desactivar:** pendiente de la migración `reminders.is_active` (rama `db/reminders-active`, sin
+  aplicar en `kitom-dev`). La app no la usa hasta que se aplique y se regeneren los tipos.
+- **Sin conexión:** se ve lo ya cargado; escribir necesita conexión (sin copia en el dispositivo), así
+  que no hay cambios pendientes de la agenda: todo lo que se ve es del servidor. Una mascota aún sin
+  crear en el servidor (id local) no tiene agenda. Escritura sin conexión: propuesta en
+  `docs/proposals/2026-10-28-reminders-offline.md` (falta un alta idempotente).
 - **Storage:** `reminder-attachments` — **pendiente** (adjuntos no implementados).
 
 ### AIAnalysisScreen
@@ -1581,7 +1609,14 @@ push remoto ni `push_tokens`. `NotificationSync` (montado en `(app)/_layout.tsx`
 - Recordatorio diario: avisos de fecha concreta para los próximos 14 días a la hora de
   `daily_reminder_time`; hoy no, si la mascota activa ya tiene el registro o la hora ya pasó. Se
   recalcula al abrir la app y al cambiar el registro de hoy o las preferencias.
-- Agenda: uno a la hora efectiva (`snooze_until` o `due_at`) de cada pendiente futuro. Máximo 60.
+- Agenda: uno a la hora efectiva (`snooze_until` o `due_at`) de cada pendiente futuro de una mascota de
+  la lista (no de las que tienen una eliminación guardada en el dispositivo). Máximo 60. Un recordatorio
+  que se repite solo tiene programada su próxima vez: la siguiente se programa al marcarlo hecho.
+- Cambiar la zona del dispositivo se aplica en el siguiente arranque de la app (Hermes guarda la zona):
+  los avisos de la agenda no cambian de instante; los diarios (hora local) y el texto se reprograman
+  entonces con el mismo identificador, sin duplicados (comprobado en el emulador).
+- El detalle de un recordatorio nunca dice que avisará si no puede: en web, sin el módulo nativo, sin
+  permiso, con la hora ya pasada o con la mascota eliminándose (`reminderNotifyState`).
 - Solo con permiso, sesión utilizable y datos del servidor (sin ellos no se toca lo programado). Al
   cerrar sesión se quitan todos. Tocar un aviso abre su ruta (`data.url`, solo rutas internas).
 - El módulo se carga bajo demanda (`device-notifications.ts`): si falta su parte nativa (Expo Go 57.0.9

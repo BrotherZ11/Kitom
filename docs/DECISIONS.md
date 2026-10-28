@@ -3,6 +3,44 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-28 — Fase 13: recordatorios (zona horaria, mascotas eliminándose y listado general)
+
+**Contexto.** La agenda existía desde el MVP (2026-10-21). La auditoría de la fase 13 encontró que una
+mascota con una eliminación guardada en el dispositivo seguía avisando de sus recordatorios hasta
+confirmarse, que el detalle prometía «Aviso a su hora» aunque la hora ya hubiera pasado o se estuviera
+en web, que los avisos dependían de una consulta con tope que empezaba por los vencidos, y que faltaban
+el listado de todas las mascotas, la agenda en la ficha y activar/desactivar.
+
+**Decisiones** (David, 2026-10-28).
+- **Zona horaria: la del dispositivo, con instantes compartidos.** Se mantiene la decisión del
+  2026-10-21 y se aclara: un recordatorio es un instante; a las 12:00 en España le corresponden las 11:00
+  en Londres en el dispositivo del co-tutor. `profiles.timezone` no se usa en la agenda. Un cambio de
+  zona del dispositivo se aplica en el siguiente arranque: se probó a detectarlo al volver a primer
+  plano, pero en el emulador Android Hermes no ve la zona nueva hasta reiniciar el proceso, así que se
+  retiró (no hay módulo nativo instalado que la dé).
+- **Límite aceptado:** las repeticiones avanzan a la hora local de quien marca «Hecho»; entre zonas que
+  cambian de hora en fechas distintas puede moverse una hora esas semanas. Corregirlo exige guardar una
+  zona por recordatorio (migración no propuesta todavía).
+- **Mascota eliminándose en el dispositivo:** sus recordatorios no avisan ni salen en el listado general,
+  y el detalle bloquea los cambios. Se usa la lista visible de mascotas (ya sin las eliminadas), no una
+  consulta nueva.
+- **Avisos:** consulta propia de pendientes futuros (`fetchUpcomingReminders`); el detalle solo afirma un
+  aviso si de verdad se programará (`reminderNotifyState`).
+- **Escrituras rechazadas por RLS:** una edición o un borrado que no toca filas ya no se presenta
+  siempre como «lo cambió otra persona»: se relee la fila y se distingue falta de permiso (lector),
+  conflicto (otra `updated_at`) y «ya no está o sin acceso» (`ReminderNotWritableError`).
+- **Listado general solo lectura** (`/reminders`): marcar o editar se hace en el detalle, que comprueba
+  el permiso de esa mascota (evita una consulta de permisos por mascota en la lista).
+- **Activar/desactivar con una columna nueva** (`reminders.is_active`, rama `db/reminders-active`), no
+  reutilizando `status = 'skipped'`: pausado y hecho son estados distintos.
+- **Sin escritura offline:** falta un alta idempotente; propuesta separada en
+  `docs/proposals/2026-10-28-reminders-offline.md`.
+
+**Consecuencias.** Sin cambios de esquema en la rama del frontend (`feat/reminders-mvp`).
+Activar/desactivar en la app espera a que se aplique la migración y se regeneren los tipos.
+Validación manual (fase 13.1): web contra el Supabase local y una build nativa debug en el emulador
+Android (avisos, permisos, reinicios, cambio de zona y eliminación pendiente).
+
 ## 2026-10-27 — Fase 12B: limpieza en el backend de las fotos de mascotas eliminadas
 
 **Contexto.** Los objetos de `pet-photos/{pet_id}/…` de una mascota borrada quedaban para siempre: el
