@@ -151,8 +151,8 @@ error y «sin mascotas».
   relativa con extensión (`./otro.ts`).
   Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
   Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
-  Pendiente: login por teléfono (OTP); en Pets: aplicar la limpieza de fotos de mascotas borradas (backend
-  hecho en `db/pet-storage-cleanup`, sin aplicar; la app no cambia), archivar (`is_active`), selector de fecha nativo, gestión de co-tutores y límite de mascotas del plan free.
+  Pendiente: login por teléfono (OTP); en Pets: desplegar la limpieza de fotos de mascotas borradas (migraciones
+  ya en `kitom-dev`, Edge Function sin desplegar; la app no cambia), archivar (`is_active`), selector de fecha nativo, gestión de co-tutores y límite de mascotas del plan free.
 
 ## Tema y diseño (diseño v2, `docs/design/`)
 

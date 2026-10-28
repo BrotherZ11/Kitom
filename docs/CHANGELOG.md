@@ -5,6 +5,10 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-28
 
+- Migraciones de la limpieza de Storage (`20261027194904`, `20261027194908`, `20261028114317`) aplicadas
+  en `kitom-dev` (`db push` del usuario; comprobado con `migration list`) y tipos regenerados con
+  `--linked` (solo las 6 RPC nuevas). La Edge Function `pet-storage-cleanup` sigue sin desplegar.
+
 - Revisión de seguridad de la limpieza de Storage, antes del PR (rama `db/pet-storage-cleanup`, sin
   aplicar en `kitom-dev`):
   - Migración `20261028114317_pet_storage_cleanup_guards.sql`: las RPC no trabajan si su propietario no ve

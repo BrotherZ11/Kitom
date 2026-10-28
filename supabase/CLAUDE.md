@@ -53,7 +53,8 @@
   `SECURITY DEFINER`, `search_path` vacío, solo `service_role`) y `20261028114317_pet_storage_cleanup_guards.sql`
   (las RPC no trabajan si su propietario no ve `storage.objects` entero o falta el CHECK) (rama
   `db/pet-storage-cleanup`, fase 12B): validadas en local con `migration up --local` (sin `db reset`) y
-  desde cero con `db diff --local`; **sin aplicar en `kitom-dev`**. Diseño,
+  desde cero con `db diff --local`; aplicadas en `kitom-dev` el 2026-10-28 (`db push` del usuario) y tipos regenerados. La Edge Function
+  `pet-storage-cleanup`, **sin desplegar** (sin secreto ni cron). Diseño,
   revisión y despliegue: `docs/proposals/2026-10-26-pet-photos-cleanup.md`.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
   `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`; pgTAP, en

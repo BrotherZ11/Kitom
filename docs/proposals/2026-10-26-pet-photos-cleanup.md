@@ -1,9 +1,11 @@
 # Limpieza de fotos de mascotas eliminadas en Storage (backend)
 
 > **Estado: IMPLEMENTADO en la rama `db/pet-storage-cleanup` (fase 12B, 2026-10-27; revisión de
-> seguridad 2026-10-28), sin aplicar en `kitom-dev`.** Migraciones `20261027194904_pets_photo_path_own_pet.sql`,
-> `20261027194908_pet_storage_cleanup.sql` y `20261028114317_pet_storage_cleanup_guards.sql` aplicadas y
-> probadas solo en el Supabase local (también desde cero, con `db diff --local`); Edge Function
+> seguridad 2026-10-28). Migraciones aplicadas en `kitom-dev` el 2026-10-28.** Las migraciones
+> `20261027194904_pets_photo_path_own_pet.sql`, `20261027194908_pet_storage_cleanup.sql` y
+> `20261028114317_pet_storage_cleanup_guards.sql` están probadas en el Supabase local (también desde cero,
+> con `db diff --local`) y aplicadas en `kitom-dev` (`db push` del usuario; antes, 0 filas incompatibles
+> y `postgres` con `BYPASSRLS`); tipos regenerados. Edge Function
 > `supabase/functions/pet-storage-cleanup/` sin desplegar; programación (cron) sin configurar en ningún
 > entorno. Aplicarlo es del usuario: ver «Revisión y aplicación» y «Despliegue». Origen: Pets offline,
 > fase 10 (`docs/DECISIONS.md`, 2026-10-26); auditoría de la propuesta original: fase 12A.

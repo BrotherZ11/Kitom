@@ -70,7 +70,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   sobre `photo_path` y diario local (§5 «Pets: eliminación sin conexión y fotos (fase 10)»); sin validar a
   mano todavía. La limpieza de Storage tras borrar una mascota (fase 12B, rama `db/pet-storage-cleanup`):
   migraciones `20261027194904_pets_photo_path_own_pet.sql`, `20261027194908_pet_storage_cleanup.sql` y
-  `20261028114317_pet_storage_cleanup_guards.sql` y Edge Function `pet-storage-cleanup`, probadas en local y **sin aplicar ni desplegar** en `kitom-dev`
+  `20261028114317_pet_storage_cleanup_guards.sql` y Edge Function `pet-storage-cleanup`, probadas en local; migraciones aplicadas en `kitom-dev` el 2026-10-28 (`db push` del usuario) y tipos regenerados; la función, **sin desplegar** (sin secreto ni cron)
   (`docs/proposals/2026-10-26-pet-photos-cleanup.md`). Fase 11 (2026-10-26, sin migraciones):
   estabilización E2E validada en el emulador Android con Expo Go, en web y contra el Supabase local;
   corregidas la señal de red atascada, el envío de fotos con otra sesión y el aviso de Ajustes (§5

@@ -195,7 +195,7 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
   el borrado requiere la migración `20261008150202` (antes violaba la FK de `pet_streaks`). Los objetos de Storage
   de la mascota (`{pet_id}/…`) **no** los borra el cliente: tras el borrado `can_edit_pet` ya es falso.
   Los limpia el backend (trigger que encola + Edge Function `pet-storage-cleanup`, solo `pet-photos`):
-  implementado en la rama `db/pet-storage-cleanup`, sin aplicar en `kitom-dev`
+  migraciones aplicadas en `kitom-dev` (2026-10-28); la función, sin desplegar todavía
   (`docs/proposals/2026-10-26-pet-photos-cleanup.md`). La app no cambia.
 - **RPC:** `can_edit_pet(pet_id)` solo para decidir si mostrar «Editar» (UX); «Eliminar» se muestra si
   `owner_id` es el usuario (UX). La autorización real es RLS.
@@ -226,8 +226,8 @@ validación, resize/compresión), `pet-photo-ops.ts` (reglas, fase 10), `api/pet
   `pets.photo_path` (path, nunca URL), que solo escribe `setPhotoPath` (`api/pet-photos-remote.ts`: una
   columna, con precondición sobre su valor actual). Las fotos de las consultas usan el mismo bucket y la
   misma forma de ruta: nunca se borra un objeto que no haya anotado una operación de foto concreta.
-  Con la migración `20261027194904_pets_photo_path_own_pet.sql` (rama `db/pet-storage-cleanup`, sin
-  aplicar en `kitom-dev`), el servidor solo acepta en `photo_path` NULL o `{id de esa mascota}/{nombre}.jpg`
+  Con la migración `20261027194904_pets_photo_path_own_pet.sql` (aplicada en `kitom-dev` el
+  2026-10-28), el servidor solo acepta en `photo_path` NULL o `{id de esa mascota}/{nombre}.jpg`
   (CHECK; otro valor es `23514`): exactamente lo que genera la app.
 - **Imagen:** entrada JPEG/PNG/WebP/HEIC/HEIF (≤ 25 MB); salida siempre JPEG, lado mayor ≤ 1600 px,
   calidad 0.8, ≤ 5 MB. Sin recorte. Decisión: `DECISIONS.md`.
@@ -1259,8 +1259,8 @@ Las copias de cuentas que ya no se usan no se borran solas (como el resto de dat
 Eliminar una mascota se guarda primero en el dispositivo y lo envía el motor de Pets, con precondición,
 igual que las ediciones. Las fotos cambian `photo_path` con precondición sobre su valor actual y nunca
 borran un objeto que pueda estar referenciado. Sin cambios de esquema. Decisión: `DECISIONS.md`
-(2026-10-26, fase 10). Limpieza de Storage en el backend (fase 12B, rama `db/pet-storage-cleanup`, sin
-aplicar en `kitom-dev`): `docs/proposals/2026-10-26-pet-photos-cleanup.md`.
+(2026-10-26, fase 10). Limpieza de Storage en el backend (fase 12B; migraciones aplicadas en `kitom-dev`
+el 2026-10-28, función sin desplegar): `docs/proposals/2026-10-26-pet-photos-cleanup.md`.
 
 Código: `offline/pet-operation.ts` (tipo `delete`, `requestPetDelete`, `undoPetDelete`,
 `resolveCreatedForDelete`, `reconcileDelete`), `offline/pet-sync-engine.ts` (`requestDelete`,
@@ -1337,8 +1337,8 @@ La lápida no cuenta. «Sincronizar y cerrar» envía las eliminaciones.
   pregunta `can_edit_pet`: con permiso ya no existía; sin él, `blocked`); mascota no visible →
   `blocked` (la app ya no puede borrarlo; se conserva para una limpieza en el servidor).
 - Eliminar la mascota no depende de las fotos ni las borra: tras el borrado `can_edit_pet` es falso y
-  los objetos de `{pet_id}/` los limpia el servidor (fase 12B, sin aplicar en `kitom-dev`; hasta entonces
-  quedan huérfanos). Las entradas `blocked` del diario siguen solo en el dispositivo.
+  los objetos de `{pet_id}/` los limpia el servidor (fase 12B: la cola ya se llena en `kitom-dev`; hasta
+  que se despliegue la función, quedan huérfanos). Las entradas `blocked` del diario siguen solo en el dispositivo.
 - Desde la fase 11, las peticiones de fotos (y del diario) van con un cliente por propietario
   (`features/auth/owner-client.ts`, opción `accessToken` de supabase-js): el token de la sesión del
   dueño o la petición no sale; nunca con la sesión de otra cuenta.

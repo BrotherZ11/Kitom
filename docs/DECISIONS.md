@@ -12,7 +12,8 @@ políticas aceptan el uuid en mayúsculas y rutas anidadas (un listado por prefi
 Function no podía leer el esquema `private` y que una subida en curso puede crear la fila del objeto
 después del borrado.
 
-**Decisión.** Rama `db/pet-storage-cleanup`, sin aplicar en `kitom-dev`.
+**Decisión.** Rama `db/pet-storage-cleanup`; migraciones aplicadas en `kitom-dev` el 2026-10-28 (`db push`
+del usuario), Edge Function sin desplegar.
 - CHECK `pets_photo_path_own_pet`: NULL o `{id propio}/{nombre}.jpg`. CHECK y no trigger porque solo mira
   la propia fila. La migración aborta, sin corregir nada, si alguna fila no cumple.
 - Cola `private.pet_storage_cleanup_jobs` llenada por un trigger `AFTER DELETE` en `pets` (misma
