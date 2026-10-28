@@ -1147,6 +1147,58 @@ export type Database = {
       }
       is_pet_member: { Args: { target_pet_id: string }; Returns: boolean }
       owner_has_pets: { Args: never; Returns: boolean }
+      pet_storage_cleanup_audit: {
+        Args: { p_limit: number }
+        Returns: {
+          folder_pet_id: string
+          job_status: string
+          objects: number
+        }[]
+      }
+      pet_storage_cleanup_claim: {
+        Args: { p_limit: number; p_lock_seconds: number }
+        Returns: {
+          attempts: number
+          deleted_at: string
+          job_id: string
+          lock_token: string
+          pet_id: string
+        }[]
+      }
+      pet_storage_cleanup_objects: {
+        Args: {
+          p_after: string
+          p_job_id: string
+          p_limit: number
+          p_lock_token: string
+        }
+        Returns: {
+          object_bucket: string
+          object_name: string
+          referenced: boolean
+        }[]
+      }
+      pet_storage_cleanup_preview: {
+        Args: { p_limit: number }
+        Returns: {
+          attempts: number
+          due: boolean
+          job_id: string
+          objects: number
+          pet_exists: boolean
+          referenced: number
+        }[]
+      }
+      pet_storage_cleanup_purge: { Args: never; Returns: number }
+      pet_storage_cleanup_report: {
+        Args: {
+          p_error: string
+          p_job_id: string
+          p_lock_token: string
+          p_removed: number
+        }
+        Returns: string
+      }
       process_revenuecat_event: {
         Args: {
           p_cancel_at_period_end: boolean
