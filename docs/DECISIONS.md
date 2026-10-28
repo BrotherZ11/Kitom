@@ -3,6 +3,26 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-28 — Recordatorios: activar y desactivar con `reminders.is_active` (migración)
+
+**Contexto.** La fase 13 pide activar y desactivar recordatorios (p. ej. una medicación interrumpida) sin
+borrarlos. `reminders.status` solo admite `pending`/`completed`/`skipped` y no hay otra columna.
+
+**Decisión** (David, 2026-10-28: «Preparar migración db/»). Rama `db/reminders-active`, migración
+`20261028200659_reminders_is_active.sql`, sin aplicar en `kitom-dev`:
+- `is_active boolean NOT NULL DEFAULT true` (las filas existentes quedan activas, sin reescribir la tabla).
+- `GRANT INSERT (is_active), UPDATE (is_active)` a `authenticated`. RLS, políticas y triggers sin cambios:
+  lo cambian solo los editores (`can_edit_pet`), lo ven los miembros.
+- Desactivar no toca `status` ni `completed_at`: un desactivado sigue pendiente al reactivarlo.
+- Descartado reutilizar `status = 'skipped'`: hoy se trata como hecho y mezclaría «pausado» con
+  «hecho».
+
+**Consecuencias.** La columna no decide nada en el servidor: la app dejará de avisar de los inactivos y
+no los contará como vencidos (fase de frontend posterior al `db push` y a regenerar los tipos). Pruebas:
+`supabase/tests/database/reminders_is_active.test.sql`; los permisos generales de la tabla quedan
+cubiertos por primera vez en `reminders.test.sql` (30 casos: propietario, editor, lector, invitación sin
+aceptar, otra cuenta, anon, reasignar de mascota, precondición `updated_at`, cascada al borrar la mascota).
+
 ## 2026-10-27 — Fase 12B: limpieza en el backend de las fotos de mascotas eliminadas
 
 **Contexto.** Los objetos de `pet-photos/{pet_id}/…` de una mascota borrada quedaban para siempre: el

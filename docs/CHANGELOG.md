@@ -5,6 +5,10 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-28
 
+- Recordatorios, activar y desactivar (rama `db/reminders-active`, sin aplicar en `kitom-dev`): migración
+  `20261028200659_reminders_is_active.sql` (`reminders.is_active` y su GRANT por columna) y pruebas pgTAP
+  `reminders.test.sql` (permisos de la tabla) y `reminders_is_active.test.sql`.
+
 - Migraciones de la limpieza de Storage (`20261027194904`, `20261027194908`, `20261028114317`) aplicadas
   en `kitom-dev` (`db push` del usuario; comprobado con `migration list`) y tipos regenerados con
   `--linked` (solo las 6 RPC nuevas). La Edge Function `pet-storage-cleanup` sigue sin desplegar.

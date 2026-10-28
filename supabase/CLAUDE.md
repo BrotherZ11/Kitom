@@ -56,8 +56,14 @@
   desde cero con `db diff --local`; aplicadas en `kitom-dev` el 2026-10-28 (`db push` del usuario) y tipos regenerados. La Edge Function
   `pet-storage-cleanup`, **sin desplegar** (sin secreto ni cron). Diseño,
   revisión y despliegue: `docs/proposals/2026-10-26-pet-photos-cleanup.md`.
+- Migración `20261028200659_reminders_is_active.sql` (rama `db/reminders-active`, fase 13):
+  `reminders.is_active boolean NOT NULL DEFAULT true` y `GRANT INSERT/UPDATE (is_active)` a
+  `authenticated`. Sin cambios de RLS, triggers ni políticas. Validada en local con `migration up --local`
+  (sin `db reset`) y pgTAP; **sin aplicar** en `kitom-dev` (lo hace el usuario; después, tipos con
+  `--linked`). Decisión: `docs/DECISIONS.md`.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
-  `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`; pgTAP, en
+  `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `reminders`
+  (permisos de la tabla con el esquema base), `reminders_is_active`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
   -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.
 - Pruebas de concurrencia: `bash supabase/tests/concurrency/daily_logs_concurrency.sh`,
