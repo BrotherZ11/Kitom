@@ -125,6 +125,12 @@ file_size_limit = "50MiB"
 # allowed_mime_types = ["image/png", "image/jpeg"]
 # objects_path = "./images"
 
+# Kitom: bucket de fotos de mascotas (perfil y consultas), privado como en kitom-dev. Solo para el
+# Supabase local (`npx supabase seed buckets --local`); las políticas están en las migraciones. Los
+# límites de tamaño y tipo de kitom-dev no están verificados: no se fijan aquí.
+[storage.buckets.pet-photos]
+public = false
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true
@@ -385,6 +391,12 @@ deno_version = 2
 
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
+
+# Kitom: la limpieza de Storage la invoca una tarea programada, no un usuario. Sin verificación de JWT
+# en la pasarela (un JWT de usuario no autoriza nada aquí): la función exige su propio secreto,
+# PET_STORAGE_CLEANUP_SECRET, que nunca va en este archivo (ver supabase/functions/pet-storage-cleanup).
+[functions.pet-storage-cleanup]
+verify_jwt = false
 
 [analytics]
 enabled = true
