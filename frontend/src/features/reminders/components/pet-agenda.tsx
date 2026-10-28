@@ -69,7 +69,10 @@ export function PetAgenda({ pet, petCount }: { pet: Pet; petCount: number }) {
           {t('agenda.title')}
         </Text>
         {petCount > 1 ? (
-          <Chip label={pet.name} onPress={() => setSelectorOpen(true)} accessibilityHint={t('pets.profile.swap')} />
+          <View style={styles.headerLinks}>
+            <Chip label={pet.name} onPress={() => setSelectorOpen(true)} accessibilityHint={t('pets.profile.swap')} />
+            <Button variant="ghost" size="sm" label={t('agenda.all.entry')} onPress={() => router.push('/reminders')} />
+          </View>
         ) : null}
       </View>
       {canWrite ? (
@@ -366,6 +369,12 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing['2'],
     alignItems: 'flex-start',
+  },
+  headerLinks: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing['2'],
   },
   sections: {
     gap: 18,
