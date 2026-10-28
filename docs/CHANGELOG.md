@@ -3,6 +3,28 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-28
+
+- Revisión de seguridad de la limpieza de Storage, antes del PR (rama `db/pet-storage-cleanup`, sin
+  aplicar en `kitom-dev`):
+  - Migración `20261028114317_pet_storage_cleanup_guards.sql`: las RPC no trabajan si su propietario no ve
+    `storage.objects` entero (vería 0 objetos y terminaría en falso) o si falta el CHECK de `photo_path`.
+  - Pruebas más estrictas (TUS, recuento de RPC, aislamiento de la concurrencia) y aplicación desde cero
+    comprobada.
+  - Hallazgos abiertos en `docs/proposals/2026-10-26-pet-photos-cleanup.md`.
+
+## 2026-10-27
+
+- Fase 12B, limpieza de fotos de mascotas eliminadas (rama `db/pet-storage-cleanup`, sin aplicar en
+  `kitom-dev`):
+  - Migraciones `20261027194904_pets_photo_path_own_pet.sql` (CHECK: `photo_path` solo de la propia
+    mascota) y `20261027194908_pet_storage_cleanup.sql` (cola privada, trigger al borrar y RPC solo para
+    `service_role`).
+  - Edge Function `pet-storage-cleanup`: secreto propio, modo informe por defecto, solo `pet-photos`.
+  - Bucket `pet-photos` y `verify_jwt = false` de la función en `config.toml`, solo para el local.
+  - Pruebas pgTAP, de concurrencia, unitarias y de integración contra el Storage local.
+  - Diseño, despliegue y límites: `docs/proposals/2026-10-26-pet-photos-cleanup.md`.
+
 ## 2026-10-26
 
 - Fase 11, estabilización E2E (rama `feat/pets-offline-writes`, sin cambios de esquema): validación en

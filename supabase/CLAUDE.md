@@ -8,8 +8,9 @@
     Fuera del MVP; no crear migración salvo petición expresa. Hay 22 tablas, no las 24 que citan los docs.
   - No incluye datos. Los catálogos están en `supabase/seed.sql` y `supabase/seeds/breeds.sql` (ver
     `docs/SEED.md`): ejecutados en `kitom-dev` por el usuario (especies y razas probadas desde la
-    app; nunca con `db push`). Los buckets de Storage existen en `kitom-dev` pero no en local
-    (pendiente: declararlos en `config.toml`).
+    app; nunca con `db push`). Los buckets de Storage existen en `kitom-dev`; en local solo
+    `pet-photos`, declarado en `config.toml` (privado, sin límites: los de `kitom-dev` no están
+    verificados) y creado con `npx supabase seed buckets --local`. Los demás, pendientes.
 - Migración `20261007152630_breeds.sql`: catálogo `breeds` (por especie), enum `breed_status` y
   `pets.breed_id`/`pets.breed_status` con FK compuesta `(breed_id, species_id) → breeds (id, species_id)`
   y CHECK `pets_breed_status_check`. Aplicada en `kitom-dev`. Con ella son 23 tablas. Modelo:
@@ -45,12 +46,23 @@
   `get_my_pet_invitations` y `get_pet_members`, `SECURITY DEFINER`, sin EXECUTE para anon. Sin cambios de
   tablas, RLS ni triggers. Validada en local con `migration up` (sin `db reset`) y pgTAP; aplicada en
   `kitom-dev` (`db push` del usuario, 2026-10-23) y tipos añadidos. Contrato: `docs/README.md` §13.
+- Migraciones `20261027194904_pets_photo_path_own_pet.sql` (CHECK `pets_photo_path_own_pet`: NULL o
+  `{id propio}/{nombre}.jpg`; aborta sin cambios si alguna fila no cumple) y
+  `20261027194908_pet_storage_cleanup.sql` (esquema `private` sin USAGE, cola
+  `private.pet_storage_cleanup_jobs`, trigger `AFTER DELETE` en `pets` y RPC `pet_storage_cleanup_*`
+  `SECURITY DEFINER`, `search_path` vacío, solo `service_role`) y `20261028114317_pet_storage_cleanup_guards.sql`
+  (las RPC no trabajan si su propietario no ve `storage.objects` entero o falta el CHECK) (rama
+  `db/pet-storage-cleanup`, fase 12B): validadas en local con `migration up --local` (sin `db reset`) y
+  desde cero con `db diff --local`; **sin aplicar en `kitom-dev`**. Diseño,
+  revisión y despliegue: `docs/proposals/2026-10-26-pet-photos-cleanup.md`.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
-  `pets_client_request_id`, `pet_invitations`; pgTAP, en
+  `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
   -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.
-- Pruebas de concurrencia: `bash supabase/tests/concurrency/daily_logs_concurrency.sh` y
-  `pets_concurrency.sh` (alta con la misma clave y edición con la misma versión base) (solo local, vía
+- Pruebas de concurrencia: `bash supabase/tests/concurrency/daily_logs_concurrency.sh`,
+  `pets_concurrency.sh` (alta con la misma clave y edición con la misma versión base),
+  `pets_delete_concurrency.sh` y `pet_storage_cleanup_concurrency.sh` (reservas simultáneas, caducadas y
+  caídas, informes duplicados, subida durante el borrado; necesita el bucket local) (solo local, vía
   `docker exec`; varias sesiones de psql a la vez; crea datos con ids fijos y los borra al terminar).
   `.gitattributes` fuerza LF en `*.sh` (con `core.autocrlf=true` saldrían con CRLF y bash fallaría).
   pgTAP corre en una transacción y no puede probar carreras: toda lógica que dependa de bloqueos o
@@ -62,7 +74,10 @@
 - Tipos: `gen types --local` (CLI 2.120) usa otro generador que `--linked` (sin
   `__InternalSupabase.PostgrestVersion`, con `ComputedFields`): regenerar siempre con `--linked`.
 - Lección Storage: las políticas se evalúan con el rol que consulta; necesita EXECUTE sobre toda
-  función que la política invoque (aunque sea `security definer`).
+  función que la política invoque (aunque sea `security definer`). Y una función `security definer` que
+  lea `storage.objects` lo hace con RLS salvo que su propietario se la salte: si no, ve 0 filas sin error.
+- Lección pgTAP: `rollback to savepoint` también deshace los resultados que pgTAP ya anotó (plan
+  descuadrado); para probar algo destructivo, hacerlo al final del archivo sin savepoint.
 - Lección RLS: en `INSERT … RETURNING` la política SELECT se evalúa sobre la fila nueva **antes** de que
   exista en la tabla; una función que la busque por id (p. ej. `is_pet_member(id)`) no la encuentra.
   Probar siempre los inserts con `RETURNING` (es lo que hace `insert().select()`).
@@ -72,8 +87,8 @@
   con 2+ filas hijas.
 - Lección upsert: PostgREST hace `ON CONFLICT DO UPDATE SET` de todas las columnas enviadas, así que
   necesita UPDATE sobre las columnas inmutables. En tablas con GRANT por columna, usar una RPC.
-- Edge Functions: `functions/ai-analysis-process/` implementada (ver abajo); las demás, **pendientes**
-  (la carpeta `edge-functions/` que citan los docs no está en el repo).
+- Edge Functions: `functions/ai-analysis-process/` y `functions/pet-storage-cleanup/` implementadas (ver
+  abajo); las demás, **pendientes** (la carpeta `edge-functions/` que citan los docs no está en el repo).
 - Esquema v2.2.1 **congelado**: solo cambia por bugs reales detectados construyendo el frontend.
 
 ## Congelado (no tocar sin aprobación explícita + migración nueva)
@@ -115,7 +130,16 @@ solo en local (`supabase start`/`db reset` local); en `kitom-dev` lo ejecuta el 
 7. Actualizar `docs/README.md` / `docs/FRONTEND_ARCHITECTURE.md` si cambia el contrato. PR propio.
 
 ## Edge Functions (`supabase/functions/<nombre>/index.ts`)
-Hecha: `ai-analysis-process`. Pendientes: `generate-pet-report`, `delete-account`, `revenuecat-webhook`.
+Hechas: `ai-analysis-process` y `pet-storage-cleanup`. Pendientes: `generate-pet-report`,
+`delete-account`, `revenuecat-webhook`.
+- `pet-storage-cleanup` es de servicio, no de usuario: la invoca una tarea programada con la cabecera
+  `x-kitom-cleanup-secret` (`PET_STORAGE_CLEANUP_SECRET`, ≥ 32 caracteres, nunca en el repo ni en
+  `config.toml`) y `verify_jwt = false`; modo informe salvo `PET_STORAGE_CLEANUP_MODE=delete`. Lógica en
+  `cleanup.ts`/`rest.ts` (sin Deno): `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON
+  supabase/functions/pet-storage-cleanup/cleanup.test.mjs`; contra el local (Storage real, usa la clave
+  de servicio local y SQL por `docker exec` para adelantar plazos):
+  `node supabase/functions/pet-storage-cleanup/run-integration.mjs`. Probar la función servida:
+  `npx supabase functions serve pet-storage-cleanup --env-file <archivo fuera del repo>`.
 Orden obligatorio: validar JWT → `auth.uid()` del JWT (nunca del body) → validar parámetros →
 re-autorizar contra la BD → solo entonces `service_role`. Bucket hardcodeado, nunca del cliente.
 Proveedor de IA intercambiable. Secretos vía `supabase secrets set` y despliegue con `functions deploy`:

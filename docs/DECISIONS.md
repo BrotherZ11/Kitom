@@ -3,6 +3,43 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-27 — Fase 12B: limpieza en el backend de las fotos de mascotas eliminadas
+
+**Contexto.** Los objetos de `pet-photos/{pet_id}/…` de una mascota borrada quedaban para siempre: el
+cliente ya no puede borrarlos. La auditoría de la propuesta de la fase 10 (fase 12A) encontró que
+`pets.photo_path` aceptaba cualquier texto (una mascota podía apuntar a la carpeta de otra), que las
+políticas aceptan el uuid en mayúsculas y rutas anidadas (un listado por prefijo no las ve), que la Edge
+Function no podía leer el esquema `private` y que una subida en curso puede crear la fila del objeto
+después del borrado.
+
+**Decisión.** Rama `db/pet-storage-cleanup`, sin aplicar en `kitom-dev`.
+- CHECK `pets_photo_path_own_pet`: NULL o `{id propio}/{nombre}.jpg`. CHECK y no trigger porque solo mira
+  la propia fila. La migración aborta, sin corregir nada, si alguna fila no cumple.
+- Cola `private.pet_storage_cleanup_jobs` llenada por un trigger `AFTER DELETE` en `pets` (misma
+  transacción). Acceso solo por RPC `SECURITY DEFINER` en `public` con EXECUTE para `service_role`; no
+  se expone el esquema `private`. Reserva con `FOR UPDATE SKIP LOCKED` y token.
+- Los candidatos se buscan en SQL con `safe_pet_id_from_path`, la regla de las políticas, y se borran con
+  la API de Storage. Nada referenciado ni dudoso se borra.
+- Un trabajo solo termina con un listado vacío hecho 25 h o más después del borrado. Lo comprobado en
+  local: Storage rechaza terminar una subida reanudable de una mascota ya borrada, pero una inserción en
+  curso puede confirmar después del borrado.
+- La función la invoca una tarea programada con un secreto propio (`verify_jwt = false`): un JWT de
+  usuario no autoriza nada y el secreto es más limitado que la clave de servicio. Modo informe por
+  defecto; borra solo con `PET_STORAGE_CLEANUP_MODE=delete`.
+- Solo `pet-photos`. `reminder-attachments` y `shared-reports` quedan fuera: sin uso en la app y sin
+  retención definida.
+- (Revisión de seguridad, 2026-10-28.) Las RPC se niegan a trabajar si su propietario no ve
+  `storage.objects` entero o si falta el CHECK de `photo_path` (migración
+  `20261028114317_pet_storage_cleanup_guards.sql`). Se prefirió fallar con un código antes que fiarse de
+  que el rol que aplica las migraciones se salte RLS en todos los entornos.
+
+**Consecuencias.**
+- La app no cambia: ya generaba exactamente el formato que exige el CHECK.
+- Aplicar las migraciones, desplegar la función y programarla son pasos del usuario, primero en un entorno
+  de pruebas y en modo informe.
+- Las carpetas de mascotas borradas antes del trigger no se encolan; la auditoría las cuenta.
+- Un objeto que apareciera después de un trabajo terminado solo lo detecta la auditoría.
+
 ## 2026-10-26 — Fase 11: estabilización E2E (conectividad, fotos por propietario)
 
 **Contexto.** Validación de los flujos integrados en el emulador Android, en web y contra el Supabase

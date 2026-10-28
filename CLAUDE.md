@@ -68,8 +68,10 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   conexión (fase 9)»); sin validar a mano todavía. Fase 10 (2026-10-26, sin migraciones): eliminación de
   mascotas guardada en el dispositivo (con precondición, deshacer y conflictos) y fotos con precondición
   sobre `photo_path` y diario local (§5 «Pets: eliminación sin conexión y fotos (fase 10)»); sin validar a
-  mano todavía. La limpieza de Storage tras borrar una mascota necesita backend: propuesta sin aplicar en
-  `docs/proposals/2026-10-26-pet-photos-cleanup.md`. Fase 11 (2026-10-26, sin migraciones):
+  mano todavía. La limpieza de Storage tras borrar una mascota (fase 12B, rama `db/pet-storage-cleanup`):
+  migraciones `20261027194904_pets_photo_path_own_pet.sql`, `20261027194908_pet_storage_cleanup.sql` y
+  `20261028114317_pet_storage_cleanup_guards.sql` y Edge Function `pet-storage-cleanup`, probadas en local y **sin aplicar ni desplegar** en `kitom-dev`
+  (`docs/proposals/2026-10-26-pet-photos-cleanup.md`). Fase 11 (2026-10-26, sin migraciones):
   estabilización E2E validada en el emulador Android con Expo Go, en web y contra el Supabase local;
   corregidas la señal de red atascada, el envío de fotos con otra sesión y el aviso de Ajustes (§5
   «Estabilización E2E (fase 11)»). Las fotos siguen sin probarse contra un bucket real. Pendiente: la limpieza (no automática) de datos
@@ -102,7 +104,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `kitom-dev` (`db push` del usuario) y tipos añadidos. Frontend de co-tutores e invitaciones hecho
   (`frontend/src/features/co-owners/`, rama `feat/co-owners`); sin límite por plan (decisión pendiente).
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
-  (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`, no en local (pendiente).
+  (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`; en local solo `pet-photos`
+  (`config.toml` + `npx supabase seed buckets --local`).
 
 ## Reglas absolutas
 

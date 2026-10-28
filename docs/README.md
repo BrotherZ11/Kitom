@@ -243,6 +243,8 @@ No se creó ninguna tabla nueva ni se cambió la restricción `UNIQUE(token)`.
 | `pet_shared_reports.file_path` | `shared-reports` | `{pet_id}/{object_uuid}.pdf` |
 | `profiles.avatar_path` | `avatars` | `{user_id}/{object_uuid}.{ext}` |
 
+> Corrección posterior (migración `20261027194904_pets_photo_path_own_pet.sql`, sin aplicar en `kitom-dev`): `pets.photo_path` no tenía validación (a diferencia de `ai_analysis_requests.photo_path` y `reminders.attachment_path`). Ahora un CHECK solo admite NULL o `{id de la propia mascota}/{nombre}.jpg` (un nivel, `.jpg`, lo que genera la app). Y la migración `20261027194908_pet_storage_cleanup.sql` añade la limpieza de `pet-photos` de las mascotas borradas: cola privada llenada por un trigger, RPC solo para `service_role` y la Edge Function `pet-storage-cleanup` (`docs/proposals/2026-10-26-pet-photos-cleanup.md`). `reminder-attachments` y `shared-reports` quedan fuera.
+
 El bucket nunca viaja como parámetro desde el cliente — cada Edge Function y cada policy de Storage tiene su bucket fijo hardcodeado (ver `edge-functions/generate-pet-report/index.ts` para el caso más explícito: `const REPORTS_BUCKET = 'shared-reports'`). Los paths guardados en columnas `*_path` son siempre internos, nunca una URL — ni pública ni firmada. Las URLs firmadas se generan bajo demanda en el momento de mostrarlas (`createSignedUrl`), nunca se persisten.
 
 ## 21. Seguridad — resumen de las capas usadas
