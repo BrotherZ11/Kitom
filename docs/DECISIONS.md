@@ -3,6 +3,27 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-29 — Recordatorios: activar y desactivar en la app
+
+**Contexto.** `reminders.is_active` está en `kitom-dev` desde el 2026-10-29 y en los tipos; faltaba
+usarla en la app.
+
+**Decisiones.**
+- **Un desactivado es un pendiente apartado:** no avisa (la consulta de avisos filtra `is_active` y
+  `NotificationSync` vuelve a filtrar), no es vencido, ni «Próximo», ni sale en el calendario o en el
+  resumen de la ficha. Tiene su sección «Desactivados» para que se pueda encontrar y reactivar.
+- **Solo desde el detalle**, con «Deshacer» como «Hecho»: en la lista no hay círculo de «hecho» para un
+  desactivado (primero se activa). Editarlo no lo reactiva.
+- **Reactivar no mueve la fecha:** si su hora ya pasó, vuelve como vencido y «Hecho» avanza la serie
+  como siempre.
+- **Sin la columna, activo** (`isReminderActive`): datos de una versión anterior en caché no se pierden.
+
+**Consecuencias.** Las versiones de la app anteriores a esta fase ignoran la columna: en un dispositivo
+con una de ellas (p. ej. la APK de prueba 1.1.0), un recordatorio desactivado en otro seguiría avisando
+y contando como pendiente hasta actualizarla. Validado en web y en el emulador Android con una build
+nativa debug contra el Supabase local (la alarma se cancela, sigue así tras reiniciar y vuelve al
+activarlo).
+
 ## 2026-10-28 — Fase 13: recordatorios (zona horaria, mascotas eliminándose y listado general)
 
 **Contexto.** La agenda existía desde el MVP (2026-10-21). La auditoría de la fase 13 encontró que una

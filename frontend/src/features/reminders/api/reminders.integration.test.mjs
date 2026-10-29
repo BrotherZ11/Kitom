@@ -226,6 +226,29 @@ describe('agenda contra el Supabase local', { skip }, () => {
     assert.ok(!ids.has(old.id));
   });
 
+  it('desactivar y activar: editores sí, lector no; un desactivado no llega a los avisos', async () => {
+    const now = new Date();
+    const created = await owner.remote.createReminder(petId, owner.userId, write({ title: 'Antibiótico' }));
+    assert.equal(created.is_active, true, 'se crea activo');
+
+    const off = await editor.remote.updateReminder(created.id, { is_active: false }, created.updated_at);
+    assert.equal(off.is_active, false);
+    assert.equal(off.status, 'pending', 'desactivar no cambia status');
+    assert.equal(off.completed_at, null);
+    for (const user of [owner, editor, viewer]) {
+      assert.ok(!(await user.remote.fetchUpcomingReminders(now)).some((item) => item.id === created.id), 'sin aviso');
+    }
+    const pendingRow = (await owner.remote.fetchPendingReminders()).find((item) => item.id === created.id);
+    assert.equal(pendingRow?.is_active, false, 'el listado general lo trae (como desactivado)');
+
+    await assert.rejects(viewer.remote.updateReminder(created.id, { is_active: true }, off.updated_at), notWritable('not_allowed'));
+    await assert.rejects(owner.remote.updateReminder(created.id, { is_active: true }, created.updated_at), ReminderChangedError);
+
+    const on = await owner.remote.updateReminder(created.id, { is_active: true }, off.updated_at);
+    assert.equal(on.is_active, true);
+    assert.ok((await viewer.remote.fetchUpcomingReminders(now)).some((item) => item.id === created.id), 'vuelve a avisar');
+  });
+
   it('sin red o sin sesión: error de red o de permiso, nunca datos de otra cuenta', async () => {
     owner.net.online = false;
     try {

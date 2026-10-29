@@ -47,7 +47,7 @@ export class ReminderNotWritableError extends Error {
 
 export type ReminderPatch = Pick<
   TablesUpdate<'reminders'>,
-  'type' | 'title' | 'description' | 'due_at' | 'recurrence_rule' | 'snooze_until' | 'status'
+  'type' | 'title' | 'description' | 'due_at' | 'recurrence_rule' | 'snooze_until' | 'status' | 'is_active'
 >;
 
 export function createRemindersRemote(client: SupabaseClient<Database>) {
@@ -84,7 +84,7 @@ export function createRemindersRemote(client: SupabaseClient<Database>) {
       return data;
     },
 
-    /** Pendientes de todas las mascotas visibles, vencidos incluidos (listado general). */
+    /** Pendientes de todas las mascotas visibles, vencidos y desactivados incluidos (listado general). */
     async fetchPendingReminders(): Promise<Reminder[]> {
       const { data, error } = await client
         .from('reminders')
@@ -97,8 +97,9 @@ export function createRemindersRemote(client: SupabaseClient<Database>) {
     },
 
     /**
-     * Pendientes que aún tienen que sonar (`due_at` o `snooze_until` después de `now`), para programar
-     * los avisos del dispositivo. Sin los vencidos: muchos vencidos nunca dejan fuera a los próximos.
+     * Pendientes activos que aún tienen que sonar (`due_at` o `snooze_until` después de `now`), para
+     * programar los avisos del dispositivo. Sin los vencidos (muchos vencidos nunca dejan fuera a los
+     * próximos) ni los desactivados.
      */
     async fetchUpcomingReminders(now = new Date()): Promise<Reminder[]> {
       const at = now.toISOString();
@@ -106,6 +107,7 @@ export function createRemindersRemote(client: SupabaseClient<Database>) {
         .from('reminders')
         .select(REMINDER_COLUMNS)
         .eq('status', 'pending')
+        .eq('is_active', true)
         .or(`due_at.gt."${at}",snooze_until.gt."${at}"`)
         .order('due_at', { ascending: true })
         .limit(LIMIT);

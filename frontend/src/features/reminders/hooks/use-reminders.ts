@@ -179,6 +179,30 @@ export function useReopenReminder() {
   });
 }
 
+export type ActiveResult = { saved: Reminder; undo: () => Promise<void> };
+
+/**
+ * Activar o desactivar (`is_active`). Desactivar no toca `status`: sigue pendiente y, al reactivarlo,
+ * vuelve tal cual (si su hora ya pasó, como vencido). Con precondición y con «Deshacer».
+ */
+export function useSetReminderActive() {
+  const { auth } = useReminderSession();
+  const afterWrite = useAfterWrite();
+  const afterRejection = useAfterRejection();
+  return useMutation({
+    mutationFn: async ({ reminder, active }: { reminder: Reminder; active: boolean }): Promise<ActiveResult> => {
+      const saved = await auth.serverCall(() => updateReminder(reminder.id, { is_active: active }, reminder.updated_at));
+      const undo = async () => {
+        const restored = await auth.serverCall(() => updateReminder(saved.id, { is_active: !active }, saved.updated_at));
+        await afterWrite(restored);
+      };
+      return { saved, undo };
+    },
+    onSuccess: ({ saved }) => afterWrite(saved),
+    onError: (error, { reminder }) => afterRejection(error, reminder.pet_id),
+  });
+}
+
 export function useSnoozeReminder() {
   const { auth } = useReminderSession();
   const afterWrite = useAfterWrite();

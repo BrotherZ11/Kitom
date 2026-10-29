@@ -20,9 +20,10 @@ import { useIsOnline } from '@/hooks/use-is-online';
 import { getLocale, t, tf } from '@/i18n';
 
 /**
- * Lo pendiente de todas las mascotas (vencido, hoy y próximo), con el nombre de cada una. Solo lectura:
- * cada fila abre el detalle, que decide si se puede cambiar (RLS y `can_edit_pet` de esa mascota). Las
- * mascotas que se están eliminando en este dispositivo no salen. Solo con conexión (sin copia local).
+ * Lo pendiente de todas las mascotas (vencido, hoy, próximo y, aparte, lo desactivado), con el nombre de
+ * cada una. Solo lectura: cada fila abre el detalle, que decide si se puede cambiar (RLS y
+ * `can_edit_pet` de esa mascota). Las mascotas que se están eliminando en este dispositivo no salen.
+ * Solo con conexión (sin copia local).
  */
 export default function AllRemindersScreen() {
   const router = useRouter();
@@ -91,6 +92,9 @@ export default function AllRemindersScreen() {
         ) : null}
         {groups.upcoming.length > 0 ? (
           <Section title={t('agenda.sections.upcoming')}>{rows(groups.upcoming)}</Section>
+        ) : null}
+        {groups.paused.length > 0 ? (
+          <Section title={t('agenda.sections.paused')}>{rows(groups.paused)}</Section>
         ) : null}
       </View>
     );

@@ -172,7 +172,7 @@ describe('diffSchedule', () => {
 
 describe('reminderNotifyState', () => {
   const now = at(2026, 10, 16, 12);
-  const base = { unavailable: null, permission: 'granted', pending: true, at: at(2026, 10, 17), now, petDeleting: false };
+  const base = { unavailable: null, permission: 'granted', pending: true, active: true, at: at(2026, 10, 17), now, petDeleting: false };
 
   it('solo dice que avisará con permiso, en móvil y con la hora por delante', () => {
     assert.equal(reminderNotifyState(base), 'on');
@@ -191,5 +191,12 @@ describe('reminderNotifyState', () => {
     assert.equal(reminderNotifyState({ ...base, at: now }), 'past');
     assert.equal(reminderNotifyState({ ...base, petDeleting: true }), 'pet_deleting');
     assert.equal(reminderNotifyState({ ...base, pending: false }), 'none');
+  });
+
+  it('un desactivado no avisa, aunque haya permiso y la hora esté por delante', () => {
+    assert.equal(reminderNotifyState({ ...base, active: false }), 'paused');
+    assert.equal(reminderNotifyState({ ...base, active: false, pending: false }), 'none');
+    // En web se sigue diciendo primero que en el navegador no hay avisos.
+    assert.equal(reminderNotifyState({ ...base, active: false, unavailable: 'web' }), 'web');
   });
 });

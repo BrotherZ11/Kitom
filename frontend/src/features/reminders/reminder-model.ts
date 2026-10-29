@@ -18,6 +18,7 @@ export type Reminder = Pick<
   | 'snooze_until'
   | 'recurrence_rule'
   | 'status'
+  | 'is_active'
   | 'completed_at'
   | 'attachment_path'
   | 'created_by'
@@ -26,7 +27,16 @@ export type Reminder = Pick<
 >;
 
 export const REMINDER_COLUMNS =
-  'id, pet_id, type, title, description, due_at, snooze_until, recurrence_rule, status, completed_at, attachment_path, created_by, created_at, updated_at';
+  'id, pet_id, type, title, description, due_at, snooze_until, recurrence_rule, status, is_active, completed_at, attachment_path, created_by, created_at, updated_at';
+
+/**
+ * ¿Está activo? (`is_active`, migración `20261028200659`). Un desactivado sigue `pending` en el
+ * servidor, pero no avisa, no cuenta como vencido ni como «Próximo» y no sale en el calendario. Sin la
+ * columna (datos de una versión anterior en caché), activo.
+ */
+export function isReminderActive(reminder: Pick<Reminder, 'is_active'>): boolean {
+  return reminder.is_active !== false;
+}
 
 export type ReminderType = Enums<'reminder_type'>;
 
@@ -122,15 +132,19 @@ export type ReminderGroups = {
   upcoming: Reminder[];
   /** Hechos antes de hoy (los más recientes primero). */
   done: Reminder[];
+  /** Pendientes desactivados, por fecha prevista (no son vencidos ni próximos). */
+  paused: Reminder[];
 };
 
 /** Agrupa la lista de la agenda. Los `skipped` (no los escribe la app) se tratan como hechos. */
 export function groupReminders(reminders: readonly Reminder[], now: Date): ReminderGroups {
   const todayStart = startOfDay(now).getTime();
   const tomorrowStart = addDays(startOfDay(now), 1).getTime();
-  const groups: ReminderGroups = { overdue: [], today: [], upcoming: [], done: [] };
+  const groups: ReminderGroups = { overdue: [], today: [], upcoming: [], done: [], paused: [] };
   for (const reminder of reminders) {
-    if (reminder.status === 'pending') {
+    if (reminder.status === 'pending' && !isReminderActive(reminder)) {
+      groups.paused.push(reminder);
+    } else if (reminder.status === 'pending') {
       const at = effectiveDueAt(reminder).getTime();
       if (at < todayStart) groups.overdue.push(reminder);
       else if (at < tomorrowStart) groups.today.push(reminder);
@@ -144,6 +158,7 @@ export function groupReminders(reminders: readonly Reminder[], now: Date): Remin
   const byDue = (a: Reminder, b: Reminder) => effectiveDueAt(a).getTime() - effectiveDueAt(b).getTime();
   groups.overdue.sort(byDue);
   groups.upcoming.sort(byDue);
+  groups.paused.sort(byDue);
   // Hoy: primero lo pendiente (por hora), después lo hecho.
   groups.today.sort((a, b) => {
     if (a.status === 'pending' && b.status !== 'pending') return -1;
@@ -166,12 +181,12 @@ export function remindersOfPets(reminders: readonly Reminder[], petIds: Readonly
 
 /**
  * Próximo pendiente a partir de ahora (para «Próximo» en Hoy). Los vencidos cuentan primero: siguen
- * pendientes de hacer.
+ * pendientes de hacer. Los desactivados no cuentan.
  */
 export function nextPendingReminder(reminders: readonly Reminder[]): Reminder | null {
   let best: Reminder | null = null;
   for (const reminder of reminders) {
-    if (reminder.status !== 'pending') continue;
+    if (reminder.status !== 'pending' || !isReminderActive(reminder)) continue;
     if (!best || effectiveDueAt(reminder).getTime() < effectiveDueAt(best).getTime()) best = reminder;
   }
   return best;
@@ -183,9 +198,10 @@ const MAX_OCCURRENCES = 400;
 /**
  * Días (`YYYY-MM-DD`) en los que cae un recordatorio entre `start` (incluido) y `end` (excluido): su
  * fecha y, si se repite y sigue pendiente, las siguientes repeticiones (para el calendario del mes,
- * tablero 8.2). Los hechos solo cuentan el día en que se hicieron.
+ * tablero 8.2). Los hechos solo cuentan el día en que se hicieron; los desactivados, ninguno.
  */
 export function reminderDaysInRange(reminder: Reminder, start: Date, end: Date): string[] {
+  if (reminder.status === 'pending' && !isReminderActive(reminder)) return [];
   if (reminder.status !== 'pending') {
     const doneAt = new Date(reminder.completed_at ?? reminder.updated_at);
     return doneAt >= start && doneAt < end ? [localDateKey(doneAt)] : [];

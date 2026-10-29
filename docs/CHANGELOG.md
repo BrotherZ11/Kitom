@@ -5,6 +5,11 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-29
 
+- Recordatorios: activar y desactivar desde el detalle (rama `feat/reminders-active`, integrada en `main`; sin migraciones).
+  Un desactivado no avisa ni cuenta como pendiente y va en su sección «Desactivados»; «Deshacer» y
+  precondición `updated_at`. Pruebas unitarias e integración contra el Supabase local; validado en web
+  y en el emulador Android.
+
 - Migración `20261028200659_reminders_is_active.sql` aplicada en `kitom-dev` (`db push` del usuario) y
   tipos regenerados con `--linked` (solo `reminders.is_active`). La app aún no usa la columna.
 

@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import {
   effectiveDueAt,
   groupReminders,
+  isReminderActive,
   isReminderFormDirty,
   localDateKey,
   localDateTime,
@@ -233,5 +234,47 @@ describe('formulario', () => {
 
   it('localDateKey usa el día local', () => {
     assert.equal(localDateKey(at(2026, 1, 5, 23, 59)), '2026-01-05');
+  });
+});
+
+describe('recordatorios desactivados (is_active)', () => {
+  const now = at(2026, 10, 16, 12);
+
+  it('sin la columna (datos de una versión anterior) cuenta como activo', () => {
+    assert.equal(isReminderActive({}), true);
+    assert.equal(isReminderActive({ is_active: true }), true);
+    assert.equal(isReminderActive({ is_active: false }), false);
+  });
+
+  it('van a su propio grupo: ni vencidos, ni de hoy, ni próximos', () => {
+    const overdueOff = reminder({ due_at: at(2026, 10, 10).toISOString(), is_active: false });
+    const todayOff = reminder({ due_at: at(2026, 10, 16, 18).toISOString(), is_active: false });
+    const laterOff = reminder({ due_at: at(2026, 10, 20).toISOString(), is_active: false });
+    const laterOn = reminder({ due_at: at(2026, 10, 20).toISOString(), is_active: true });
+    const groups = groupReminders([laterOff, overdueOff, laterOn, todayOff], now);
+    assert.deepEqual(groups.overdue, []);
+    assert.deepEqual(groups.today, []);
+    assert.deepEqual(groups.upcoming, [laterOn]);
+    assert.deepEqual(groups.paused, [overdueOff, todayOff, laterOff]);
+  });
+
+  it('un hecho desactivado sigue siendo hecho', () => {
+    const doneOff = reminder({ status: 'completed', completed_at: at(2026, 10, 12).toISOString(), is_active: false });
+    const groups = groupReminders([doneOff], now);
+    assert.deepEqual(groups.done, [doneOff]);
+    assert.deepEqual(groups.paused, []);
+  });
+
+  it('no son «Próximo» aunque sean los más cercanos', () => {
+    const soonOff = reminder({ due_at: at(2026, 10, 16, 13).toISOString(), is_active: false });
+    const laterOn = reminder({ due_at: at(2026, 10, 18).toISOString() });
+    assert.equal(nextPendingReminder([soonOff, laterOn]), laterOn);
+    assert.equal(nextPendingReminder([soonOff]), null);
+  });
+
+  it('no salen en el calendario del mes (tampoco sus repeticiones)', () => {
+    const dailyOff = reminder({ due_at: at(2026, 10, 16, 9).toISOString(), recurrence_rule: 'FREQ=DAILY', is_active: false });
+    assert.deepEqual(reminderDaysInRange(dailyOff, at(2026, 10, 1, 0), at(2026, 11, 1, 0)), []);
+    assert.ok(reminderDaysInRange({ ...dailyOff, is_active: true }, at(2026, 10, 1, 0), at(2026, 11, 1, 0)).length > 10);
   });
 });
