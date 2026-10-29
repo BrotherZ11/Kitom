@@ -35,6 +35,7 @@ export const es = {
       processing: 'Verificando el enlace…',
       emailConfirmed: 'Tu email está confirmado. Ya puedes iniciar sesión.',
       goToLogin: 'Ir a iniciar sesión',
+      stalled: 'Está tardando más de lo normal. Si no avanza, vuelve a iniciar sesión o abre el enlace otra vez.',
     },
     updatePassword: {
       title: 'Crea una contraseña nueva',
@@ -591,6 +592,7 @@ export const es = {
       invalid_symptoms: 'Alguna señal no vale para esta especie. Revísalas.',
       not_allowed: 'Solo quien puede editar la mascota puede pedir una orientación.',
       archived: 'Esta mascota ya no está disponible.',
+      disclaimer: 'Antes de pedir una orientación, acepta el aviso veterinario en Tu cuenta › Privacidad.',
       network: 'Sin conexión. La orientación necesita conexión.',
       photo: 'No se ha podido subir la foto. Inténtalo de nuevo o sigue sin foto.',
       unknown: 'Algo ha salido mal. Inténtalo de nuevo.',

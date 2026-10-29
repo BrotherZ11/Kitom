@@ -22,8 +22,8 @@ import { spacing } from '@/theme/tokens';
 
 /**
  * Privacidad y consentimientos (tablero 10.4): el aviso veterinario aceptado (fecha y versión) y las
- * comunicaciones (`marketing_opt_in`, revocable). El consentimiento de fotos para la orientación no
- * existe todavía (sin columna ni consultas con foto, `PANTALLAS.md` §6.4).
+ * comunicaciones (`marketing_opt_in`, revocable). El consentimiento de la foto de cada consulta se pide
+ * en la propia consulta (`consult/new`) y no se guarda en el servidor (sin columna, `PANTALLAS.md` §6.4).
  */
 export default function PrivacyScreen() {
   const router = useRouter();

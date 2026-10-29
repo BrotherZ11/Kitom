@@ -35,6 +35,7 @@ export const en: Translations = {
       processing: 'Verifying the link…',
       emailConfirmed: 'Your email is confirmed. You can now sign in.',
       goToLogin: 'Go to sign in',
+      stalled: 'This is taking longer than usual. If nothing happens, sign in again or open the link once more.',
     },
     updatePassword: {
       title: 'Create a new password',
@@ -584,6 +585,7 @@ export const en: Translations = {
       invalid_symptoms: "Some sign isn't valid for this species. Review them.",
       not_allowed: 'Only someone who can edit the pet can ask for guidance.',
       archived: 'This pet is no longer available.',
+      disclaimer: 'Before asking for guidance, accept the vet notice in Your account › Privacy.',
       network: 'Offline. Guidance needs a connection.',
       photo: "The photo couldn't be uploaded. Try again or continue without a photo.",
       unknown: 'Something went wrong. Try again.',

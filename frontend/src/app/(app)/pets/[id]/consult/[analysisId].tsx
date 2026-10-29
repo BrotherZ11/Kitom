@@ -15,6 +15,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import {
   pollState,
   REINVOKE_AFTER_MS,
+  resultScreen,
   toRequestErrorCode,
   type Analysis,
 } from '@/features/ai-analysis/ai-analysis-model';
@@ -81,8 +82,9 @@ function ConsultResult({ pet, canEdit, analysisId }: { pet: Pet; canEdit: boolea
     );
   }
   const row = analysis.data;
-  if (row.status === 'completed' && row.urgency_level) return <ResultView pet={pet} analysis={row} onClose={close} />;
-  if (row.status === 'failed') return <FailedView pet={pet} canEdit={canEdit} analysis={row} onClose={close} />;
+  const screen = resultScreen(row);
+  if (screen === 'result') return <ResultView pet={pet} analysis={row} onClose={close} />;
+  if (screen === 'failed') return <FailedView pet={pet} canEdit={canEdit} analysis={row} onClose={close} />;
   return <PreparingView analysis={row} onClose={close} />;
 }
 
@@ -113,13 +115,16 @@ function PreparingView({ analysis, onClose }: { analysis: Analysis; onClose: () 
       align="center"
       footer={
         slow && mine ? (
-          <Button
-            label={t('consult.preparing.retry')}
-            icon={RefreshCw}
-            variant="secondary"
-            loading={process.isPending}
-            onPress={() => process.mutate(analysis.id)}
-          />
+          <>
+            {process.isError ? <Alert tone="error" message={t(`consult.errors.${toRequestErrorCode(process.error)}`)} /> : null}
+            <Button
+              label={t('consult.preparing.retry')}
+              icon={RefreshCw}
+              variant="secondary"
+              loading={process.isPending}
+              onPress={() => process.mutate(analysis.id)}
+            />
+          </>
         ) : undefined
       }>
       <TopBar onBack={onClose} backIcon={X} />

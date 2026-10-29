@@ -15,6 +15,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 
+/** Sin URL o sin respuesta en este tiempo, se ofrece salir (antes el indicador giraba para siempre). */
+const STALLED_AFTER_MS = 15_000;
+
 /**
  * Destino de los enlaces de Supabase Auth (`kitom://auth-callback?…`). Si el intercambio crea la
  * sesión, la protección de rutas del layout raíz saca al usuario de aquí (a la app o a
@@ -25,6 +28,12 @@ export default function AuthCallbackScreen() {
   const theme = useTheme();
   const url = Linking.useLinkingURL();
   const [result, setResult] = useState<AuthRedirectResult | null>(null);
+  const [stalled, setStalled] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setStalled(true), STALLED_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!url) return;
@@ -64,12 +73,13 @@ export default function AuthCallbackScreen() {
   }
 
   return (
-    <Screen>
+    <Screen
+      footer={stalled ? <Button variant="secondary" label={t('auth.callback.goToLogin')} onPress={goToLogin} /> : undefined}>
       <View style={styles.processing} accessibilityLiveRegion="polite">
         <KitomSymbol size={48} />
         <ActivityIndicator color={theme.primary} />
         <Text color="inkMuted" style={styles.center}>
-          {t('auth.callback.processing')}
+          {stalled ? t('auth.callback.stalled') : t('auth.callback.processing')}
         </Text>
       </View>
     </Screen>

@@ -1,6 +1,7 @@
 import { ANALYSIS_COLUMNS, toEntitlement, type Analysis, type Entitlement } from '@/features/ai-analysis/ai-analysis-model';
 import { buildPetPhotoPath, PET_PHOTOS_BUCKET, type PreparedPetPhoto } from '@/features/pets/pet-photo';
 import type { Locale } from '@/i18n';
+import { createOperationId } from '@/lib/device-operation-id';
 import { supabase } from '@/lib/supabase';
 import type { Enums } from '@/types/database.types';
 
@@ -41,12 +42,18 @@ export async function fetchSymptoms(speciesId: string, locale: Locale): Promise<
 
 /** Sube la foto de la consulta (`pet-photos/{pet_id}/{uuid}.jpg`; Storage exige `can_edit_pet`). */
 export async function uploadConsultPhoto(petId: string, photo: PreparedPetPhoto): Promise<string> {
-  const path = buildPetPhotoPath(petId);
+  const path = buildPetPhotoPath(petId, createOperationId());
   const { error } = await supabase.storage
     .from(PET_PHOTOS_BUCKET)
     .upload(path, photo.bytes, { contentType: photo.mimeType, upsert: false });
   if (error) throw error;
   return path;
+}
+
+/** Borra una foto de consulta que no llegó a usarse (Storage exige `can_edit_pet`). */
+export async function deleteConsultPhoto(path: string): Promise<void> {
+  const { error } = await supabase.storage.from(PET_PHOTOS_BUCKET).remove([path]);
+  if (error) throw error;
 }
 
 /** Crea la solicitud (valida acceso, especie, señales y cupo en el servidor). Devuelve su id. */
