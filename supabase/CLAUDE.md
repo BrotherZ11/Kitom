@@ -59,8 +59,9 @@
 - Migración `20261028200659_reminders_is_active.sql` (rama `db/reminders-active`, fase 13):
   `reminders.is_active boolean NOT NULL DEFAULT true` y `GRANT INSERT/UPDATE (is_active)` a
   `authenticated`. Sin cambios de RLS, triggers ni políticas. Validada en local con `migration up --local`
-  (sin `db reset`) y pgTAP; **sin aplicar** en `kitom-dev` (lo hace el usuario; después, tipos con
-  `--linked`). Decisión: `docs/DECISIONS.md`.
+  (sin `db reset`), desde cero con `db diff --local` y pgTAP; aplicada en `kitom-dev` el 2026-10-29
+  (`db push` del usuario) y tipos regenerados con `--linked` (solo `reminders.is_active`). Decisión:
+  `docs/DECISIONS.md`.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
   `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `reminders`
   (permisos de la tabla con el esquema base), `reminders_is_active`; pgTAP, en

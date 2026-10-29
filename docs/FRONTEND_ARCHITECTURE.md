@@ -461,8 +461,9 @@ el Supabase local en `api/reminders.integration.test.mjs`; hooks en `hooks/use-r
   así que su agenda no sale en el listado general, sus recordatorios no avisan y su detalle (abierto desde
   un enlace o un aviso viejo) lo dice y no deja cambiar nada. Si se deshace la eliminación, todo vuelve;
   al confirmarse, el servidor borra los recordatorios en cascada.
-- **Activar/desactivar:** pendiente de la migración `reminders.is_active` (rama `db/reminders-active`, sin
-  aplicar en `kitom-dev`). La app no la usa hasta que se aplique y se regeneren los tipos.
+- **Activar/desactivar:** la columna `reminders.is_active` existe en `kitom-dev` (2026-10-29) y en los
+  tipos, pero la app aún no la lee ni la escribe (fase de frontend pendiente): hoy no hay recordatorios
+  desactivados, porque ningún cliente puede desactivarlos.
 - **Sin conexión:** se ve lo ya cargado; escribir necesita conexión (sin copia en el dispositivo), así
   que no hay cambios pendientes de la agenda: todo lo que se ve es del servidor. Una mascota aún sin
   crear en el servidor (id local) no tiene agenda. Escritura sin conexión: propuesta en

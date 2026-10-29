@@ -3,6 +3,11 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-10-29
+
+- Migración `20261028200659_reminders_is_active.sql` aplicada en `kitom-dev` (`db push` del usuario) y
+  tipos regenerados con `--linked` (solo `reminders.is_active`). La app aún no usa la columna.
+
 ## 2026-10-28
 
 - Fase 13, recordatorios (rama `feat/reminders-mvp`, sin cambios de esquema):

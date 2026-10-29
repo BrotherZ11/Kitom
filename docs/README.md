@@ -208,7 +208,7 @@ Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza
 
 `pet_id`, `created_by`, `created_at` inmutables tras la creación (misma doble protección que `daily_logs`). `status`/`completed_at` se mantienen coherentes automáticamente vía trigger: `status='completed'` sin `completed_at` se autocompleta con `now()`; cualquier otro estado limpia `completed_at`. `attachment_path` se valida contra el `pet_id` del propio recordatorio (no se puede referenciar el archivo de otra mascota). `recurrence_rule` solo tiene una validación de formato básica en SQL — el parser RRULE completo vive en el backend.
 
-> Propuesta (migración `20261028200659_reminders_is_active.sql`, rama `db/reminders-active`, **sin aplicar en `kitom-dev`**): `is_active boolean NOT NULL DEFAULT true` para activar y desactivar un recordatorio sin borrarlo ni cambiar `status` (un desactivado sigue `pending`). `GRANT INSERT/UPDATE (is_active)` a `authenticated`; RLS sin cambios (solo editores). Sin efecto en el servidor: la app no avisa ni cuenta como vencido uno inactivo. Permisos de la tabla probados en `supabase/tests/database/reminders.test.sql` y la columna en `reminders_is_active.test.sql`.
+> Corrección posterior (migración `20261028200659_reminders_is_active.sql`, aplicada en `kitom-dev` el 2026-10-29): `is_active boolean NOT NULL DEFAULT true` para activar y desactivar un recordatorio sin borrarlo ni cambiar `status` (un desactivado sigue `pending`). `GRANT INSERT/UPDATE (is_active)` a `authenticated`; RLS sin cambios (solo editores). Sin efecto en el servidor: la app no avisa ni cuenta como vencido uno inactivo. Permisos de la tabla probados en `supabase/tests/database/reminders.test.sql` y la columna en `reminders_is_active.test.sql`.
 
 ## 18. Storage
 

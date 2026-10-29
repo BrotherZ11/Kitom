@@ -47,7 +47,7 @@ Android (avisos, permisos, reinicios, cambio de zona y eliminación pendiente).
 borrarlos. `reminders.status` solo admite `pending`/`completed`/`skipped` y no hay otra columna.
 
 **Decisión** (David, 2026-10-28: «Preparar migración db/»). Rama `db/reminders-active`, migración
-`20261028200659_reminders_is_active.sql`, sin aplicar en `kitom-dev`:
+`20261028200659_reminders_is_active.sql` (aplicada en `kitom-dev` el 2026-10-29 por el usuario):
 - `is_active boolean NOT NULL DEFAULT true` (las filas existentes quedan activas, sin reescribir la tabla).
 - `GRANT INSERT (is_active), UPDATE (is_active)` a `authenticated`. RLS, políticas y triggers sin cambios:
   lo cambian solo los editores (`can_edit_pet`), lo ven los miembros.

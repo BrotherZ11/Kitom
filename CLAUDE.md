@@ -109,9 +109,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   eliminan en el dispositivo, sin «lo cambió otra persona» ante una falta de permiso (instantes
   compartidos: zona del dispositivo, no la del perfil; un cambio de zona se aplica al siguiente
   arranque). Validada a mano en web y en el emulador Android (build debug nativa, avisos incluidos). Migración `20261028200659_reminders_is_active.sql`
-  (activar/desactivar) y pruebas pgTAP de permisos de `reminders`: probadas en local, **sin aplicar** en
-  `kitom-dev` (pendiente del `db push` del usuario desde `main`); la app no usa `is_active` hasta
-  entonces y hasta regenerar los tipos con `--linked`. Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
+  (activar/desactivar) y pruebas pgTAP de permisos de `reminders`: probadas en local; aplicada en
+  `kitom-dev` el 2026-10-29 (`db push` del usuario) y tipos regenerados con `--linked`. La app aún no
+  usa `is_active` (falta la fase de frontend de activar/desactivar). Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`; en local solo `pet-photos`
   (`config.toml` + `npx supabase seed buckets --local`).
