@@ -74,8 +74,12 @@ error y «sin mascotas».
   `update-password.tsx` solo es accesible con una sesión de recuperación.
 - `src/app/_layout.tsx` — único punto de protección de rutas (`Stack.Protected`); nunca comprobar la
   sesión pantalla a pantalla.
-- `src/i18n/` — `t(key)` tipado; `es` y `en` con las mismas claves (`Translations`), idioma activo `es`
-  (detección del dispositivo pendiente). Ningún texto visible fuera de `src/i18n/locales/`.
+- `src/i18n/` — `t(key)` tipado; `es` y `en` con las mismas claves (`Translations`). Idioma del
+  dispositivo al arrancar (`locale.ts`, puro y probado: español o, si no, inglés; con `Intl`, sin
+  paquetes). Ningún texto visible fuera de `src/i18n/locales/`.
+- `src/lib/error-reporting.ts` — Sentry solo en release con `EXPO_PUBLIC_SENTRY_DSN`; sin datos
+  personales (`beforeSend`/`beforeBreadcrumb`). Nunca añadir contexto de usuario ni contenido a los eventos.
+- `src/lib/legal-links.ts` — URLs públicas (privacidad, términos, borrado de cuenta) y email de soporte.
 - `src/components/ui/` — componentes de marca (F1); lista y reglas en «Tema y diseño» abajo.
 - `src/features/daily-logs/` — registro diario (hoy: ruta `(app)/pets/[id]/daily-log`, tarjeta en la
   ficha). Guardar es local + motor de sincronización (nunca llamar a `save_daily_log` desde pantallas);

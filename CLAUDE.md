@@ -101,7 +101,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `android.package` = `com.kitom.app` (2026-10-20, no cambiarlo: otra APK no actualizaría la
   instalada); `ios.bundleIdentifier` sin definir. APK de prueba compilada en local
   (`npx expo prebuild --platform android` + `gradlew assembleRelease`; `/android` está ignorado por git
-  y la release va firmada con la clave de depuración: no vale para Google Play). Sin EAS.
+  y la release va firmada con la clave de depuración: no vale para Google Play). EAS preparado
+  (`frontend/eas.json`, `slug` `kitom`, `ios.bundleIdentifier` `com.kitom.app`; 2026-10-30) pero sin
+  proyecto EAS creado: `eas init`/`build`/`submit` los ejecuta el usuario (`docs/DEPLOYMENT.md` §4).
 - Migración `20261020135440_pets_client_request_id.sql` (alta idempotente de mascotas para Pets offline,
   fase 8): aplicada en `kitom-dev` (`db push` del usuario) y tipos regenerados.
 - Migración `20261023082848_pet_invitations_by_email.sql` (co-tutores por email, 3 RPC): aplicada en
@@ -136,7 +138,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - NUNCA leer, mostrar ni commitear `.env`/secretos. La `service_role` key jamás en el frontend.
 - No instalar/desinstalar paquetes sin permiso. En `frontend/` usar `npx expo install <pkg>`, nunca `npm install <pkg>`.
 - No hacer commit, push, merge ni rebase si no se pide explícitamente.
-- No borrar archivos ni ejecutar `npm run reset-project` sin permiso.
+- No borrar archivos sin permiso.
 
 ## Comandos
 

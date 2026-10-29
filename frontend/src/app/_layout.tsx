@@ -9,13 +9,15 @@ import { ToastProvider } from '@/components/ui/toast';
 import { AuthProvider, useAuth } from '@/features/auth/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
+import { initErrorReporting, withErrorReporting } from '@/lib/error-reporting';
 import { queryClient } from '@/lib/query-client';
 import { brandFonts } from '@/theme/fonts';
 import { AppThemeProvider } from '@/theme/theme-provider';
 
 SplashScreen.preventAutoHideAsync();
+initErrorReporting();
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -78,6 +80,8 @@ function RootNavigator() {
     </Stack>
   );
 }
+
+export default withErrorReporting(RootLayout);
 
 const styles = StyleSheet.create({
   loading: {

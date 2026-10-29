@@ -1,12 +1,21 @@
 {
   "expo": {
     "name": "Kitom",
-    "slug": "frontend",
+    "slug": "kitom",
     "version": "1.1.0",
+    "description": "Bienestar emocional y conductual de perros y gatos: registro diario, agenda, logros y orientación con IA (no diagnostica).",
     "orientation": "portrait",
     "icon": "./assets/brand/app-icon/app-icon-ios.png",
     "scheme": "kitom",
     "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.kitom.app",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
     "android": {
       "package": "com.kitom.app",
       "versionCode": 2,
@@ -17,8 +26,16 @@
         "monochromeImage": "./assets/brand/app-icon/android-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "allowBackup": false,
       "permissions": [
         "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -35,7 +52,13 @@
           "imageWidth": 230
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": false
+        }
+      ],
       [
         "expo-notifications",
         {

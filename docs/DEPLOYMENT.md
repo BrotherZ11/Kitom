@@ -27,44 +27,65 @@ Auth no está versionada y es donde se aplican primero las migraciones.
 Para varios entornos con EAS: perfiles en `eas.json` con `env` o variables de EAS por entorno
 (`development`, `preview`, `production`) apuntando a cada proyecto Supabase.
 
-## 3. App: configuración actual (`frontend/app.json`)
+## 3. App: configuración (`frontend/app.json`, `frontend/eas.json`)
 
-| Campo | Valor | Problema |
+| Campo | Valor | Notas |
 |---|---|---|
-| `name` / `slug` | Kitom / `frontend` | el `slug` se usa en EAS y URLs de Expo: decidir antes de crear el proyecto EAS (decisión) |
-| `version` | 1.1.0 | `package.json` dice 1.0.0 |
+| `name` / `slug` | Kitom / `kitom` | `slug` cambiado de `frontend` (2026-10-30) antes de crear el proyecto EAS |
+| `version` | 1.1.0 | igual en `package.json`; subirla en cada versión publicada |
 | `android.package` | `com.kitom.app` | fijado; no cambiar |
-| `android.versionCode` | 2 | gestionarlo con EAS (`autoIncrement`) |
-| `ios` | **ausente** | falta `bundleIdentifier` y `buildNumber` (decisión: p. ej. `com.kitom.app`) |
-| `scheme` | `kitom` | deep links de Auth |
-| `permissions` | `SCHEDULE_EXACT_ALARM` | Play exige justificarlo (recordatorios de medicación) |
-| plugins | router, splash, secure-store, notifications, image-picker | textos de permisos solo en español |
-| `runtimeVersion` / `updates` | ausentes | necesarios si se usa EAS Update |
+| `android.versionCode` | 2 en `app.json` | con `appVersionSource: remote`, EAS lo gestiona e incrementa (`autoIncrement`) |
+| `ios.bundleIdentifier` / `buildNumber` | `com.kitom.app` / 1 | preparado; iOS no se publica en la v1 (Android primero) |
+| `android.allowBackup` | `false` | la copia de Android incluiría la copia local de registros y mascotas (sin cifrar) |
+| `android.permissions` | `SCHEDULE_EXACT_ALARM` | justificarlo en Play (recordatorios de medicación a su hora) |
+| `android.blockedPermissions` | `SYSTEM_ALERT_WINDOW`, `USE_BIOMETRIC`, `USE_FINGERPRINT`, `WRITE_EXTERNAL_STORAGE`, `RECORD_AUDIO` | los añadían dependencias sin uso en Kitom |
+| plugins | router, splash, secure-store (sin Face ID, copia excluida), notifications, image-picker, sharing, datetimepicker, Sentry | textos de permisos de iOS solo en español (pendiente al publicar en iOS) |
+| `runtimeVersion` / `updates` | ausentes | solo hacen falta si se adopta EAS Update |
+
+Permisos efectivos en Android (manifiesto combinado): Internet y estado de red, cámara, notificaciones
+(`POST_NOTIFICATIONS`, arranque, vibración, `WAKE_LOCK`), alarmas exactas, lectura de imágenes hasta
+Android 12 (`READ_EXTERNAL_STORAGE` con `maxSdkVersion` 32; desde Android 13 se usa el selector de
+fotos del sistema, sin permiso) y los de insignias/FCM que añade `expo-notifications`.
 
 Expo Go no sirve para producción ni para probar avisos (el módulo `kitom-exact-alarms` y
 `expo-notifications` necesitan build nativa).
 
 ## 4. Compilación
 
-### Estado actual (solo pruebas)
+### Local (pruebas)
 
 `npx expo prebuild --platform android` + `cd android && ./gradlew assembleRelease`: APK firmada con
-la **clave de depuración**, `/android` ignorado por git. No vale para Google Play.
+la **clave de depuración**, `/android` ignorado por git. No vale para Google Play. Con Sentry instalado,
+exportar `SENTRY_DISABLE_AUTO_UPLOAD=true` antes de Gradle mientras no haya token de Sentry.
 
-### Camino propuesto (EAS)
+### EAS (publicación)
 
-1. Cuenta Expo y `npx eas-cli init` en `frontend/` (añade `extra.eas.projectId`) — requiere permiso para usar EAS.
-2. `eas.json` con perfiles `development` (development client), `preview` (APK/IPA interna) y
-   `production` (AAB / IPA de tienda), `autoIncrement` y variables por entorno.
-3. Firma: dejar que EAS genere y custodie el keystore de Android (o subir uno propio) y las
-   credenciales de Apple. **Copia de seguridad del keystore**: perderlo impide actualizar la app.
-4. `eas build -p android --profile preview` → instalar en dispositivos reales.
-5. iOS: cuenta de Apple Developer, `bundleIdentifier`, `eas build -p ios`. Nunca se ha compilado para iOS.
-6. Opcional: EAS Update con `runtimeVersion` (`policy: appVersion` o `fingerprint`); una actualización
-   OTA no puede cambiar código nativo (módulo de alarmas, plugins).
+`frontend/eas.json` ya define los perfiles (todos heredan `base`: Node 24.12 y
+`SENTRY_DISABLE_AUTO_UPLOAD=true` hasta configurar Sentry):
 
-Alternativa sin EAS: firma propia con Gradle (upload key + Play App Signing) y Xcode; más trabajo
-manual y menos reproducible.
+| Perfil | Uso | Android | Entorno de variables EAS |
+|---|---|---|---|
+| `development` | development client para depurar en dispositivo | APK interna | `development` |
+| `preview` | probar la build de release con testers | APK interna | `preview` |
+| `production` | tienda | AAB, `autoIncrement` | `production` |
+
+`submit.production.android`: pista `internal`, borrador. Pasos (los ejecuta el responsable con su cuenta):
+
+1. Cuenta Expo; desde `frontend/`: `npx eas-cli@latest login` y `npx eas-cli@latest init` (añade
+   `extra.eas.projectId` a `app.json`: commitearlo).
+2. Variables por entorno en EAS (Project › Environment variables), nunca en el repo:
+   `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` (del proyecto de ese entorno) y
+   `EXPO_PUBLIC_SENTRY_DSN`; para subir source maps, además `SENTRY_ORG`, `SENTRY_PROJECT` y el secreto
+   `SENTRY_AUTH_TOKEN`, y quitar `SENTRY_DISABLE_AUTO_UPLOAD` de `eas.json`.
+3. `npx eas-cli@latest build -p android --profile preview` → instalar en móviles reales.
+4. Firma: EAS genera y custodia el keystore (`eas credentials`); descargar una copia de seguridad.
+   Activar Play App Signing al crear la app en Play Console.
+5. `npx eas-cli@latest build -p android --profile production` y
+   `npx eas-cli@latest submit -p android --profile production` (requiere la clave de la cuenta de
+   servicio de Play, configurada en EAS).
+6. iOS (versión posterior): cuenta de Apple Developer, «Iniciar sesión con Apple» si se ofrece Google,
+   textos de permisos en inglés, `eas build -p ios`.
+7. Opcional: EAS Update con `runtimeVersion`; una actualización OTA no puede cambiar código nativo.
 
 ## 5. Base de datos y Edge Functions
 
