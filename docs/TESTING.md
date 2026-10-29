@@ -50,6 +50,22 @@ No hay tests de componentes React, E2E automatizados, pruebas de accesibilidad n
 | `npm audit --omit=dev` | 15 avisos | 4 altas, 6 moderadas, 5 bajas; todas transitivas de herramientas de Expo (SEC-20) |
 | Builds nativas, iOS, dispositivo físico | **no ejecutado** | fuera del alcance de esta auditoría |
 
+### Tras las correcciones (mismo día)
+
+| Rama | Comando | Resultado |
+|---|---|---|
+| `db/ai-quota-and-invitations` (migración aplicada en local con `migration up --local`) | `npx supabase test db` | **correcto**: 406/406 (9 archivos; nuevo `ai_quota.test.sql` y casos nuevos en `pet_invitations.test.sql`; TEST-01 corregido) |
+| ídem | concurrencia (4 suites) | **correcto** |
+| ídem | `npm run test:integration` | **correcto**: 63/63 |
+| ídem | `npx supabase db diff --local` | sin diferencias en los objetos de la migración (el motor `pg-delta` lista como `CREATE OR REPLACE` funciones anteriores sin cambios) |
+| `fix/audit-hardening` | `tsc`, `expo lint` | **correcto** |
+| ídem | `npm test` | **correcto**: 752/752 (3 pruebas nuevas en `ai-analysis-model.test.mjs`) |
+| ídem | `npm run test:integration` | **correcto**: 63/63 |
+
+Antes de la migración, `ai_quota.test.sql` falló en local en los casos que reproducen SEC-01 (cupo
+recuperado al recrear la mascota) y SEC-10 (consulta sin aviso aceptado): la prueba demuestra el fallo
+y su corrección. TEST-02 sigue abierto.
+
 ### Fallos analizados
 
 - **TEST-01** — el caso 121 comprueba una **precondición** del escenario «cascada desfavorable»: que el

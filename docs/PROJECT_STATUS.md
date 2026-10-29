@@ -115,6 +115,17 @@ local sin cifrar y sin limpieza de cuentas que no vuelven; listas renderizadas c
 (sin `FlatList`); componentes grandes (`pet-operation.ts` 781 líneas, `pet-sync-engine.ts` 684,
 `pet-history.tsx` 588).
 
+### Estado tras las correcciones de esta auditoría (2026-10-29)
+
+| Rama | Corrige | Verificación | Falta |
+|---|---|---|---|
+| `db/ai-quota-and-invitations` | BUG-01 (SEC-01), SEC-05, SEC-07 (`pet-photos`), SEC-10, SEC-11, SEC-12 (`search_path`), TEST-01 | pgTAP 406/406, concurrencia, integración 63/63, `db diff --local` | PR, `db push` del usuario en `kitom-dev` |
+| `fix/audit-hardening` | BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-08, BUG-10 | `tsc`, lint, 752/752 unitarias, 63/63 integración | PR; validación manual (consulta con foto rechazada, enlace de Auth sin respuesta) |
+
+Siguen abiertos: BUG-07, BUG-09, TEST-02 y todo lo demás de este documento. El inventario del §3
+describe `main`: la funcionalidad nº 30 (consulta con IA) seguirá **CON ERRORES** en `kitom-dev`
+hasta aplicar la migración.
+
 ## 5. Dependencias externas
 
 | Dependencia | Estado |

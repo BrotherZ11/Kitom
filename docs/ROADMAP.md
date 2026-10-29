@@ -21,7 +21,7 @@ para el lanzamiento · **P2** estabilidad y calidad · **P3** posterior. Esfuerz
 
 | ID | Problema | Solución | Archivos | Dep. | Esfuerzo | Riesgo si no | Criterio de aceptación | Prueba | Tipo |
 |---|---|---|---|---|---|---|---|---|---|
-| P0-01 | Cuota de IA eludible (SEC-01); invitación a email sin confirmar (SEC-05); aviso solo en cliente (SEC-10); grants sobrantes (SEC-11); `search_path` (SEC-12); buckets sin límites (SEC-07) | migración nueva con registro de uso privado, comprobaciones y límites | `supabase/migrations/`, `supabase/tests/database/` | — | 1–1,5 | coste de IA ilimitado; acceso a datos ajenos | borrar y recrear la mascota no devuelve cupo; email sin confirmar no recibe invitaciones; sin aviso no hay consulta; `pet-photos` rechaza >5 MB y no-JPEG | pgTAP nuevo + suite completa en verde; `db push` del usuario | Local + `db push` |
+| P0-01 ✅ local | Cuota de IA eludible (SEC-01); invitación a email sin confirmar (SEC-05); aviso solo en cliente (SEC-10); grants sobrantes (SEC-11); `search_path` (SEC-12); buckets sin límites (SEC-07) | migración nueva con registro de uso privado, comprobaciones y límites | `supabase/migrations/`, `supabase/tests/database/` | — | 1–1,5 | coste de IA ilimitado; acceso a datos ajenos | borrar y recrear la mascota no devuelve cupo; email sin confirmar no recibe invitaciones; sin aviso no hay consulta; `pet-photos` rechaza >5 MB y no-JPEG | pgTAP nuevo + suite completa en verde; `db push` del usuario | Local + `db push` |
 | P0-02 | Sin eliminación de cuenta (SEC-02) | Edge Function `delete-account` (contrato en `docs/README.md` §12: 409 `has_pets` o transferir/borrar mascotas), pantalla en ajustes, página web de solicitud | `supabase/functions/delete-account/`, `settings/`, docs | P0-04 (prod) para publicarla | 3–4 | rechazo en tiendas; incumplimiento RGPD | un usuario borra su cuenta desde la app; quedan 0 filas y 0 objetos suyos; reintento idempotente | integración local + manual | Local + despliegue |
 | P0-03 | Sin política de privacidad/términos; consentimiento de IA inexacto (SEC-03) | asesoría legal; plan de pago del proveedor de IA; enlaces en registro, ajustes y tienda; texto de consentimiento exacto | `i18n/locales/*`, `settings/legal.tsx`, `PRIVACY.md` | decisión de proveedor | 1 técnico + legal | rechazo en tiendas; sanción RGPD | textos publicados en una URL accesible sin sesión y enlazados; consentimiento revisado por legal | revisión legal y manual | Externo |
 | P0-04 | Sin entorno de producción ni Auth endurecido (SEC-09) | proyecto Supabase de producción (UE), migraciones, catálogos, buckets, Auth (confirmación, ≥8, filtradas, SMTP, Google), secretos | `DEPLOYMENT.md` §5 | P0-01 | 1–2 | datos reales en un entorno de pruebas | checklist §5 completa; advisors sin avisos de seguridad | registro real de punta a punta en producción | Externo |
@@ -32,7 +32,7 @@ para el lanzamiento · **P2** estabilidad y calidad · **P3** posterior. Esfuerz
 
 | ID | Problema | Solución | Dep. | Esfuerzo | Criterio / prueba | Tipo |
 |---|---|---|---|---|---|---|
-| P1-01 | Errores del flujo de IA: foto huérfana, mapeo por texto, spinner infinito, reintento sin error (BUG-02…05) | correcciones en `features/ai-analysis` + `hint` del servidor (P0-01) | P0-01 | 0,5–1 | tests unitarios del modelo; manual | Local (rama `fix/…` en curso) |
+| P1-01 ✅ rama | Errores del flujo de IA: foto huérfana, mapeo por texto, spinner infinito, reintento sin error (BUG-02…05) | correcciones en `features/ai-analysis` + `hint` del servidor (P0-01) | P0-01 | 0,5–1 | tests unitarios del modelo; manual | Local (rama `fix/…` en curso) |
 | P1-02 | Primera prueba en iOS | build de desarrollo y repaso de todos los flujos (avisos, cámara, SecureStore, deep links, Google) | P0-06 | 2–3 | lista de flujos de `TESTING.md` §5 en iPhone físico | Externo |
 | P1-03 | Sin informes de errores ni canal de soporte | Sentry (o similar, decisión) en app y Edge Functions, sin datos personales; email de soporte en ayuda | decisión | 1 | un error forzado aparece en el panel sin PII | Local + cuenta |
 | P1-04 | Limpieza de Storage sin programar | `pg_cron` + `pg_net` (o programador externo), secreto, despliegue en modo informe y luego borrado | P0-04 | 0,5–1 | trabajos `pending` llegan a `completed` en remoto | Externo |
@@ -49,7 +49,7 @@ para el lanzamiento · **P2** estabilidad y calidad · **P3** posterior. Esfuerz
 
 | ID | Tarea | Esfuerzo |
 |---|---|---|
-| P2-01 | Arreglar pruebas frágiles TEST-01 (orden de FK) y TEST-02 (cola de limpieza compartida) | 0,5 |
+| P2-01 | Arreglar pruebas frágiles TEST-01 (orden de FK; ✅ en la rama `db/…`) y TEST-02 (cola de limpieza compartida) | 0,5 |
 | P2-02 | pgTAP de las superficies sin probar (`DATABASE.md` §3) | 2–3 |
 | P2-03 | Integración de `ai-analysis-process` con `AI_PROVIDER=mock`; estado condicionado a `processing` (SEC-16) | 1 |
 | P2-04 | Rendimiento de BD: `(select auth.uid())` en 22 políticas, `STABLE` en `is_pet_member`/`can_edit_pet`, índices de FK | 1 |
@@ -71,10 +71,14 @@ teléfono con OTP · notificaciones push remotas · adjuntos de recordatorios ·
 clínicas y referidos (tras SEC-13) · analítica de producto · coordinación entre pestañas en web ·
 organizaciones B2B.
 
+Estado (2026-10-29): «✅ local» = hecho y probado en local, falta PR y `db push`; «✅ rama» = hecho
+en su rama, falta PR y validación manual.
+
 ## Orden recomendado
 
-1. P0-01 (rama `db/…`, ya en preparación) → `db push` del usuario en `kitom-dev`.
-2. P1-01 (rama `fix/…`, en preparación), que usa los `hint` de P0-01.
+1. P0-01: PR de `db/ai-quota-and-invitations` → `db push` del usuario en `kitom-dev` → advisors.
+2. P1-01: PR de `fix/audit-hardening` (funciona con y sin la migración: usa el `hint` y, si no está, el
+   texto). Orden de integración sin conflictos: `docs/production-audit`, `db/…`, `fix/…`.
 3. En paralelo, lo externo: cuentas de tiendas, proyecto de producción, asesoría legal, veterinario,
    plan de pago del proveedor de IA (P0-03, P0-04, P0-05, P0-06).
 4. P0-02 eliminación de cuenta (antes que P1-08 exportación, que reutiliza su recorrido de datos).
