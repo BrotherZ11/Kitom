@@ -13,6 +13,13 @@ decisión permanece en su documento de referencia.
 - Migración `20261028200659_reminders_is_active.sql` aplicada en `kitom-dev` (`db push` del usuario) y
   tipos regenerados con `--linked` (solo `reminders.is_active`). La app aún no usa la columna.
 
+- Correcciones de la auditoría en la app (rama `fix/audit-hardening`, sin migraciones): la foto de una
+  consulta rechazada por el servidor ya no queda huérfana en Storage; errores de `request_ai_analysis`
+  por `hint` (con el texto como respaldo) y aviso propio si falta aceptar el aviso veterinario; un
+  resultado `completed` sin urgencia ya no deja el indicador girando para siempre; el reintento manual
+  muestra su error; `auth-callback` ofrece salir tras 15 s; nombres de foto con `createOperationId` en
+  vez de `Math.random`. 3 pruebas unitarias nuevas.
+
 ## 2026-10-28
 
 - Fase 13, recordatorios (rama `feat/reminders-mvp`, sin cambios de esquema):
