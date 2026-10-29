@@ -27,7 +27,6 @@ import {
 import { ListItem } from '@/components/ui/list-item';
 import { Screen } from '@/components/ui/screen';
 import { SegmentedControl } from '@/components/ui/segmented-control';
-import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { useToast } from '@/components/ui/toast';
@@ -41,7 +40,6 @@ import { petUnsyncedTotal } from '@/features/pets/offline/pet-operation';
 import {
   useNotificationPreferences,
   useProfile,
-  useSubscription,
   useUpdateProfile,
 } from '@/features/profile/hooks/use-profile';
 import { useProfileName } from '@/features/profile/hooks/use-profile-name';
@@ -67,7 +65,6 @@ export default function SettingsScreen() {
   const profileName = useProfileName();
   const timeZone = useProfileTimeZone();
   const preferences = useNotificationPreferences();
-  const subscription = useSubscription();
   const { flow, state } = useSignOutFlow();
   const changes = useUnsyncedChanges();
   const { preference, setPreference } = useAppTheme();
@@ -104,7 +101,6 @@ export default function SettingsScreen() {
       ? tf('settings.notificationsDaily', { time: formatTimeOfDay(dailyTime) })
       : t('settings.notificationsDailyOff')
     : undefined;
-  const plan = subscription.data?.plan;
 
   return (
     <Screen align="top">
@@ -128,11 +124,6 @@ export default function SettingsScreen() {
               <Text variant={name ? 'caption' : 'bodyStrong'} color={name ? 'inkMuted' : 'ink'}>
                 {email}
               </Text>
-              {plan ? (
-                <View style={styles.planTag}>
-                  <Tag label={plan === 'premium' ? t('settings.planPremium') : t('settings.planFree')} tone={plan === 'premium' ? 'accent' : 'neutral'} />
-                </View>
-              ) : null}
             </View>
             {serverUsable ? <Icon icon={Pencil} size="sm" color="inkMuted" /> : null}
           </Card>
@@ -362,10 +353,6 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
     gap: 2,
-  },
-  planTag: {
-    alignSelf: 'flex-start',
-    marginTop: spacing['1'],
   },
   group: {
     gap: spacing['2'],

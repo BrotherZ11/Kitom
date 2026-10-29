@@ -119,6 +119,9 @@ error y «sin mascotas».
   fijar otro por feature sin revisar `docs/DECISIONS.md` (2026-10-13).
 - `src/lib/submit-guard.ts` — evita envíos dobles (toques antes de que el botón se deshabilite).
   `src/lib/single-flight.ts` — llamadas simultáneas comparten una ejecución (`signOut` de AuthProvider).
+- `src/lib/legal-links.ts` — URL de las páginas públicas (`site/`: privacidad, términos, eliminar la
+  cuenta) y `SUPPORT_EMAIL`; nunca redefinirlas. `src/lib/open-link.ts` — `openWebPage` (navegador
+  integrado, `expo-web-browser`) y `openSupportEmail` (`mailto:`); devuelven `false` si no se pudo abrir.
 - MVP (2026-10-21): `src/features/profile/onboarding.ts` + `hooks/use-profile.ts` (configuración
   inicial, `useOnboardingGate` en el layout de `(tabs)`; rutas `(app)/setup/*`), `src/features/reminders/`
   (agenda; lógica pura en `reminder-model.ts`/`reminder-format.ts`; escrituras siempre con precondición
@@ -151,7 +154,7 @@ error y «sin mascotas».
   relativa con extensión (`./otro.ts`).
   Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
   Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
-  Pendiente: login por teléfono (OTP); en Pets: desplegar la limpieza de fotos de mascotas borradas (migraciones
+  Login por teléfono (OTP): retirado del alcance (decisión 2026-10-29). Pendiente en Pets: desplegar la limpieza de fotos de mascotas borradas (migraciones
   ya en `kitom-dev`, Edge Function sin desplegar; la app no cambia), archivar (`is_active`), selector de fecha nativo, gestión de co-tutores y límite de mascotas del plan free.
 
 ## Tema y diseño (diseño v2, `docs/design/`)

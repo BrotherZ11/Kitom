@@ -484,10 +484,12 @@ el Supabase local en `api/reminders.integration.test.mjs`; hooks en `hooks/use-r
 
 **Implementado (2026-10-23)** en `features/ai-analysis/` y `(app)/pets/[id]/consult/*`. Entradas: botón
 del estetoscopio en Hoy (si puede editar la mascota) y «Consultar con una foto» en el perfil.
-- **Asistente** (`consult/new`): intro con el cupo («N de 3 este mes»), qué se envía al proveedor y
-  señales de urgencia; foto opcional (`pet-photos/{pet_id}/{uuid}.jpg`, subida solo al enviar), señales
-  de la especie (al menos una) y revisión. Sin cupo: pantalla de límite con la fecha en que vuelve
-  (sin paywall: Premium aún no existe). Errores de `request_ai_analysis` por `hint`
+- **Asistente** (`consult/new`): intro con el cupo («N de 3 este mes»), qué se envía a Google (el
+  proveedor de IA), que no se usa para entrenar modelos, enlace a la política de privacidad y señales de
+  urgencia; foto opcional (`pet-photos/{pet_id}/{uuid}.jpg`, subida solo al enviar) con casilla que
+  acepta enviarla a Google, señales de la especie (al menos una) y revisión. Sin cupo: pantalla de
+  límite con la fecha en que vuelve y por qué hay límite (sin Premium ni paywall: lanzamiento gratuito).
+  Errores de `request_ai_analysis` por `hint`
   (`ai_quota_exceeded`, `ai_disclaimer_required`, `ai_not_allowed`, `ai_pet_unavailable`,
   `ai_invalid_photo`, `ai_invalid_symptoms`; migración `20261029151011`) y, en un servidor anterior, por
   el mensaje (`ai-analysis-model.ts › toRequestErrorCode`).
@@ -556,15 +558,19 @@ e `invitations`. Entrada: «Co-tutores» en el perfil de la mascota.
 
 ### SettingsScreen
 **Implementado (2026-10-21)** (`(app)/settings/index.tsx` y subpantallas, tableros 10.1–10.4, 10.7,
-10.8 y 8.7): nombre (editable), email y plan (`subscriptions.plan`, solo lectura); idioma (solo
+10.8 y 8.7): nombre (editable) y email (el plan ya no se muestra: lanzamiento gratuito, 2026-10-29); idioma (solo
 español), zona horaria (ver y «usar la de este móvil»: `profiles.timezone`), tema sistema/claro/oscuro
 (preferencia **del dispositivo**, AsyncStorage `kitom-theme-preference`; no hay columna), notificaciones
 (`notification_preferences.daily_reminder_enabled/_time` y estado del permiso), seguridad (email
 verificado, métodos de `user.identities`, cambiar contraseña con `updateUser`), privacidad (aviso
-aceptado con fecha y versión, `marketing_opt_in`), ayuda y legal, «Mis mascotas», «Registros sin
-sincronizar» y cerrar sesión (mismo flujo con pendientes, §5 «Sesión»). Sin servicio todavía, no se
-muestran: exportar, suscripción, eliminar la cuenta, fotos de consultas, teléfono («Próximamente»),
-clínica propia y voz de la mascota.
+aceptado con fecha y versión, `marketing_opt_in`, y «Tus derechos»: política de privacidad y email de
+soporte), ayuda (preguntas frecuentes y email de soporte) y legal (política de privacidad y términos con
+su fecha de entrada en vigor, resumen, aviso veterinario y responsable), «Mis mascotas», «Registros sin
+sincronizar» y cerrar sesión (mismo flujo con pendientes, §5 «Sesión»). Las páginas públicas (`site/`,
+URL en `src/lib/legal-links.ts`) se abren en el navegador integrado y el soporte con `mailto:`
+(`src/lib/open-link.ts`; si no hay app de correo, la pantalla muestra la dirección). Sin servicio
+todavía, no se muestran: suscripción, fotos de consultas, clínica propia y voz de la mascota. Entrar
+con teléfono: retirado del alcance (decisión 2026-10-29).
 - **READ:** `profiles`, `notification_preferences`, `push_tokens`
 - **WRITE:** `profiles` (columnas permitidas), `notification_preferences`, `push_tokens`
 - **RPC:** `register_push_token(token, platform, device_id, app_version, os_version)` — llamar en login, en app launch y en cada refresh de token (ver sección 10)

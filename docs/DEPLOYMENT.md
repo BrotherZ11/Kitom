@@ -91,8 +91,8 @@ Una migración que rompa versiones antiguas de la app necesita una ventana en la
 | Requisito | Tipo | Estado |
 |---|---|---|
 | Cuenta Google Play Console y Apple Developer Program | obligatorio | PENDIENTE (usuario) |
-| Eliminación de cuenta desde la app (y URL web en Play) | obligatorio | PENDIENTE (P0-02) |
-| Política de privacidad pública y enlazada | obligatorio | BLOQUEADO (asesoría legal) |
+| Eliminación de cuenta desde la app (y URL web en Play) | obligatorio | En la app: P0-02. URL web lista: `site/delete-account.html` → `ACCOUNT_DELETION_URL` (`frontend/src/lib/legal-links.ts`); falta activar GitHub Pages (`site/README.md`) |
+| Política de privacidad pública y enlazada | obligatorio | LISTA: `site/privacy.html` y `site/terms.html` (es/en), enlazadas en Ajustes › Legal, Privacidad y la consulta con IA; falta activar GitHub Pages y la revisión legal recomendada |
 | Formulario Data Safety (Play) y etiquetas de privacidad (App Store) | obligatorio | PENDIENTE; borrador en `PRIVACY.md` |
 | Justificación de `SCHEDULE_EXACT_ALARM` en Play | condicional (si se mantiene el permiso) | PENDIENTE |
 | Nivel de API objetivo exigido por Play | obligatorio | por verificar en la build de EAS |

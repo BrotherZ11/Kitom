@@ -473,6 +473,7 @@ export const es = {
     a11y: 'Consultar: pedir una orientación',
     remaining: '{used} de {limit} este mes',
     unlimited: 'Sin límite',
+    privacyPolicy: 'Política de privacidad',
     intro: {
       title: '¿Notas algo raro?',
       text: 'Cuéntanos qué ves y te damos una orientación: posibles causas, qué hacer en casa y cuándo ir al veterinario.',
@@ -486,7 +487,7 @@ export const es = {
       noticeTitle: 'Es una orientación, no una respuesta médica',
       noticeText: 'Kitom no puede confirmar enfermedades ni sustituye a un veterinario. Si dudas, consulta siempre.',
       privacy:
-        'Para prepararla enviamos a nuestro proveedor de IA las señales, la especie y los datos básicos de la mascota, sus últimos registros y la foto si la añades. No enviamos su nombre ni el tuyo.',
+        'Para prepararla enviamos a Google, nuestro proveedor de IA, las señales, la especie y los datos básicos de la mascota, sus últimos registros con sus notas y la foto si la añades. No enviamos su nombre ni el tuyo, y nada de ello se usa para entrenar modelos.',
       start: 'Empezar',
       previous: 'Ver consultas anteriores',
     },
@@ -502,8 +503,9 @@ export const es = {
       added: 'Foto añadida',
       change: 'Cambiar',
       remove: 'Quitar',
-      consent: 'Uso esta foto solo para preparar esta orientación',
-      consentText: 'Se guarda de forma privada con la consulta. Kitom no la usa para nada más.',
+      consent: 'Acepto enviar esta foto a Google para preparar esta orientación',
+      consentText:
+        'Se envía solo para preparar la orientación y se guarda de forma privada con la consulta. No se usa para nada más ni para entrenar modelos.',
       peopleTitle: '¿Sale alguna persona?',
       peopleText: 'Si sale alguien, repite la foto antes de seguir.',
       continue: 'Continuar',
@@ -569,13 +571,10 @@ export const es = {
       retry: 'Volver a intentarlo',
     },
     limit: {
-      overline: 'Plan gratuito',
+      overline: 'Consultas del mes',
       title: 'Has usado tus {limit} consultas de este mes',
       text: 'Vuelven a estar disponibles el {date}. El registro diario y la agenda siguen igual.',
-      premiumTitle: 'Con Kitom Premium',
-      premiumUnlimited: 'Consultas sin límite.',
-      premiumHistory: 'Cada orientación tiene en cuenta todo su historial.',
-      premiumSoon: 'Próximamente',
+      why: 'Cada cuenta puede pedir {limit} orientaciones al mes. El contador vuelve a empezar el día 1 de cada mes.',
       back: 'Volver',
     },
     list: {
@@ -748,8 +747,6 @@ export const es = {
   /** Tu cuenta y ajustes (tableros 10.1–10.4, 10.7 y 10.8). */
   settings: {
     title: 'Tu cuenta',
-    planFree: 'Plan gratuito',
-    planPremium: 'Premium',
     editName: 'Editar tu nombre',
     nameTitle: 'Tu nombre',
     nameSaved: 'Nombre guardado',
@@ -799,8 +796,6 @@ export const es = {
       connected: 'Conectada',
       emailPassword: 'Email y contraseña',
       changePassword: 'Cambiar la contraseña',
-      phone: 'Teléfono',
-      phoneText: 'Entrar con un código por SMS',
       signOutNote:
         'Si cierras sesión, lo que aún no se haya subido se queda en este móvil y se sube la próxima vez que entres con esta cuenta.',
     },
@@ -823,9 +818,14 @@ export const es = {
       marketingText: 'Como mucho, uno al mes.',
       photos: 'Fotos',
       photosText:
-        'Las fotos de tus mascotas se guardan en un espacio privado y solo se muestran dentro de Kitom con enlaces temporales.',
-      rights:
-        'Puedes pedir una copia de tus datos o que los borremos. La exportación y el borrado de la cuenta desde la app llegarán pronto.',
+        'Las fotos de tus mascotas se guardan en un espacio privado y solo se muestran dentro de Kitom con enlaces temporales. La de una consulta se envía a Google solo para preparar la orientación.',
+      rights: 'Tus derechos',
+      rightsText:
+        'Puedes descargar tus datos y eliminar tu cuenta desde Tu cuenta. Para cualquier otra petición sobre tus datos (acceso, rectificación, oposición o limitación), escríbenos desde el email de tu cuenta.',
+      policy: 'Política de privacidad',
+      policyText: 'Qué datos tratamos, para qué y con quién',
+      contact: 'Escribir sobre mis datos',
+      emailSubject: 'Privacidad y mis datos en Kitom',
       saved: 'Preferencia guardada',
     },
     helpScreen: {
@@ -848,6 +848,14 @@ export const es = {
       petsQ: '¿Puedo tener varias mascotas?',
       petsA:
         'Sí. Añádelas desde Perfil o Mis mascotas y cambia de una a otra tocando su nombre en la pantalla Hoy.',
+      dataQ: '¿Cómo descargo o elimino mis datos?',
+      dataA:
+        'En Tu cuenta puedes descargar una copia de tus datos y eliminar tu cuenta. Si eliminas la cuenta, cada mascota compartida pasa a un co-tutor con permiso de edición; si no lo hay, se elimina con sus datos y fotos.',
+      contactTitle: '¿No encuentras la respuesta?',
+      contactText: 'Escríbenos y te responderemos lo antes posible.',
+      contact: 'Escribir a soporte',
+      emailSubject: 'Ayuda con Kitom',
+      mailError: 'No hay ninguna app de correo en este dispositivo. Escríbenos a {email}.',
     },
     legalScreen: {
       title: 'Legal y app',
@@ -855,11 +863,18 @@ export const es = {
       disclaimerTitle: 'Aviso veterinario',
       disclaimerText:
         'Kitom ofrece orientación general sobre el bienestar de tu mascota. No es una valoración médica, no confirma enfermedades y no sustituye la atención veterinaria profesional. Ante una urgencia, acude a un veterinario.',
-      dataTitle: 'Tus datos',
-      dataText:
-        'Tus datos y los de tus mascotas se guardan en servidores con acceso restringido: cada persona solo ve lo suyo y lo que se comparte con ella. Las fotos nunca son públicas.',
-      termsTitle: 'Términos y privacidad',
-      termsText: 'Los términos de servicio y la política de privacidad completos se publicarán antes del lanzamiento.',
+      documents: 'Documentos',
+      privacyPolicy: 'Política de privacidad',
+      privacyPolicyText: 'Qué datos tratamos, para qué, con quién y tus derechos',
+      terms: 'Términos de uso',
+      termsText: 'Las condiciones para usar Kitom',
+      effective: 'En vigor desde el {date}',
+      summaryTitle: 'En pocas palabras',
+      summaryText:
+        'Solo tratamos lo necesario para que Kitom funcione. Para preparar una orientación con IA enviamos a Google los datos de esa consulta, sin tu nombre ni tu email, y no se usan para entrenar modelos. No vendemos tus datos ni hay publicidad. Puedes descargarlos o eliminar tu cuenta desde Tu cuenta.',
+      contactTitle: 'Responsable y contacto',
+      controller: 'David Zarzavilla Borrego',
+      openError: 'No se ha podido abrir la página. Puedes verla en {url}',
     },
   },
   offlineSession: {

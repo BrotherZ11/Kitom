@@ -466,6 +466,7 @@ export const en: Translations = {
     a11y: 'Check: ask for guidance',
     remaining: '{used} of {limit} this month',
     unlimited: 'Unlimited',
+    privacyPolicy: 'Privacy policy',
     intro: {
       title: 'Noticing something odd?',
       text: 'Tell us what you see and we give you guidance: possible causes, what to do at home and when to go to the vet.',
@@ -479,7 +480,7 @@ export const en: Translations = {
       noticeTitle: "It's guidance, not a medical answer",
       noticeText: "Kitom can't confirm illnesses and doesn't replace a vet. If in doubt, always see one.",
       privacy:
-        "To prepare it we send our AI provider the signs, the species and basic data of the pet, their latest logs and the photo if you add one. We don't send their name or yours.",
+        "To prepare it we send Google, our AI provider, the signs, the species and basic data of the pet, their latest logs with their notes and the photo if you add one. We don't send their name or yours, and none of it is used to train models.",
       start: 'Start',
       previous: 'See previous checks',
     },
@@ -495,8 +496,9 @@ export const en: Translations = {
       added: 'Photo added',
       change: 'Change',
       remove: 'Remove',
-      consent: 'I use this photo only to prepare this guidance',
-      consentText: "It is stored privately with the check. Kitom doesn't use it for anything else.",
+      consent: 'I agree to send this photo to Google to prepare this guidance',
+      consentText:
+        "It is only sent to prepare the guidance and is stored privately with the check. It isn't used for anything else or to train models.",
       peopleTitle: 'Is anyone in the photo?',
       peopleText: 'If someone appears, retake the photo before continuing.',
       continue: 'Continue',
@@ -562,13 +564,10 @@ export const en: Translations = {
       retry: 'Try again',
     },
     limit: {
-      overline: 'Free plan',
+      overline: "This month's checks",
       title: "You've used your {limit} checks this month",
       text: 'They are available again on {date}. Daily logs and the agenda stay the same.',
-      premiumTitle: 'With Kitom Premium',
-      premiumUnlimited: 'Unlimited checks.',
-      premiumHistory: 'Each guidance takes their whole history into account.',
-      premiumSoon: 'Coming soon',
+      why: 'Each account can ask for {limit} guidance checks a month. The counter restarts on the 1st of each month.',
       back: 'Back',
     },
     list: {
@@ -736,8 +735,6 @@ export const en: Translations = {
   },
   settings: {
     title: 'Your account',
-    planFree: 'Free plan',
-    planPremium: 'Premium',
     editName: 'Edit your name',
     nameTitle: 'Your name',
     nameSaved: 'Name saved',
@@ -786,8 +783,6 @@ export const en: Translations = {
       connected: 'Connected',
       emailPassword: 'Email and password',
       changePassword: 'Change the password',
-      phone: 'Phone',
-      phoneText: 'Sign in with an SMS code',
       signOutNote:
         'If you sign out, anything not uploaded yet stays on this phone and is uploaded the next time you sign in with this account.',
     },
@@ -809,9 +804,15 @@ export const en: Translations = {
       marketing: 'Tips and news by email',
       marketingText: 'At most one a month.',
       photos: 'Photos',
-      photosText: "Your pets' photos are stored in a private space and only shown inside Kitom with temporary links.",
-      rights:
-        'You can ask for a copy of your data or for us to delete it. Export and account deletion from the app are coming soon.',
+      photosText:
+        "Your pets' photos are stored in a private space and only shown inside Kitom with temporary links. A check's photo is sent to Google only to prepare the guidance.",
+      rights: 'Your rights',
+      rightsText:
+        'You can download your data and delete your account from Your account. For any other request about your data (access, rectification, objection or restriction), write to us from your account email.',
+      policy: 'Privacy policy',
+      policyText: 'What data we process, why and who with',
+      contact: 'Write about my data',
+      emailSubject: 'Privacy and my data in Kitom',
       saved: 'Preference saved',
     },
     helpScreen: {
@@ -832,6 +833,14 @@ export const en: Translations = {
         "Check that Kitom's notifications are on in the phone settings and in Your account › Notifications. There are no notifications in the browser.",
       petsQ: 'Can I have several pets?',
       petsA: 'Yes. Add them from Profile or My pets and switch between them by tapping their name on the Today screen.',
+      dataQ: 'How do I download or delete my data?',
+      dataA:
+        'In Your account you can download a copy of your data and delete your account. If you delete the account, each shared pet passes to a co-owner with edit permission; if there is none, it is deleted with its data and photos.',
+      contactTitle: "Can't find the answer?",
+      contactText: "Write to us and we'll reply as soon as we can.",
+      contact: 'Write to support',
+      emailSubject: 'Help with Kitom',
+      mailError: 'There is no email app on this device. Write to us at {email}.',
     },
     legalScreen: {
       title: 'Legal and app',
@@ -839,11 +848,18 @@ export const en: Translations = {
       disclaimerTitle: 'Veterinary notice',
       disclaimerText:
         "Kitom offers general guidance about your pet's wellbeing. It is not a medical assessment, does not confirm illnesses and does not replace professional veterinary care. In an emergency, go to a vet.",
-      dataTitle: 'Your data',
-      dataText:
-        "Your data and your pets' data are stored on servers with restricted access: each person only sees their own and what is shared with them. Photos are never public.",
-      termsTitle: 'Terms and privacy',
-      termsText: 'The full terms of service and privacy policy will be published before launch.',
+      documents: 'Documents',
+      privacyPolicy: 'Privacy policy',
+      privacyPolicyText: 'What data we process, why, who with and your rights',
+      terms: 'Terms of use',
+      termsText: 'The conditions for using Kitom',
+      effective: 'Effective from {date}',
+      summaryTitle: 'In short',
+      summaryText:
+        "We only process what Kitom needs to work. To prepare AI guidance we send Google the data of that check, without your name or email, and it isn't used to train models. We don't sell your data and there are no ads. You can download it or delete your account from Your account.",
+      contactTitle: 'Controller and contact',
+      controller: 'David Zarzavilla Borrego',
+      openError: "The page couldn't be opened. You can see it at {url}",
     },
   },
   offlineSession: {
