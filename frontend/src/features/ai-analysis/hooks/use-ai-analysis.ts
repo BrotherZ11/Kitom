@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { isTerminal } from '@/features/ai-analysis/ai-analysis-model';
+import { canDiscardUploadedPhoto, isTerminal } from '@/features/ai-analysis/ai-analysis-model';
 import {
+  deleteConsultPhoto,
   fetchAnalysis,
   fetchAnalysisSymptomIds,
   fetchEntitlement,
@@ -93,15 +94,26 @@ export type NewAnalysis = { photo: PreparedPetPhoto | null; photoPath: string | 
 
 /**
  * Pedir una orientación: sube la foto (si hay y aún no está subida), crea la solicitud y la manda a
- * preparar. Si la invocación falla (red), la pantalla del resultado la vuelve a lanzar: es idempotente.
+ * preparar. Si el servidor rechaza la solicitud, la foto subida en este intento se borra (si no,
+ * quedaría huérfana y cada reintento subiría otra). Si la invocación falla (red), la pantalla del
+ * resultado la vuelve a lanzar: es idempotente.
  */
 export function useRequestAnalysis(petId: string) {
   const queryClient = useQueryClient();
   const { auth, userId } = useAiSession();
   return useMutation({
     mutationFn: async ({ photo, photoPath, symptomIds }: NewAnalysis) => {
-      const path = photoPath ?? (photo ? await auth.serverCall(() => uploadConsultPhoto(petId, photo)) : null);
-      const analysisId = await auth.serverCall(() => requestAnalysis(petId, path, symptomIds));
+      const uploaded = photoPath === null && photo ? await auth.serverCall(() => uploadConsultPhoto(petId, photo)) : null;
+      const path = photoPath ?? uploaded;
+      let analysisId: string;
+      try {
+        analysisId = await auth.serverCall(() => requestAnalysis(petId, path, symptomIds));
+      } catch (error) {
+        if (uploaded && canDiscardUploadedPhoto(error)) {
+          await auth.serverCall(() => deleteConsultPhoto(uploaded)).catch(() => undefined);
+        }
+        throw error;
+      }
       // Se espera a que la función termine (unos segundos); un fallo aquí no es definitivo.
       await auth.serverCall(() => processAnalysis(analysisId)).catch(() => undefined);
       return analysisId;

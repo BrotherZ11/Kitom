@@ -53,18 +53,12 @@ export function isAcceptedInputMimeType(mimeType: string): boolean {
 }
 
 /**
- * UUID v4 para el nombre del objeto. No es un secreto (el acceso lo decide RLS) y una colisión
- * haría fallar la subida (sin upsert), nunca sobrescribir otra foto.
+ * Path de un objeto nuevo. `objectId` es un UUID v4 de `createOperationId` (`lib/device-operation-id.ts`,
+ * nunca `Math.random`); llega por parámetro para que este módulo siga siendo puro. No es un secreto (el
+ * acceso lo decide RLS) y una colisión haría fallar la subida (sin upsert), nunca sobrescribir otra foto.
  */
-function randomUuid(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
-    const random = (Math.random() * 16) | 0;
-    return (char === 'x' ? random : (random & 0x3) | 0x8).toString(16);
-  });
-}
-
-export function buildPetPhotoPath(petId: string): string {
-  return `${petId}/${randomUuid()}.${PET_PHOTO_EXTENSION}`;
+export function buildPetPhotoPath(petId: string, objectId: string): string {
+  return `${petId}/${objectId}.${PET_PHOTO_EXTENSION}`;
 }
 
 /** Solo se borran objetos de la carpeta de la propia mascota. */

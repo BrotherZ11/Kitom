@@ -67,7 +67,7 @@ const BOARD_STATUS_BAR = 44;
 /**
  * Perfil de la mascota (tablero 3.6). Datos reales: la ficha (`pets`), la racha que calcula el
  * servidor (`pet_streaks`) y los permisos (`can_edit_pet`, solo para decidir qué se ofrece). Lo que
- * aún no existe (consultas con foto, co-tutores, informe) se marca «Próximamente» y no se pulsa.
+ * aún no existe (el informe para el veterinario) se marca «Próximamente» y no se pulsa.
  *
  * Sin conexión (o con la sesión sin comprobar) los datos pueden venir de la copia del dispositivo y
  * se avisa. Editar los datos se guarda en el dispositivo (fase 8): se ofrece con el permiso conocido o,

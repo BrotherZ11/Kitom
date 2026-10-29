@@ -22,7 +22,8 @@ La app usa el **flujo PKCE** (`flowType: 'pkce'` en `src/lib/supabase.ts`):
 2. Supabase verifica el enlace o el login de Google y redirige a esa URL con un `code` de un solo uso.
 3. La ruta `/auth-callback` (`src/app/(auth)/auth-callback.tsx`) intercambia el `code` por una
    sesión (`exchangeCodeForSession`). Sin el verifier local el `code` no sirve, así que no viajan
-   tokens en la URL y otra app que registre el mismo esquema no puede robar la sesión.
+   tokens en la URL y otra app que registre el mismo esquema no puede robar la sesión. Si en 15 s
+   no llega la URL o no hay respuesta, la pantalla lo dice y ofrece volver al inicio de sesión.
 4. La protección de rutas del layout raíz redirige según el resultado:
    - confirmación de email o Google → app;
    - recuperación (evento `PASSWORD_RECOVERY`) → `/update-password`, y tras guardar → app.

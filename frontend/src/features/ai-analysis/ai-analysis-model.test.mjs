@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  canDiscardUploadedPhoto,
   isTerminal,
   nextMonthStart,
   pollState,
+  resultScreen,
   SLOW_AFTER_MS,
   toEntitlement,
   toggleSymptom,
@@ -24,6 +26,14 @@ describe('estado del análisis', () => {
     assert.equal(pollState('pending', 0, SLOW_AFTER_MS + 1), 'slow');
     assert.equal(pollState('completed', 0, SLOW_AFTER_MS + 1), 'done');
   });
+
+  it('un completed sin nivel de urgencia se trata como fallido (no espera para siempre)', () => {
+    assert.equal(resultScreen({ status: 'completed', urgency_level: 'observe' }), 'result');
+    assert.equal(resultScreen({ status: 'completed', urgency_level: null }), 'failed');
+    assert.equal(resultScreen({ status: 'failed', urgency_level: null }), 'failed');
+    assert.equal(resultScreen({ status: 'pending', urgency_level: null }), 'preparing');
+    assert.equal(resultScreen({ status: 'processing', urgency_level: null }), 'preparing');
+  });
 });
 
 describe('toRequestErrorCode', () => {
@@ -35,6 +45,25 @@ describe('toRequestErrorCode', () => {
     assert.equal(toRequestErrorCode(new TypeError('Network request failed')), 'network');
     assert.equal(toRequestErrorCode({ message: 'session_unavailable: request not sent' }), 'network');
     assert.equal(toRequestErrorCode({ message: 'otra cosa' }), 'unknown');
+  });
+
+  it('con hint (migración 20261029151011) decide el hint, no el texto', () => {
+    assert.equal(toRequestErrorCode({ message: 'cualquier texto', hint: 'ai_quota_exceeded' }), 'limit');
+    assert.equal(toRequestErrorCode({ message: 'x', hint: 'ai_invalid_symptoms' }), 'invalid_symptoms');
+    assert.equal(toRequestErrorCode({ message: 'x', hint: 'ai_not_allowed' }), 'not_allowed');
+    assert.equal(toRequestErrorCode({ message: 'x', hint: 'ai_pet_unavailable' }), 'archived');
+    assert.equal(toRequestErrorCode({ message: 'x', hint: 'ai_disclaimer_required' }), 'disclaimer');
+    assert.equal(toRequestErrorCode({ message: 'x', hint: 'ai_invalid_photo' }), 'unknown');
+    assert.equal(toRequestErrorCode({ message: 'x', hint: 'toString' }), 'unknown');
+  });
+});
+
+describe('canDiscardUploadedPhoto', () => {
+  it('solo se borra la foto si el servidor rechazó la solicitud (sin respuesta pudo crearse)', () => {
+    assert.equal(canDiscardUploadedPhoto({ message: 'x', hint: 'ai_quota_exceeded' }), true);
+    assert.equal(canDiscardUploadedPhoto({ message: 'Mascota no encontrada o archivada' }), true);
+    assert.equal(canDiscardUploadedPhoto(new TypeError('Network request failed')), false);
+    assert.equal(canDiscardUploadedPhoto({ message: 'session_unavailable: request not sent' }), false);
   });
 });
 

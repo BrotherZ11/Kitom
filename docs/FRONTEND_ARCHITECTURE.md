@@ -499,6 +499,11 @@ del estetoscopio en Hoy (si puede editar la mascota) y «Consultar con una foto�
   reintento con las mismas señales y `photo_path` (gasta cupo solo si se completa).
 - **Lista** (`consult`): todas las consultas de la mascota (cualquier miembro), con nivel o estado.
 - Todo necesita conexión y una mascota ya creada en el servidor (`ConsultGate`).
+- Robustez (auditoría 2026-10-29, rama `fix/audit-hardening`): si el servidor **rechaza** la solicitud,
+  la foto subida en ese intento se borra (`canDiscardUploadedPhoto`; sin respuesta no, porque la
+  solicitud pudo crearse con ella). Un `completed` sin nivel de urgencia se muestra como fallido
+  (`resultScreen`), y un reintento manual que falla muestra el error. El nombre del objeto usa
+  `createOperationId` (`buildPetPhotoPath(petId, objectId)`).
 
 ### AchievementsScreen
 **Implementado (2026-10-21)**: `pets/[id]/achievements` (entrada desde el perfil y la tarjeta de racha).
