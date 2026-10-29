@@ -5,6 +5,15 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-29
 
+- Auditoría integral (rama `docs/production-audit`, sin cambios de código): estado real, inventario de
+  42 funcionalidades, 22 hallazgos de seguridad (3 altos, ninguno crítico), resultados de todas las
+  pruebas y plan P0–P3. Documentos nuevos: `PROJECT_STATUS.md`, `ROADMAP.md`, `ARCHITECTURE.md`,
+  `DATABASE.md`, `SECURITY_AUDIT.md`, `TESTING.md`, `DEPLOYMENT.md`, `PRIVACY.md`; `README.md`
+  reescrito y `frontend/README.md` (plantilla de Expo) sustituido. Corregidos: estado de la Edge
+  Function de IA (desplegada en `kitom-dev`), buckets sin límites, referencias a `edge-functions/` y a
+  `CHANGELOG_v2.2.md` en `docs/README.md`, historial con gráficos y calendario en `frontend/CLAUDE.md`.
+  Decisión de lanzamiento: **NO PUBLICAR** hasta cerrar P0.
+
 - Recordatorios: activar y desactivar desde el detalle (rama `feat/reminders-active`, integrada en `main`; sin migraciones).
   Un desactivado no avisa ni cuenta como pendiente y va en su sección «Desactivados»; «Deshacer» y
   precondición `updated_at`. Pruebas unitarias e integración contra el Supabase local; validado en web

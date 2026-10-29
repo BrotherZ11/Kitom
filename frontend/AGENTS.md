@@ -31,6 +31,9 @@ Run lint and typecheck before declaring any task done.
 
 ## Building with EAS
 
+> Kitom: EAS is **not configured yet** (no `eas.json`, no EAS project, no `ios.bundleIdentifier`). Do not run
+> `eas` commands without the owner's approval; see `docs/DEPLOYMENT.md` for the current build path and plan.
+
 Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
 Docs: https://docs.expo.dev/eas/index.md
 

@@ -83,8 +83,8 @@ error y «sin mascotas».
   lógica pura en `daily-log-form.ts`, `log-date.ts` y `daily-log-errors.ts` (probada con `npm test`).
   Historial: `(app)/pets/[id]/daily-logs` y `daily-logs/[date]`, paginación por cursor en
   `daily-log-history.ts` (recibe el cliente por parámetro: probado con `npm test` y contra Supabase local).
-  Contrato: `docs/FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen» y «HistoryScreen». Pendiente:
-  borrado, calendario, gráficos y lo pendiente del modo offline (§5).
+  Contrato: `docs/FRONTEND_ARCHITECTURE.md` §4 «DailyLogScreen» y «HistoryScreen». Historial con
+  vistas de semana (`TrendChart`) y mes (`MonthCalendar`). Pendiente: borrado y lo pendiente del modo offline (§5).
 - `src/features/daily-logs/offline/` — modo offline: modelo local (`local-daily-log.ts`), contenido,
   fusión, errores y backoff (fase 1) y, en fase 2, `daily-log-repository.ts` (escrituras locales de
   una en una), `daily-log-remote.ts` (única escritura remota, con precondición), el motor

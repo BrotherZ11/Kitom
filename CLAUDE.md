@@ -12,7 +12,9 @@ Stack: Expo (React Native) + TypeScript + Supabase. Documentación en español; 
 - `docs/` — `PRD.md` (producto), `README.md` (arquitectura SQL v2.2.1), `FRONTEND_ARCHITECTURE.md`
   (contrato pantalla ↔ datos/RPC/Storage), `AUTH.md` (Auth, deep links, Google y configuración
   necesaria en Supabase), `SEED.md` (datos de referencia), `DECISIONS.md` (decisiones técnicas), `CHANGELOG_v2.2.1.md` (histórico) y
-  `CHANGELOG.md` (cambios actuales).
+  `CHANGELOG.md` (cambios actuales). Auditoría 2026-10-29 (estado real y camino a producción):
+  `PROJECT_STATUS.md`, `ROADMAP.md`, `ARCHITECTURE.md`, `DATABASE.md`, `SECURITY_AUDIT.md`,
+  `TESTING.md`, `DEPLOYMENT.md` y `PRIVACY.md`; mantenerlos al día cuando cambie lo que describen.
 - `docs/design/` — diseño de la app (identidad «Ritmo», tokens, componentes, prototipo de 90 pantallas,
   inventario `PANTALLAS.md` y `PLAN_DESARROLLO.md`). Recursos de marca para la app en `frontend/assets/brand/`.
 
@@ -33,7 +35,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   **no desplegados** en el remoto. Fuera del MVP; no crear migración salvo petición expresa.
 - Edge Functions: `ai-analysis-process` implementada en `supabase/functions/` (rama `feat/ai-guidance`,
   Gemini de Google AI Studio por defecto; prompt y reglas en borrador hasta que los valide un
-  veterinario). Para `kitom-dev` faltan el secreto `GEMINI_API_KEY` y el despliegue, ambos del usuario. `generate-pet-report`,
+  veterinario). En `kitom-dev` está **desplegada** (v1, `verify_jwt`; comprobado en solo lectura el
+  2026-10-28), pero el secreto no es consultable y ningún análisis del remoto ha llegado a `completed`
+  (2 en `pending`): pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `generate-pet-report`,
   `delete-account` y `revenuecat-webhook`: **pendientes**; la carpeta `edge-functions/` que citan los
   docs no está en el repo.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
@@ -114,7 +118,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   en la app (rama `feat/reminders-active`, integrada en `main` el 2026-10-29): un desactivado no avisa ni cuenta como pendiente; validado
   en web y en el emulador Android (la alarma se cancela y vuelve al activarlo). Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
-  (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`; en local solo `pet-photos`
+  (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev` (los 4 privados, **sin límite de
+  tamaño ni de tipo**, comprobado el 2026-10-28; el remoto no tiene `pg_cron` ni `pg_net`); en local solo `pet-photos`
   (`config.toml` + `npx supabase seed buckets --local`).
 
 ## Reglas absolutas

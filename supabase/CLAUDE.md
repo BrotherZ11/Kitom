@@ -97,6 +97,10 @@
   necesita UPDATE sobre las columnas inmutables. En tablas con GRANT por columna, usar una RPC.
 - Edge Functions: `functions/ai-analysis-process/` y `functions/pet-storage-cleanup/` implementadas (ver
   abajo); las demás, **pendientes** (la carpeta `edge-functions/` que citan los docs no está en el repo).
+  En `kitom-dev` (solo lectura, 2026-10-28): `ai-analysis-process` desplegada (v1, `verify_jwt`),
+  `pet-storage-cleanup` no; sin `pg_cron` ni `pg_net` (la limpieza no se puede programar aún); buckets
+  privados sin límites. Estado de la base y cobertura de pruebas: `docs/DATABASE.md`; hallazgos:
+  `docs/SECURITY_AUDIT.md`.
 - Esquema v2.2.1 **congelado**: solo cambia por bugs reales detectados construyendo el frontend.
 
 ## Congelado (no tocar sin aprobación explícita + migración nueva)

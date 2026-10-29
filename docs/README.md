@@ -110,7 +110,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 > 4. Vuelve a comprobar la regla de autorización correspondiente contra la base de datos (`requested_by = auth.uid()` para IA; `can_edit_pet(pet_id)` para reportes; `owner_has_pets()` para borrado de cuenta).
 > 5. Solo entonces usa `service_role` para las operaciones privilegiadas (llamar al proveedor de IA, subir a Storage, borrar el usuario...).
 >
-> El código de referencia de las tres funciones está en `edge-functions/` dentro de esta misma carpeta.
+> El código de referencia de v2.2.1 vivía en una carpeta `edge-functions/` que nunca llegó a este repositorio; las funciones reales están en `supabase/functions/`.
 
 **Estado (2026-10-23):** `ai-analysis-process` está implementada en `supabase/functions/ai-analysis-process/`
 (`index.ts` manejador, `guidance.ts` prompt y validación puros, `providers.ts` Gemini, OpenAI o simulador). Las otras
@@ -165,7 +165,7 @@ Por **usuario y periodo** (mes natural), no por mascota — de lo contrario, cre
 
 `transfer_pet_ownership()` bloquea la fila con `SELECT ... FOR UPDATE`, valida que el nuevo propietario existe y es co-tutor con invitación aceptada, y es atómica (todo ocurre en una sola función = una sola transacción).
 
-Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza el borrado de un perfil mientras siga siendo propietario de alguna mascota. `owner_has_pets()` (sin parámetros, solo sobre `auth.uid()`) permite que el flujo de "borrar mi cuenta" lo compruebe antes de intentarlo y pida transferir primero si hace falta. **Formalizado en v2.2.1** como la Edge Function `delete-account` (código en `edge-functions/delete-account/`): ignora cualquier `user_id` que llegara en el body de la petición, obtiene el usuario únicamente del JWT, vuelve a comprobar `owner_has_pets()` ella misma (nunca confía en que el frontend ya lo hizo), y solo entonces llama a `auth.admin.deleteUser()` con `service_role`.
+Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza el borrado de un perfil mientras siga siendo propietario de alguna mascota. `owner_has_pets()` (sin parámetros, solo sobre `auth.uid()`) permite que el flujo de "borrar mi cuenta" lo compruebe antes de intentarlo y pida transferir primero si hace falta. **Formalizado en v2.2.1** como la Edge Function `delete-account` (pendiente: no existe todavía en `supabase/functions/`): ignora cualquier `user_id` que llegara en el body de la petición, obtiene el usuario únicamente del JWT, vuelve a comprobar `owner_has_pets()` ella misma (nunca confía en que el frontend ya lo hizo), y solo entonces llama a `auth.admin.deleteUser()` con `service_role`.
 
 ## 13. Co-tutores
 
@@ -218,7 +218,7 @@ Los 4 buckets (`pet-photos`, `reminder-attachments`, `shared-reports`, `avatars`
 
 ## 19. RevenueCat
 
-`subscription_events.provider_event_id UNIQUE` + `process_revenuecat_event()` (una sola función = una sola transacción: comprobar idempotencia, registrar el evento y actualizar `subscriptions`, todo o nada). Un mismo evento recibido dos veces es un no-op la segunda vez. `subscriptions.provider_subscription_id` tiene un índice único parcial (ignorando `NULL`): una misma suscripción de RevenueCat no puede quedar asociada a dos usuarios. No se ha añadido una columna `received_at` separada de `occurred_at` — decisión explícita, no necesaria para el MVP (ver `CHANGELOG_v2.2.md`).
+`subscription_events.provider_event_id UNIQUE` + `process_revenuecat_event()` (una sola función = una sola transacción: comprobar idempotencia, registrar el evento y actualizar `subscriptions`, todo o nada). Un mismo evento recibido dos veces es un no-op la segunda vez. `subscriptions.provider_subscription_id` tiene un índice único parcial (ignorando `NULL`): una misma suscripción de RevenueCat no puede quedar asociada a dos usuarios. No se ha añadido una columna `received_at` separada de `occurred_at` — decisión explícita, no necesaria para el MVP (`CHANGELOG_v2.2.md` no se conserva; ver `CHANGELOG_v2.2.1.md`).
 
 ## 20. Organizations
 
@@ -247,7 +247,7 @@ No se creó ninguna tabla nueva ni se cambió la restricción `UNIQUE(token)`.
 
 > Corrección posterior (migración `20261027194904_pets_photo_path_own_pet.sql`, aplicada en `kitom-dev` el 2026-10-28): `pets.photo_path` no tenía validación (a diferencia de `ai_analysis_requests.photo_path` y `reminders.attachment_path`). Ahora un CHECK solo admite NULL o `{id de la propia mascota}/{nombre}.jpg` (un nivel, `.jpg`, lo que genera la app). Y la migración `20261027194908_pet_storage_cleanup.sql` añade la limpieza de `pet-photos` de las mascotas borradas: cola privada llenada por un trigger, RPC solo para `service_role` y la Edge Function `pet-storage-cleanup` (`docs/proposals/2026-10-26-pet-photos-cleanup.md`). `reminder-attachments` y `shared-reports` quedan fuera.
 
-El bucket nunca viaja como parámetro desde el cliente — cada Edge Function y cada policy de Storage tiene su bucket fijo hardcodeado (ver `edge-functions/generate-pet-report/index.ts` para el caso más explícito: `const REPORTS_BUCKET = 'shared-reports'`). Los paths guardados en columnas `*_path` son siempre internos, nunca una URL — ni pública ni firmada. Las URLs firmadas se generan bajo demanda en el momento de mostrarlas (`createSignedUrl`), nunca se persisten.
+El bucket nunca viaja como parámetro desde el cliente — cada Edge Function y cada policy de Storage tiene su bucket fijo hardcodeado (p. ej. `PHOTO_BUCKET = 'pet-photos'` en `supabase/functions/ai-analysis-process/index.ts`). Los paths guardados en columnas `*_path` son siempre internos, nunca una URL — ni pública ni firmada. Las URLs firmadas se generan bajo demanda en el momento de mostrarlas (`createSignedUrl`), nunca se persisten.
 
 ## 21. Seguridad — resumen de las capas usadas
 
@@ -265,4 +265,4 @@ El bucket nunca viaja como parámetro desde el cliente — cada Edge Function y 
 - No existe `received_at` separado de `occurred_at` en `subscription_events`.
 - `organizations` es solo estructura, sin ningún flujo de producto construido encima.
 - `generatePdf()` (en `generate-pet-report`) es un contrato definido, pendiente de la librería de generación de PDF. El proveedor de IA de `ai-analysis-process` ya está integrado (Gemini, con OpenAI como alternativa; 2026-10-23); su prompt y las reglas de urgencia son un borrador a validar por un veterinario (`docs/DECISIONS.md`).
-- Ver `CHANGELOG_v2.2.1.md` y `CHANGELOG_v2.2.md` para el historial completo de decisiones.
+- Ver `CHANGELOG_v2.2.1.md` (el de v2.2 no se conserva) para el historial de decisiones de diseño; el estado desplegado, en `DATABASE.md`.
