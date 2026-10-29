@@ -13,6 +13,8 @@ import { borderWidth, radius, size, spacing } from '@/theme/tokens';
 type ReminderItemProps = {
   reminder: Reminder;
   now: Date;
+  /** En el listado de todas las mascotas, de quién es. */
+  petName?: string;
   /** Abre el detalle. */
   onOpen: () => void;
   /** Marcar hecho / pendiente; sin permiso de edición no se muestra el círculo. */
@@ -27,10 +29,10 @@ type ReminderItemProps = {
  * tipo y cuándo, y el círculo de «hecho» a la derecha (44 de área táctil). El estado se dice con
  * icono y texto, no solo con color.
  */
-export function ReminderItem({ reminder, now, onOpen, onToggle, busy = false, divider = false }: ReminderItemProps) {
+export function ReminderItem({ reminder, now, petName, onOpen, onToggle, busy = false, divider = false }: ReminderItemProps) {
   const theme = useTheme();
   const done = reminder.status !== 'pending';
-  const subtitle = reminderSubtitle(reminder, now);
+  const subtitle = petName ? `${petName} · ${reminderSubtitle(reminder, now)}` : reminderSubtitle(reminder, now);
 
   return (
     <View

@@ -18,8 +18,9 @@ import { Text } from '@/components/ui/text';
 import { useToast } from '@/components/ui/toast';
 import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
-import { notificationsSupported } from '@/features/notifications/device-notifications';
+import { notificationsUnavailableReason } from '@/features/notifications/device-notifications';
 import { useNotificationPermission } from '@/features/notifications/hooks/use-notification-permission';
+import { reminderNotifyState } from '@/features/notifications/notification-plan';
 import { useActivePet } from '@/features/pets/active-pet-context';
 import { useCanEditPet } from '@/features/pets/hooks/use-pets';
 import {
@@ -99,8 +100,11 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
   const [error, setError] = useState<string | null>(null);
 
   const now = new Date();
-  const petName = pets.data?.find((pet) => pet.id === reminder.pet_id)?.name ?? '';
-  const canWrite = permission.data === true && canUseServer && online;
+  // Mascota con una eliminación guardada en este dispositivo: ya no está en la lista, no avisa y su
+  // agenda no se cambia (el servidor la borrará con sus recordatorios; si se deshace, todo vuelve).
+  const deletion = pets.deletions.find((item) => item.op.petId === reminder.pet_id || item.op.localId === reminder.pet_id);
+  const petName = pets.data?.find((pet) => pet.id === reminder.pet_id)?.name ?? deletion?.pet.name ?? '';
+  const canWrite = permission.data === true && canUseServer && online && !deletion;
   const pending = reminder.status === 'pending';
   const at = effectiveDueAt(reminder);
   const due = new Date(reminder.due_at);
@@ -108,7 +112,14 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
   const next = nextOccurrence(due, recurrence);
   const snoozed = pending && at.getTime() !== due.getTime();
   const busy = complete.isPending || reopen.isPending || snooze.isPending || remove.isPending;
-  const notifiesHere = notificationsSupported && notifications?.status === 'granted';
+  const notify = reminderNotifyState({
+    unavailable: notificationsUnavailableReason,
+    permission: notifications?.status ?? null,
+    pending,
+    at,
+    now,
+    petDeleting: deletion !== undefined,
+  });
 
   const run = (action: () => Promise<void>) => {
     void guard.run(async () => {
@@ -228,6 +239,7 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
           ) : null}
         </View>
 
+        {deletion ? <Alert tone="warning" message={tf('agenda.detail.petDeleting', { name: petName })} /> : null}
         {permission.data === false ? <Alert tone="info" message={tf('agenda.detail.readOnly', { name: petName })} /> : null}
         {!canUseServer || !online ? <Alert tone="warning" message={t('agenda.errors.network')} /> : null}
         {error ? <Alert tone="error" message={error} /> : null}
@@ -257,12 +269,12 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
             }
             divider={pending}
           />
-          {pending ? (
+          {notify !== 'none' ? (
             <ListItem
               plain
-              icon={notifiesHere ? Bell : BellOff}
-              title={notifiesHere ? t('agenda.detail.notification') : t('agenda.detail.notificationOff')}
-              subtitle={notifiesHere ? formatReminderTime(at) : undefined}
+              icon={notify === 'on' ? Bell : BellOff}
+              title={t(`agenda.detail.notify.${notify}`)}
+              subtitle={notify === 'on' ? formatReminderTime(at) : undefined}
             />
           ) : null}
         </Card>

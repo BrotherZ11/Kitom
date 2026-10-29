@@ -15,7 +15,7 @@ import { useActivePet } from '@/features/pets/active-pet-context';
 import { isLocalPetId } from '@/features/pets/offline/pet-operation';
 import type { Pet } from '@/features/pets/types';
 import { useNotificationPreferences } from '@/features/profile/hooks/use-profile';
-import { usePendingReminders } from '@/features/reminders/hooks/use-reminders';
+import { useUpcomingReminders } from '@/features/reminders/hooks/use-reminders';
 import { effectiveDueAt, type Reminder } from '@/features/reminders/reminder-model';
 import { formatReminderTime } from '@/features/reminders/reminder-format';
 import { t, tf } from '@/i18n';
@@ -27,7 +27,10 @@ const DEFAULT_DAILY_TIME = { hour: 20, minute: 0 };
  * Mantiene los avisos programados del dispositivo al día con los datos del servidor
  * (`notification-plan.ts`) y abre la pantalla de un aviso al tocarlo. Montado una vez en `(app)`.
  * Sin permiso, sin conexión o sin datos todavía no cambia nada (lo programado sigue funcionando).
- * Al cerrar sesión (se desmonta la zona autenticada) quita todos los avisos de Kitom.
+ * Al cerrar sesión (se desmonta la zona autenticada) quita todos los avisos de Kitom. Solo avisan las
+ * mascotas de la lista (no las que se están eliminando en este dispositivo). Un cambio de zona del
+ * dispositivo se aplica al siguiente arranque de la app (Hermes guarda la zona hasta entonces): los
+ * recordatorios suenan igual a su hora (son instantes); el diario y el texto con la hora esperan.
  */
 export function NotificationSync() {
   const router = useRouter();
@@ -62,7 +65,7 @@ function NotificationPlanner({ pet, loggedToday }: { pet: Pet | null; loggedToda
   const { permission, exactAlarms } = useNotificationPermission();
   const granted = permission?.status === 'granted';
   const preferences = useNotificationPreferences();
-  const reminders = usePendingReminders(granted);
+  const reminders = useUpcomingReminders(granted);
   // Valores primitivos: la lista de mascotas es un array nuevo en cada render.
   const petNames = pets.data ? JSON.stringify(pets.data.map((item) => [item.id, item.name])) : null;
   const petId = pet?.id ?? null;
@@ -75,6 +78,8 @@ function NotificationPlanner({ pet, loggedToday }: { pet: Pet | null; loggedToda
     const dailyEnabled = prefs?.daily_reminder_enabled ?? true;
     const time = parseTimeOfDay(prefs?.daily_reminder_time) ?? DEFAULT_DAILY_TIME;
     const names = new Map(JSON.parse(petNames) as [string, string][]);
+    // La lista ya no incluye las mascotas con una eliminación guardada en el dispositivo.
+    const visiblePetIds = new Set(names.keys());
     const byId = new Map<string, Reminder>(reminders.data.map((item) => [item.id, item]));
     const dailyName = names.size === 1 ? [...names.values()][0] : petName;
     const plan = planNotifications({
@@ -91,6 +96,7 @@ function NotificationPlanner({ pet, loggedToday }: { pet: Pet | null; loggedToda
       reminders: reminders.data.map(
         (item): ReminderForPlan => ({
           id: item.id,
+          petId: item.pet_id,
           title: item.title,
           at: effectiveDueAt(item),
           petName: names.get(item.pet_id) ?? null,
@@ -101,6 +107,7 @@ function NotificationPlanner({ pet, loggedToday }: { pet: Pet | null; loggedToda
         const type = reminder ? t(`agenda.types.${reminder.type}`) : '';
         return tf('notifications.reminder.body', { type, time: formatReminderTime(item.at) });
       },
+      visiblePetIds,
     });
     void syncScheduledNotifications(plan).catch((error: unknown) => {
       if (__DEV__) console.warn('[notifications] sync', error);

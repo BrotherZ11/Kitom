@@ -157,6 +157,14 @@ export function groupReminders(reminders: readonly Reminder[], now: Date): Remin
 }
 
 /**
+ * Solo los recordatorios de las mascotas que se ven en la app (listado general): una mascota con una
+ * eliminación guardada en el dispositivo ya no está en la lista y su agenda tampoco se enseña.
+ */
+export function remindersOfPets(reminders: readonly Reminder[], petIds: ReadonlySet<string>): Reminder[] {
+  return reminders.filter((reminder) => petIds.has(reminder.pet_id));
+}
+
+/**
  * Próximo pendiente a partir de ahora (para «Próximo» en Hoy). Los vencidos cuentan primero: siguen
  * pendientes de hacer.
  */

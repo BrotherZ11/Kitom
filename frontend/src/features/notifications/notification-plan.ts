@@ -8,7 +8,11 @@
  *   hora ya pasó. Son avisos de fecha concreta (no repetitivos) para poder saltarse el día hecho: se
  *   vuelven a calcular cada vez que se abre la app o cambia el registro de hoy.
  * - Agenda: un aviso a la hora de cada recordatorio pendiente (la pospuesta, si lo está) que aún no
- *   haya pasado.
+ *   haya pasado, solo de las mascotas visibles: una mascota que se está eliminando en este dispositivo
+ *   (o que ya no se ve) no avisa, aunque el servidor aún tenga sus recordatorios.
+ * - Las horas son instantes: un aviso suena en el mismo momento en todos los dispositivos (las 12:00 de
+ *   Madrid son las 11:00 de Londres). El texto lleva la hora local: si cambia la zona del dispositivo,
+ *   cambia la huella y se vuelve a programar en el siguiente arranque.
  */
 
 export const DAILY_LOG_DAYS_AHEAD = 14;
@@ -75,6 +79,7 @@ export type PlannedNotification = {
 
 export type ReminderForPlan = {
   id: string;
+  petId: string;
   title: string;
   /** `snooze_until` si lo pospuso, si no `due_at` (`effectiveDueAt`). */
   at: Date;
@@ -86,10 +91,12 @@ export type PlanInput = {
   daily: { time: TimeOfDay; loggedToday: boolean; title: string; body: string; url: string } | null;
   reminders: readonly ReminderForPlan[];
   reminderBody: (reminder: ReminderForPlan) => string;
+  /** Mascotas que se ven en la app; los recordatorios de las demás no se programan. */
+  visiblePetIds: ReadonlySet<string>;
 };
 
 /** Todos los avisos que deberían estar programados ahora, los más próximos primero (con tope). */
-export function planNotifications({ now, daily, reminders, reminderBody }: PlanInput): PlannedNotification[] {
+export function planNotifications({ now, daily, reminders, reminderBody, visiblePetIds }: PlanInput): PlannedNotification[] {
   const planned: PlannedNotification[] = [];
   if (daily) {
     for (const date of dailyLogDates(now, daily.time, { loggedToday: daily.loggedToday })) {
@@ -97,7 +104,7 @@ export function planNotifications({ now, daily, reminders, reminderBody }: PlanI
     }
   }
   for (const reminder of reminders) {
-    if (reminder.at.getTime() <= now.getTime()) continue;
+    if (reminder.at.getTime() <= now.getTime() || !visiblePetIds.has(reminder.petId)) continue;
     planned.push({
       id: `${REMINDER_PREFIX}${reminder.id}`,
       date: reminder.at,
@@ -144,4 +151,36 @@ export function diffSchedule(
     .map((item) => item.id);
   const schedule = desired.filter((item) => current.get(item.id) !== fingerprint(item, mode));
   return { cancel, schedule };
+}
+
+/**
+ * Qué se puede decir del aviso de un recordatorio en este dispositivo (detalle 8.4). Nunca se afirma que
+ * sonará si la plataforma no puede, falta el permiso, la hora ya pasó o la mascota se está eliminando
+ * aquí (no se programa).
+ */
+export type ReminderNotifyState = 'on' | 'off' | 'web' | 'unavailable' | 'past' | 'pet_deleting' | 'none';
+
+export function reminderNotifyState({
+  unavailable,
+  permission,
+  pending,
+  at,
+  now,
+  petDeleting,
+}: {
+  /** `notificationsUnavailableReason`: en web nunca hay avisos; en móvil, si falta el módulo nativo. */
+  unavailable: 'web' | 'unavailable' | null;
+  permission: 'granted' | 'denied' | 'undetermined' | 'unavailable' | null;
+  /** Solo los pendientes avisan. */
+  pending: boolean;
+  /** Hora efectiva (`effectiveDueAt`). */
+  at: Date;
+  now: Date;
+  petDeleting: boolean;
+}): ReminderNotifyState {
+  if (!pending) return 'none';
+  if (unavailable) return unavailable;
+  if (petDeleting) return 'pet_deleting';
+  if (at.getTime() <= now.getTime()) return 'past';
+  return permission === 'granted' ? 'on' : 'off';
 }

@@ -32,6 +32,7 @@ import { isLocalPetId } from '@/features/pets/offline/pet-operation';
 import { useSpecies } from '@/features/pets/hooks/use-species';
 import { useActivePet } from '@/features/pets/active-pet-context';
 import { PetSavedBanner } from '@/features/pets/components/pet-saved-banner';
+import { PetRemindersSummary } from '@/features/reminders/components/pet-reminders-summary';
 import { resolvePetPhotoState, type PetFreshness } from '@/features/pets/offline/pet-view';
 import { isPetOfflineError, petErrorMessage } from '@/features/pets/pet-errors';
 import { formatBreed } from '@/features/pets/pet-format';
@@ -297,6 +298,8 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
           {mode === 'stack' ? <TodayLogCard petId={pet.id} canEdit={canEditLog} showHistoryLink={false} /> : null}
 
           <PetDetails pet={pet} speciesName={speciesName} breedLabel={breedLabel} isShared={isShared} />
+
+          {serverPet ? <PetRemindersSummary petId={pet.id} petName={pet.name} onOpenAgenda={openAgenda} /> : null}
 
           <Section title={tf('pets.profile.care', { name: pet.name })}>
             <ListItem

@@ -1,10 +1,13 @@
-import { ReminderChangedError } from '@/features/reminders/api/reminders-api';
+import { ReminderChangedError, ReminderNotWritableError } from '@/features/reminders/api/reminders-api';
 import { t } from '@/i18n';
 import { classifyServerError } from '@/lib/server-errors';
 
 /** Mensaje de un error de la agenda (nunca el error crudo de Supabase). */
 export function reminderErrorMessage(error: unknown): string {
   if (error instanceof ReminderChangedError) return t('agenda.errors.changed');
+  if (error instanceof ReminderNotWritableError) {
+    return error.reason === 'not_allowed' ? t('agenda.errors.notAllowed') : t('agenda.errors.gone');
+  }
   switch (classifyServerError(error)) {
     case 'network':
       return t('agenda.errors.network');

@@ -2,12 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { isLocalPetId } from '@/features/pets/offline/pet-operation';
+import { petKeys } from '@/features/pets/query-keys';
 import {
   createReminder,
   deleteReminder,
   fetchPendingReminders,
   fetchPetReminders,
   fetchReminder,
+  fetchUpcomingReminders,
+  ReminderChangedError,
+  ReminderNotWritableError,
   updateReminder,
 } from '@/features/reminders/api/reminders-api';
 import { reminderKeys } from '@/features/reminders/query-keys';
@@ -18,6 +22,7 @@ import {
   type ReminderWrite,
   type SnoozeOption,
 } from '@/features/reminders/reminder-model';
+import { classifyServerError } from '@/lib/server-errors';
 
 /**
  * Agenda (`reminders`) con TanStack Query. Solo con conexión: sin sesión utilizable no se pide nada
@@ -42,13 +47,23 @@ export function usePetReminders(petId: string) {
   });
 }
 
-/** Pendientes de todas las mascotas visibles (para los avisos). */
-export function usePendingReminders(enabled: boolean) {
+/** Pendientes de todas las mascotas visibles, vencidos incluidos (listado general). */
+export function usePendingReminders() {
   const { auth, userId } = useReminderSession();
   return useQuery({
     queryKey: reminderKeys.pending(userId),
-    enabled: enabled && auth.canUseServer && userId !== '',
+    enabled: auth.canUseServer && userId !== '',
     queryFn: () => auth.serverCall(() => fetchPendingReminders()),
+  });
+}
+
+/** Pendientes que aún tienen que sonar (para los avisos del dispositivo). */
+export function useUpcomingReminders(enabled: boolean) {
+  const { auth, userId } = useReminderSession();
+  return useQuery({
+    queryKey: reminderKeys.upcoming(userId),
+    enabled: enabled && auth.canUseServer && userId !== '',
+    queryFn: () => auth.serverCall(() => fetchUpcomingReminders()),
   });
 }
 
@@ -76,12 +91,33 @@ function useAfterWrite() {
   };
 }
 
+/**
+ * Tras una escritura rechazada (otra versión, sin permiso o ya no está): lo que se ve está viejo. Se
+ * revalidan la agenda y el permiso de la mascota (p. ej. le quitaron la co-tutoría o lo bajaron a
+ * lector), para que la pantalla deje de ofrecer lo que ya no puede hacer.
+ */
+function useAfterRejection() {
+  const queryClient = useQueryClient();
+  const { userId } = useReminderSession();
+  return (error: unknown, petId: string) => {
+    const rejected =
+      error instanceof ReminderChangedError ||
+      error instanceof ReminderNotWritableError ||
+      classifyServerError(error) === 'not_allowed';
+    if (!rejected) return;
+    void queryClient.invalidateQueries({ queryKey: reminderKeys.user(userId) });
+    void queryClient.invalidateQueries({ queryKey: petKeys.canEdit(userId, petId) });
+  };
+}
+
 export function useCreateReminder(petId: string) {
   const { auth, userId } = useReminderSession();
   const afterWrite = useAfterWrite();
+  const afterRejection = useAfterRejection();
   return useMutation({
     mutationFn: (values: ReminderWrite) => auth.serverCall(() => createReminder(petId, userId, values)),
     onSuccess: (saved) => afterWrite(saved),
+    onError: (error) => afterRejection(error, petId),
   });
 }
 
@@ -89,6 +125,7 @@ export function useCreateReminder(petId: string) {
 export function useEditReminder(reminder: Reminder | null) {
   const { auth } = useReminderSession();
   const afterWrite = useAfterWrite();
+  const afterRejection = useAfterRejection();
   return useMutation({
     mutationFn: (values: ReminderWrite) => {
       if (!reminder) throw new Error('reminder_missing');
@@ -98,6 +135,9 @@ export function useEditReminder(reminder: Reminder | null) {
       );
     },
     onSuccess: (saved) => afterWrite(saved),
+    onError: (error) => {
+      if (reminder) afterRejection(error, reminder.pet_id);
+    },
   });
 }
 
@@ -110,6 +150,7 @@ export type CompletionResult = { saved: Reminder; undo: () => Promise<void>; nex
 export function useCompleteReminder() {
   const { auth } = useReminderSession();
   const afterWrite = useAfterWrite();
+  const afterRejection = useAfterRejection();
   return useMutation({
     mutationFn: async (reminder: Reminder): Promise<CompletionResult> => {
       const plan = planCompletion(reminder, new Date());
@@ -121,6 +162,7 @@ export function useCompleteReminder() {
       return { saved, undo, next: plan.kind === 'advance' ? plan.next : null };
     },
     onSuccess: ({ saved }) => afterWrite(saved),
+    onError: (error, reminder) => afterRejection(error, reminder.pet_id),
   });
 }
 
@@ -128,16 +170,19 @@ export function useCompleteReminder() {
 export function useReopenReminder() {
   const { auth } = useReminderSession();
   const afterWrite = useAfterWrite();
+  const afterRejection = useAfterRejection();
   return useMutation({
     mutationFn: (reminder: Reminder) =>
       auth.serverCall(() => updateReminder(reminder.id, { status: 'pending' }, reminder.updated_at)),
     onSuccess: (saved) => afterWrite(saved),
+    onError: (error, reminder) => afterRejection(error, reminder.pet_id),
   });
 }
 
 export function useSnoozeReminder() {
   const { auth } = useReminderSession();
   const afterWrite = useAfterWrite();
+  const afterRejection = useAfterRejection();
   return useMutation({
     mutationFn: ({ reminder, option }: { reminder: Reminder; option: SnoozeOption }) =>
       auth.serverCall(() =>
@@ -148,14 +193,17 @@ export function useSnoozeReminder() {
         )
       ),
     onSuccess: (saved) => afterWrite(saved),
+    onError: (error, { reminder }) => afterRejection(error, reminder.pet_id),
   });
 }
 
 export function useDeleteReminder() {
   const { auth } = useReminderSession();
   const afterWrite = useAfterWrite();
+  const afterRejection = useAfterRejection();
   return useMutation({
     mutationFn: (reminder: Reminder) => auth.serverCall(() => deleteReminder(reminder.id)),
     onSuccess: (_, reminder) => afterWrite(null, reminder.id),
+    onError: (error, reminder) => afterRejection(error, reminder.pet_id),
   });
 }
