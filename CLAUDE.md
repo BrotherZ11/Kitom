@@ -103,14 +103,15 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - Migración `20261023082848_pet_invitations_by_email.sql` (co-tutores por email, 3 RPC): aplicada en
   `kitom-dev` (`db push` del usuario) y tipos añadidos. Frontend de co-tutores e invitaciones hecho
   (`frontend/src/features/co-owners/`, rama `feat/co-owners`); sin límite por plan (decisión pendiente).
-- Fase 13, recordatorios (2026-10-28): frontend en la rama `feat/reminders-mvp` (sin migraciones):
+- Fase 13, recordatorios (2026-10-28; ramas `feat/reminders-mvp` y `db/reminders-active` integradas en
+  `main` el 2026-10-29): frontend sin migraciones:
   listado de todas las mascotas (`/reminders`), resumen en la ficha, avisos sin las mascotas que se
   eliminan en el dispositivo, sin «lo cambió otra persona» ante una falta de permiso (instantes
   compartidos: zona del dispositivo, no la del perfil; un cambio de zona se aplica al siguiente
   arranque). Validada a mano en web y en el emulador Android (build debug nativa, avisos incluidos). Migración `20261028200659_reminders_is_active.sql`
-  (activar/desactivar) y pruebas pgTAP de permisos de `reminders` en la rama `db/reminders-active`:
-  probadas en local, **sin aplicar** en `kitom-dev`; la app no usa `is_active` hasta el `db push` y los
-  tipos. Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
+  (activar/desactivar) y pruebas pgTAP de permisos de `reminders`: probadas en local, **sin aplicar** en
+  `kitom-dev` (pendiente del `db push` del usuario desde `main`); la app no usa `is_active` hasta
+  entonces y hasta regenerar los tipos con `--linked`. Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`; en local solo `pet-photos`
   (`config.toml` + `npx supabase seed buckets --local`).
