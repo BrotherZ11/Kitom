@@ -5,6 +5,13 @@ decisión permanece en su documento de referencia.
 
 ## 2026-10-29
 
+- Migración `20261029151011_ai_quota_and_invitation_hardening.sql` (rama `db/ai-quota-and-invitations`,
+  **sin aplicar en `kitom-dev`**): el cupo de IA ya no se recupera borrando la mascota (registro privado
+  de uso), `request_ai_analysis` exige el aviso veterinario y da `hint` estables, las invitaciones por
+  email solo llegan a cuentas confirmadas, menos privilegios de tabla para `anon`/`authenticated`,
+  `search_path` en `trigger_set_timestamp` y `pet-photos` limitado a 5 MB JPEG. pgTAP nuevo
+  (`ai_quota.test.sql`) y prueba de cascada de `daily_logs` que ya no depende de los OID del entorno.
+
 - Recordatorios: activar y desactivar desde el detalle (rama `feat/reminders-active`, integrada en `main`; sin migraciones).
   Un desactivado no avisa ni cuenta como pendiente y va en su sección «Desactivados»; «Deshacer» y
   precondición `updated_at`. Pruebas unitarias e integración contra el Supabase local; validado en web

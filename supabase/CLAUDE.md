@@ -9,8 +9,9 @@
   - No incluye datos. Los catálogos están en `supabase/seed.sql` y `supabase/seeds/breeds.sql` (ver
     `docs/SEED.md`): ejecutados en `kitom-dev` por el usuario (especies y razas probadas desde la
     app; nunca con `db push`). Los buckets de Storage existen en `kitom-dev`; en local solo
-    `pet-photos`, declarado en `config.toml` (privado, sin límites: los de `kitom-dev` no están
-    verificados) y creado con `npx supabase seed buckets --local`. Los demás, pendientes.
+    `pet-photos`, declarado en `config.toml` (privado; 5 MB e `image/jpeg`, como fija la migración
+    `20261029151011`; en `kitom-dev` los 4 buckets son privados y sin límites hasta aplicarla) y creado
+    con `npx supabase seed buckets --local`. Los demás, pendientes.
 - Migración `20261007152630_breeds.sql`: catálogo `breeds` (por especie), enum `breed_status` y
   `pets.breed_id`/`pets.breed_status` con FK compuesta `(breed_id, species_id) → breeds (id, species_id)`
   y CHECK `pets_breed_status_check`. Aplicada en `kitom-dev`. Con ella son 23 tablas. Modelo:
@@ -62,8 +63,18 @@
   (sin `db reset`), desde cero con `db diff --local` y pgTAP; aplicada en `kitom-dev` el 2026-10-29
   (`db push` del usuario) y tipos regenerados con `--linked` (solo `reminders.is_active`). Decisión:
   `docs/DECISIONS.md`.
+- Migración `20261029151011_ai_quota_and_invitation_hardening.sql` (rama `db/ai-quota-and-invitations`,
+  auditoría 2026-10-29): registro de uso `private.ai_analysis_usage` (cupo de IA a prueba de borrar la
+  mascota; trigger `trg_sync_ai_analysis_usage`), `request_ai_analysis` con aviso veterinario obligatorio
+  y `hint` estables, `invite_pet_member_by_email` solo a cuentas confirmadas y vigentes, sin
+  `TRUNCATE/TRIGGER/REFERENCES/MAINTAIN` para `anon`/`authenticated` (también por defecto),
+  `trigger_set_timestamp` con `search_path` y `pet-photos` a 5 MB/`image/jpeg`. Sin cambios de firmas
+  (tipos iguales). Validada en local con `migration up --local`, pgTAP (`ai_quota.test.sql`, 406 casos en
+  total) y desde cero con `db diff --local` (sin diferencias de sus objetos; el motor `pg-delta` lista como
+  `CREATE OR REPLACE` funciones anteriores que no cambian). **Sin aplicar en `kitom-dev`** (`db push` del
+  usuario). Decisión: `docs/DECISIONS.md`.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
-  `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `reminders`
+  `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `ai_quota`, `reminders`
   (permisos de la tabla con el esquema base), `reminders_is_active`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
   -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.
