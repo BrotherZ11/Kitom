@@ -15,6 +15,7 @@ import {
   CircleHelp,
   Clock,
   CloudUpload,
+  Download,
   FileText,
   Globe,
   House,
@@ -179,7 +180,9 @@ export default function SettingsScreen() {
           title={t('settings.unsynced')}
           subtitle={unsynced}
           onPress={() => router.push('/daily-logs/unsynced')}
+          divider
         />
+        <ListItem plain icon={Download} title={t('settings.exportData')} onPress={() => router.push('/settings/export')} />
       </Group>
 
       <Group title={t('settings.help')}>

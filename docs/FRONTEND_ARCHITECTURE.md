@@ -570,6 +570,19 @@ clínica propia y voz de la mascota.
 - **RPC:** `register_push_token(token, platform, device_id, app_version, os_version)` — llamar en login, en app launch y en cada refresh de token (ver sección 10)
 - **Storage:** `avatars` (insert/delete, path `{user_id}/{uuid}`)
 
+### DataExportScreen
+**Implementado (2026-10-30, rama `feat/data-export`)**: `(app)/settings/export`, entrada «Descargar mis datos» en
+Tu cuenta › Tus datos (RGPD art. 15 y 20).
+- Lee con el cliente del usuario (RLS decide; solo columnas con GRANT SELECT): perfil, preferencias,
+  plan, mascotas visibles y, de ellas, `daily_logs`, `reminders`, `ai_analysis_requests` (+ síntomas),
+  `pet_achievements`, `pet_streaks` y `pet_co_owners`; paginado de 1000 en 1000 (`fetchAllPages`).
+- Documento (`data-export.ts`, puro y probado): `format: "kitom-export"`, `version: 1`, `exported_at`,
+  cuenta, perfil y una entrada por mascota con su rol (`owner`/`co_owner`) y sus datos anidados. Las fotos
+  no van dentro (solo `photo_path`); se piden por email.
+- Entrega: móvil, archivo `kitom-datos-AAAA-MM-DD.json` en la caché + menú de compartir del sistema
+  (`expo-file-system` + `expo-sharing`); web, descarga directa (`save-export.web.ts`). Nada pasa por
+  un servidor propio. Necesita conexión.
+
 ### PaywallScreen
 - **READ:** `subscriptions` (columnas públicas)
 - **WRITE:** ninguna — RevenueCat gestiona la compra; `subscriptions` se actualiza vía webhook, nunca desde el cliente
