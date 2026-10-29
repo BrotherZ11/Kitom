@@ -17,7 +17,9 @@
         "monochromeImage": "./assets/brand/app-icon/android-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"]
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "output": "static",
@@ -48,7 +50,10 @@
           "cameraPermission": "Kitom necesita la cámara para hacer la foto de tu mascota.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-sharing",
+      "@react-native-community/datetimepicker",
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true,
