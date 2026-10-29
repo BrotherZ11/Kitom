@@ -3,6 +3,37 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-10-29 — Cupo de IA en un registro privado y endurecimiento tras la auditoría (migración)
+
+**Contexto.** La auditoría del 2026-10-29 (`docs/SECURITY_AUDIT.md`) reprodujo en local que el cupo
+mensual de IA se recuperaba borrando y volviendo a crear la mascota: `get_ai_analysis_entitlement`
+contaba filas de `ai_analysis_requests`, que se borran en cascada con la mascota (SEC-01). También vio
+que `request_ai_analysis` no exige el aviso veterinario (SEC-10), que `invite_pet_member_by_email`
+encuentra cuentas con el email sin confirmar (SEC-05), privilegios de tabla sobrantes (SEC-11),
+`trigger_set_timestamp` sin `search_path` (SEC-12) y buckets sin límites en `kitom-dev` (SEC-07).
+
+**Decisión.** Rama `db/ai-quota-and-invitations`, migración `20261029151011_ai_quota_and_invitation_hardening.sql`
+(aprobada por el usuario dentro de la auditoría: probada solo en local, sin `db push`):
+- Registro `private.ai_analysis_usage` (una fila por solicitud, FK solo a `profiles` con cascada; sin FK a
+  `pets` ni a `ai_analysis_requests`). `counts = status <> 'failed'`, mantenido por un trigger al cambiar
+  el estado (lo cambia la Edge Function). Relleno inicial con las solicitudes existentes. Descartado
+  cambiar la FK de `ai_analysis_requests.pet_id` a `SET NULL`: rompe su `NOT NULL` y deja análisis que
+  RLS ya no deja ver a nadie; un borrado lógico de mascotas cambiaría todo el modelo.
+- `request_ai_analysis`: misma firma y mismos mensajes (las versiones publicadas los reconocen) más
+  `hint` estables; aviso veterinario obligatorio. `get_ai_analysis_entitlement`: sin fila de suscripción
+  equivale a gratis (antes devolvía `NULL` y la inserción fallaba).
+- Invitación por email: solo cuentas confirmadas, no baneadas, no borradas, no anónimas. La enumeración
+  de cuentas (SEC-04) necesita otro diseño (invitaciones pendientes por email) y queda en `ROADMAP.md`.
+- `REVOKE TRUNCATE, TRIGGER, REFERENCES, MAINTAIN` a `anon`/`authenticated` en `public` y en los
+  privilegios por defecto de `postgres` (el DML de `anon` lo sigue bloqueando RLS).
+- `pet-photos`: 5 MB e `image/jpeg`, iguales a lo que sube la app; los demás buckets no se usan aún.
+
+**Consecuencias.** Borrar la cuenta borra su registro de uso (una cuenta nueva empieza de cero, como
+antes). Los fallos siguen sin gastar cupo: el abuso de coste con fallos provocados (SEC-06) queda
+pendiente de decidir un límite. Pruebas: `supabase/tests/database/ai_quota.test.sql` y casos nuevos en
+`pet_invitations.test.sql`. De paso, `daily_logs.test.sql` recrea las dos FK para reproducir siempre el
+orden de cascada desfavorable (antes dependía del número de dígitos de los OID del entorno).
+
 ## 2026-10-29 — Recordatorios: activar y desactivar en la app
 
 **Contexto.** `reminders.is_active` está en `kitom-dev` desde el 2026-10-29 y en los tipos; faltaba

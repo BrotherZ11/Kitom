@@ -126,10 +126,12 @@ file_size_limit = "50MiB"
 # objects_path = "./images"
 
 # Kitom: bucket de fotos de mascotas (perfil y consultas), privado como en kitom-dev. Solo para el
-# Supabase local (`npx supabase seed buckets --local`); las políticas están en las migraciones. Los
-# límites de tamaño y tipo de kitom-dev no están verificados: no se fijan aquí.
+# Supabase local (`npx supabase seed buckets --local`); las políticas están en las migraciones. Límites
+# iguales a los de la migración 20261029151011 (la app sube siempre JPEG de 5 MB como máximo).
 [storage.buckets.pet-photos]
 public = false
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/jpeg"]
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]

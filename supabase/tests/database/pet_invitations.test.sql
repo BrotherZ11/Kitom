@@ -41,11 +41,14 @@ end $$;
 
 grant execute on all functions in schema test_helpers to anon, authenticated;
 
--- Dueña, invitada, otra cuenta (el trigger handle_new_user crea los perfiles con su nombre).
-insert into auth.users (id, email, aud, role, raw_user_meta_data) values
-  ('f0000000-0000-4000-8000-000000000001', 'owner-inv@example.test', 'authenticated', 'authenticated', '{"full_name":"Olga"}'),
-  ('f0000000-0000-4000-8000-000000000002', 'guest-inv@example.test', 'authenticated', 'authenticated', '{"full_name":"Gema"}'),
-  ('f0000000-0000-4000-8000-000000000003', 'other-inv@example.test', 'authenticated', 'authenticated', '{"full_name":"Otto"}');
+-- Dueña, invitada, otra cuenta (el trigger handle_new_user crea los perfiles con su nombre), todas con
+-- el email confirmado; y una cuenta sin confirmar y otra baneada, que no pueden recibir invitaciones.
+insert into auth.users (id, email, aud, role, raw_user_meta_data, email_confirmed_at, banned_until) values
+  ('f0000000-0000-4000-8000-000000000001', 'owner-inv@example.test', 'authenticated', 'authenticated', '{"full_name":"Olga"}', now(), null),
+  ('f0000000-0000-4000-8000-000000000002', 'guest-inv@example.test', 'authenticated', 'authenticated', '{"full_name":"Gema"}', now(), null),
+  ('f0000000-0000-4000-8000-000000000003', 'other-inv@example.test', 'authenticated', 'authenticated', '{"full_name":"Otto"}', now(), null),
+  ('f0000000-0000-4000-8000-000000000004', 'unconfirmed-inv@example.test', 'authenticated', 'authenticated', '{"full_name":"Uma"}', null, null),
+  ('f0000000-0000-4000-8000-000000000005', 'banned-inv@example.test', 'authenticated', 'authenticated', '{"full_name":"Bea"}', now(), now() + interval '1 day');
 
 insert into public.pets (id, owner_id, name, species_id)
 select 'f1000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Kika', s.id
@@ -87,11 +90,20 @@ select lives_ok(
   'invitar de nuevo a quien ya tiene una invitación activa responde igual'
 );
 
+select lives_ok(
+  $$ select public.invite_pet_member_by_email('f1000000-0000-4000-8000-000000000001', 'unconfirmed-inv@example.test') $$,
+  'una cuenta con el email sin confirmar responde igual'
+);
+select lives_ok(
+  $$ select public.invite_pet_member_by_email('f1000000-0000-4000-8000-000000000001', 'banned-inv@example.test') $$,
+  'una cuenta baneada responde igual'
+);
+
 select test_helpers.reset_role();
 select is(
   (select count(*)::int from public.pet_co_owners where pet_id = 'f1000000-0000-4000-8000-000000000001'),
   1,
-  'sin cuenta, el propio email o una invitación repetida no crean filas'
+  'sin cuenta, el propio email, una invitación repetida, un email sin confirmar o una cuenta baneada no crean filas'
 );
 
 select test_helpers.act_as('f0000000-0000-4000-8000-000000000001');

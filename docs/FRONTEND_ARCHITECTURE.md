@@ -487,8 +487,10 @@ del estetoscopio en Hoy (si puede editar la mascota) y «Consultar con una foto�
 - **Asistente** (`consult/new`): intro con el cupo («N de 3 este mes»), qué se envía al proveedor y
   señales de urgencia; foto opcional (`pet-photos/{pet_id}/{uuid}.jpg`, subida solo al enviar), señales
   de la especie (al menos una) y revisión. Sin cupo: pantalla de límite con la fecha en que vuelve
-  (sin paywall: Premium aún no existe). Errores de `request_ai_analysis` según el mensaje
-  (`ai-analysis-model.ts › toRequestErrorCode`).
+  (sin paywall: Premium aún no existe). Errores de `request_ai_analysis` por `hint`
+  (`ai_quota_exceeded`, `ai_disclaimer_required`, `ai_not_allowed`, `ai_pet_unavailable`,
+  `ai_invalid_photo`, `ai_invalid_symptoms`; migración `20261029151011`) y, en un servidor anterior, por
+  el mensaje (`ai-analysis-model.ts › toRequestErrorCode`).
 - **Resultado** (`consult/[analysisId]`): polling de la fila cada 2 s mientras no sea terminal; si sigue
   `pending` a los 8 s se reinvoca la función una vez (el servidor no reprocesa) y a los 60 s se ofrece
   reintentar. Nivel con color + icono + texto; en `urgent`, primero «Urgencias veterinarias cercanas»

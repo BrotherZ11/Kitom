@@ -694,11 +694,16 @@ reset role;
 -- ---------------------------------------------------------------------
 -- 11c. Orden de cascada desfavorable (real)
 -- ---------------------------------------------------------------------
--- Los triggers de FK se ejecutan por nombre (RI_ConstraintTrigger_a_<oid>),
--- así que el orden depende de los OID de cada entorno. Recrear la FK de
--- daily_logs le da un OID nuevo y hace que la cascada de pet_streaks se
--- ejecute ANTES que la de daily_logs. Es DDL dentro de la transacción de la
--- prueba: se deshace con el ROLLBACK.
+-- Los triggers de FK se ejecutan por nombre (RI_ConstraintTrigger_a_<oid>)
+-- comparado como texto, así que el orden depende de los OID de cada entorno
+-- (un OID con más dígitos puede ordenar antes: '…_109945' < '…_18339').
+-- Recrear las dos FK, primero la de pet_streaks y después la de daily_logs,
+-- les da OID nuevos consecutivos con el mismo número de dígitos y hace que la
+-- cascada de pet_streaks se ejecute ANTES que la de daily_logs. Es DDL dentro
+-- de la transacción de la prueba: se deshace con el ROLLBACK.
+alter table public.pet_streaks drop constraint pet_streaks_pet_id_fkey;
+alter table public.pet_streaks add constraint pet_streaks_pet_id_fkey
+  foreign key (pet_id) references public.pets (id) on delete cascade;
 alter table public.daily_logs drop constraint daily_logs_pet_id_fkey;
 alter table public.daily_logs add constraint daily_logs_pet_id_fkey
   foreign key (pet_id) references public.pets (id) on delete cascade;
