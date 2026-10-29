@@ -765,6 +765,7 @@ export type Database = {
           description: string | null
           due_at: string
           id: string
+          is_active: boolean
           pet_id: string
           recurrence_rule: string | null
           snooze_until: string | null
@@ -781,6 +782,7 @@ export type Database = {
           description?: string | null
           due_at: string
           id?: string
+          is_active?: boolean
           pet_id: string
           recurrence_rule?: string | null
           snooze_until?: string | null
@@ -797,6 +799,7 @@ export type Database = {
           description?: string | null
           due_at?: string
           id?: string
+          is_active?: boolean
           pet_id?: string
           recurrence_rule?: string | null
           snooze_until?: string | null
