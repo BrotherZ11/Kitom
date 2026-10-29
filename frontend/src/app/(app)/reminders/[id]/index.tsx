@@ -28,12 +28,14 @@ import {
   useDeleteReminder,
   useReminder,
   useReopenReminder,
+  useSetReminderActive,
   useSnoozeReminder,
 } from '@/features/reminders/hooks/use-reminders';
 import { reminderErrorMessage } from '@/features/reminders/reminder-errors';
 import { formatReminderLongDay, formatReminderTime } from '@/features/reminders/reminder-format';
 import {
   effectiveDueAt,
+  isReminderActive,
   nextOccurrence,
   parseRecurrence,
   SNOOZE_OPTIONS,
@@ -93,6 +95,7 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
   const complete = useCompleteReminder();
   const reopen = useReopenReminder();
   const snooze = useSnoozeReminder();
+  const setActive = useSetReminderActive();
   const remove = useDeleteReminder();
   const [guard] = useState(createSubmitGuard);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -106,16 +109,20 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
   const petName = pets.data?.find((pet) => pet.id === reminder.pet_id)?.name ?? deletion?.pet.name ?? '';
   const canWrite = permission.data === true && canUseServer && online && !deletion;
   const pending = reminder.status === 'pending';
+  const active = isReminderActive(reminder);
+  // Desactivado: sigue pendiente en el servidor, pero no avisa ni cuenta (se activa desde aquí).
+  const paused = pending && !active;
   const at = effectiveDueAt(reminder);
   const due = new Date(reminder.due_at);
   const recurrence = parseRecurrence(reminder.recurrence_rule);
   const next = nextOccurrence(due, recurrence);
   const snoozed = pending && at.getTime() !== due.getTime();
-  const busy = complete.isPending || reopen.isPending || snooze.isPending || remove.isPending;
+  const busy = complete.isPending || reopen.isPending || snooze.isPending || remove.isPending || setActive.isPending;
   const notify = reminderNotifyState({
     unavailable: notificationsUnavailableReason,
     permission: notifications?.status ?? null,
     pending,
+    active,
     at,
     now,
     petDeleting: deletion !== undefined,
@@ -173,8 +180,27 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
       onBack();
     });
 
+  const toggleActive = () =>
+    run(async () => {
+      const result = await setActive.mutateAsync({ reminder, active: !active });
+      toast({
+        message: active ? t('agenda.toast.deactivated') : t('agenda.toast.activated'),
+        action: {
+          label: t('agenda.toast.undo'),
+          onPress: () => {
+            result.undo().then(
+              () => toast({ message: t('agenda.toast.undone') }),
+              (cause: unknown) => toast({ message: reminderErrorMessage(cause) })
+            );
+          },
+        },
+      });
+    });
+
   const footer = canWrite ? (
-    pending ? (
+    paused ? (
+      <Button label={t('agenda.detail.activate')} icon={Bell} loading={setActive.isPending} disabled={busy} onPress={toggleActive} />
+    ) : pending ? (
       <>
         <Button label={t('agenda.detail.markDone')} icon={Check} loading={complete.isPending} disabled={busy} onPress={markDone} />
         <Button
@@ -184,6 +210,15 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
           size="md"
           disabled={busy}
           onPress={() => setSheetOpen(true)}
+        />
+        <Button
+          label={t('agenda.detail.deactivate')}
+          icon={BellOff}
+          variant="ghost"
+          size="md"
+          loading={setActive.isPending}
+          disabled={busy}
+          onPress={toggleActive}
         />
       </>
     ) : (
@@ -226,6 +261,11 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
           <Text variant="title1" accessibilityRole="header">
             {reminder.title}
           </Text>
+          {paused ? (
+            <View style={styles.tag}>
+              <Tag icon={BellOff} label={t('agenda.detail.paused')} />
+            </View>
+          ) : null}
           {!pending && reminder.completed_at ? (
             <View style={styles.tag}>
               <Tag
@@ -240,6 +280,7 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
         </View>
 
         {deletion ? <Alert tone="warning" message={tf('agenda.detail.petDeleting', { name: petName })} /> : null}
+        {paused ? <Alert tone="info" message={t('agenda.detail.pausedText')} /> : null}
         {permission.data === false ? <Alert tone="info" message={tf('agenda.detail.readOnly', { name: petName })} /> : null}
         {!canUseServer || !online ? <Alert tone="warning" message={t('agenda.errors.network')} /> : null}
         {error ? <Alert tone="error" message={error} /> : null}

@@ -10,6 +10,7 @@ import {
 import { formatReminderDay, formatReminderTime, relativeDay } from '@/features/reminders/reminder-format';
 import {
   effectiveDueAt,
+  isReminderActive,
   parseRecurrence,
   startOfDay,
   type Reminder,
@@ -38,16 +39,20 @@ export function reminderWhenLabel(date: Date, now: Date): string {
   return tf('agenda.when', { day: reminderDayLabel(date, now), time: formatReminderTime(date) });
 }
 
-/** Subtítulo de una fila de la agenda (tablero 8.1): tipo y cuándo, o «era ayer, 15:00» si venció. */
+/**
+ * Subtítulo de una fila de la agenda (tablero 8.1): tipo y cuándo, o «era ayer, 15:00» si venció. Un
+ * desactivado lo dice delante y nunca aparece como vencido.
+ */
 export function reminderSubtitle(reminder: Reminder, now: Date): string {
   const type = t(`agenda.types.${reminder.type}`);
   const at = effectiveDueAt(reminder);
-  const overdue = reminder.status === 'pending' && at.getTime() < startOfDay(now).getTime();
+  const paused = reminder.status === 'pending' && !isReminderActive(reminder);
+  const overdue = reminder.status === 'pending' && !paused && at.getTime() < startOfDay(now).getTime();
   const when = overdue
     ? tf('agenda.overdueWhen', { day: reminderDayLabel(at, now), time: formatReminderTime(at) })
     : reminderWhenLabel(at, now);
   const recurrence = parseRecurrence(reminder.recurrence_rule);
-  const parts = [tf('agenda.itemSubtitle', { type, when })];
+  const parts = [tf(paused ? 'agenda.pausedSubtitle' : 'agenda.itemSubtitle', { type, when })];
   if (recurrence !== 'NONE') parts.push(t(`agenda.recurrence.${recurrence}`).toLowerCase());
   return parts.join(' · ');
 }

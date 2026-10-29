@@ -155,15 +155,16 @@ export function diffSchedule(
 
 /**
  * Qué se puede decir del aviso de un recordatorio en este dispositivo (detalle 8.4). Nunca se afirma que
- * sonará si la plataforma no puede, falta el permiso, la hora ya pasó o la mascota se está eliminando
- * aquí (no se programa).
+ * sonará si la plataforma no puede, falta el permiso, la hora ya pasó, está desactivado o la mascota se
+ * está eliminando aquí (no se programa).
  */
-export type ReminderNotifyState = 'on' | 'off' | 'web' | 'unavailable' | 'past' | 'pet_deleting' | 'none';
+export type ReminderNotifyState = 'on' | 'off' | 'web' | 'unavailable' | 'past' | 'paused' | 'pet_deleting' | 'none';
 
 export function reminderNotifyState({
   unavailable,
   permission,
   pending,
+  active,
   at,
   now,
   petDeleting,
@@ -173,6 +174,8 @@ export function reminderNotifyState({
   permission: 'granted' | 'denied' | 'undetermined' | 'unavailable' | null;
   /** Solo los pendientes avisan. */
   pending: boolean;
+  /** Los desactivados (`is_active = false`) no avisan. */
+  active: boolean;
   /** Hora efectiva (`effectiveDueAt`). */
   at: Date;
   now: Date;
@@ -180,6 +183,7 @@ export function reminderNotifyState({
 }): ReminderNotifyState {
   if (!pending) return 'none';
   if (unavailable) return unavailable;
+  if (!active) return 'paused';
   if (petDeleting) return 'pet_deleting';
   if (at.getTime() <= now.getTime()) return 'past';
   return permission === 'granted' ? 'on' : 'off';

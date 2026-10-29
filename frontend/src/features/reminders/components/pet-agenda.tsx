@@ -254,6 +254,11 @@ function AgendaList({ reminders, canWrite }: { reminders: Reminder[]; canWrite: 
           <ReminderRows items={groups.upcoming} canWrite={canWrite} />
         </Section>
       ) : null}
+      {groups.paused.length > 0 ? (
+        <Section title={t('agenda.sections.paused')}>
+          <ReminderRows items={groups.paused} canWrite={canWrite} />
+        </Section>
+      ) : null}
       {groups.done.length > 0 ? (
         <Section title={t('agenda.sections.done')}>
           <ReminderRows items={groups.done.slice(0, 10)} canWrite={canWrite} />

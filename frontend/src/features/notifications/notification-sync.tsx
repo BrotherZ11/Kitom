@@ -16,7 +16,7 @@ import { isLocalPetId } from '@/features/pets/offline/pet-operation';
 import type { Pet } from '@/features/pets/types';
 import { useNotificationPreferences } from '@/features/profile/hooks/use-profile';
 import { useUpcomingReminders } from '@/features/reminders/hooks/use-reminders';
-import { effectiveDueAt, type Reminder } from '@/features/reminders/reminder-model';
+import { effectiveDueAt, isReminderActive, type Reminder } from '@/features/reminders/reminder-model';
 import { formatReminderTime } from '@/features/reminders/reminder-format';
 import { t, tf } from '@/i18n';
 
@@ -93,7 +93,8 @@ function NotificationPlanner({ pet, loggedToday }: { pet: Pet | null; loggedToda
             url: petId ? `/pets/${petId}/daily-log` : '/',
           }
         : null,
-      reminders: reminders.data.map(
+      // La consulta ya excluye los desactivados; se filtra también aquí por si llega uno en caché.
+      reminders: reminders.data.filter(isReminderActive).map(
         (item): ReminderForPlan => ({
           id: item.id,
           petId: item.pet_id,
