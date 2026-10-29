@@ -110,8 +110,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   compartidos: zona del dispositivo, no la del perfil; un cambio de zona se aplica al siguiente
   arranque). Validada a mano en web y en el emulador Android (build debug nativa, avisos incluidos). Migración `20261028200659_reminders_is_active.sql`
   (activar/desactivar) y pruebas pgTAP de permisos de `reminders`: probadas en local; aplicada en
-  `kitom-dev` el 2026-10-29 (`db push` del usuario) y tipos regenerados con `--linked`. La app aún no
-  usa `is_active` (falta la fase de frontend de activar/desactivar). Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
+  `kitom-dev` el 2026-10-29 (`db push` del usuario) y tipos regenerados con `--linked`. Activar/desactivar
+  en la app (rama `feat/reminders-active`, integrada en `main` el 2026-10-29): un desactivado no avisa ni cuenta como pendiente; validado
+  en web y en el emulador Android (la alarma se cancela y vuelve al activarlo). Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev`; en local solo `pet-photos`
   (`config.toml` + `npx supabase seed buckets --local`).
