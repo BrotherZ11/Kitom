@@ -1,13 +1,16 @@
 import type { Session, User } from '@supabase/supabase-js';
 import { onlineManager, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
-import { createContext, use, useEffect, useState, type PropsWithChildren } from 'react';
+import { createContext, use, useEffect, useState, useSyncExternalStore, type PropsWithChildren } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import { toAuthErrorCode, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { completeAuthRedirect, getAuthRedirectUrl } from '@/features/auth/auth-redirect';
 import { createAuthSessionController } from '@/features/auth/auth-session-controller';
 import { authUserId, type AuthState } from '@/features/auth/auth-state';
+import { changePassword as runChangePassword, requestCode, type ChangePasswordResult } from '@/features/auth/change-password';
+import { createPasswordCheckClient } from '@/features/auth/password-check-client';
+import { createPasswordRecoveryTracker, isRecoveryPendingFor } from '@/features/auth/password-recovery';
 import { secureSessionStorage } from '@/lib/secure-session-storage';
 import { AUTH_STORAGE_KEY, supabase } from '@/lib/supabase';
 
@@ -40,7 +43,11 @@ type AuthContextValue = {
    * petición a su inicialización (hasta ~30 s sin red). Función estable: usar en `queryFn`/`mutationFn`.
    */
   serverCall: <T>(call: () => Promise<T>) => Promise<T>;
-  /** Sesión abierta desde un enlace de recuperación: hay que fijar una contraseña nueva. */
+  /**
+   * Sesión abierta desde un enlace de recuperación: hay que fijar una contraseña nueva. Se guarda en el
+   * dispositivo por usuario (`password-recovery.ts`): sobrevive a cerrar la app y termina al guardar la
+   * contraseña o al cerrar sesión.
+   */
   isRecoveringPassword: boolean;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   /** Cancelar el navegador no es un error: devuelve `{ error: null }` sin sesión. */
@@ -58,8 +65,18 @@ type AuthContextValue = {
    * sesión anterior. Función estable.
    */
   isCurrentUser: (userId: string) => boolean;
+  /** Reenvía el email de confirmación del registro (mismo enlace de retorno que `signUp`). */
+  resendSignUpEmail: (email: string) => Promise<AuthResult>;
   resetPassword: (email: string) => Promise<AuthResult>;
+  /** Contraseña nueva de una recuperación (`/update-password`); al guardarla termina la recuperación. */
   updatePassword: (password: string) => Promise<AuthResult>;
+  /**
+   * Cambio desde ajustes: comprueba antes la contraseña actual (`change-password.ts`). Con `nonce`, el
+   * código recibido por email cuando Supabase pide reautenticación (`needs_code`).
+   */
+  changePassword: (input: { currentPassword: string; newPassword: string; nonce?: string }) => Promise<ChangePasswordResult>;
+  /** Vuelve a enviar el código de verificación del cambio de contraseña. */
+  requestPasswordChangeCode: () => Promise<ChangePasswordResult>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -104,7 +121,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     })
   );
   const [state, setState] = useState(controller.getState);
-  const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
+  const [recoveryTracker] = useState(() =>
+    createPasswordRecoveryTracker({
+      storage: secureSessionStorage,
+      onStorageError: (error) => {
+        if (__DEV__) console.warn('[auth] recovery marker', error);
+      },
+    })
+  );
+  const recovery = useSyncExternalStore(recoveryTracker.subscribe, recoveryTracker.getSnapshot);
   // Un solo cierre a la vez; el controlador garantiza que la sesión sale del dispositivo.
   const [signOut] = useState(() => () => runAuthAction(() => controller.signOut()));
   const [recoverSession] = useState(() => () => controller.recover());
@@ -120,16 +145,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (previous.status === 'offline' && next.status === 'signed_in' && previousUserId === nextUserId) {
         void queryClient.invalidateQueries();
       }
-      if (cause === 'PASSWORD_RECOVERY') setIsRecoveringPassword(true);
-      if (next.status === 'signed_out') setIsRecoveringPassword(false);
+      // Recuperación pendiente: empieza con PASSWORD_RECOVERY y se borra si la sesión deja de ser de
+      // ese usuario (cierre de sesión, sesión rechazada u otra cuenta).
+      recoveryTracker.authChanged({ cause, status: next.status, userId: nextUserId });
       setState(next);
     });
+    void recoveryTracker.load();
     const stop = controller.start();
     return () => {
       stop();
       unsubscribe();
     };
-  }, [controller, queryClient]);
+  }, [controller, queryClient, recoveryTracker]);
 
   const session = state.status === 'signed_in' ? state.session : null;
   // La copia guardada del usuario (misma forma que `session.user`); su id coincide con el token.
@@ -165,6 +192,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   };
 
+  // Con PKCE, como el registro: el enlace nuevo vuelve a /auth-callback con un `code` de un solo uso.
+  const resendSignUpEmail = (email: string) =>
+    runAuthAction(() =>
+      supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: { emailRedirectTo: getAuthRedirectUrl('signup') },
+      })
+    );
+
   const signUp = async (email: string, password: string): Promise<SignUpResult> => {
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -192,26 +229,56 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const updatePassword = async (password: string): Promise<AuthResult> => {
     const result = await runAuthAction(() => supabase.auth.updateUser({ password }));
-    if (!result.error) setIsRecoveringPassword(false);
+    if (!result.error) recoveryTracker.completed();
     return result;
   };
+
+  const changePassword = async (input: {
+    currentPassword: string;
+    newPassword: string;
+    nonce?: string;
+  }): Promise<ChangePasswordResult> => {
+    const current = controller.getState();
+    // Sin sesión utilizable no se intenta nada (como `serverCall`).
+    const email = current.status === 'signed_in' ? current.session.user.email : undefined;
+    if (current.status !== 'signed_in' || !email) return { status: 'error', error: 'network' };
+    const result = await runChangePassword(
+      {
+        createCheckClient: createPasswordCheckClient,
+        updateUser: (attributes) => supabase.auth.updateUser(attributes),
+        reauthenticate: () => supabase.auth.reauthenticate(),
+      },
+      { userId: current.userId, email, ...input }
+    );
+    if (__DEV__ && result.status === 'error') console.warn('[auth] change password', result.error);
+    return result;
+  };
+
+  const requestPasswordChangeCode = (): Promise<ChangePasswordResult> =>
+    controller.getState().status === 'signed_in'
+      ? requestCode({ reauthenticate: () => supabase.auth.reauthenticate() })
+      : Promise.resolve({ status: 'error', error: 'network' });
 
   const value: AuthContextValue = {
     status: state.status,
     session,
     user,
     canUseServer: state.status === 'signed_in',
-    isLoading: state.status === 'loading',
+    // También hasta leer la recuperación pendiente: sin ella, un arranque en frío entraría en la app.
+    isLoading: state.status === 'loading' || !recovery.loaded,
     recoverSession,
     serverCall: controller.serverCall,
-    isRecoveringPassword,
+    isRecoveringPassword: isRecoveryPendingFor(recovery, authUserId(state)),
     signIn,
     signInWithGoogle,
     signUp,
     signOut,
     isCurrentUser: controller.isCurrentUser,
+    resendSignUpEmail,
     resetPassword,
     updatePassword,
+    changePassword,
+    requestPasswordChangeCode,
   };
 
   return <AuthContext value={value}>{children}</AuthContext>;

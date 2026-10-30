@@ -5,7 +5,8 @@ import { useStackScreenOptions } from '@/theme/theme-provider';
 
 /**
  * Sin sesión, la protección del layout raíz trae aquí y se empieza por la bienvenida (tablero 1.1).
- * `/login`, `/register`, `/forgot-password` y `/auth-callback` siguen siendo accesibles directamente.
+ * `/login`, `/register` y `/forgot-password` siguen siendo accesibles directamente. `/auth-callback` no
+ * está aquí sino en el layout raíz: los enlaces de recuperación también se abren con la sesión iniciada.
  */
 export const unstable_settings = {
   initialRouteName: 'welcome',
@@ -23,7 +24,6 @@ export default function AuthLayout() {
       <Stack.Screen name="login" options={{ title: t('auth.login.title') }} />
       <Stack.Screen name="register" options={{ title: t('auth.register.title') }} />
       <Stack.Screen name="forgot-password" options={{ title: t('auth.forgotPassword.title') }} />
-      <Stack.Screen name="auth-callback" options={{ title: t('auth.callback.processing') }} />
     </Stack>
   );
 }

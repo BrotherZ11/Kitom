@@ -23,6 +23,25 @@ export const es = {
       email: 'Email',
       password: 'Contraseña',
       newPassword: 'Contraseña nueva',
+      confirmPassword: 'Repite la contraseña',
+    },
+    /** Regla visible bajo el campo de contraseña nueva. El número es `MIN_PASSWORD_LENGTH` (`validation.ts`). */
+    passwordRule: 'Mínimo 8 caracteres.',
+    /** Casilla obligatoria del registro y aviso bajo «Continuar con Google». */
+    legal: {
+      accept: 'Acepto los Términos y la Política de privacidad',
+      googleNotice: 'Al continuar con Google aceptas los Términos y la Política de privacidad.',
+      terms: 'Términos',
+      privacy: 'Política de privacidad',
+      openTerms: 'Abrir los Términos',
+      openPrivacy: 'Abrir la Política de privacidad',
+    },
+    /** Reenviar el email de confirmación del registro. */
+    resend: {
+      action: 'Reenviar email',
+      sending: 'Reenviando…',
+      wait: 'Reenviar en {seconds} s',
+      sent: 'Te hemos enviado otro email. Puede tardar unos minutos.',
     },
     google: {
       continue: 'Continuar con Google',
@@ -35,6 +54,7 @@ export const es = {
       processing: 'Verificando el enlace…',
       emailConfirmed: 'Tu email está confirmado. Ya puedes iniciar sesión.',
       goToLogin: 'Ir a iniciar sesión',
+      backToApp: 'Volver a Kitom',
       stalled: 'Está tardando más de lo normal. Si no avanza, vuelve a iniciar sesión o abre el enlace otra vez.',
     },
     updatePassword: {
@@ -108,8 +128,14 @@ export const es = {
       invalid_email: 'Introduce un email válido.',
       invalid_credentials: 'Email o contraseña incorrectos.',
       email_already_registered: 'Ya existe una cuenta con este email.',
+      password_too_short: 'La contraseña debe tener al menos 8 caracteres.',
+      password_mismatch: 'Las contraseñas no coinciden.',
       weak_password: 'La contraseña no es suficientemente segura. Prueba con una más larga.',
+      pwned_password: 'Esta contraseña aparece en filtraciones de datos conocidas. Elige otra.',
       same_password: 'La nueva contraseña debe ser distinta de la anterior.',
+      wrong_current_password: 'La contraseña actual no es correcta.',
+      code_invalid: 'El código no es válido o ha caducado. Pide otro.',
+      terms_not_accepted: 'Para crear la cuenta, acepta los Términos y la Política de privacidad.',
       email_not_confirmed: 'Confirma tu email antes de iniciar sesión.',
       link_invalid:
         'El enlace ha caducado o ya se ha usado. Ábrelo en el mismo dispositivo donde lo pediste o solicita uno nuevo.',
@@ -807,12 +833,28 @@ export const es = {
     password: {
       title: 'Cambiar contraseña',
       text: 'Elige una contraseña que no uses en otros sitios.',
+      current: 'Contraseña actual',
       new: 'Contraseña nueva',
       repeat: 'Repite la contraseña',
-      mismatch: 'Las contraseñas no coinciden.',
       save: 'Guardar contraseña',
       saving: 'Guardando…',
       saved: 'Contraseña cambiada',
+      /** Supabase pide reautenticación («Secure password change» y sesión de más de 24 h). */
+      codeTitle: 'Confirma que eres tú',
+      codeText: 'Te hemos enviado un código a {email}. Escríbelo para guardar la contraseña nueva.',
+      code: 'Código del email',
+      confirm: 'Confirmar y guardar',
+      resendCode: 'Reenviar código',
+      resendCodeWait: 'Reenviar en {seconds} s',
+      codeSent: 'Te hemos enviado otro código.',
+      /** Cuenta sin contraseña (solo Google): se crea con el enlace de recuperación. */
+      createTitle: 'Crear contraseña',
+      createText:
+        'Entras con Google. Si quieres entrar también con tu email, crea una contraseña: te enviaremos un enlace a {email}.',
+      createSend: 'Enviarme el enlace',
+      createSending: 'Enviando…',
+      createSentTitle: 'Enlace enviado',
+      createSent: 'Ábrelo en este móvil para crear la contraseña. Si no llega, mira en la carpeta de spam.',
     },
     privacyScreen: {
       title: 'Privacidad',

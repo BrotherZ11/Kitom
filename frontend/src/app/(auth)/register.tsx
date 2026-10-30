@@ -16,51 +16,65 @@ import { authErrorField } from '@/features/auth/auth-error-field';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { AuthDivider } from '@/features/auth/components/auth-divider';
 import { GoogleLogo } from '@/features/auth/components/google-logo';
-import { validateCredentials } from '@/features/auth/validation';
-import { t } from '@/i18n';
+import { GoogleTermsNotice, TermsConsent } from '@/features/auth/components/legal-consent';
+import { ResendButton } from '@/features/auth/components/resend-button';
+import { validateSignUp } from '@/features/auth/validation';
+import { t, tf } from '@/i18n';
+import { createSubmitGuard } from '@/lib/submit-guard';
 import { fontFamily, spacing } from '@/theme/tokens';
 
-/** Crear cuenta (tablero 1.3) y, si hay que confirmar el email, «Revisa tu correo» (tablero 1.4). */
+/**
+ * Crear cuenta (tablero 1.3) y, si hay que confirmar el email, «Revisa tu correo» (tablero 1.4) con
+ * «Reenviar email». Con email: regla de longitud visible y casilla obligatoria de Términos y Privacidad;
+ * con Google, el mismo aviso como texto bajo el botón.
+ */
 export default function RegisterScreen() {
   const router = useRouter();
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, resendSignUpEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<AuthErrorCode | null>(null);
-  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
+  /** Instante del email de confirmación (`null`: no hay que confirmar). */
+  const [confirmationSentAt, setConfirmationSentAt] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [guard] = useState(createSubmitGuard);
 
   // Con Google no hay registro aparte: la primera vez crea la cuenta.
-  const handleGoogle = async () => {
-    setError(null);
-    setNeedsEmailConfirmation(false);
-    setIsGoogleSubmitting(true);
-    const result = await signInWithGoogle();
-    setIsGoogleSubmitting(false);
-    setError(result.error);
+  const handleGoogle = () => {
+    void guard.run(async () => {
+      setError(null);
+      setConfirmationSentAt(null);
+      setIsGoogleSubmitting(true);
+      const result = await signInWithGoogle();
+      setIsGoogleSubmitting(false);
+      setError(result.error);
+    });
   };
 
-  const handleSubmit = async () => {
-    const validationError = validateCredentials(email, password);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+  const handleSubmit = () => {
+    void guard.run(async () => {
+      const validationError = validateSignUp(email, password, acceptedTerms);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
 
-    setError(null);
-    setIsSubmitting(true);
-    // Si el proyecto no exige confirmar el email, llega sesión y la protección lleva a (app).
-    const result = await signUp(email, password);
-    setIsSubmitting(false);
-    setError(result.error);
-    setNeedsEmailConfirmation(result.needsEmailConfirmation);
+      setError(null);
+      setIsSubmitting(true);
+      // Si el proyecto no exige confirmar el email, llega sesión y la protección lleva a (app).
+      const result = await signUp(email, password);
+      setIsSubmitting(false);
+      setError(result.error);
+      setConfirmationSentAt(result.needsEmailConfirmation ? Date.now() : null);
+    });
   };
 
   const goToLogin = () => router.replace('/login');
   const back = router.canGoBack() ? () => router.back() : undefined;
 
-  if (needsEmailConfirmation) {
+  if (confirmationSentAt !== null) {
     // Tablero 1.4: sin barra superior, bloque arriba (no centrado) y 24 hasta la tarjeta.
     return (
       <Screen
@@ -73,7 +87,7 @@ export default function RegisterScreen() {
               variant="ghost"
               size="md"
               label={t('auth.verifyEmail.changeEmail')}
-              onPress={() => setNeedsEmailConfirmation(false)}
+              onPress={() => setConfirmationSentAt(null)}
             />
           </>
         }>
@@ -97,21 +111,31 @@ export default function RegisterScreen() {
           <Text variant="caption" color="inkMuted">
             {t('auth.verifyEmail.notArrivingHint')}
           </Text>
+          <ResendButton
+            sentAt={confirmationSentAt}
+            onResend={async () => (await resendSignUpEmail(email)).error}
+            label={t('auth.resend.action')}
+            loadingLabel={t('auth.resend.sending')}
+            waitLabel={(seconds) => tf('auth.resend.wait', { seconds })}
+            sentMessage={t('auth.resend.sent')}
+          />
         </Card>
       </Screen>
     );
   }
 
+  // El error va en su campo cuando es del email o de la contraseña; el resto, en la alerta.
   const errorField = error ? authErrorField(error) : null;
   const fieldError = (field: 'email' | 'password') =>
     error && errorField === field ? authErrorMessage(error) : null;
+  const formError = error && errorField !== 'email' && errorField !== 'password' ? authErrorMessage(error) : null;
 
   return (
     <Screen
       align="top"
       footer={
         <>
-          <FormMessage message={error && errorField === null ? authErrorMessage(error) : null} />
+          <FormMessage message={formError} />
           <Button
             label={t('auth.register.submit')}
             loading={isSubmitting}
@@ -140,6 +164,7 @@ export default function RegisterScreen() {
         disabled={isSubmitting}
         onPress={handleGoogle}
       />
+      <GoogleTermsNotice />
 
       <AuthDivider label={t('auth.emailDivider')} />
 
@@ -159,11 +184,19 @@ export default function RegisterScreen() {
         label={t('auth.fields.password')}
         value={password}
         onChangeText={setPassword}
+        hint={t('auth.passwordRule')}
         error={fieldError('password')}
         secureTextEntry
         autoComplete="new-password"
         textContentType="newPassword"
         onSubmitEditing={handleSubmit}
+      />
+      <TermsConsent
+        checked={acceptedTerms}
+        onChange={(checked) => {
+          setAcceptedTerms(checked);
+          if (checked && error === 'terms_not_accepted') setError(null);
+        }}
       />
     </Screen>
   );
