@@ -70,8 +70,14 @@ error y «sin mascotas».
   utilizable; es lo que hace segura la revalidación al reconectar de móvil, `lib/query-defaults.ts`,
   aunque la query use `enabled`); nunca comprobar `session` para decidir si hay usuario (usar
   `user`), ni dar por válida una sesión `offline`.
-- Rutas de Auth: `(auth)/auth-callback.tsx` recibe los enlaces de email y el retorno de Google;
-  `update-password.tsx` solo es accesible con una sesión de recuperación.
+- Rutas de Auth: `auth-callback.tsx` (en la raíz, con y sin sesión; con sesión solo canjea enlaces de
+  recuperación: `auth-callback-plan.ts`) recibe los enlaces de email y el retorno de Google;
+  `update-password.tsx` solo es accesible con una recuperación pendiente, guardada en el dispositivo por
+  usuario (`password-recovery.ts`; sobrevive a cerrar la app). Contraseñas nuevas: mínimo
+  `MIN_PASSWORD_LENGTH` (`validation.ts`) con la regla visible (`auth.passwordRule`); cambio en ajustes
+  siempre con `changePassword` de `useAuth()` (comprueba la actual con un cliente aparte,
+  `change-password.ts`), nunca `updateUser` directo. Mapeo de errores puro en `auth-error-code.ts`.
+  Guía: `docs/AUTH.md` §5.
 - `src/app/_layout.tsx` — único punto de protección de rutas (`Stack.Protected`); nunca comprobar la
   sesión pantalla a pantalla.
 - `src/i18n/` — `t(key)` tipado; `es` y `en` con las mismas claves (`Translations`). Idioma del

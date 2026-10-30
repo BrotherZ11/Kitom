@@ -62,7 +62,7 @@ function RootNavigator() {
 
   return (
     // Si un guard deja de cumplirse, Expo Router redirige a la primera pantalla disponible en este
-    // orden: (app) → update-password (sesión de recuperación) → (auth) (incluye /auth-callback).
+    // orden: (app) → update-password (recuperación pendiente, guardada en el dispositivo) → (auth).
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={isSignedIn && !isRecoveringPassword}>
         <Stack.Screen name="(app)" />
@@ -73,6 +73,12 @@ function RootNavigator() {
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
+      {/*
+        Enlaces de Supabase Auth, con y sin sesión (un enlace de recuperación también vale con la sesión
+        iniciada). Después de los grupos protegidos: nunca es el destino de una redirección. Qué canjea y a
+        dónde sale lo decide `features/auth/auth-callback-plan.ts`.
+      */}
+      <Stack.Screen name="auth-callback" options={{ title: t('auth.callback.processing') }} />
       {/* Galería del sistema de diseño: solo en desarrollo, con o sin sesión. */}
       <Stack.Protected guard={__DEV__}>
         <Stack.Screen name="dev-components" options={{ headerShown: true }} />

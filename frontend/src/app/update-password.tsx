@@ -10,41 +10,52 @@ import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
 import { authErrorField } from '@/features/auth/auth-error-field';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
+import { validatePasswordChange } from '@/features/auth/validation';
 import { t } from '@/i18n';
+import { createSubmitGuard } from '@/lib/submit-guard';
 import { spacing } from '@/theme/tokens';
 
 /**
- * Nueva contraseña (tablero 1.9). Solo accesible con una sesión de recuperación (ver protección en el
- * layout raíz). Salir de aquí («atrás» de la barra) cancela y cierra la sesión, como antes.
+ * Nueva contraseña (tablero 1.9). Solo accesible con una recuperación pendiente (protección en el layout
+ * raíz; la marca se guarda en el dispositivo, así que también tras cerrar la app). Regla de longitud
+ * visible y repetición. Salir de aquí («atrás» de la barra) cancela y cierra la sesión, como antes.
  */
 export default function UpdatePasswordScreen() {
   const { updatePassword, signOut } = useAuth();
   const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState<AuthErrorCode | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [guard] = useState(createSubmitGuard);
 
-  const handleSubmit = async () => {
-    if (password === '') {
-      setError('missing_fields');
-      return;
-    }
+  const handleSubmit = () => {
+    void guard.run(async () => {
+      const validationError = validatePasswordChange({ password, confirmation });
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
 
-    setError(null);
-    setIsSubmitting(true);
-    // Si va bien, termina la recuperación y la protección de rutas lleva a (app).
-    const result = await updatePassword(password);
-    setIsSubmitting(false);
-    setError(result.error);
+      setError(null);
+      setIsSubmitting(true);
+      // Si va bien, termina la recuperación y la protección de rutas lleva a (app).
+      const result = await updatePassword(password);
+      setIsSubmitting(false);
+      setError(result.error);
+    });
   };
 
-  const passwordError = error && authErrorField(error) === 'password' ? authErrorMessage(error) : null;
+  const field = error ? authErrorField(error) : null;
+  const passwordError = error && field === 'password' ? authErrorMessage(error) : null;
+  const confirmationError = error && field === 'confirmPassword' ? authErrorMessage(error) : null;
+  const formError = error && !passwordError && !confirmationError ? authErrorMessage(error) : null;
 
   return (
     <Screen
       align="top"
       footer={
         <>
-          <FormMessage message={error && !passwordError ? authErrorMessage(error) : null} />
+          <FormMessage message={formError} />
           <Button
             label={t('auth.updatePassword.submit')}
             loading={isSubmitting}
@@ -66,10 +77,21 @@ export default function UpdatePasswordScreen() {
         label={t('auth.fields.newPassword')}
         value={password}
         onChangeText={setPassword}
+        hint={t('auth.passwordRule')}
         error={passwordError}
         secureTextEntry
         autoComplete="new-password"
         textContentType="newPassword"
+      />
+      <TextField
+        label={t('auth.fields.confirmPassword')}
+        value={confirmation}
+        onChangeText={setConfirmation}
+        error={confirmationError}
+        secureTextEntry
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="done"
         onSubmitEditing={handleSubmit}
       />
     </Screen>

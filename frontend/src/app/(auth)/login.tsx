@@ -14,14 +14,19 @@ import { authErrorField } from '@/features/auth/auth-error-field';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { AuthDivider } from '@/features/auth/components/auth-divider';
 import { GoogleLogo } from '@/features/auth/components/google-logo';
+import { GoogleTermsNotice } from '@/features/auth/components/legal-consent';
+import { ResendButton } from '@/features/auth/components/resend-button';
 import { validateCredentials } from '@/features/auth/validation';
-import { t } from '@/i18n';
+import { t, tf } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 
-/** Iniciar sesión (tablero 1.5): Google o email y contraseña. */
+/**
+ * Iniciar sesión (tablero 1.5): Google o email y contraseña. Con el email sin confirmar se ofrece
+ * reenviar la confirmación (Supabase solo lo dice con la contraseña correcta: no revela cuentas).
+ */
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, resendSignUpEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<AuthErrorCode | null>(null);
@@ -62,6 +67,15 @@ export default function LoginScreen() {
       footer={
         <>
           <FormMessage message={error && errorField === null ? authErrorMessage(error) : null} />
+          {error === 'email_not_confirmed' ? (
+            <ResendButton
+              onResend={async () => (await resendSignUpEmail(email)).error}
+              label={t('auth.resend.action')}
+              loadingLabel={t('auth.resend.sending')}
+              waitLabel={(seconds) => tf('auth.resend.wait', { seconds })}
+              sentMessage={t('auth.resend.sent')}
+            />
+          ) : null}
           <Button
             label={t('auth.login.submit')}
             loading={isSubmitting}
@@ -99,6 +113,8 @@ export default function LoginScreen() {
         disabled={isSubmitting}
         onPress={handleGoogle}
       />
+      {/* Con Google, la primera vez se crea la cuenta: el aviso legal va también aquí. */}
+      <GoogleTermsNotice />
 
       <AuthDivider label={t('auth.emailDivider')} />
 

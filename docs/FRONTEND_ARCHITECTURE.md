@@ -37,7 +37,8 @@ APP (tabs, sesión activa, onboarding completo)
 Destinos lógicos. **Implementado (diseño v2, F2–F5)** con Expo Router; las URL anteriores no cambian:
 
 ```
-(auth)  welcome · onboarding · login · register · forgot-password · auth-callback   (+ update-password)
+(auth)  welcome · onboarding · login · register · forgot-password   (+ update-password: recuperación pendiente)
+auth-callback   en la raíz, con y sin sesión (con sesión solo canjea enlaces de recuperación; ver §2)
 (app)   Stack, sin cabecera nativa (cada pantalla lleva su TopBar)
 ├── (tabs)  barra Hoy · Historial · [Registrar] · Agenda · Perfil (redirige a setup/profile si falta la configuración inicial)
 │   ├── index        /            Hoy (mascota activa; «Próximo» de la agenda)
@@ -70,6 +71,16 @@ que se recuerda por usuario en el dispositivo; si ya no es visible, se usa la pr
 `offline` = sesión guardada de un usuario identificado que Supabase no ha podido renovar ni comprobar
 (sin conexión): se ve la app con sus datos locales y no se usa el servidor. Detalle: §5 «Arranque en
 frío sin conexión».
+
+**Recuperación de contraseña pendiente (implementada, 2026-10-29).** Además del estado de la sesión, el
+layout raíz usa `isRecoveringPassword` (`features/auth/password-recovery.ts`, puro y probado): marca por
+usuario guardada en el almacenamiento seguro de la sesión (clave `kitom-password-recovery`) al recibir
+`PASSWORD_RECOVERY`; se borra al guardar la contraseña (`updatePassword`) o si la sesión deja de ser de
+ese usuario (cierre de sesión, sesión rechazada, otra cuenta). Con la marca del usuario de la sesión
+(también `offline`), solo está disponible `/update-password`. `isLoading` sigue en `true` hasta leerla.
+`/auth-callback` vive en la raíz, fuera de los guards: sin sesión canjea cualquier enlace; con sesión,
+solo los de recuperación, y sale sola a `/update-password` o a `/` (`auth-callback-plan.ts`). Flujos y
+configuración de Supabase: `AUTH.md` §2, §3 y §5.
 
 **Configuración inicial (implementada, 2026-10-21).** No es un stack aparte: las rutas `(app)/setup/*`
 viven en `(app)` y el layout de `(tabs)` redirige a `setup/profile` mientras
@@ -118,8 +129,14 @@ No se introduce Redux ni una capa de estado global adicional — con React Query
 
 ### AuthScreens (Login/Register/ForgotPassword)
 - **READ:** —
-- **WRITE:** `supabase.auth.signIn/signUp/resetPasswordForEmail`
+- **WRITE:** `supabase.auth.signIn/signUp/resetPasswordForEmail` y `resend({ type: 'signup' })` (reenviar la
+  confirmación desde «Revisa tu correo» y desde el login con `email_not_confirmed`, espera de 60 s)
 - **RPC / Edge Function / Storage:** ninguno
+- Registro: contraseña de al menos 8 caracteres (`MIN_PASSWORD_LENGTH`, regla visible) y casilla
+  obligatoria de Términos y Privacidad (`lib/legal-links.ts`, navegador dentro de la app); con Google, el
+  aviso como texto. Errores nuevos de `AuthErrorCode` (`auth-error-code.ts`): `password_too_short`,
+  `password_mismatch`, `pwned_password`, `wrong_current_password`, `code_invalid`, `terms_not_accepted`.
+  Detalle: `AUTH.md` §5.
 
 ### ProfileSetup / Disclaimer (onboarding)
 - **READ:** `profiles` (propia)
@@ -562,7 +579,10 @@ e `invitations`. Entrada: «Co-tutores» en el perfil de la mascota.
 español), zona horaria (ver y «usar la de este móvil»: `profiles.timezone`), tema sistema/claro/oscuro
 (preferencia **del dispositivo**, AsyncStorage `kitom-theme-preference`; no hay columna), notificaciones
 (`notification_preferences.daily_reminder_enabled/_time` y estado del permiso), seguridad (email
-verificado, métodos de `user.identities`, cambiar contraseña con `updateUser`), privacidad (aviso
+verificado, métodos de `user.identities`; cambiar contraseña pidiendo la actual, comprobada con un
+cliente de Auth aparte sin tocar la sesión, y `updateUser({ password, current_password[, nonce] })`, con
+código por email si Supabase pide reautenticación; una cuenta solo de Google la crea con el enlace de
+recuperación: `features/auth/change-password.ts`, `AUTH.md` §5), privacidad (aviso
 aceptado con fecha y versión, `marketing_opt_in`, y «Tus derechos»: política de privacidad y email de
 soporte), ayuda (preguntas frecuentes y email de soporte) y legal (política de privacidad y términos con
 su fecha de entrada en vigor, resumen, aviso veterinario y responsable), «Mis mascotas», «Registros sin
