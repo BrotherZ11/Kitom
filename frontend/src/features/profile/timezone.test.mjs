@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { normalizeTimeZone, syncProfileTimeZone } from './timezone.ts';
+import { deviceTimeZoneFrom, normalizeTimeZone, syncProfileTimeZone } from './timezone.ts';
 
 const USER_ID = 'f0000000-0000-4000-8000-000000000001';
 
@@ -42,6 +42,21 @@ describe('normalizeTimeZone', () => {
     for (const value of [null, undefined, 1, {}, ['Europe/Madrid']]) {
       assert.equal(normalizeTimeZone(value), null);
     }
+  });
+});
+
+describe('deviceTimeZoneFrom', () => {
+  it('los alias sin región de UTC del dispositivo se guardan como UTC', () => {
+    for (const value of ['GMT', 'gmt', ' UCT ', 'Zulu', 'Universal', 'Greenwich', 'GMT0']) {
+      assert.equal(deviceTimeZoneFrom(value), 'UTC', value);
+    }
+  });
+
+  it('el resto sigue las reglas de normalizeTimeZone', () => {
+    assert.equal(deviceTimeZoneFrom('Europe/Madrid'), 'Europe/Madrid');
+    assert.equal(deviceTimeZoneFrom('CET'), null);
+    assert.equal(deviceTimeZoneFrom('GMT+1'), null);
+    assert.equal(deviceTimeZoneFrom(undefined), null);
   });
 });
 

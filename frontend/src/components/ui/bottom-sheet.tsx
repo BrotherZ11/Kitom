@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -34,7 +34,8 @@ export function BottomSheet({ visible, title, onClose, children, footer }: Botto
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        // `padding` también en Android (edge-to-edge: la ventana no se redimensiona con el teclado).
+        behavior="padding">
         <Animated.View entering={scrimEntering} style={[styles.scrim, { backgroundColor: theme.scrim }]}>
           <Pressable
             style={StyleSheet.absoluteFill}
