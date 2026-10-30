@@ -14,6 +14,7 @@ import { ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
 import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
+import { TextLink } from '@/components/ui/text-link';
 import { TopBar, TopBarText } from '@/components/ui/top-bar';
 import { nextMonthStart, toggleSymptom, toRequestErrorCode, type Entitlement } from '@/features/ai-analysis/ai-analysis-model';
 import { ConsultGate } from '@/features/ai-analysis/components/consult-gate';
@@ -25,6 +26,8 @@ import type { PreparedPetPhoto } from '@/features/pets/pet-photo';
 import type { Pet } from '@/features/pets/types';
 import { formatFullDate } from '@/features/reminders/reminder-format';
 import { getLocale, t, tf } from '@/i18n';
+import { PRIVACY_POLICY_URL } from '@/lib/legal-links';
+import { openWebPage } from '@/lib/open-link';
 import { createSubmitGuard } from '@/lib/submit-guard';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -144,9 +147,12 @@ function NewConsult({ pet }: { pet: Pet }) {
         </Card>
         <Alert tone="info" title={t('consult.intro.noticeTitle')} message={t('consult.intro.noticeText')} />
         <EmergencyHint />
-        <Text variant="caption" color="inkMuted">
-          {t('consult.intro.privacy')}
-        </Text>
+        <View style={styles.privacy}>
+          <Text variant="caption" color="inkMuted">
+            {t('consult.intro.privacy')}
+          </Text>
+          <PrivacyPolicyLink />
+        </View>
       </Screen>
     );
   }
@@ -190,9 +196,12 @@ function NewConsult({ pet }: { pet: Pet }) {
             </View>
             <Alert tone="warning" title={t('consult.photo.peopleTitle')} message={t('consult.photo.peopleText')} />
             <Checkbox checked={consent} onChange={setConsent} label={t('consult.photo.consent')} />
-            <Text variant="caption" color="inkMuted">
-              {t('consult.photo.consentText')}
-            </Text>
+            <View style={styles.privacy}>
+              <Text variant="caption" color="inkMuted">
+                {t('consult.photo.consentText')}
+              </Text>
+              <PrivacyPolicyLink />
+            </View>
           </>
         ) : (
           <View style={styles.pickers}>
@@ -278,8 +287,29 @@ function NewConsult({ pet }: { pet: Pet }) {
   );
 }
 
-/** Límite del plan (tablero 7.13). Premium aún no existe: se dice sin presionar. */
+/** Enlace a la política de privacidad (qué se envía a Google y por qué), en el navegador integrado. */
+function PrivacyPolicyLink() {
+  const [failed, setFailed] = useState(false);
+  return (
+    <>
+      <TextLink
+        label={t('consult.privacyPolicy')}
+        onPress={() => {
+          setFailed(false);
+          void openWebPage(PRIVACY_POLICY_URL).then((opened) => setFailed(!opened));
+        }}
+      />
+      {failed ? <Alert tone="error" message={tf('settings.legalScreen.openError', { url: PRIVACY_POLICY_URL })} /> : null}
+    </>
+  );
+}
+
+/**
+ * Límite mensual (tablero 7.13): cuándo vuelven las consultas y por qué hay límite. Esta versión es
+ * gratuita y no ofrece Premium (el cupo lo decide el servidor).
+ */
 function LimitView({ quota, onClose }: { quota: Entitlement; onClose: () => void }) {
+  const limit = quota.monthlyLimit ?? quota.usedThisMonth;
   return (
     <Screen align="top" footer={<Button label={t('consult.limit.back')} variant="secondary" onPress={onClose} />}>
       <TopBar onBack={onClose} />
@@ -288,21 +318,16 @@ function LimitView({ quota, onClose }: { quota: Entitlement; onClose: () => void
           {t('consult.limit.overline')}
         </Text>
         <Text variant="title1" accessibilityRole="header">
-          {tf('consult.limit.title', { limit: quota.monthlyLimit ?? quota.usedThisMonth })}
+          {tf('consult.limit.title', { limit })}
         </Text>
         <Text color="inkMuted">
           {tf('consult.limit.text', { date: formatFullDate(nextMonthStart(new Date()), getLocale()) })}
         </Text>
       </View>
-      <EmergencyHint />
-      <Card variant="brand" style={styles.premium}>
-        <View style={styles.between}>
-          <Text variant="bodyStrong">{t('consult.limit.premiumTitle')}</Text>
-          <Tag label={t('consult.limit.premiumSoon')} />
-        </View>
-        <Text color="inkMuted">{t('consult.limit.premiumUnlimited')}</Text>
-        <Text color="inkMuted">{t('consult.limit.premiumHistory')}</Text>
+      <Card variant="flat">
+        <Text color="inkMuted">{tf('consult.limit.why', { limit })}</Text>
       </Card>
+      <EmergencyHint />
     </Screen>
   );
 }
@@ -347,7 +372,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing['2'],
   },
-  premium: {
-    gap: spacing['2'],
+  privacy: {
+    gap: spacing['1'],
   },
 });

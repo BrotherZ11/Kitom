@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 
 import { Card } from '@/components/ui/card';
-import { Check, KeyRound, Mail, Smartphone } from '@/components/ui/icons';
+import { Check, KeyRound, Mail } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
 import { Screen } from '@/components/ui/screen';
 import { Tag } from '@/components/ui/tag';
@@ -13,8 +13,8 @@ import { t } from '@/i18n';
 
 /**
  * Seguridad y acceso (tablero 10.2): el email, con qué se entra (Supabase Auth: `identities`) y cambiar
- * la contraseña. El teléfono está pendiente de OTP en Auth; «cerrar sesión en todos los dispositivos»
- * no se ofrece (necesita decidir qué pasa con lo pendiente de otros dispositivos).
+ * la contraseña. Entrar con teléfono está retirado del alcance (decisión 2026-10-29); «cerrar sesión en
+ * todos los dispositivos» no se ofrece (necesita decidir qué pasa con lo pendiente de otros dispositivos).
  */
 export default function SecurityScreen() {
   const router = useRouter();
@@ -52,7 +52,7 @@ export default function SecurityScreen() {
             leading={<GoogleLogo />}
             title={t('settings.securityScreen.google')}
             subtitle={t('settings.securityScreen.connected')}
-            divider
+            divider={hasPassword}
           />
         ) : null}
         {hasPassword ? (
@@ -62,16 +62,8 @@ export default function SecurityScreen() {
             title={t('settings.securityScreen.emailPassword')}
             subtitle={t('settings.securityScreen.changePassword')}
             onPress={() => router.push('/settings/password')}
-            divider
           />
         ) : null}
-        <ListItem
-          plain
-          icon={Smartphone}
-          title={t('settings.securityScreen.phone')}
-          subtitle={t('settings.securityScreen.phoneText')}
-          trailing={<Tag label={t('common.soon')} />}
-        />
       </Card>
       <Text variant="caption" color="inkMuted">
         {t('settings.securityScreen.signOutNote')}

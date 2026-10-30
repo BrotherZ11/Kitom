@@ -11,7 +11,7 @@ los enlaces de email y el login con Google funcionen. Código: `frontend/src/fea
 | Confirmación de email por enlace | ✅ (requiere configuración, sección 3) |
 | Recuperación de contraseña por enlace | ✅ (requiere configuración, sección 3) |
 | Google (OAuth en navegador del sistema) | ✅ (requiere configuración, sección 4) |
-| Teléfono (OTP) | Pendiente (PRD §8.1) |
+| Teléfono (OTP) | Retirado del alcance (decisión 2026-10-29; PRD §8.1 es histórico) |
 
 ## 2. Cómo funcionan los enlaces (deep links)
 

@@ -1,0 +1,42 @@
+# Publica las páginas públicas de Kitom (carpeta site/) en GitHub Pages.
+# Requisito: Settings › Pages › Build and deployment › Source = «GitHub Actions» (ver site/README.md).
+# Versiones fijadas con tag exacto: actualizarlas a propósito, nunca con un @vN flotante.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
+      - name: Configure Pages
+        uses: actions/configure-pages@v5.0.0
+      - name: Upload site/
+        uses: actions/upload-pages-artifact@v3.0.1
+        with:
+          path: site
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4.0.5

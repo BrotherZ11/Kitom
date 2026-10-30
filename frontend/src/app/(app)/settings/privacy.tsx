@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
-import { Camera, Mail, Stethoscope } from '@/components/ui/icons';
+import { Camera, FileText, Mail, Stethoscope } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
 import { ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
@@ -18,12 +18,16 @@ import { DISCLAIMER_VERSION } from '@/features/profile/onboarding';
 import { formatFullDate } from '@/features/reminders/reminder-format';
 import { useIsOnline } from '@/hooks/use-is-online';
 import { getLocale, t, tf } from '@/i18n';
+import { PRIVACY_POLICY_URL, SUPPORT_EMAIL } from '@/lib/legal-links';
+import { openSupportEmail, openWebPage } from '@/lib/open-link';
 import { spacing } from '@/theme/tokens';
 
 /**
- * Privacidad y consentimientos (tablero 10.4): el aviso veterinario aceptado (fecha y versión) y las
- * comunicaciones (`marketing_opt_in`, revocable). El consentimiento de la foto de cada consulta se pide
- * en la propia consulta (`consult/new`) y no se guarda en el servidor (sin columna, `PANTALLAS.md` §6.4).
+ * Privacidad y consentimientos (tablero 10.4): el aviso veterinario aceptado (fecha y versión), las
+ * comunicaciones (`marketing_opt_in`, revocable) y tus derechos (política de privacidad y email de
+ * soporte; descargar y eliminar la cuenta están en Tu cuenta). El consentimiento de la foto de cada
+ * consulta se pide en la propia consulta (`consult/new`) y no se guarda en el servidor (sin columna,
+ * `PANTALLAS.md` §6.4).
  */
 export default function PrivacyScreen() {
   const router = useRouter();
@@ -48,6 +52,17 @@ export default function PrivacyScreen() {
         onError: () => setError(t('settings.saveError')),
       }
     );
+  };
+
+  const openPolicy = async () => {
+    setError(null);
+    if (!(await openWebPage(PRIVACY_POLICY_URL))) setError(tf('settings.legalScreen.openError', { url: PRIVACY_POLICY_URL }));
+  };
+  const writeToSupport = async () => {
+    setError(null);
+    if (!(await openSupportEmail(t('settings.privacyScreen.emailSubject')))) {
+      setError(tf('settings.helpScreen.mailError', { email: SUPPORT_EMAIL }));
+    }
   };
 
   return (
@@ -111,12 +126,33 @@ export default function PrivacyScreen() {
               <ListItem icon={Camera} title={t('settings.privacyScreen.photos')} subtitle={t('settings.privacyScreen.photosText')} />
             </Card>
           </View>
-
-          <Text variant="caption" color="inkMuted">
-            {t('settings.privacyScreen.rights')}
-          </Text>
         </>
       )}
+
+      {/* Los derechos no dependen del perfil: también sin conexión o si no ha cargado. */}
+      <View style={styles.group}>
+        <Text variant="overline" color="inkMuted" accessibilityRole="header">
+          {t('settings.privacyScreen.rights')}
+        </Text>
+        <Text color="inkMuted">{t('settings.privacyScreen.rightsText')}</Text>
+        <Card flush>
+          <ListItem
+            plain
+            icon={FileText}
+            title={t('settings.privacyScreen.policy')}
+            subtitle={t('settings.privacyScreen.policyText')}
+            onPress={() => void openPolicy()}
+            divider
+          />
+          <ListItem
+            plain
+            icon={Mail}
+            title={t('settings.privacyScreen.contact')}
+            subtitle={SUPPORT_EMAIL}
+            onPress={() => void writeToSupport()}
+          />
+        </Card>
+      </View>
     </Screen>
   );
 }
