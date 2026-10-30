@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Alert } from '@/components/ui/alert';
 import { Banner } from '@/components/ui/banner';
@@ -13,6 +13,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { TextLink } from '@/components/ui/text-link';
+import { BirthDateField } from '@/features/pets/components/birth-date-field';
 import { PetBreedField, type BreedValues } from '@/features/pets/components/pet-breed-field';
 import { useBreedCatalog } from '@/features/pets/hooks/use-breeds';
 import { findBreed } from '@/features/pets/offline/breed-catalog-view';
@@ -262,15 +263,9 @@ export function PetForm({
       <View style={styles.field}>
         <View style={styles.grid}>
           <View style={styles.flex}>
-            <TextField
-              label={t('pets.fields.birthDate')}
+            <BirthDateField
               value={values.birthDate}
-              onChangeText={(text) => setField('birthDate', text)}
-              placeholder="AAAA-MM-DD"
-              keyboardType="numbers-and-punctuation"
-              autoCorrect={false}
-              maxLength={10}
-              style={styles.mono}
+              onChange={(text) => setField('birthDate', text)}
               error={fieldError(errors.birthDate)}
             />
           </View>
@@ -286,9 +281,11 @@ export function PetForm({
             />
           </View>
         </View>
-        <Text variant="caption" color="inkMuted">
-          {t('pets.fields.birthDateHint')}
-        </Text>
+        {Platform.OS === 'web' ? (
+          <Text variant="caption" color="inkMuted">
+            {t('pets.fields.birthDateHint')}
+          </Text>
+        ) : null}
       </View>
 
       <SegmentedControl
