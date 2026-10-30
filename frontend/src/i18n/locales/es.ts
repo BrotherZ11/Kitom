@@ -639,7 +639,7 @@ export const es = {
       nameFromGoogle: 'Lo hemos tomado de tu cuenta de Google.',
       nameTooLong: 'Como mucho, {max} caracteres.',
       language: 'Idioma',
-      languageText: 'Más idiomas, próximamente',
+      languageText: 'Según el idioma del móvil',
       languageValue: 'Español',
       timezone: 'Zona horaria',
       timezoneText: 'Para saber cuándo empieza el día de tu mascota',

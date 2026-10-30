@@ -8,19 +8,20 @@ import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
 import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
+import { accountHasPassword } from '@/features/auth/change-password';
 import { GoogleLogo } from '@/features/auth/components/google-logo';
 import { t } from '@/i18n';
 
 /**
  * Seguridad y acceso (tablero 10.2): el email, con qué se entra (Supabase Auth: `identities`) y cambiar
- * la contraseña. Entrar con teléfono está retirado del alcance (decisión 2026-10-29); «cerrar sesión en
+ * la contraseña (o crearla, si solo entra con Google). Entrar con teléfono está retirado del alcance (decisión 2026-10-29); «cerrar sesión en
  * todos los dispositivos» no se ofrece (necesita decidir qué pasa con lo pendiente de otros dispositivos).
  */
 export default function SecurityScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const providers = new Set((user?.identities ?? []).map((identity) => identity.provider));
-  const hasPassword = providers.has('email');
+  const hasPassword = accountHasPassword(user?.identities);
   const verified = Boolean(user?.email_confirmed_at);
 
   return (
@@ -52,18 +53,16 @@ export default function SecurityScreen() {
             leading={<GoogleLogo />}
             title={t('settings.securityScreen.google')}
             subtitle={t('settings.securityScreen.connected')}
-            divider={hasPassword}
+            divider
           />
         ) : null}
-        {hasPassword ? (
-          <ListItem
-            plain
-            icon={KeyRound}
-            title={t('settings.securityScreen.emailPassword')}
-            subtitle={t('settings.securityScreen.changePassword')}
-            onPress={() => router.push('/settings/password')}
-          />
-        ) : null}
+        <ListItem
+          plain
+          icon={KeyRound}
+          title={t('settings.securityScreen.emailPassword')}
+          subtitle={hasPassword ? t('settings.securityScreen.changePassword') : t('settings.password.createTitle')}
+          onPress={() => router.push('/settings/password')}
+        />
       </Card>
       <Text variant="caption" color="inkMuted">
         {t('settings.securityScreen.signOutNote')}

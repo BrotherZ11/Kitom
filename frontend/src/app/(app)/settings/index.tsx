@@ -56,10 +56,10 @@ import { useAppTheme, type ThemePreference } from '@/theme/theme-provider';
 import { borderWidth, radius, size, spacing } from '@/theme/tokens';
 
 /**
- * Tu cuenta y ajustes (tablero 10.1): quién eres y tu plan, preferencias (idioma, zona horaria, tema y
- * notificaciones), seguridad y privacidad, tus datos, ayuda, cerrar sesión y eliminar la cuenta
- * (Edge Function `delete-account`, pantalla `settings/delete-account`). Exportar y suscripción no se
- * muestran hasta tener su servicio (Edge Function y RevenueCat pendientes).
+ * Tu cuenta y ajustes (tablero 10.1): quién eres, preferencias (idioma, zona horaria, tema y
+ * notificaciones), seguridad y privacidad, tus datos (incluido descargarlos, `settings/export`), ayuda,
+ * cerrar sesión y eliminar la cuenta (Edge Function `delete-account`, pantalla `settings/delete-account`).
+ * La suscripción no se muestra: la primera versión es gratuita (RevenueCat pendiente).
  */
 export default function SettingsScreen() {
   const router = useRouter();
