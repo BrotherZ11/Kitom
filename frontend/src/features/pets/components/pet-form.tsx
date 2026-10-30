@@ -18,6 +18,8 @@ import { useBreedCatalog } from '@/features/pets/hooks/use-breeds';
 import { findBreed } from '@/features/pets/offline/breed-catalog-view';
 import {
   hasPetFormErrors,
+  PET_LIST_MAX_LENGTH,
+  PET_TEMPERAMENT_NOTES_MAX_LENGTH,
   toPetFields,
   validatePetForm,
   withSpecies,
@@ -310,6 +312,7 @@ export function PetForm({
         optional
         value={values.allergies}
         onChangeText={(text) => setField('allergies', text)}
+        maxLength={PET_LIST_MAX_LENGTH}
         hint={t('pets.fields.listHint')}
       />
 
@@ -318,6 +321,7 @@ export function PetForm({
         optional
         value={values.knownConditions}
         onChangeText={(text) => setField('knownConditions', text)}
+        maxLength={PET_LIST_MAX_LENGTH}
         hint={t('pets.fields.listHint')}
       />
 
@@ -326,6 +330,7 @@ export function PetForm({
         optional
         value={values.temperamentNotes}
         onChangeText={(text) => setField('temperamentNotes', text)}
+        maxLength={PET_TEMPERAMENT_NOTES_MAX_LENGTH}
         multiline
       />
 

@@ -65,18 +65,22 @@ export type RequestErrorCode =
   | 'not_allowed'
   | 'archived'
   | 'disclaimer'
+  | 'rate_limited'
+  | 'failure_limit'
   | 'network'
   | 'unknown';
 
 const NETWORK = /network request failed|failed to fetch|fetch failed|session_unavailable/i;
 
-/** `hint` de `request_ai_analysis` (migración `20261029151011`). */
+/** `hint` de `request_ai_analysis` (migraciones `20261029151011` y `20261030090318`). */
 const HINT_CODES = new Map<string, RequestErrorCode>([
   ['ai_quota_exceeded', 'limit'],
   ['ai_invalid_symptoms', 'invalid_symptoms'],
   ['ai_not_allowed', 'not_allowed'],
   ['ai_pet_unavailable', 'archived'],
   ['ai_disclaimer_required', 'disclaimer'],
+  ['ai_rate_limited', 'rate_limited'],
+  ['ai_failure_limit', 'failure_limit'],
 ]);
 
 /**

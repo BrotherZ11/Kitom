@@ -387,6 +387,8 @@ export const en: Translations = {
     holder: 'Owner',
     holderText: 'Who shares {name}',
     noName: 'No name in their profile',
+    /** Pending invitation: the server doesn't say who it is until they accept (SEC-04). */
+    pendingName: 'Pending invitation',
     roles: {
       viewer: 'View only',
       editor: 'Can edit',
@@ -456,6 +458,7 @@ export const en: Translations = {
       not_owner: 'Only the owner can do this.',
       not_member: 'You no longer have access to this pet.',
       changed: 'This changed in the meantime. It\'s up to date now.',
+      rate_limited: 'You\'ve sent a lot of invitations today. Try again tomorrow.',
       network: 'You\'re offline. Try again.',
       unknown: 'That didn\'t work. Try again.',
     },
@@ -586,6 +589,8 @@ export const en: Translations = {
       not_allowed: 'Only someone who can edit the pet can ask for guidance.',
       archived: 'This pet is no longer available.',
       disclaimer: 'Before asking for guidance, accept the vet notice in Your account › Privacy.',
+      rate_limited: 'Wait a minute before asking for more guidance.',
+      failure_limit: "We couldn't prepare several guidance requests in a row today. Try again tomorrow.",
       network: 'Offline. Guidance needs a connection.',
       photo: "The photo couldn't be uploaded. Try again or continue without a photo.",
       unknown: 'Something went wrong. Try again.',

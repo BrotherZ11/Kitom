@@ -56,6 +56,13 @@ describe('toRequestErrorCode', () => {
     assert.equal(toRequestErrorCode({ message: 'x', hint: 'ai_invalid_photo' }), 'unknown');
     assert.equal(toRequestErrorCode({ message: 'x', hint: 'toString' }), 'unknown');
   });
+
+  it('límites de abuso (migración 20261030090318): frecuencia y fallos del día', () => {
+    assert.equal(toRequestErrorCode({ message: 'Espera un minuto antes de pedir otra orientación', hint: 'ai_rate_limited' }), 'rate_limited');
+    assert.equal(toRequestErrorCode({ message: 'x', hint: 'ai_failure_limit' }), 'failure_limit');
+    // No son errores de red: la foto subida se puede borrar.
+    assert.equal(canDiscardUploadedPhoto({ message: 'x', hint: 'ai_rate_limited' }), true);
+  });
 });
 
 describe('canDiscardUploadedPhoto', () => {
