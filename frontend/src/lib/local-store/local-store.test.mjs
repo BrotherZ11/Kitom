@@ -5,7 +5,7 @@ import { describe, it } from 'node:test';
 
 import { createAsyncStorageAdapter } from './async-storage-adapter.ts';
 import { checkLocalStore } from './local-store-check.ts';
-import { LocalStoreError, createLocalStore } from './local-store.ts';
+import { LocalStoreError, clearLocalUserData, createLocalStore } from './local-store.ts';
 import { createMemoryStorage } from './memory-storage.ts';
 
 const USER_A = 'a0000000-0000-4000-8000-000000000001';
@@ -154,6 +154,39 @@ describe('LocalStore: aislamiento entre usuarios', () => {
       status: 'corrupt',
       reason: 'key_mismatch',
     });
+  });
+});
+
+describe('clearLocalUserData (borrado de cuenta)', () => {
+  it('borra todas las colecciones de ese usuario y nada de los demás ni de fuera de Kitom', async () => {
+    const disk = new Map([
+      ['kitom-theme-preference', 'dark'],
+      ['kitom:v1:user-10:notes:x', '{}'],
+    ]);
+    const storeA = createLocalStore(createMemoryStorage(disk), USER_A);
+    const storeB = createLocalStore(createMemoryStorage(disk), USER_B);
+    await storeA.write(notes, [PET, '2026-10-13'], { owner: USER_A, text: 'registro' });
+    await storeA.write(notes, [OTHER_PET], { owner: USER_A, text: 'otra' });
+    await storeA.write({ ...notes, name: 'pet-ops' }, [PET], { owner: USER_A, text: 'pendiente' });
+    await storeB.write(notes, [PET], { owner: USER_B, text: 'de B' });
+    // Un dato ilegible del usuario también se borra.
+    disk.set(`kitom:v1:${USER_A}:breeds:es:page`, 'no json');
+
+    assert.equal(await clearLocalUserData(createMemoryStorage(disk), USER_A), 4);
+    assert.deepEqual(await storeA.list(notes), []);
+    assert.deepEqual([...disk.keys()].filter((key) => key.includes(USER_A)), []);
+    assert.deepEqual(await storeB.list(notes), [[PET]]);
+    assert.equal(disk.get('kitom-theme-preference'), 'dark');
+    // `user-1` no borra lo de `user-10`.
+    assert.equal(await clearLocalUserData(createMemoryStorage(disk), 'user-1'), 0);
+    assert.ok(disk.has('kitom:v1:user-10:notes:x'));
+    // Repetir no falla.
+    assert.equal(await clearLocalUserData(createMemoryStorage(disk), USER_A), 0);
+  });
+
+  it('rechaza un id de usuario fuera del formato y convierte los fallos del proveedor', async () => {
+    await rejects(clearLocalUserData(createMemoryStorage(), 'a:b'), 'invalid_key');
+    await rejects(clearLocalUserData({ ...createMemoryStorage(), getAllKeys: () => Promise.reject(new Error('x')) }, USER_A), 'storage_failed');
   });
 });
 

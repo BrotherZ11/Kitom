@@ -400,6 +400,12 @@ deno_version = 2
 [functions.pet-storage-cleanup]
 verify_jwt = false
 
+# Kitom: el borrado de cuenta lo pide el propio usuario desde la app. La pasarela verifica su JWT (el
+# valor por defecto, explícito aquí) y la función vuelve a comprobarlo con Auth: el usuario sale de ese
+# JWT, nunca del cuerpo (ver supabase/functions/delete-account).
+[functions.delete-account]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

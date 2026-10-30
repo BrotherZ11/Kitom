@@ -120,13 +120,31 @@ async function callStorage<T>(operation: () => Promise<T>): Promise<T> {
   }
 }
 
+function userPrefixOf(userId: string): string {
+  assertSegments([userId]);
+  return [LOCAL_STORE_NAMESPACE, `v${LOCAL_STORE_KEY_VERSION}`, userId].join(SEPARATOR);
+}
+
+/**
+ * Borra **todo** lo que este dispositivo guarda de un usuario, de todas las colecciones (registros,
+ * operaciones pendientes, copias de mascotas, catálogo de razas…). Solo para una cuenta que ya no existe
+ * (borrado de cuenta): el cierre de sesión nunca borra datos locales. Las claves de otros usuarios no se
+ * tocan. Devuelve cuántas claves borró; si una falla, lanza y lo ya borrado queda borrado (repetir sigue).
+ */
+export async function clearLocalUserData(storage: KeyValueStorage, userId: string): Promise<number> {
+  // Termina en separador: el usuario `abc` no borra las claves de `abcd`.
+  const prefix = `${userPrefixOf(userId)}${SEPARATOR}`;
+  const keys = (await callStorage(() => storage.getAllKeys())).filter((key) => key.startsWith(prefix));
+  for (const key of keys) await callStorage(() => storage.removeItem(key));
+  return keys.length;
+}
+
 /**
  * Almacén de un usuario. Todas las claves llevan su `userId`: no puede leer, listar ni borrar datos
  * de otra cuenta que haya usado el mismo dispositivo.
  */
 export function createLocalStore(storage: KeyValueStorage, userId: string): LocalStore {
-  assertSegments([userId]);
-  const userPrefix = [LOCAL_STORE_NAMESPACE, `v${LOCAL_STORE_KEY_VERSION}`, userId].join(SEPARATOR);
+  const userPrefix = userPrefixOf(userId);
 
   const keyOf = (collectionName: string, id: LocalId): string => {
     if (id.length === 0) throw new LocalStoreError('invalid_key');
