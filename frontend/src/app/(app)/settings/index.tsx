@@ -24,6 +24,7 @@ import {
   Moon,
   Pencil,
   Shield,
+  Trash,
 } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
 import { Screen } from '@/components/ui/screen';
@@ -56,8 +57,9 @@ import { borderWidth, radius, size, spacing } from '@/theme/tokens';
 
 /**
  * Tu cuenta y ajustes (tablero 10.1): quién eres y tu plan, preferencias (idioma, zona horaria, tema y
- * notificaciones), seguridad y privacidad, tus datos, ayuda y cerrar sesión. Exportar, suscripción y
- * eliminar la cuenta no se muestran hasta tener su servicio (Edge Functions y RevenueCat pendientes).
+ * notificaciones), seguridad y privacidad, tus datos, ayuda, cerrar sesión y eliminar la cuenta
+ * (Edge Function `delete-account`, pantalla `settings/delete-account`). Exportar y suscripción no se
+ * muestran hasta tener su servicio (Edge Function y RevenueCat pendientes).
  */
 export default function SettingsScreen() {
   const router = useRouter();
@@ -194,6 +196,16 @@ export default function SettingsScreen() {
         />
       </Card>
       <FormMessage message={error ? authErrorMessage(error) : null} />
+
+      {/* Zona de peligro (tablero 10.1): la pantalla explica qué pasa y pide confirmar dos veces. */}
+      <Card flush>
+        <ListItem
+          title={t('settings.deleteAccount.entry')}
+          titleColor="dangerInk"
+          leading={<Icon icon={Trash} size="sm" color="dangerInk" />}
+          onPress={() => router.push('/settings/delete-account')}
+        />
+      </Card>
 
       {version ? (
         <Text variant="caption" color="inkMuted" style={styles.center}>

@@ -153,8 +153,16 @@ solo en local (`supabase start`/`db reset` local); en `kitom-dev` lo ejecuta el 
 7. Actualizar `docs/README.md` / `docs/FRONTEND_ARCHITECTURE.md` si cambia el contrato. PR propio.
 
 ## Edge Functions (`supabase/functions/<nombre>/index.ts`)
-Hechas: `ai-analysis-process` y `pet-storage-cleanup`. Pendientes: `generate-pet-report`,
-`delete-account`, `revenuecat-webhook`.
+Hechas: `ai-analysis-process`, `pet-storage-cleanup` y `delete-account`. Pendientes:
+`generate-pet-report`, `revenuecat-webhook`.
+- `delete-account` (contrato en `docs/README.md` §12): la llama la app con el JWT del usuario
+  (`verify_jwt = true` en `config.toml`). Vista previa y borrado; transfiere o borra las mascotas propias,
+  quita sus `avatars` y borra el usuario de Auth. Todo con el JWT del usuario salvo
+  `auth.admin.deleteUser` (clave de servicio, último paso). Sin secretos propios. Lógica en
+  `deletion.ts`/`rest.ts` (sin Deno): `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON
+  supabase/functions/delete-account/*.test.mjs`; contra el local (crea y borra sus usuarios `it-del-…`,
+  y el bucket `avatars` si no existe): `node supabase/functions/delete-account/run-integration.mjs`.
+  Desplegarla (`functions deploy delete-account`) lo hace el usuario.
 - `pet-storage-cleanup` es de servicio, no de usuario: la invoca una tarea programada con la cabecera
   `x-kitom-cleanup-secret` (`PET_STORAGE_CLEANUP_SECRET`, ≥ 32 caracteres, nunca en el repo ni en
   `config.toml`) y `verify_jwt = false`; modo informe salvo `PET_STORAGE_CLEANUP_MODE=delete`. Lógica en

@@ -37,9 +37,11 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   Gemini de Google AI Studio por defecto; prompt y reglas en borrador hasta que los valide un
   veterinario). En `kitom-dev` está **desplegada** (v1, `verify_jwt`; comprobado en solo lectura el
   2026-10-28), pero el secreto no es consultable y ningún análisis del remoto ha llegado a `completed`
-  (2 en `pending`): pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `generate-pet-report`,
-  `delete-account` y `revenuecat-webhook`: **pendientes**; la carpeta `edge-functions/` que citan los
-  docs no está en el repo.
+  (2 en `pending`): pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `delete-account`
+  implementada (rama `feat/account-deletion`, 2026-10-29, sin migraciones; probada contra el local;
+  **sin desplegar**, lo hace el usuario; `docs/README.md` §12) con su pantalla en Ajustes.
+  `generate-pet-report` y `revenuecat-webhook`: **pendientes**; la carpeta `edge-functions/` que citan
+  los docs no está en el repo.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
 - Migraciones `20261007172110_pets_select_policy_owner.sql` (crear mascotas) y
   `20261007182429_grant_safe_pet_id_from_path.sql` (Storage de mascotas): aplicadas en `kitom-dev`.
@@ -93,8 +95,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   módulo local `frontend/modules/kitom-exact-alarms`), logros (`pet_achievements`), ajustes completos
   (tema del dispositivo, notificaciones, seguridad, privacidad, ayuda, legal) y «Próximo» en Hoy
   (`docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4 y §7). Sin implementar (backend o decisión pendiente):
-  teléfono, adjuntos de la agenda, señales y alertas, Premium, exportar/eliminar
-  cuenta, clínica propia y voz de la mascota; del acceso, texto legal, reenviar el email, repetir la
+  teléfono, adjuntos de la agenda, señales y alertas, Premium, exportar
+  datos, clínica propia y voz de la mascota; del acceso, texto legal, reenviar el email, repetir la
   contraseña y la regla visible de longitud (`docs/DECISIONS.md`).
   Marca enlazada en `app.json` (nombre «Kitom», icono iOS/Android, splash y favicon desde
   `frontend/assets/brand/app-icon/`); `slug` (`frontend`) y esquema (`kitom`) sin cambiar.

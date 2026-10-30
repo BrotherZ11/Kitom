@@ -142,6 +142,12 @@ error y «sin mascotas».
   `functions.invoke('ai-analysis-process')`. Aviso informativo en cada resultado (`ConsultDisclaimer`).
 - Co-tutores (2026-10-23): `src/features/co-owners/` (modelo puro `co-owners-model.ts`, `api/` solo con RPC,
   `hooks/`, `CoOwnersGate` e `InvitationsEntry`) y rutas `(app)/pets/[id]/co-owners/*` e `(app)/invitations`.
+- Eliminar cuenta (2026-10-29): `src/features/account/` (`account-deletion.ts` puro y probado: respuestas
+  de `delete-account`, errores y `finishAccountDeletion`; `api/` con `functions.invoke`; `hooks/`) y ruta
+  `(app)/settings/delete-account`. Tras borrar, `useFinishAccountDeletion` para los motores, borra todo lo
+  local del usuario (`clearLocalUserData` de `lib/local-store/local-store.ts`, solo para cuentas que ya no
+  existen) y sus avisos, y cierra sesión: única excepción a `useSignOutFlow`. Contrato:
+  `docs/FRONTEND_ARCHITECTURE.md` «DeleteAccountScreen».
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
   `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`
@@ -299,7 +305,7 @@ reiniciar Metro lo regenera entero.
   (`avatars`: `{user_id}/{uuid}.{ext}`). Sin update: borrar y volver a subir.
 - Timezone: nombre IANA vía `Intl.DateTimeFormat().resolvedOptions().timeZone`, nunca abreviaturas.
 - Las Edge Functions (`ai-analysis-process`, `generate-pet-report`, `delete-account`) pueden devolver
-  403/409 aunque la RPC previa haya ido bien: es el contrato, manejarlo. (Aún no implementadas.)
+  403/409 aunque la RPC previa haya ido bien: es el contrato, manejarlo. (`generate-pet-report`, aún sin implementar.)
 - Errores: mapear según la tabla §6 de FRONTEND_ARCHITECTURE.md.
 - Ocultar botones por permisos es UX; la seguridad real está en la BD.
 - `organizations` no está desplegado: no usarlo.

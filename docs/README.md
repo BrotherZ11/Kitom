@@ -98,7 +98,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 |---|---|---|
 | `ai-analysis-process` | Llama al proveedor de IA y guarda el resultado (`service_role`) | Mobile, justo después de `request_ai_analysis()` |
 | `generate-pet-report` | Genera el PDF, lo sube a Storage, crea la fila de `pet_shared_reports` (`service_role`) | Mobile, justo después de `request_generate_report()` |
-| `delete-account` | Comprueba `owner_has_pets()` y, si procede, borra la cuenta (`service_role`) | Mobile, desde la pantalla de borrado de cuenta |
+| `delete-account` | Vista previa y borrado de la cuenta: transfiere o borra las mascotas propias (con el JWT del usuario), quita sus avatares y borra el usuario de Auth (`service_role`, último paso). Ver §12 | Mobile, desde Ajustes › Eliminar mi cuenta |
 | `revenuecat-webhook` | Recibe el webhook de RevenueCat, llama a `process_revenuecat_event()` (`service_role`) | RevenueCat |
 
 **Contrato de seguridad obligatorio (v2.2.1), aplicado a las tres primeras funciones de la tabla:**
@@ -107,14 +107,15 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 > 1. Valida el JWT recibido (`Authorization` header).
 > 2. Obtiene `auth.uid()` a partir de ESE JWT (nunca de un `user_id` en el body).
 > 3. Valida el formato de los parámetros recibidos.
-> 4. Vuelve a comprobar la regla de autorización correspondiente contra la base de datos (`requested_by = auth.uid()` para IA; `can_edit_pet(pet_id)` para reportes; `owner_has_pets()` para borrado de cuenta).
+> 4. Vuelve a comprobar la regla de autorización correspondiente contra la base de datos (`requested_by = auth.uid()` para IA; `can_edit_pet(pet_id)` para reportes; para el borrado de cuenta, el plan se lee y se ejecuta con el JWT del usuario —RLS de `pets`, `get_pet_members`, `transfer_pet_ownership`— y Auth confirma que el usuario existe).
 > 5. Solo entonces usa `service_role` para las operaciones privilegiadas (llamar al proveedor de IA, subir a Storage, borrar el usuario...).
 >
 > El código de referencia de v2.2.1 vivía en una carpeta `edge-functions/` que nunca llegó a este repositorio; las funciones reales están en `supabase/functions/`.
 
 **Estado (2026-10-23):** `ai-analysis-process` está implementada en `supabase/functions/ai-analysis-process/`
-(`index.ts` manejador, `guidance.ts` prompt y validación puros, `providers.ts` Gemini, OpenAI o simulador). Las otras
-tres siguen pendientes y la carpeta `edge-functions/` no está en el repo. Secretos de `ai-analysis-process`
+(`index.ts` manejador, `guidance.ts` prompt y validación puros, `providers.ts` Gemini, OpenAI o simulador).
+`delete-account` está implementada desde el 2026-10-29 (§12; sin desplegar: lo hace el usuario).
+`generate-pet-report` y `revenuecat-webhook` siguen pendientes y la carpeta `edge-functions/` no está en el repo. Secretos de `ai-analysis-process`
 (los define el usuario con `supabase secrets set`): `GEMINI_API_KEY` obligatoria; opcionales
 `GEMINI_MODEL` (por defecto `gemini-3.5-flash-lite`), `AI_PROVIDER` (`gemini` por defecto, `openai` con
 `OPENAI_API_KEY` y `OPENAI_MODEL`, o `mock`, que solo vale contra un Supabase local) y
@@ -165,7 +166,17 @@ Por **usuario y periodo** (mes natural), no por mascota — de lo contrario, cre
 
 `transfer_pet_ownership()` bloquea la fila con `SELECT ... FOR UPDATE`, valida que el nuevo propietario existe y es co-tutor con invitación aceptada, y es atómica (todo ocurre en una sola función = una sola transacción).
 
-Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza el borrado de un perfil mientras siga siendo propietario de alguna mascota. `owner_has_pets()` (sin parámetros, solo sobre `auth.uid()`) permite que el flujo de "borrar mi cuenta" lo compruebe antes de intentarlo y pida transferir primero si hace falta. **Formalizado en v2.2.1** como la Edge Function `delete-account` (pendiente: no existe todavía en `supabase/functions/`): ignora cualquier `user_id` que llegara en el body de la petición, obtiene el usuario únicamente del JWT, vuelve a comprobar `owner_has_pets()` ella misma (nunca confía en que el frontend ya lo hizo), y solo entonces llama a `auth.admin.deleteUser()` con `service_role`.
+Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza el borrado de un perfil mientras siga siendo propietario de alguna mascota, así que las mascotas propias se resuelven antes. El contrato de v2.2.1 (`409 has_pets` y transferir a mano) queda **sustituido** (2026-10-29, decisión del propietario) por la Edge Function `delete-account` (`supabase/functions/delete-account/`: `deletion.ts` lógica pura, `rest.ts` llamadas HTTP, `index.ts` manejador):
+
+- **Qué hace.** Cada mascota de la que el usuario es propietario pasa al co-tutor con rol `editor` e invitación `accepted` más antigua (`accepted_at`; a igualdad, `invited_at` y el id) con `transfer_pet_ownership`; si no tiene, se borra con todo lo suyo (cascada; sus fotos las encola el trigger `AFTER DELETE` de `pets` para `pet-storage-cleanup`). Lectores y pendientes no cuentan. Las mascotas que otros comparten con él solo se dejan (sus filas de `pet_co_owners` caen con el perfil). Después se quitan sus objetos de `avatars` (`{user_id}/…`) y, si ya no es propietario de ninguna mascota, se borra el usuario con `auth.admin.deleteUser`: el perfil y lo que cuelga de él va en cascada o queda a `NULL` (`daily_logs.logged_by`, `reminders.created_by`, `ai_analysis_requests.requested_by`…).
+- **Seguridad.** El usuario sale solo del JWT (la pasarela lo verifica, `verify_jwt = true`, y la función pregunta a Auth). El plan se lee y se ejecuta **con el JWT del usuario**: RLS de `pets` y `pet_co_owners`, `get_pet_members`, `transfer_pet_ownership` y las políticas de `avatars` deciden; la clave de servicio solo se usa para `auth.admin.deleteUser`, al final. No se acepta ningún id de usuario en el body.
+- **Petición** (POST, JSON estricto, sin campos de más): `{ "mode": "preview" }` o `{ "mode": "delete", "confirm": "DELETE", "expected": [{ "pet_id", "action": "transfer", "new_owner_id" } | { "pet_id", "action": "delete" }] }` (`expected` = el plan que el usuario vio, máx. 200).
+- **Respuestas.** `200 { status: 'preview', plan: { transfer: [{ pet_id, pet_name, new_owner_id, new_owner_name }], delete: [{ pet_id, pet_name }], leave_shared } }` · `200 { status: 'deleted', transferred, deleted, avatars_removed }`. Errores `{ error: <código> }`: `401 not_authenticated` · `410 account_not_found` (el JWT es válido pero el usuario ya no existe: la cuenta ya se borró; respuesta final) · `400 invalid_request` · `405 method_not_allowed` · `409 plan_changed` (+ `plan` nuevo: lo que sigue siendo suyo no coincide con lo confirmado, o apareció una mascota durante el borrado; no se ha tocado nada más) · `409 too_many_pets` (más de 200 propias) · `500 server_misconfigured` · `500 server_error` (no se pudo leer el plan) · `500 deletion_incomplete` (+ `step`: `transfer` | `delete_pet` | `avatars` | `delete_user`, y los recuentos de lo hecho).
+- **Reintentos.** Cada llamada vuelve a planificar desde el estado actual: tras un fallo a medias lo transferido ya no es suyo y lo borrado ya no existe, así que repetir con el mismo `expected` converge (lo confirmado que ya no aparece no cuenta). Orden: transferencias, borrados, avatares, comprobación de que no queda ninguna mascota suya y, por último, el usuario.
+- **Registros**: solo códigos y recuentos (ni nombres, ni ids, ni rutas). Fuera de alcance: objetos de `reminder-attachments` y `shared-reports` (sin uso todavía).
+- **Pruebas**: `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON supabase/functions/delete-account/*.test.mjs` y, contra el Supabase local, `node supabase/functions/delete-account/run-integration.mjs`.
+
+`owner_has_pets()` sigue existiendo, pero la app ya no lo usa para este flujo.
 
 ## 13. Co-tutores
 
