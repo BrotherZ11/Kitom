@@ -11,8 +11,10 @@ import {
   buildUserPrompt,
   estimateCostUsd,
   GUIDANCE_JSON_SCHEMA,
+  isStaleProcessing,
   isUuid,
   parseGuidance,
+  STALE_PROCESSING_MS,
   SYSTEM_PROMPT,
 } from './guidance.ts';
 
@@ -123,5 +125,31 @@ describe('auxiliares', () => {
     assert.equal(ageInMonths(null, '2026-10-23'), null);
     assert.equal(isUuid('f1000000-0000-4000-8000-000000000001'), true);
     assert.equal(isUuid('nope'), false);
+  });
+
+  it('caducidad de processing desde el reclamo, no desde la solicitud (SEC-16)', () => {
+    const now = Date.parse('2026-10-30T10:00:00Z');
+    // Pedida hace 1 h y reclamada hace 1 min: no ha caducado.
+    assert.equal(
+      isStaleProcessing({ created_at: '2026-10-30T09:00:00Z', processing_started_at: '2026-10-30T09:59:00Z' }, now),
+      false
+    );
+    // Reclamada hace más de STALE_PROCESSING_MS: caducada.
+    assert.equal(
+      isStaleProcessing(
+        { created_at: '2026-10-30T09:00:00Z', processing_started_at: new Date(now - STALE_PROCESSING_MS - 1).toISOString() },
+        now
+      ),
+      true
+    );
+    assert.equal(
+      isStaleProcessing({ created_at: '2026-10-30T09:00:00Z', processing_started_at: new Date(now - STALE_PROCESSING_MS).toISOString() }, now),
+      false
+    );
+    // Sin marca de reclamo (anterior a la migración): desde created_at.
+    assert.equal(isStaleProcessing({ created_at: '2026-10-30T09:59:00Z', processing_started_at: null }, now), false);
+    assert.equal(isStaleProcessing({ created_at: '2026-10-30T09:00:00Z' }, now), true);
+    // Fecha ilegible: caducada (no se queda bloqueado).
+    assert.equal(isStaleProcessing({ created_at: 'x', processing_started_at: null }, now), true);
   });
 });

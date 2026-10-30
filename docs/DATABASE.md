@@ -23,6 +23,7 @@ las reglas de trabajo, en [`supabase/CLAUDE.md`](../supabase/CLAUDE.md).
 | `20261027194908_pet_storage_cleanup` | cola `private.pet_storage_cleanup_jobs` + RPC de servicio | aplicada |
 | `20261028114317_pet_storage_cleanup_guards` | salvaguardas de las RPC de limpieza | aplicada |
 | `20261028200659_reminders_is_active` | activar/desactivar recordatorios | aplicada |
+| `20261030090318_abuse_limits_and_db_hardening` | límites de IA (1/min, 3 fallos/día) e invitaciones (20/24 h), identidad oculta de invitaciones pendientes, CHECK de longitud, `(select auth.uid())` en 22 políticas, `STABLE`, 12 índices de FK, `processing_started_at`, `pg_cron`/`pg_net` y tareas de limpieza | **pendiente** (`db push` del usuario; probada en local) |
 
 Procedimiento (resumen; completo en `supabase/CLAUDE.md` y [`DEPLOYMENT.md`](DEPLOYMENT.md) §5):
 migración nueva → `migration up --local` → pgTAP → PR `db/…` → `db push` **del usuario** → tipos con
@@ -61,7 +62,7 @@ erDiagram
 | IA | `ai_analysis_requests`, `ai_analysis_symptoms` | solo por RPC; estado lo escribe la Edge Function con `service_role` |
 | Catálogos | `species`, `breeds`, `catalog_translations`, `symptoms_catalog`, `symptom_species`, `achievements_catalog`, `vet_clinics` | lectura para `authenticated` |
 | Otros | `clinic_referrals`, `pet_shared_reports`, `analytics_events` | por RPC / solo backend / INSERT propio |
-| `private` | `pet_storage_cleanup_jobs` | ninguna (sin `USAGE` del esquema) |
+| `private` | `pet_storage_cleanup_jobs`; `ai_analysis_usage` (`20261029151011`) y `pet_invitation_attempts` (`20261030090318`), registros de cupo y límites que sobreviven al borrado de la mascota | ninguna (sin `USAGE` del esquema) |
 
 Borrados: borrar una mascota arrastra registros, recordatorios, rachas, logros, co-tutorías, informes y
 **análisis de IA** (ver problema D-01) y encola la limpieza de sus fotos. Borrar un usuario de `auth`
@@ -79,7 +80,9 @@ concurrencia en `supabase/tests/concurrency/`):
 | `pets` | S/I/U/D | sí (pgTAP `pets_*`, concurrencia de alta/edición/borrado) |
 | `profiles` | S/I/U | parcial (zona horaria y aislamiento entre usuarios) |
 | `reminders` | S/I/U/D | sí (`reminders.test.sql`, `reminders_is_active.test.sql`) |
-| `pet_co_owners` + RPC de invitación por email | S + RPC | parcial (por email sí; `change_pet_member_role`, `revoke`, `decline`, `invite_pet_member` por id, no) |
+| `pet_co_owners` + RPC de invitación por email | S + RPC | parcial (por email, su límite, la identidad oculta de las pendientes y `revoke` de una pendiente sí: `pet_invitations`, `abuse_limits`; `change_pet_member_role`, `decline`, `invite_pet_member` por id, no) |
+| Límites de IA (`request_ai_analysis`: cupo, 1/min, 3 fallos/día, aviso) | RPC | sí (`ai_quota`, `abuse_limits`, concurrencia `abuse_limits_concurrency.sh`) |
+| CHECK de longitud, políticas con `(select auth.uid())`, índices de FK, tareas de `pg_cron` | — | sí (`db_hardening.test.sql`) |
 | `private.pet_storage_cleanup_jobs` + RPC | ninguna (servicio) | sí (pgTAP + concurrencia + integración) |
 | Storage `pet-photos` | S/I/D | parcial (subida durante el borrado; SELECT/DELETE entre usuarios, no) |
 | `ai_analysis_requests`, `ai_analysis_symptoms`, `request_ai_analysis`, `get_ai_analysis_entitlement`, `submit_ai_feedback` | S + RPC | **no** |
@@ -123,6 +126,9 @@ configuración no está versionada (ver P0-01 en [`ROADMAP.md`](ROADMAP.md)).
   `push_tokens.user_id`, `pets (breed_id, species_id)`).
 - 22 políticas con `auth.uid()`/`auth.role()` sin `(select …)` (`auth_rls_initplan`): se evalúan por fila.
 - `is_pet_member` y `can_edit_pet` sin `STABLE`.
+- Los tres puntos anteriores, corregidos en la migración `20261030090318` (en local; en `kitom-dev`, tras
+  el `db push`): un índice por FK (`idx_*`), las 22 políticas con `(select …)` y ambas funciones `STABLE`;
+  `db_hardening.test.sql` comprueba que no queda ninguna FK sin índice ni llamada sin `(select …)`.
 - 11 índices sin uso todavía (normal con pocos datos; no borrar).
 - Seguridad: ver [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md) (SEC-11, SEC-12).
 
@@ -138,8 +144,8 @@ Con el volumen actual no hay impacto medible; son tareas P2 antes de crecer.
 | D-04 | `pets.owner_id … RESTRICT` impide borrar cuentas con mascotas sin una función que lo gestione | SEC-02 |
 | D-05 | Configuración de buckets fuera de migraciones y sin límites | SEC-07 |
 | D-06 | Privilegios `TRUNCATE`/`TRIGGER`/`REFERENCES` sobrantes; DML de `anon` | SEC-11 |
-| D-07 | Sin límites de longitud en varios textos | SEC-18 |
-| D-08 | La limpieza de Storage no puede programarse: el remoto no tiene `pg_cron` ni `pg_net` | `ROADMAP.md` P1-04 |
+| D-07 | Sin límites de longitud en varios textos (corregido en local por `20261030090318`; quedan sin límite `profiles.phone`, `external_avatar_url`, `avatar_path`, `push_tokens.*`, `clinic_referrals.source/campaign`, sin uso en la app) | SEC-18 |
+| D-08 | La limpieza de Storage no puede programarse: el remoto no tiene `pg_cron` ni `pg_net` (la migración `20261030090318` los habilita y programa las tareas; no hacen nada hasta crear los secretos de Vault) | `ROADMAP.md` P1-04 |
 | D-09 | `catalog_translations` polimórfica, `recurrence_rule` con validación básica, co-tutores sin avatares ajenos | `docs/README.md` §22 |
 | D-10 | Sin entorno de producción: `kitom-dev` es el único remoto | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
 

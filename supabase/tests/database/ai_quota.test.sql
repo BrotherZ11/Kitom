@@ -50,6 +50,14 @@ exception when others then
   return coalesce(nullif(error_hint, ''), 'sin hint');
 end $$;
 
+-- Desde la migración 20261030090318 hay como mucho una solicitud por minuto y
+-- now() no avanza en la transacción: antes de cada solicitud seguida se
+-- adelantan las anteriores 61 s (lo que pasaría esperando un minuto).
+create function test_helpers.age_ai_usage() returns void
+  language sql security definer as $$
+  update private.ai_analysis_usage set created_at = created_at - interval '61 seconds';
+$$;
+
 grant execute on all functions in schema test_helpers to anon, authenticated;
 
 -- Usuaria con el aviso aceptado, otra sin aceptarlo, otra premium.
@@ -87,8 +95,11 @@ select results_eq(
 );
 
 select lives_ok($$ select public.request_ai_analysis('e1000000-0000-4000-8000-000000000001', null) $$, 'consulta 1');
+select test_helpers.age_ai_usage();
 select lives_ok($$ select public.request_ai_analysis('e1000000-0000-4000-8000-000000000001', null) $$, 'consulta 2');
+select test_helpers.age_ai_usage();
 select lives_ok($$ select public.request_ai_analysis('e1000000-0000-4000-8000-000000000001', null) $$, 'consulta 3');
+select test_helpers.age_ai_usage();
 
 select is(
   test_helpers.hint_of($$ select public.request_ai_analysis('e1000000-0000-4000-8000-000000000001', null) $$),
