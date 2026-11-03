@@ -1,6 +1,7 @@
 import { isAuthPKCECodeVerifierMissingError } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 
+import { readUrlParams, toFlow, type AuthRedirectFlow } from '@/features/auth/auth-callback-plan';
 import { toAuthErrorCode, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { supabase } from '@/lib/supabase';
 
@@ -9,7 +10,7 @@ import { supabase } from '@/lib/supabase';
  * Configuración necesaria en Supabase: docs/AUTH.md.
  */
 
-export type AuthRedirectFlow = 'signup' | 'recovery' | 'oauth';
+export type { AuthRedirectFlow };
 
 export type AuthRedirectResult =
   | { status: 'signed_in'; flow: AuthRedirectFlow | null }
@@ -17,36 +18,19 @@ export type AuthRedirectResult =
   | { status: 'email_confirmed' }
   | { status: 'error'; error: AuthErrorCode };
 
-/** Ruta de Expo Router que recibe los enlaces: `src/app/(auth)/auth-callback.tsx`. */
+/**
+ * Ruta de Expo Router que recibe los enlaces: `src/app/auth-callback.tsx`, disponible con y sin sesión
+ * (qué se canjea en cada caso: `auth-callback-plan.ts`).
+ */
 const CALLBACK_PATH = 'auth-callback';
 
 /**
  * URL a la que Supabase redirige tras verificar el enlace. Debe estar en Auth > URL Configuration >
  * Redirect URLs. Build: `kitom://auth-callback?flow=…`; Expo Go: `exp://<host>/--/auth-callback?flow=…`.
+ * La usan el registro, el reenvío de la confirmación, la recuperación y Google.
  */
 export function getAuthRedirectUrl(flow: AuthRedirectFlow): string {
   return Linking.createURL(CALLBACK_PATH, { queryParams: { flow } });
-}
-
-/** Une los parámetros de query y de fragmento (Supabase usa ambos según el caso). */
-function readUrlParams(url: string): Record<string, string> {
-  const hashIndex = url.indexOf('#');
-  const beforeHash = hashIndex === -1 ? url : url.slice(0, hashIndex);
-  const hash = hashIndex === -1 ? '' : url.slice(hashIndex + 1);
-  const queryIndex = beforeHash.indexOf('?');
-  const query = queryIndex === -1 ? '' : beforeHash.slice(queryIndex + 1);
-
-  const params: Record<string, string> = {};
-  for (const part of [query, hash]) {
-    new URLSearchParams(part).forEach((value, key) => {
-      params[key] = value;
-    });
-  }
-  return params;
-}
-
-function toFlow(value: string | undefined): AuthRedirectFlow | null {
-  return value === 'signup' || value === 'recovery' || value === 'oauth' ? value : null;
 }
 
 /** Errores que Supabase añade a la URL de retorno (`error`, `error_code`). */

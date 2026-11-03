@@ -22,6 +22,16 @@ describe('toMembers', () => {
     assert.equal(members[1].fullName, null);
     assert.deepEqual(toMembers(null), []);
   });
+
+  it('una invitación pendiente llega sin user_id ni nombre (migración 20261030090318)', () => {
+    const [pending] = toMembers([
+      { invitation_id: 'p1', user_id: null, full_name: null, role: 'viewer', status: 'pending', invited_at: '2026-10-30', accepted_at: null },
+    ]);
+    assert.equal(pending.invitationId, 'p1');
+    assert.equal(pending.userId, null);
+    assert.equal(pending.fullName, null);
+    assert.equal(pending.status, 'pending');
+  });
 });
 
 describe('toInvitations', () => {
@@ -51,6 +61,7 @@ describe('toCoOwnerErrorCode', () => {
     assert.equal(toCoOwnerErrorCode({ hint: 'not_pet_owner', message: 'x' }), 'not_owner');
     assert.equal(toCoOwnerErrorCode({ message: 'Solo el propietario principal puede revocar el acceso' }), 'not_owner');
     assert.equal(toCoOwnerErrorCode({ hint: 'not_pet_member', message: 'x' }), 'not_member');
+    assert.equal(toCoOwnerErrorCode({ hint: 'invite_rate_limited', message: 'x' }), 'rate_limited');
     assert.equal(toCoOwnerErrorCode({ message: 'Esta invitación ya no está pendiente (estado actual: revoked)' }), 'changed');
     assert.equal(toCoOwnerErrorCode({ message: 'Invitación no encontrada' }), 'changed');
     assert.equal(toCoOwnerErrorCode({ message: 'Solo se puede cambiar el rol de un miembro activo (estado: accepted)' }), 'changed');

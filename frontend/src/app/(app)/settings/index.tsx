@@ -15,6 +15,7 @@ import {
   CircleHelp,
   Clock,
   CloudUpload,
+  Download,
   FileText,
   Globe,
   House,
@@ -23,11 +24,11 @@ import {
   Moon,
   Pencil,
   Shield,
+  Trash,
 } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
 import { Screen } from '@/components/ui/screen';
 import { SegmentedControl } from '@/components/ui/segmented-control';
-import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { useToast } from '@/components/ui/toast';
@@ -41,7 +42,6 @@ import { petUnsyncedTotal } from '@/features/pets/offline/pet-operation';
 import {
   useNotificationPreferences,
   useProfile,
-  useSubscription,
   useUpdateProfile,
 } from '@/features/profile/hooks/use-profile';
 import { useProfileName } from '@/features/profile/hooks/use-profile-name';
@@ -56,9 +56,10 @@ import { useAppTheme, type ThemePreference } from '@/theme/theme-provider';
 import { borderWidth, radius, size, spacing } from '@/theme/tokens';
 
 /**
- * Tu cuenta y ajustes (tablero 10.1): quién eres y tu plan, preferencias (idioma, zona horaria, tema y
- * notificaciones), seguridad y privacidad, tus datos, ayuda y cerrar sesión. Exportar, suscripción y
- * eliminar la cuenta no se muestran hasta tener su servicio (Edge Functions y RevenueCat pendientes).
+ * Tu cuenta y ajustes (tablero 10.1): quién eres, preferencias (idioma, zona horaria, tema y
+ * notificaciones), seguridad y privacidad, tus datos (incluido descargarlos, `settings/export`), ayuda,
+ * cerrar sesión y eliminar la cuenta (Edge Function `delete-account`, pantalla `settings/delete-account`).
+ * La suscripción no se muestra: la primera versión es gratuita (RevenueCat pendiente).
  */
 export default function SettingsScreen() {
   const router = useRouter();
@@ -67,7 +68,6 @@ export default function SettingsScreen() {
   const profileName = useProfileName();
   const timeZone = useProfileTimeZone();
   const preferences = useNotificationPreferences();
-  const subscription = useSubscription();
   const { flow, state } = useSignOutFlow();
   const changes = useUnsyncedChanges();
   const { preference, setPreference } = useAppTheme();
@@ -104,7 +104,6 @@ export default function SettingsScreen() {
       ? tf('settings.notificationsDaily', { time: formatTimeOfDay(dailyTime) })
       : t('settings.notificationsDailyOff')
     : undefined;
-  const plan = subscription.data?.plan;
 
   return (
     <Screen align="top">
@@ -128,11 +127,6 @@ export default function SettingsScreen() {
               <Text variant={name ? 'caption' : 'bodyStrong'} color={name ? 'inkMuted' : 'ink'}>
                 {email}
               </Text>
-              {plan ? (
-                <View style={styles.planTag}>
-                  <Tag label={plan === 'premium' ? t('settings.planPremium') : t('settings.planFree')} tone={plan === 'premium' ? 'accent' : 'neutral'} />
-                </View>
-              ) : null}
             </View>
             {serverUsable ? <Icon icon={Pencil} size="sm" color="inkMuted" /> : null}
           </Card>
@@ -179,7 +173,9 @@ export default function SettingsScreen() {
           title={t('settings.unsynced')}
           subtitle={unsynced}
           onPress={() => router.push('/daily-logs/unsynced')}
+          divider
         />
+        <ListItem plain icon={Download} title={t('settings.exportData')} onPress={() => router.push('/settings/export')} />
       </Group>
 
       <Group title={t('settings.help')}>
@@ -200,6 +196,16 @@ export default function SettingsScreen() {
         />
       </Card>
       <FormMessage message={error ? authErrorMessage(error) : null} />
+
+      {/* Zona de peligro (tablero 10.1): la pantalla explica qué pasa y pide confirmar dos veces. */}
+      <Card flush>
+        <ListItem
+          title={t('settings.deleteAccount.entry')}
+          titleColor="dangerInk"
+          leading={<Icon icon={Trash} size="sm" color="dangerInk" />}
+          onPress={() => router.push('/settings/delete-account')}
+        />
+      </Card>
 
       {version ? (
         <Text variant="caption" color="inkMuted" style={styles.center}>
@@ -362,10 +368,6 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
     gap: 2,
-  },
-  planTag: {
-    alignSelf: 'flex-start',
-    marginTop: spacing['1'],
   },
   group: {
     gap: spacing['2'],

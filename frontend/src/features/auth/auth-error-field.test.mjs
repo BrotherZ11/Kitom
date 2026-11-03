@@ -11,13 +11,22 @@ describe('authErrorField', () => {
 
   it('pone en la contraseña los errores de credenciales y de contraseña', () => {
     assert.equal(authErrorField('invalid_credentials'), 'password');
+    assert.equal(authErrorField('password_too_short'), 'password');
     assert.equal(authErrorField('weak_password'), 'password');
+    assert.equal(authErrorField('pwned_password'), 'password');
     assert.equal(authErrorField('same_password'), 'password');
+  });
+
+  it('cambio de contraseña: actual, repetición y código en su campo', () => {
+    assert.equal(authErrorField('wrong_current_password'), 'currentPassword');
+    assert.equal(authErrorField('password_mismatch'), 'confirmPassword');
+    assert.equal(authErrorField('code_invalid'), 'code');
   });
 
   it('deja en la alerta del formulario el resto (incluido missing_fields)', () => {
     for (const code of [
       'missing_fields',
+      'terms_not_accepted',
       'email_not_confirmed',
       'link_invalid',
       'oauth_failed',

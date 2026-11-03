@@ -37,9 +37,11 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   Gemini de Google AI Studio por defecto; prompt y reglas en borrador hasta que los valide un
   veterinario). En `kitom-dev` está **desplegada** (v1, `verify_jwt`; comprobado en solo lectura el
   2026-10-28), pero el secreto no es consultable y ningún análisis del remoto ha llegado a `completed`
-  (2 en `pending`): pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `generate-pet-report`,
-  `delete-account` y `revenuecat-webhook`: **pendientes**; la carpeta `edge-functions/` que citan los
-  docs no está en el repo.
+  (2 en `pending`): pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `delete-account`
+  implementada (rama `feat/account-deletion`, 2026-10-29, sin migraciones; probada contra el local;
+  **sin desplegar**, lo hace el usuario; `docs/README.md` §12) con su pantalla en Ajustes.
+  `generate-pet-report` y `revenuecat-webhook`: **pendientes**; la carpeta `edge-functions/` que citan
+  los docs no está en el repo.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
 - Migraciones `20261007172110_pets_select_policy_owner.sql` (crear mascotas) y
   `20261007182429_grant_safe_pet_id_from_path.sql` (Storage de mascotas): aplicadas en `kitom-dev`.
@@ -93,15 +95,15 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   módulo local `frontend/modules/kitom-exact-alarms`), logros (`pet_achievements`), ajustes completos
   (tema del dispositivo, notificaciones, seguridad, privacidad, ayuda, legal) y «Próximo» en Hoy
   (`docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4 y §7). Sin implementar (backend o decisión pendiente):
-  teléfono, adjuntos de la agenda, señales y alertas, Premium, exportar/eliminar
-  cuenta, clínica propia y voz de la mascota; del acceso, texto legal, reenviar el email, repetir la
-  contraseña y la regla visible de longitud (`docs/DECISIONS.md`).
+  adjuntos de la agenda, Premium (fuera de la v1), clínica propia y voz de la mascota (`docs/DECISIONS.md`).
   Marca enlazada en `app.json` (nombre «Kitom», icono iOS/Android, splash y favicon desde
   `frontend/assets/brand/app-icon/`); `slug` (`frontend`) y esquema (`kitom`) sin cambiar.
   `android.package` = `com.kitom.app` (2026-10-20, no cambiarlo: otra APK no actualizaría la
   instalada); `ios.bundleIdentifier` sin definir. APK de prueba compilada en local
   (`npx expo prebuild --platform android` + `gradlew assembleRelease`; `/android` está ignorado por git
-  y la release va firmada con la clave de depuración: no vale para Google Play). Sin EAS.
+  y la release va firmada con la clave de depuración: no vale para Google Play). EAS preparado
+  (`frontend/eas.json`, `slug` `kitom`, `ios.bundleIdentifier` `com.kitom.app`; 2026-10-30) pero sin
+  proyecto EAS creado: `eas init`/`build`/`submit` los ejecuta el usuario (`docs/DEPLOYMENT.md` §4).
 - Migración `20261020135440_pets_client_request_id.sql` (alta idempotente de mascotas para Pets offline,
   fase 8): aplicada en `kitom-dev` (`db push` del usuario) y tipos regenerados.
 - Migración `20261023082848_pet_invitations_by_email.sql` (co-tutores por email, 3 RPC): aplicada en
@@ -117,6 +119,10 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `kitom-dev` el 2026-10-29 (`db push` del usuario) y tipos regenerados con `--linked`. Activar/desactivar
   en la app (rama `feat/reminders-active`, integrada en `main` el 2026-10-29): un desactivado no avisa ni cuenta como pendiente; validado
   en web y en el emulador Android (la alarma se cancela y vuelve al activarlo). Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
+- Preparación de la v1 (Android, gratuita; 2026-11-03): eliminar la cuenta, descargar los datos, páginas legales (`site/`),
+  Auth endurecido, idioma del dispositivo y Sentry, integrados en `main`. Migración `20261029151011`: aplicada en
+  `kitom-dev`. Migración `20261030090318_abuse_limits_and_db_hardening.sql`: **sin aplicar**. Lo que falta para
+  publicar lo hace el usuario: `docs/DEPLOYMENT.md` §8; estado: `docs/PROJECT_STATUS.md`.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev` (los 4 privados, **sin límite de
   tamaño ni de tipo**, comprobado el 2026-10-28; el remoto no tiene `pg_cron` ni `pg_net`); en local solo `pet-photos`
@@ -136,7 +142,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - NUNCA leer, mostrar ni commitear `.env`/secretos. La `service_role` key jamás en el frontend.
 - No instalar/desinstalar paquetes sin permiso. En `frontend/` usar `npx expo install <pkg>`, nunca `npm install <pkg>`.
 - No hacer commit, push, merge ni rebase si no se pide explícitamente.
-- No borrar archivos ni ejecutar `npm run reset-project` sin permiso.
+- No borrar archivos sin permiso.
 
 ## Comandos
 

@@ -9,6 +9,13 @@ import { KitomSymbol } from '@/components/ui/kitom-symbol';
 import { EmptyState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { useAuth } from '@/features/auth/auth-context';
+import {
+  callbackDestination,
+  redirectFlow,
+  shouldCompleteRedirect,
+  type CallbackOutcome,
+} from '@/features/auth/auth-callback-plan';
 import { authErrorMessage } from '@/features/auth/auth-errors';
 import { completeAuthRedirect, type AuthRedirectResult } from '@/features/auth/auth-redirect';
 import { useTheme } from '@/hooks/use-theme';
@@ -18,17 +25,26 @@ import { spacing } from '@/theme/tokens';
 /** Sin URL o sin respuesta en este tiempo, se ofrece salir (antes el indicador giraba para siempre). */
 const STALLED_AFTER_MS = 15_000;
 
+type Result = AuthRedirectResult | { status: 'skipped' };
+
 /**
- * Destino de los enlaces de Supabase Auth (`kitom://auth-callback?…`). Si el intercambio crea la
- * sesión, la protección de rutas del layout raíz saca al usuario de aquí (a la app o a
- * /update-password); esta pantalla solo muestra el progreso o el motivo del fallo.
+ * Destino de los enlaces de Supabase Auth (`kitom://auth-callback?…`). Disponible con y sin sesión
+ * (layout raíz): sin sesión canjea cualquier enlace; con sesión, solo los de recuperación (p. ej. «Crear
+ * contraseña» desde ajustes). Reglas en `features/auth/auth-callback-plan.ts`. Cuando hay sesión, la
+ * pantalla sale sola: a `/update-password` si hay una recuperación pendiente o a la app; si no, muestra
+ * el progreso o el motivo del fallo.
  */
 export default function AuthCallbackScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { user, isRecoveringPassword } = useAuth();
+  const isSignedIn = user !== null;
   const url = Linking.useLinkingURL();
-  const [result, setResult] = useState<AuthRedirectResult | null>(null);
+  const [exchange, setExchange] = useState<AuthRedirectResult | null>(null);
   const [stalled, setStalled] = useState(false);
+  // Con sesión, un enlace que no es de recuperación no se canjea (`auth-callback-plan.ts`).
+  const skip = url !== null && !shouldCompleteRedirect(redirectFlow(url), isSignedIn);
+  const result: Result | null = skip ? { status: 'skipped' } : exchange;
 
   useEffect(() => {
     const timer = setTimeout(() => setStalled(true), STALLED_AFTER_MS);
@@ -36,28 +52,39 @@ export default function AuthCallbackScreen() {
   }, []);
 
   useEffect(() => {
-    if (!url) return;
+    if (!url || skip) return;
     let isActive = true;
+    // El mismo código comparte una sola promesa (`auth-redirect.ts`): volver a pedirlo al cambiar la
+    // sesión no lo canjea dos veces.
     completeAuthRedirect(url).then((next) => {
-      if (isActive) setResult(next);
+      if (isActive) setExchange(next);
     });
     return () => {
       isActive = false;
     };
-  }, [url]);
+  }, [url, skip]);
 
-  const goToLogin = () => router.replace('/login');
+  const outcome: CallbackOutcome | null = result ? { status: result.status } : null;
+  const destination = callbackDestination({ outcome, isSignedIn, isRecoveringPassword });
 
-  if (result?.status === 'email_confirmed' || result?.status === 'error') {
+  useEffect(() => {
+    if (destination) router.replace(destination);
+  }, [destination, router]);
+
+  // Sin sesión, la salida es iniciar sesión; con sesión (enlace de recuperación fallido), volver a la app.
+  const leave = () => router.replace(isSignedIn ? '/' : '/login');
+  const leaveLabel = isSignedIn ? t('auth.callback.backToApp') : t('auth.callback.goToLogin');
+
+  if (!destination && (result?.status === 'email_confirmed' || result?.status === 'error')) {
     const isError = result.status === 'error';
     return (
       <Screen
         footer={
           <Button
-            // En error, volver al login es la salida, no la acción principal.
+            // En error, salir es la única salida, no la acción principal.
             variant={isError ? 'secondary' : 'primary'}
-            label={t('auth.callback.goToLogin')}
-            onPress={goToLogin}
+            label={leaveLabel}
+            onPress={leave}
           />
         }>
         <View accessibilityLiveRegion="polite">
@@ -73,8 +100,7 @@ export default function AuthCallbackScreen() {
   }
 
   return (
-    <Screen
-      footer={stalled ? <Button variant="secondary" label={t('auth.callback.goToLogin')} onPress={goToLogin} /> : undefined}>
+    <Screen footer={stalled ? <Button variant="secondary" label={leaveLabel} onPress={leave} /> : undefined}>
       <View style={styles.processing} accessibilityLiveRegion="polite">
         <KitomSymbol size={48} />
         <ActivityIndicator color={theme.primary} />

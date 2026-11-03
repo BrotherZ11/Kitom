@@ -66,6 +66,22 @@ Antes de la migración, `ai_quota.test.sql` falló en local en los casos que rep
 recuperado al recrear la mascota) y SEC-10 (consulta sin aviso aceptado): la prueba demuestra el fallo
 y su corrección. TEST-02 sigue abierto.
 
+### Integración de la primera versión (2026-11-03)
+
+| Comando | Resultado |
+|---|---|
+| `tsc`, `expo lint`, `expo-doctor` | correctos (21/21) |
+| `npm test` | 828/828 |
+| `npm run test:integration` | 66/66 |
+| `npx supabase test db` | 510/510 (11 archivos) |
+| Concurrencia (5 suites) | correctas |
+| Edge Functions, unitarias | 62/62 |
+| `delete-account`, integración local | 6/6 |
+
+Manual en emulador Android (build de depuración, inglés, Supabase local): registro con términos, configuración inicial, selector
+de fecha, registro del día, avisos, descargar los datos (JSON revisado), eliminar la cuenta de punta a punta e iniciar sesión.
+Web: inicio de sesión. **Sin probar:** móvil físico, iOS, emails reales, fotos con un bucket remoto, IA en el remoto.
+
 ### Fallos analizados
 
 - **TEST-01** — el caso 121 comprueba una **precondición** del escenario «cascada desfavorable»: que el

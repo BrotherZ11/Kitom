@@ -23,6 +23,7 @@ export { default as CircleHelp } from 'lucide-react-native/icons/circle-question
 export { default as Clock } from 'lucide-react-native/icons/clock';
 export { default as CloudCheck } from 'lucide-react-native/icons/cloud-check';
 export { default as CloudUpload } from 'lucide-react-native/icons/cloud-upload';
+export { default as Download } from 'lucide-react-native/icons/download';
 export { default as Droplets } from 'lucide-react-native/icons/droplets';
 export { default as Eye } from 'lucide-react-native/icons/eye';
 export { default as EyeOff } from 'lucide-react-native/icons/eye-off';

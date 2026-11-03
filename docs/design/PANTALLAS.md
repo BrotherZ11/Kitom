@@ -165,7 +165,7 @@ Ruta: «existe» = está en `frontend/src/app/`; «prop.» = nombre sugerido den
 | 10.6 | Exportar (`Exportar`) | prop. `settings/export` | **Edge Function pendiente** | Estado «preparando» (interactivo). |
 | 10.7 | Ayuda (`Ayuda`) | prop. `settings/help` | — | Preguntas frecuentes (interactivo). |
 | 10.8 | Legal y app (`Legal`) | prop. `settings/legal` | — | Versión de la app. |
-| 10.9 | Eliminar cuenta (`EliminarCuenta`) | diálogo | Edge Function `delete-account` **pendiente** (409 `has_pets`) | Lista lo que se borra; sugiere exportar antes. |
+| 10.9 | Eliminar cuenta (`EliminarCuenta`) | `settings/delete-account` + diálogo | Edge Function `delete-account` (vista previa y borrado, `docs/README.md` §12) | Lista lo que pasa con cada mascota (pasa a un co-tutor editor o se borra); sugiere exportar antes; casilla + diálogo de peligro. Hecho 2026-10-29. |
 
 ### 11 · Suscripción y Premium
 
@@ -259,8 +259,8 @@ para el veterinario, orientación con todo el historial, idioma inglés, etiquet
    mascota y su clínica. `vet_clinics` existe pero es el catálogo de clínicas asociadas para referidos
    (`create_clinic_referral`), no la clínica propia del usuario.
 8. **Exportar datos** e informe PDF: dependen de Edge Functions pendientes.
-9. **Eliminar cuenta con mascotas**: `delete-account` devuelve 409 `has_pets`; el diálogo explica qué
-   pasa, pero falta decidir el flujo (borrar mascotas primero o en cascada).
+9. **Eliminar cuenta con mascotas**: resuelto el 2026-10-29: cada mascota propia pasa a su co-tutor
+   editor aceptado más antiguo o, si no tiene, se borra con todo lo suyo (`docs/README.md` §12).
 10. **Límites del plan gratuito y precios**: marcadores hasta cerrar PRD §10.4 y §14.
 11. **Paquetes**: `@expo-google-fonts/hanken-grotesk`, `@expo-google-fonts/ibm-plex-mono`,
     `lucide-react-native` y `react-native-svg` instalados (aprobados el 16 oct 2026, fase F0).

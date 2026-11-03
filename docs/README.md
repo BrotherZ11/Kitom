@@ -34,7 +34,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 |---|---|---|---|---|
 | `profiles` | propia fila | vía trigger de alta | propia fila (columnas concretas, nunca id/created_at/updated_at) | — |
 | `pets` | miembros (owner o co-tutor) | owner (columnas concretas) | editores (columnas concretas, **nunca owner_id**) | owner |
-| `pet_co_owners` | miembros o el propio invitado | — (solo RPC) | — (solo RPC) | — (solo RPC) |
+| `pet_co_owners` | la propia fila; las de los demás, solo aceptadas y a miembros (desde `20261030090318`) | — (solo RPC) | — (solo RPC) | — (solo RPC) |
 | `daily_logs` | miembros | editores, `logged_by=auth.uid()` (columnas concretas; en la práctica vía RPC `save_daily_log`) | editores (solo columnas de datos, nunca pet_id/logged_by/log_date/created_at) | editores |
 | `symptoms_catalog` / `symptom_species` | autenticados | — | — | — |
 | `ai_analysis_requests` | miembros (columnas concretas) | — (solo RPC `request_ai_analysis`) | — (solo RPC `submit_ai_feedback`, y solo si `requested_by = auth.uid()` — ver sección 9.1) | — |
@@ -52,6 +52,21 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 | `pet_shared_reports` | miembros | — (solo backend) | — | — |
 | `analytics_events` | — | propios | — | — |
 | `organizations` / `organization_members` | miembros de la org | — | — | — |
+
+> Cambio posterior (migración `20261030090318_abuse_limits_and_db_hardening.sql`): las 22 políticas que
+> llamaban a `auth.uid()`/`auth.role()` por fila lo hacen con `(select auth.uid())` (se evalúa una vez por
+> consulta; mismos nombres, comandos, roles y semántica, probado en `db_hardening.test.sql`), salvo
+> `co_owners: select members or self`, que cambia a propósito (SEC-04): `user_id = auth.uid()` o
+> (`status = 'accepted'` y `is_pet_member(pet_id)`). Un miembro ya no lee la fila (ni el `user_id`) de una
+> invitación pendiente, rechazada o revocada de otra persona; la app no lee esta tabla directamente.
+> `is_pet_member` y `can_edit_pet` son `STABLE`. Longitudes máximas (CHECK, SEC-18): `pets.name` y
+> `breed` ≤ 100, `temperament_notes` ≤ 2000, `known_conditions`/`allergies` ≤ 100 elementos de ≤ 200
+> (función `private.text_array_within`, con `EXECUTE` para `authenticated` y `service_role`),
+> `profiles.full_name` ≤ 200 (`handle_new_user` recorta el nombre de Google), `reminders.title` ≤ 200 y
+> `description` ≤ 2000, `ai_analysis_requests.feedback_comment` ≤ 1000, `analytics_events.event_name` ≤ 100
+> y `properties` ≤ 8 KB como texto. Infringirlas da `23514` con el nombre del CHECK (`*_length_check`,
+> `analytics_events_properties_size_check`). Los límites de la app son menores o iguales (nombre 40, raza
+> 60, listas 200 caracteres, notas 2000, perfil 60, recordatorios 80/500).
 
 > Cambio posterior (migración `20261020135440_pets_client_request_id.sql`, decisión en `DECISIONS.md`):
 > `pets.client_request_id uuid` (nullable) con índice único parcial `pets_owner_client_request_id_key`
@@ -98,7 +113,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 |---|---|---|
 | `ai-analysis-process` | Llama al proveedor de IA y guarda el resultado (`service_role`) | Mobile, justo después de `request_ai_analysis()` |
 | `generate-pet-report` | Genera el PDF, lo sube a Storage, crea la fila de `pet_shared_reports` (`service_role`) | Mobile, justo después de `request_generate_report()` |
-| `delete-account` | Comprueba `owner_has_pets()` y, si procede, borra la cuenta (`service_role`) | Mobile, desde la pantalla de borrado de cuenta |
+| `delete-account` | Vista previa y borrado de la cuenta: transfiere o borra las mascotas propias (con el JWT del usuario), quita sus avatares y borra el usuario de Auth (`service_role`, último paso). Ver §12 | Mobile, desde Ajustes › Eliminar mi cuenta |
 | `revenuecat-webhook` | Recibe el webhook de RevenueCat, llama a `process_revenuecat_event()` (`service_role`) | RevenueCat |
 
 **Contrato de seguridad obligatorio (v2.2.1), aplicado a las tres primeras funciones de la tabla:**
@@ -107,20 +122,26 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 > 1. Valida el JWT recibido (`Authorization` header).
 > 2. Obtiene `auth.uid()` a partir de ESE JWT (nunca de un `user_id` en el body).
 > 3. Valida el formato de los parámetros recibidos.
-> 4. Vuelve a comprobar la regla de autorización correspondiente contra la base de datos (`requested_by = auth.uid()` para IA; `can_edit_pet(pet_id)` para reportes; `owner_has_pets()` para borrado de cuenta).
+> 4. Vuelve a comprobar la regla de autorización correspondiente contra la base de datos (`requested_by = auth.uid()` para IA; `can_edit_pet(pet_id)` para reportes; para el borrado de cuenta, el plan se lee y se ejecuta con el JWT del usuario —RLS de `pets`, `get_pet_members`, `transfer_pet_ownership`— y Auth confirma que el usuario existe).
 > 5. Solo entonces usa `service_role` para las operaciones privilegiadas (llamar al proveedor de IA, subir a Storage, borrar el usuario...).
 >
 > El código de referencia de v2.2.1 vivía en una carpeta `edge-functions/` que nunca llegó a este repositorio; las funciones reales están en `supabase/functions/`.
 
 **Estado (2026-10-23):** `ai-analysis-process` está implementada en `supabase/functions/ai-analysis-process/`
-(`index.ts` manejador, `guidance.ts` prompt y validación puros, `providers.ts` Gemini, OpenAI o simulador). Las otras
-tres siguen pendientes y la carpeta `edge-functions/` no está en el repo. Secretos de `ai-analysis-process`
+(`index.ts` manejador, `guidance.ts` prompt y validación puros, `providers.ts` Gemini, OpenAI o simulador).
+`delete-account` está implementada desde el 2026-10-29 (§12; sin desplegar: lo hace el usuario).
+`generate-pet-report` y `revenuecat-webhook` siguen pendientes y la carpeta `edge-functions/` no está en el repo. Secretos de `ai-analysis-process`
 (los define el usuario con `supabase secrets set`): `GEMINI_API_KEY` obligatoria; opcionales
 `GEMINI_MODEL` (por defecto `gemini-3.5-flash-lite`), `AI_PROVIDER` (`gemini` por defecto, `openai` con
 `OPENAI_API_KEY` y `OPENAI_MODEL`, o `mock`, que solo vale contra un Supabase local) y
 `AI_INPUT_USD_PER_MTOK`/`AI_OUTPUT_USD_PER_MTOK` (sin ellos `cost_usd` queda `NULL`). Respuestas: `401 not_authenticated`,
 `400 invalid_request`, `404 not_found`, `403 not_authorized`, `200 { status: 'completed' | 'failed' |
 'already_processing_or_done' }`. Una fila `processing` de más de 3 min se marca `failed` (`timeout`).
+Desde la migración `20261030090318` (SEC-16; la función actualizada se despliega **después** de aplicarla,
+porque lee la columna): la caducidad se cuenta desde el reclamo (`processing_started_at`, que anota
+`claim_ai_analysis_for_processing`; sin él, desde `created_at`) y toda escritura de estado exige
+`status = 'processing'`. Si otra invocación ya lo cerró, la respuesta es `already_processing_or_done` (la app
+vuelve a leer la fila) y no se pisa el resultado.
 
 **Protección contra doble procesamiento de IA:** `ai-analysis-process` reclama el análisis de forma atómica antes de procesarlo (`claim_ai_analysis_for_processing()`: `UPDATE ... SET status='processing' WHERE status='pending'`, backend-only). Si dos invocaciones llegan casi a la vez para el mismo `analysis_id`, como mucho una consigue el cambio de estado — la otra recibe `false` y no vuelve a llamar al proveedor de IA ni a cobrar coste. `ai_request_status` pasa a tener 4 valores: `pending → processing → completed|failed`.
 
@@ -147,7 +168,7 @@ Mobile: sube foto a Storage (pet-photos/{pet_id}/{uuid})
 
 ### 9.1 Ownership del feedback (v2.2.1)
 
-**El feedback de un análisis pertenece exclusivamente a quien lo solicitó.** `submit_ai_feedback()` exige `req.requested_by = auth.uid()` — no basta con ser miembro de la mascota. Un co-tutor puede seguir **viendo** cualquier análisis de una mascota compartida (la policy de `select` sigue siendo `is_pet_member`), pero no puede escribir feedback sobre un análisis que pidió otra persona. No existe una tabla `ai_analysis_feedback` separada ni se admite más de un feedback por análisis — sigue siendo un único par `feedback`/`feedback_comment` por fila, tal y como ya funcionaba, solo se corrigió quién puede escribirlo.
+**El feedback de un análisis pertenece exclusivamente a quien lo solicitó.** `submit_ai_feedback()` exige `req.requested_by = auth.uid()` — no basta con ser miembro de la mascota. Un co-tutor puede seguir **viendo** cualquier análisis de una mascota compartida (la policy de `select` sigue siendo `is_pet_member`), pero no puede escribir feedback sobre un análisis que pidió otra persona. No existe una tabla `ai_analysis_feedback` separada ni se admite más de un feedback por análisis — sigue siendo un único par `feedback`/`feedback_comment` por fila, tal y como ya funcionaba, solo se corrigió quién puede escribirlo. Desde la migración `20261030090318` el comentario tiene como mucho 1000 caracteres (`hint` `ai_feedback_too_long` en la RPC y CHECK en la columna).
 
 ## 10. Entitlement de IA
 
@@ -157,6 +178,8 @@ Mobile: sube foto a Storage (pet-photos/{pet_id}/{uuid})
 
 Por **usuario y periodo** (mes natural), no por mascota — de lo contrario, crear más mascotas permitiría saltarse el límite. Free = 3 análisis/mes por usuario, contando todas sus mascotas. Las solicitudes con `status='failed'` no consumen cupo. **Desde la migración `20261029151011_ai_quota_and_invitation_hardening.sql`** el cupo se cuenta en `private.ai_analysis_usage` (una fila por solicitud, sin FK a `pets`; `counts` sigue al estado mediante el trigger `trg_sync_ai_analysis_usage`), porque las filas de `ai_analysis_requests` desaparecen en cascada al borrar la mascota y borrarla devolvía el cupo. `request_ai_analysis` exige además el aviso veterinario aceptado (`profiles.disclaimer_accepted_at`) y sus errores llevan `hint` estable (mismos mensajes que antes): `ai_disclaimer_required`, `ai_not_allowed`, `ai_pet_unavailable`, `ai_invalid_photo`, `ai_invalid_symptoms`, `ai_quota_exceeded`. Concurrencia: `request_ai_analysis()` toma un advisory lock transaccional por usuario (`pg_advisory_xact_lock`) antes de comprobar y gastar cupo, así que dos dispositivos del mismo usuario pidiendo IA casi a la vez no pueden gastar el mismo crédito — la segunda petición espera a que la primera confirme (o falle) antes de volver a contar.
 
+**Límites de abuso (migración `20261030090318_abuse_limits_and_db_hardening.sql`, SEC-06/SEC-21)**, para todos los planes y bajo el mismo bloqueo, después del cupo mensual: (1) con **3 análisis fallidos en el día UTC** (`private.ai_analysis_usage.failed_at`, que anota el trigger al pasar a `failed`, con `failure_code` = `error_message`), ninguno más ese día: `hint` `ai_failure_limit`. No cuenta `ai_misconfigured` (clave o proveedor mal configurados: no hay coste ni culpa del usuario). (2) **Una solicitud por minuto** por usuario (cualquier fila del registro de los últimos 60 s): `hint` `ai_rate_limited`. Un fallo sigue sin gastar cupo mensual, y los fallos, como el cupo, sobreviven al borrado de la mascota. La firma no cambia; los mensajes anteriores tampoco. Probado en `abuse_limits.test.sql` y, con sesiones simultáneas, en `supabase/tests/concurrency/abuse_limits_concurrency.sh`.
+
 ## 12. Ownership
 
 `pets.owner_id` es la única fuente de verdad de propiedad — `pet_co_owners.role` nunca ha admitido el valor `'owner'`. El cambio de propietario tiene **dos capas independientes de protección**, no solo una:
@@ -165,13 +188,25 @@ Por **usuario y periodo** (mes natural), no por mascota — de lo contrario, cre
 
 `transfer_pet_ownership()` bloquea la fila con `SELECT ... FOR UPDATE`, valida que el nuevo propietario existe y es co-tutor con invitación aceptada, y es atómica (todo ocurre en una sola función = una sola transacción).
 
-Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza el borrado de un perfil mientras siga siendo propietario de alguna mascota. `owner_has_pets()` (sin parámetros, solo sobre `auth.uid()`) permite que el flujo de "borrar mi cuenta" lo compruebe antes de intentarlo y pida transferir primero si hace falta. **Formalizado en v2.2.1** como la Edge Function `delete-account` (pendiente: no existe todavía en `supabase/functions/`): ignora cualquier `user_id` que llegara en el body de la petición, obtiene el usuario únicamente del JWT, vuelve a comprobar `owner_has_pets()` ella misma (nunca confía en que el frontend ya lo hizo), y solo entonces llama a `auth.admin.deleteUser()` con `service_role`.
+Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza el borrado de un perfil mientras siga siendo propietario de alguna mascota, así que las mascotas propias se resuelven antes. El contrato de v2.2.1 (`409 has_pets` y transferir a mano) queda **sustituido** (2026-10-29, decisión del propietario) por la Edge Function `delete-account` (`supabase/functions/delete-account/`: `deletion.ts` lógica pura, `rest.ts` llamadas HTTP, `index.ts` manejador):
+
+- **Qué hace.** Cada mascota de la que el usuario es propietario pasa al co-tutor con rol `editor` e invitación `accepted` más antigua (`accepted_at`; a igualdad, `invited_at` y el id) con `transfer_pet_ownership`; si no tiene, se borra con todo lo suyo (cascada; sus fotos las encola el trigger `AFTER DELETE` de `pets` para `pet-storage-cleanup`). Lectores y pendientes no cuentan. Las mascotas que otros comparten con él solo se dejan (sus filas de `pet_co_owners` caen con el perfil). Después se quitan sus objetos de `avatars` (`{user_id}/…`) y, si ya no es propietario de ninguna mascota, se borra el usuario con `auth.admin.deleteUser`: el perfil y lo que cuelga de él va en cascada o queda a `NULL` (`daily_logs.logged_by`, `reminders.created_by`, `ai_analysis_requests.requested_by`…).
+- **Seguridad.** El usuario sale solo del JWT (la pasarela lo verifica, `verify_jwt = true`, y la función pregunta a Auth). El plan se lee y se ejecuta **con el JWT del usuario**: RLS de `pets` y `pet_co_owners`, `get_pet_members`, `transfer_pet_ownership` y las políticas de `avatars` deciden; la clave de servicio solo se usa para `auth.admin.deleteUser`, al final. No se acepta ningún id de usuario en el body.
+- **Petición** (POST, JSON estricto, sin campos de más): `{ "mode": "preview" }` o `{ "mode": "delete", "confirm": "DELETE", "expected": [{ "pet_id", "action": "transfer", "new_owner_id" } | { "pet_id", "action": "delete" }] }` (`expected` = el plan que el usuario vio, máx. 200).
+- **Respuestas.** `200 { status: 'preview', plan: { transfer: [{ pet_id, pet_name, new_owner_id, new_owner_name }], delete: [{ pet_id, pet_name }], leave_shared } }` · `200 { status: 'deleted', transferred, deleted, avatars_removed }`. Errores `{ error: <código> }`: `401 not_authenticated` · `410 account_not_found` (el JWT es válido pero el usuario ya no existe: la cuenta ya se borró; respuesta final) · `400 invalid_request` · `405 method_not_allowed` · `409 plan_changed` (+ `plan` nuevo: lo que sigue siendo suyo no coincide con lo confirmado, o apareció una mascota durante el borrado; no se ha tocado nada más) · `409 too_many_pets` (más de 200 propias) · `500 server_misconfigured` · `500 server_error` (no se pudo leer el plan) · `500 deletion_incomplete` (+ `step`: `transfer` | `delete_pet` | `avatars` | `delete_user`, y los recuentos de lo hecho).
+- **Reintentos.** Cada llamada vuelve a planificar desde el estado actual: tras un fallo a medias lo transferido ya no es suyo y lo borrado ya no existe, así que repetir con el mismo `expected` converge (lo confirmado que ya no aparece no cuenta). Orden: transferencias, borrados, avatares, comprobación de que no queda ninguna mascota suya y, por último, el usuario.
+- **Registros**: solo códigos y recuentos (ni nombres, ni ids, ni rutas). Fuera de alcance: objetos de `reminder-attachments` y `shared-reports` (sin uso todavía).
+- **Pruebas**: `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON supabase/functions/delete-account/*.test.mjs` y, contra el Supabase local, `node supabase/functions/delete-account/run-integration.mjs`.
+
+`owner_has_pets()` sigue existiendo, pero la app ya no lo usa para este flujo.
 
 ## 13. Co-tutores
 
 `UNIQUE(pet_id, user_id)` se mantiene. Transiciones soportadas: `pending→accepted`, `pending→declined`, `accepted→revoked`, y reinvitación (`declined→pending`, `revoked→pending`) vía `invite_pet_member()`, que reutiliza la fila existente en vez de intentar un segundo `INSERT` que chocaría con el `UNIQUE`. Ningún camino permite `viewer→editor→owner` por `UPDATE` directo: no hay policy de `UPDATE` para `authenticated` sobre `pet_co_owners`, todo pasa por RPCs que validan la transición y quién puede pedirla. Un usuario con invitación `pending` puede ver su propia fila (`user_id = auth.uid()` en la policy de select) aunque `is_pet_member()` todavía no lo considere miembro.
 
-**Invitar por email (migración `20261023082848_pet_invitations_by_email.sql`).** `invite_pet_member_by_email` comprueba primero que quien llama es el propietario de una mascota activa (`hint` `not_pet_owner`) y que el email tiene forma válida (`invalid_email`); después responde igual si el email no tiene cuenta, es el del propio usuario o ya tiene una invitación activa, para no revelar qué emails están registrados. Desde la migración `20261029151011` solo cuentan las cuentas con el email confirmado, no baneadas, no borradas y no anónimas (una cuenta registrada con el email de otra persona sin confirmarlo no recibe sus invitaciones). Límite conocido: el propietario sigue pudiendo deducir si un email tiene cuenta porque solo entonces aparece una fila pendiente (`docs/SECURITY_AUDIT.md` SEC-04). `get_my_pet_invitations()` da las invitaciones pendientes del usuario con el nombre de la mascota y de quien invita (que RLS no le deja leer todavía); `get_pet_members(pet_id)` da los co-tutores pendientes y aceptados con su nombre, solo a miembros (`not_pet_member`). Sin límite de frecuencia de invitaciones (pendiente).
+**Invitar por email (migración `20261023082848_pet_invitations_by_email.sql`).** `invite_pet_member_by_email` comprueba primero que quien llama es el propietario de una mascota activa (`hint` `not_pet_owner`) y que el email tiene forma válida (`invalid_email`); después responde igual si el email no tiene cuenta, es el del propio usuario o ya tiene una invitación activa, para no revelar qué emails están registrados. Desde la migración `20261029151011` solo cuentan las cuentas con el email confirmado, no baneadas, no borradas y no anónimas (una cuenta registrada con el email de otra persona sin confirmarlo no recibe sus invitaciones). Límite conocido: el propietario sigue pudiendo deducir si un email tiene cuenta porque solo entonces aparece una fila pendiente (`docs/SECURITY_AUDIT.md` SEC-04). `get_my_pet_invitations()` da las invitaciones pendientes del usuario con el nombre de la mascota y de quien invita (que RLS no le deja leer todavía); `get_pet_members(pet_id)` da los co-tutores pendientes y aceptados con su nombre, solo a miembros (`not_pet_member`).
+
+**Desde la migración `20261030090318` (SEC-04, sin rediseñar el esquema):** `invite_pet_member_by_email` admite **20 intentos por propietario en 24 h** (ventana móvil; `hint` `invite_rate_limited`, mensaje «Has enviado demasiadas invitaciones…»), contados en `private.pet_invitation_attempts` (solo quién y cuándo, nunca el email; cuentan también los emails sin cuenta, el propio y los ya invitados; no cuentan un email mal formado ni una mascota ajena; sin FK a `pets`; se purgan los de más de 2 días). `get_pet_members` devuelve `user_id` y `full_name` **NULL en las invitaciones pendientes** (salvo a la propia persona invitada); `invitation_id`, rol, estado y fechas siguen, así que la app puede anularlas. La política SELECT de `pet_co_owners` deja de mostrar a los miembros las filas no aceptadas de otros (sección 5). **Riesgo residual:** la fila pendiente solo aparece si el email tiene una cuenta confirmada, así que el propietario puede seguir deduciendo si un email está registrado (no quién es); el límite lo reduce a 20 emails al día por cuenta. Eliminarlo del todo exige invitaciones por email en una tabla propia, sin crear la fila hasta aceptar (SEC-04, P1-07). `invite_pet_member` (por id) no tiene el límite, pero exige conocer el `user_id`, que la app ya no puede ver.
 
 ## 14. Timezone
 
@@ -246,6 +281,19 @@ No se creó ninguna tabla nueva ni se cambió la restricción `UNIQUE(token)`.
 | `profiles.avatar_path` | `avatars` | `{user_id}/{object_uuid}.{ext}` |
 
 > Corrección posterior (migración `20261027194904_pets_photo_path_own_pet.sql`, aplicada en `kitom-dev` el 2026-10-28): `pets.photo_path` no tenía validación (a diferencia de `ai_analysis_requests.photo_path` y `reminders.attachment_path`). Ahora un CHECK solo admite NULL o `{id de la propia mascota}/{nombre}.jpg` (un nivel, `.jpg`, lo que genera la app). Y la migración `20261027194908_pet_storage_cleanup.sql` añade la limpieza de `pet-photos` de las mascotas borradas: cola privada llenada por un trigger, RPC solo para `service_role` y la Edge Function `pet-storage-cleanup` (`docs/proposals/2026-10-26-pet-photos-cleanup.md`). `reminder-attachments` y `shared-reports` quedan fuera.
+
+> Programación (migración `20261030090318_abuse_limits_and_db_hardening.sql`, P1-04): `pg_cron` (en
+> `pg_catalog`) y `pg_net` (en `extensions`) y dos tareas de `cron.job` como `postgres`:
+> `kitom-pet-storage-cleanup` (`*/30 * * * *`, `{"task":"process"}`) y `kitom-pet-storage-cleanup-audit`
+> (`17 4 * * *`, `{"task":"audit"}`). Ambas llaman a `private.invoke_pet_storage_cleanup(task)`, que lee de
+> Vault (por nombre) `kitom_project_url` (`https://<ref>.supabase.co`, sin barra final) y
+> `pet_storage_cleanup_secret` (el mismo valor que el secreto `PET_STORAGE_CLEANUP_SECRET` de la función,
+> ≥ 32 caracteres) y hace `net.http_post` a `{url}/functions/v1/pet-storage-cleanup` con la cabecera
+> `x-kitom-cleanup-secret` (60 s). Sin Vault, sin `pg_net` o sin alguno de los dos secretos (o con una URL
+> o un secreto no válidos) no hace nada y devuelve `NULL`, sin error. Ningún secreto está en la migración.
+> Qué se borra lo sigue decidiendo la función (modo informe salvo `PET_STORAGE_CLEANUP_MODE=delete`).
+> `pg_net` concede `EXECUTE` sobre `net.*` a `anon`/`authenticated` (lo hace Supabase y `postgres` no
+> puede revocarlo); el esquema `net` no está expuesto por la API.
 
 El bucket nunca viaja como parámetro desde el cliente — cada Edge Function y cada policy de Storage tiene su bucket fijo hardcodeado (p. ej. `PHOTO_BUCKET = 'pet-photos'` en `supabase/functions/ai-analysis-process/index.ts`). Los paths guardados en columnas `*_path` son siempre internos, nunca una URL — ni pública ni firmada. Las URLs firmadas se generan bajo demanda en el momento de mostrarlas (`createSignedUrl`), nunca se persisten.
 

@@ -5,7 +5,7 @@ import { OptionGroup, type Option } from '@/components/ui/option-group';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { BreedPicker } from '@/features/pets/components/breed-picker';
-import type { PetFormValues } from '@/features/pets/pet-form';
+import { PET_BREED_TEXT_MAX_LENGTH, type PetFormValues } from '@/features/pets/pet-form';
 import { BREED_STATUS_VALUES, type BreedStatus } from '@/features/pets/types';
 import { t } from '@/i18n';
 import { spacing } from '@/theme/tokens';
@@ -82,6 +82,7 @@ export function PetBreedField({ speciesId, value, onChange, errors }: PetBreedFi
             value={value.breedText}
             onChangeText={(breedText) => onChange({ ...value, breedText })}
             autoCapitalize="words"
+            maxLength={PET_BREED_TEXT_MAX_LENGTH}
             hint={t('pets.breedPicker.otherHint')}
             error={errors.breedText}
           />

@@ -1,26 +1,27 @@
 import { useRouter } from 'expo-router';
 
 import { Card } from '@/components/ui/card';
-import { Check, KeyRound, Mail, Smartphone } from '@/components/ui/icons';
+import { Check, KeyRound, Mail } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
 import { Screen } from '@/components/ui/screen';
 import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
 import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
+import { accountHasPassword } from '@/features/auth/change-password';
 import { GoogleLogo } from '@/features/auth/components/google-logo';
 import { t } from '@/i18n';
 
 /**
  * Seguridad y acceso (tablero 10.2): el email, con qué se entra (Supabase Auth: `identities`) y cambiar
- * la contraseña. El teléfono está pendiente de OTP en Auth; «cerrar sesión en todos los dispositivos»
- * no se ofrece (necesita decidir qué pasa con lo pendiente de otros dispositivos).
+ * la contraseña (o crearla, si solo entra con Google). Entrar con teléfono está retirado del alcance (decisión 2026-10-29); «cerrar sesión en
+ * todos los dispositivos» no se ofrece (necesita decidir qué pasa con lo pendiente de otros dispositivos).
  */
 export default function SecurityScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const providers = new Set((user?.identities ?? []).map((identity) => identity.provider));
-  const hasPassword = providers.has('email');
+  const hasPassword = accountHasPassword(user?.identities);
   const verified = Boolean(user?.email_confirmed_at);
 
   return (
@@ -55,22 +56,12 @@ export default function SecurityScreen() {
             divider
           />
         ) : null}
-        {hasPassword ? (
-          <ListItem
-            plain
-            icon={KeyRound}
-            title={t('settings.securityScreen.emailPassword')}
-            subtitle={t('settings.securityScreen.changePassword')}
-            onPress={() => router.push('/settings/password')}
-            divider
-          />
-        ) : null}
         <ListItem
           plain
-          icon={Smartphone}
-          title={t('settings.securityScreen.phone')}
-          subtitle={t('settings.securityScreen.phoneText')}
-          trailing={<Tag label={t('common.soon')} />}
+          icon={KeyRound}
+          title={t('settings.securityScreen.emailPassword')}
+          subtitle={hasPassword ? t('settings.securityScreen.changePassword') : t('settings.password.createTitle')}
+          onPress={() => router.push('/settings/password')}
         />
       </Card>
       <Text variant="caption" color="inkMuted">

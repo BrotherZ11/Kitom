@@ -1,17 +1,18 @@
+import { deviceLocaleTags, resolveLocale, type Locale } from '@/i18n/locale';
 import { en } from '@/i18n/locales/en';
 import { es, type Translations } from '@/i18n/locales/es';
 
 /**
  * i18n mínimo y tipado. `es` y `en` deben tener las mismas claves (`Translations`). El idioma activo
- * es fijo (`es`) hasta implementar la detección del idioma del dispositivo (fallback a inglés, PRD).
- * Si se necesita interpolación/plurales o cambio de idioma en caliente, sustituir por una librería
- * (p. ej. i18next) manteniendo la API `t(key)`.
+ * sale del dispositivo al arrancar (`locale.ts`: español o, si no, inglés); cambiar el idioma del
+ * sistema se aplica en el siguiente arranque. Si se necesita interpolación/plurales o cambio de idioma
+ * en caliente, sustituir por una librería (p. ej. i18next) manteniendo la API `t(key)`.
  */
-export type Locale = 'es' | 'en';
+export type { Locale };
 
 const translations: Record<Locale, Translations> = { es, en };
 
-const currentLocale: Locale = 'es';
+const currentLocale: Locale = resolveLocale(deviceLocaleTags());
 
 type Leaves<T> = {
   [K in keyof T & string]: T[K] extends string ? K : `${K}.${Leaves<T[K]>}`;

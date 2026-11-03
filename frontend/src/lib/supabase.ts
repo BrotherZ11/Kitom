@@ -1,3 +1,6 @@
+// Primero: completa `crypto` en Hermes para el PKCE de Auth (ver `web-crypto.ts`).
+import '@/lib/device-web-crypto';
+
 import { createClient } from '@supabase/supabase-js';
 import { onlineManager } from '@tanstack/react-query';
 import { AppState, Platform } from 'react-native';

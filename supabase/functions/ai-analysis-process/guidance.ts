@@ -239,3 +239,17 @@ export function isUuid(value: unknown): value is string {
 
 /** Un análisis `processing` más antiguo que esto se da por fallido (la función se cortó a medias). */
 export const STALE_PROCESSING_MS = 3 * 60_000;
+
+/**
+ * ¿Lleva un análisis `processing` demasiado tiempo? Se cuenta desde el reclamo
+ * (`processing_started_at`, migración `20261030090318`), no desde la solicitud: una solicitud
+ * reclamada tarde no caduca nada más empezar. Sin esa marca (reclamada antes de la migración), desde
+ * `created_at`. Una fecha ilegible se da por caducada para no dejar el análisis bloqueado.
+ */
+export function isStaleProcessing(
+  row: { processing_started_at?: string | null; created_at: string },
+  nowMs: number
+): boolean {
+  const since = Date.parse(row.processing_started_at ?? row.created_at);
+  return !Number.isFinite(since) || nowMs - since > STALE_PROCESSING_MS;
+}

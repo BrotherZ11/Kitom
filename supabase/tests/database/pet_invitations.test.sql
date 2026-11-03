@@ -160,10 +160,12 @@ select throws_ok(
 );
 
 select test_helpers.act_as('f0000000-0000-4000-8000-000000000001');
+-- Desde la migración 20261030090318 (SEC-04) una invitación pendiente no dice
+-- quién es (ni nombre ni user_id) hasta que se acepta.
 select results_eq(
-  $$ select full_name, status::text from public.get_pet_members('f1000000-0000-4000-8000-000000000001') $$,
-  $$ values ('Gema'::text, 'pending'::text) $$,
-  'la propietaria ve la invitación pendiente con el nombre'
+  $$ select full_name, user_id, status::text from public.get_pet_members('f1000000-0000-4000-8000-000000000001') $$,
+  $$ values (null::text, null::uuid, 'pending'::text) $$,
+  'la propietaria ve la invitación pendiente, sin nombre ni user_id'
 );
 
 -- Al aceptar, deja de estar pendiente y pasa a ser miembro (puede ver los miembros).

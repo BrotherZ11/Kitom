@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { useTheme, type ThemeColor } from '@/hooks/use-theme';
@@ -43,9 +43,9 @@ export function Screen({
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]} edges={edges}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* `padding` también en Android: con edge-to-edge (siempre activo en RN 0.86) la ventana ya no se
+          redimensiona con el teclado y, sin esto, el botón del pie quedaba tapado. */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView
           contentContainerStyle={[
             styles.content,

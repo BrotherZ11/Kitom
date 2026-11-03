@@ -1,0 +1,399 @@
+/*
+ * Kitom · páginas públicas (GitHub Pages). Sin scripts ni recursos externos.
+ * Colores y tipografía de docs/design (frontend/src/theme/tokens.ts): tema claro y oscuro según el sistema.
+ */
+
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/HankenGrotesk_400Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('fonts/HankenGrotesk_600SemiBold.ttf') format('truetype');
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: #f2f5f3;
+  --surface: #ffffff;
+  --surface-sunken: #e6ece9;
+  --surface-brand: #dcebe6;
+  --ink: #0f2a29;
+  --ink-muted: #566a67;
+  --line: #dae4e0;
+  --primary: #1f6f6b;
+  --primary-pressed: #185956;
+  --on-primary: #ffffff;
+  --accent: #f2b441;
+  --focus-ring: #1f6f6b;
+  --vet-bg: #fbe2d5;
+  --vet-fg: #9a3412;
+  --shadow: 0 1px 2px rgba(15, 42, 41, 0.06), 0 2px 8px rgba(15, 42, 41, 0.06);
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --font: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'IBM Plex Mono', SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c1918;
+    --surface: #152624;
+    --surface-sunken: #0a1413;
+    --surface-brand: #17332f;
+    --ink: #e6efec;
+    --ink-muted: #9db2ae;
+    --line: #24403c;
+    --primary: #6cc0b4;
+    --primary-pressed: #8dd0c6;
+    --on-primary: #06201e;
+    --focus-ring: #6cc0b4;
+    --vet-bg: #3a1f14;
+    --vet-fg: #f5a783;
+    --shadow: 0 0 0 1px #24403c;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -100px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
+  z-index: 10;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+a {
+  color: var(--primary);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--primary-pressed);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Cabecera */
+.site-header {
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.site-header .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+}
+
+.logo img {
+  display: block;
+  height: 32px;
+  width: auto;
+}
+
+.site-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-nav li + li {
+  margin-top: 0;
+}
+
+.site-nav a {
+  display: inline-block;
+  padding: 11px 0;
+  min-height: 44px;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.site-nav a[aria-current='page'] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+.site-nav .lang {
+  color: var(--ink-muted);
+}
+
+/* Contenido */
+main {
+  padding: 32px 0 48px;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem);
+}
+
+h2 {
+  margin: 40px 0 12px;
+  font-size: 1.35rem;
+  scroll-margin-top: 16px;
+}
+
+h3 {
+  margin: 24px 0 8px;
+  font-size: 1.1rem;
+}
+
+p,
+ul,
+ol,
+table {
+  margin: 0 0 16px;
+}
+
+ul,
+ol {
+  padding-left: 1.4em;
+}
+
+li + li {
+  margin-top: 6px;
+}
+
+.meta {
+  margin: 0 0 24px;
+  color: var(--ink-muted);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+.lead {
+  font-size: 1.125rem;
+  color: var(--ink-muted);
+}
+
+.card {
+  margin: 0 0 24px;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.card > :last-child {
+  margin-bottom: 0;
+}
+
+.card.brand {
+  background: var(--surface-brand);
+  box-shadow: none;
+}
+
+.card.notice {
+  background: var(--vet-bg);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.card.notice strong {
+  color: var(--vet-fg);
+}
+
+.toc h2 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+
+.toc ol {
+  margin: 0;
+  columns: 2 220px;
+  column-gap: 24px;
+}
+
+.toc li {
+  break-inside: avoid;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin: 0 0 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+caption {
+  text-align: left;
+  padding-bottom: 8px;
+  color: var(--ink-muted);
+}
+
+th,
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-weight: 600;
+  background: var(--surface-sunken);
+}
+
+.steps {
+  counter-reset: step;
+  list-style: none;
+  padding-left: 0;
+}
+
+.steps li {
+  position: relative;
+  padding-left: 44px;
+  min-height: 32px;
+}
+
+.steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--surface-brand);
+  color: var(--primary);
+  font-weight: 600;
+  text-align: center;
+  line-height: 30px;
+}
+
+.links {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.links li + li {
+  margin-top: 0;
+}
+
+.links a {
+  display: block;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+}
+
+.links a span {
+  display: block;
+  color: var(--ink-muted);
+  font-weight: 400;
+  font-size: 0.95rem;
+}
+
+.dot {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-left: 0.15em;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: baseline;
+}
+
+/* Pie */
+.site-footer {
+  border-top: 1px solid var(--line);
+  padding: 24px 0 40px;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
+.site-footer p {
+  margin: 0 0 8px;
+}
+
+@media print {
+  .site-nav,
+  .skip-link {
+    display: none;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+}

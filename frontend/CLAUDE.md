@@ -70,12 +70,22 @@ error y «sin mascotas».
   utilizable; es lo que hace segura la revalidación al reconectar de móvil, `lib/query-defaults.ts`,
   aunque la query use `enabled`); nunca comprobar `session` para decidir si hay usuario (usar
   `user`), ni dar por válida una sesión `offline`.
-- Rutas de Auth: `(auth)/auth-callback.tsx` recibe los enlaces de email y el retorno de Google;
-  `update-password.tsx` solo es accesible con una sesión de recuperación.
+- Rutas de Auth: `auth-callback.tsx` (en la raíz, con y sin sesión; con sesión solo canjea enlaces de
+  recuperación: `auth-callback-plan.ts`) recibe los enlaces de email y el retorno de Google;
+  `update-password.tsx` solo es accesible con una recuperación pendiente, guardada en el dispositivo por
+  usuario (`password-recovery.ts`; sobrevive a cerrar la app). Contraseñas nuevas: mínimo
+  `MIN_PASSWORD_LENGTH` (`validation.ts`) con la regla visible (`auth.passwordRule`); cambio en ajustes
+  siempre con `changePassword` de `useAuth()` (comprueba la actual con un cliente aparte,
+  `change-password.ts`), nunca `updateUser` directo. Mapeo de errores puro en `auth-error-code.ts`.
+  Guía: `docs/AUTH.md` §5.
 - `src/app/_layout.tsx` — único punto de protección de rutas (`Stack.Protected`); nunca comprobar la
   sesión pantalla a pantalla.
-- `src/i18n/` — `t(key)` tipado; `es` y `en` con las mismas claves (`Translations`), idioma activo `es`
-  (detección del dispositivo pendiente). Ningún texto visible fuera de `src/i18n/locales/`.
+- `src/i18n/` — `t(key)` tipado; `es` y `en` con las mismas claves (`Translations`). Idioma del
+  dispositivo al arrancar (`locale.ts`, puro y probado: español o, si no, inglés; con `Intl`, sin
+  paquetes). Ningún texto visible fuera de `src/i18n/locales/`.
+- `src/lib/error-reporting.ts` — Sentry solo en release con `EXPO_PUBLIC_SENTRY_DSN`; sin datos
+  personales (`beforeSend`/`beforeBreadcrumb`). Nunca añadir contexto de usuario ni contenido a los eventos.
+- `src/lib/legal-links.ts` — URLs públicas (privacidad, términos, borrado de cuenta) y email de soporte.
 - `src/components/ui/` — componentes de marca (F1); lista y reglas en «Tema y diseño» abajo.
 - `src/features/daily-logs/` — registro diario (hoy: ruta `(app)/pets/[id]/daily-log`, tarjeta en la
   ficha). Guardar es local + motor de sincronización (nunca llamar a `save_daily_log` desde pantallas);
@@ -119,6 +129,9 @@ error y «sin mascotas».
   fijar otro por feature sin revisar `docs/DECISIONS.md` (2026-10-13).
 - `src/lib/submit-guard.ts` — evita envíos dobles (toques antes de que el botón se deshabilite).
   `src/lib/single-flight.ts` — llamadas simultáneas comparten una ejecución (`signOut` de AuthProvider).
+- `src/lib/legal-links.ts` — URL de las páginas públicas (`site/`: privacidad, términos, eliminar la
+  cuenta) y `SUPPORT_EMAIL`; nunca redefinirlas. `src/lib/open-link.ts` — `openWebPage` (navegador
+  integrado, `expo-web-browser`) y `openSupportEmail` (`mailto:`); devuelven `false` si no se pudo abrir.
 - MVP (2026-10-21): `src/features/profile/onboarding.ts` + `hooks/use-profile.ts` (configuración
   inicial, `useOnboardingGate` en el layout de `(tabs)`; rutas `(app)/setup/*`), `src/features/reminders/`
   (agenda; lógica pura en `reminder-model.ts`/`reminder-format.ts`; escrituras siempre con precondición
@@ -135,6 +148,12 @@ error y «sin mascotas».
   `functions.invoke('ai-analysis-process')`. Aviso informativo en cada resultado (`ConsultDisclaimer`).
 - Co-tutores (2026-10-23): `src/features/co-owners/` (modelo puro `co-owners-model.ts`, `api/` solo con RPC,
   `hooks/`, `CoOwnersGate` e `InvitationsEntry`) y rutas `(app)/pets/[id]/co-owners/*` e `(app)/invitations`.
+- Eliminar cuenta (2026-10-29): `src/features/account/` (`account-deletion.ts` puro y probado: respuestas
+  de `delete-account`, errores y `finishAccountDeletion`; `api/` con `functions.invoke`; `hooks/`) y ruta
+  `(app)/settings/delete-account`. Tras borrar, `useFinishAccountDeletion` para los motores, borra todo lo
+  local del usuario (`clearLocalUserData` de `lib/local-store/local-store.ts`, solo para cuentas que ya no
+  existen) y sus avisos, y cierra sesión: única excepción a `useSignOutFlow`. Contrato:
+  `docs/FRONTEND_ARCHITECTURE.md` «DeleteAccountScreen».
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
   `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`
@@ -151,7 +170,7 @@ error y «sin mascotas».
   relativa con extensión (`./otro.ts`).
   Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
   Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
-  Pendiente: login por teléfono (OTP); en Pets: desplegar la limpieza de fotos de mascotas borradas (migraciones
+  Login por teléfono (OTP): retirado del alcance (decisión 2026-10-29). Pendiente en Pets: desplegar la limpieza de fotos de mascotas borradas (migraciones
   ya en `kitom-dev`, Edge Function sin desplegar; la app no cambia), archivar (`is_active`), selector de fecha nativo, gestión de co-tutores y límite de mascotas del plan free.
 
 ## Tema y diseño (diseño v2, `docs/design/`)
@@ -292,7 +311,7 @@ reiniciar Metro lo regenera entero.
   (`avatars`: `{user_id}/{uuid}.{ext}`). Sin update: borrar y volver a subir.
 - Timezone: nombre IANA vía `Intl.DateTimeFormat().resolvedOptions().timeZone`, nunca abreviaturas.
 - Las Edge Functions (`ai-analysis-process`, `generate-pet-report`, `delete-account`) pueden devolver
-  403/409 aunque la RPC previa haya ido bien: es el contrato, manejarlo. (Aún no implementadas.)
+  403/409 aunque la RPC previa haya ido bien: es el contrato, manejarlo. (`generate-pet-report`, aún sin implementar.)
 - Errores: mapear según la tabla §6 de FRONTEND_ARCHITECTURE.md.
 - Ocultar botones por permisos es UX; la seguridad real está en la BD.
 - `organizations` no está desplegado: no usarlo.

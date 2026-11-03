@@ -121,8 +121,8 @@ Barra: **Hoy · Historial · Registrar · Agenda · Perfil** (decisión en `docs
 - Logros (`pet_achievements`, `achievements_catalog` + `catalog_translations`), detalle, insignia
   conseguida. Retos semanales: solo «Próximamente».
 - Tu cuenta y ajustes, seguridad, cambiar contraseña, consentimientos, fotos, ayuda, legal, cerrar
-  sesión. **Bloqueado**: exportar datos y eliminar cuenta (Edge Functions pendientes; `delete-account`
-  responde 409 `has_pets`, ver `PANTALLAS.md` §6.9).
+  sesión. Eliminar cuenta (10.9): hecho el 2026-10-29 (`delete-account`, `docs/README.md` §12).
+  **Bloqueado**: exportar datos (Edge Function pendiente).
 
 ## Fase 8 · Bloqueado por backend
 

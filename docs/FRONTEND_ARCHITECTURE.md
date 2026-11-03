@@ -37,7 +37,8 @@ APP (tabs, sesión activa, onboarding completo)
 Destinos lógicos. **Implementado (diseño v2, F2–F5)** con Expo Router; las URL anteriores no cambian:
 
 ```
-(auth)  welcome · onboarding · login · register · forgot-password · auth-callback   (+ update-password)
+(auth)  welcome · onboarding · login · register · forgot-password   (+ update-password: recuperación pendiente)
+auth-callback   en la raíz, con y sin sesión (con sesión solo canjea enlaces de recuperación; ver §2)
 (app)   Stack, sin cabecera nativa (cada pantalla lleva su TopBar)
 ├── (tabs)  barra Hoy · Historial · [Registrar] · Agenda · Perfil (redirige a setup/profile si falta la configuración inicial)
 │   ├── index        /            Hoy (mascota activa; «Próximo» de la agenda)
@@ -70,6 +71,16 @@ que se recuerda por usuario en el dispositivo; si ya no es visible, se usa la pr
 `offline` = sesión guardada de un usuario identificado que Supabase no ha podido renovar ni comprobar
 (sin conexión): se ve la app con sus datos locales y no se usa el servidor. Detalle: §5 «Arranque en
 frío sin conexión».
+
+**Recuperación de contraseña pendiente (implementada, 2026-10-29).** Además del estado de la sesión, el
+layout raíz usa `isRecoveringPassword` (`features/auth/password-recovery.ts`, puro y probado): marca por
+usuario guardada en el almacenamiento seguro de la sesión (clave `kitom-password-recovery`) al recibir
+`PASSWORD_RECOVERY`; se borra al guardar la contraseña (`updatePassword`) o si la sesión deja de ser de
+ese usuario (cierre de sesión, sesión rechazada, otra cuenta). Con la marca del usuario de la sesión
+(también `offline`), solo está disponible `/update-password`. `isLoading` sigue en `true` hasta leerla.
+`/auth-callback` vive en la raíz, fuera de los guards: sin sesión canjea cualquier enlace; con sesión,
+solo los de recuperación, y sale sola a `/update-password` o a `/` (`auth-callback-plan.ts`). Flujos y
+configuración de Supabase: `AUTH.md` §2, §3 y §5.
 
 **Configuración inicial (implementada, 2026-10-21).** No es un stack aparte: las rutas `(app)/setup/*`
 viven en `(app)` y el layout de `(tabs)` redirige a `setup/profile` mientras
@@ -118,8 +129,14 @@ No se introduce Redux ni una capa de estado global adicional — con React Query
 
 ### AuthScreens (Login/Register/ForgotPassword)
 - **READ:** —
-- **WRITE:** `supabase.auth.signIn/signUp/resetPasswordForEmail`
+- **WRITE:** `supabase.auth.signIn/signUp/resetPasswordForEmail` y `resend({ type: 'signup' })` (reenviar la
+  confirmación desde «Revisa tu correo» y desde el login con `email_not_confirmed`, espera de 60 s)
 - **RPC / Edge Function / Storage:** ninguno
+- Registro: contraseña de al menos 8 caracteres (`MIN_PASSWORD_LENGTH`, regla visible) y casilla
+  obligatoria de Términos y Privacidad (`lib/legal-links.ts`, navegador dentro de la app); con Google, el
+  aviso como texto. Errores nuevos de `AuthErrorCode` (`auth-error-code.ts`): `password_too_short`,
+  `password_mismatch`, `pwned_password`, `wrong_current_password`, `code_invalid`, `terms_not_accepted`.
+  Detalle: `AUTH.md` §5.
 
 ### ProfileSetup / Disclaimer (onboarding)
 - **READ:** `profiles` (propia)
@@ -484,12 +501,15 @@ el Supabase local en `api/reminders.integration.test.mjs`; hooks en `hooks/use-r
 
 **Implementado (2026-10-23)** en `features/ai-analysis/` y `(app)/pets/[id]/consult/*`. Entradas: botón
 del estetoscopio en Hoy (si puede editar la mascota) y «Consultar con una foto» en el perfil.
-- **Asistente** (`consult/new`): intro con el cupo («N de 3 este mes»), qué se envía al proveedor y
-  señales de urgencia; foto opcional (`pet-photos/{pet_id}/{uuid}.jpg`, subida solo al enviar), señales
-  de la especie (al menos una) y revisión. Sin cupo: pantalla de límite con la fecha en que vuelve
-  (sin paywall: Premium aún no existe). Errores de `request_ai_analysis` por `hint`
+- **Asistente** (`consult/new`): intro con el cupo («N de 3 este mes»), qué se envía a Google (el
+  proveedor de IA), que no se usa para entrenar modelos, enlace a la política de privacidad y señales de
+  urgencia; foto opcional (`pet-photos/{pet_id}/{uuid}.jpg`, subida solo al enviar) con casilla que
+  acepta enviarla a Google, señales de la especie (al menos una) y revisión. Sin cupo: pantalla de
+  límite con la fecha en que vuelve y por qué hay límite (sin Premium ni paywall: lanzamiento gratuito).
+  Errores de `request_ai_analysis` por `hint`
   (`ai_quota_exceeded`, `ai_disclaimer_required`, `ai_not_allowed`, `ai_pet_unavailable`,
-  `ai_invalid_photo`, `ai_invalid_symptoms`; migración `20261029151011`) y, en un servidor anterior, por
+  `ai_invalid_photo`, `ai_invalid_symptoms`; migración `20261029151011`; `ai_rate_limited` y
+  `ai_failure_limit`, migración `20261030090318`) y, en un servidor anterior, por
   el mensaje (`ai-analysis-model.ts › toRequestErrorCode`).
 - **Resultado** (`consult/[analysisId]`): polling de la fila cada 2 s mientras no sea terminal; si sigue
   `pending` a los 8 s se reinvoca la función una vez (el servidor no reprocesa) y a los 60 s se ofrece
@@ -556,19 +576,45 @@ e `invitations`. Entrada: «Co-tutores» en el perfil de la mascota.
 
 ### SettingsScreen
 **Implementado (2026-10-21)** (`(app)/settings/index.tsx` y subpantallas, tableros 10.1–10.4, 10.7,
-10.8 y 8.7): nombre (editable), email y plan (`subscriptions.plan`, solo lectura); idioma (solo
+10.8 y 8.7): nombre (editable) y email (el plan ya no se muestra: lanzamiento gratuito, 2026-10-29); idioma (solo
 español), zona horaria (ver y «usar la de este móvil»: `profiles.timezone`), tema sistema/claro/oscuro
 (preferencia **del dispositivo**, AsyncStorage `kitom-theme-preference`; no hay columna), notificaciones
 (`notification_preferences.daily_reminder_enabled/_time` y estado del permiso), seguridad (email
-verificado, métodos de `user.identities`, cambiar contraseña con `updateUser`), privacidad (aviso
-aceptado con fecha y versión, `marketing_opt_in`), ayuda y legal, «Mis mascotas», «Registros sin
-sincronizar» y cerrar sesión (mismo flujo con pendientes, §5 «Sesión»). Sin servicio todavía, no se
-muestran: exportar, suscripción, eliminar la cuenta, fotos de consultas, teléfono («Próximamente»),
-clínica propia y voz de la mascota.
+verificado, métodos de `user.identities`; cambiar contraseña pidiendo la actual, comprobada con un
+cliente de Auth aparte sin tocar la sesión, y `updateUser({ password, current_password[, nonce] })`, con
+código por email si Supabase pide reautenticación; una cuenta solo de Google la crea con el enlace de
+recuperación: `features/auth/change-password.ts`, `AUTH.md` §5), privacidad (aviso
+aceptado con fecha y versión, `marketing_opt_in`, y «Tus derechos»: política de privacidad y email de
+soporte), ayuda (preguntas frecuentes y email de soporte) y legal (política de privacidad y términos con
+su fecha de entrada en vigor, resumen, aviso veterinario y responsable), «Mis mascotas», «Registros sin
+sincronizar», «Descargar mis datos» (`DataExportScreen`), cerrar sesión (mismo flujo con pendientes, §5
+«Sesión») y «Eliminar mi cuenta» (`DeleteAccountScreen`, 2026-10-29). Las páginas públicas (`site/`,
+URL en `src/lib/legal-links.ts`) se abren en el navegador integrado y el soporte con `mailto:`
+(`src/lib/open-link.ts`; si no hay app de correo, la pantalla muestra la dirección). Sin servicio
+todavía, no se muestran: suscripción, fotos de consultas, clínica propia y voz de la mascota. Entrar
+con teléfono: retirado del alcance (decisión 2026-10-29).
 - **READ:** `profiles`, `notification_preferences`, `push_tokens`
 - **WRITE:** `profiles` (columnas permitidas), `notification_preferences`, `push_tokens`
 - **RPC:** `register_push_token(token, platform, device_id, app_version, os_version)` — llamar en login, en app launch y en cada refresh de token (ver sección 10)
 - **Storage:** `avatars` (insert/delete, path `{user_id}/{uuid}`)
+
+> Co-tutores (migración `20261030090318`): `get_pet_members` devuelve `user_id` y `full_name` NULL en las
+> invitaciones pendientes (la app muestra «Invitación pendiente» y revoca por `invitation_id`);
+> `invite_rate_limited` → `coOwners.errors.rate_limited`. Mascotas: `maxLength` de raza libre 60, listas 200 y
+> notas 2000, para que un cambio sin conexión nunca choque con los CHECK de la base.
+
+### DataExportScreen
+**Implementado (2026-10-30, rama `feat/data-export`)**: `(app)/settings/export`, entrada «Descargar mis datos» en
+Tu cuenta › Tus datos (RGPD art. 15 y 20).
+- Lee con el cliente del usuario (RLS decide; solo columnas con GRANT SELECT): perfil, preferencias,
+  plan, mascotas visibles y, de ellas, `daily_logs`, `reminders`, `ai_analysis_requests` (+ síntomas),
+  `pet_achievements`, `pet_streaks` y `pet_co_owners`; paginado de 1000 en 1000 (`fetchAllPages`).
+- Documento (`data-export.ts`, puro y probado): `format: "kitom-export"`, `version: 1`, `exported_at`,
+  cuenta, perfil y una entrada por mascota con su rol (`owner`/`co_owner`) y sus datos anidados. Las fotos
+  no van dentro (solo `photo_path`); se piden por email.
+- Entrega: móvil, archivo `kitom-datos-AAAA-MM-DD.json` en la caché + menú de compartir del sistema
+  (`expo-file-system` + `expo-sharing`); web, descarga directa (`save-export.web.ts`). Nada pasa por
+  un servidor propio. Necesita conexión.
 
 ### PaywallScreen
 - **READ:** `subscriptions` (columnas públicas)
@@ -576,9 +622,33 @@ clínica propia y voz de la mascota.
 - **RPC:** ninguno directo (RevenueCat SDK gestiona el checkout nativo)
 
 ### DeleteAccountScreen
-- **READ:** `owner_has_pets()` (para mostrar de antemano si hay que transferir mascotas primero — solo es UX, no la autorización real)
-- **WRITE:** ninguna directa
-- **Edge Function:** `delete-account` — **es la única vía real de borrado.** Ignora cualquier `user_id` que el cliente pudiera enviar (no hace falta enviarlo: usa el JWT), y vuelve a comprobar `owner_has_pets()` ella misma antes de borrar. Si el usuario tiene mascotas, responde `409 has_pets` y el frontend debe dirigir a `OwnershipTransferScreen` — no intentar el borrado de nuevo hasta que se resuelva
+**Implementado (2026-10-29)** (`(app)/settings/delete-account.tsx`, tablero 10.9; entrada «Eliminar mi
+cuenta» en Ajustes, con estilo de peligro). Código en `features/account/`: `account-deletion.ts` (puro y
+probado: lectura de respuestas, errores y cierre en el dispositivo), `api/account-deletion-api.ts` y
+`hooks/use-account-deletion.ts`.
+- **READ / WRITE:** ninguna directa. `owner_has_pets()` ya no se usa: el plan lo calcula la función.
+- **Edge Function:** `delete-account` (contrato completo en `docs/README.md` §12) — **es la única vía de
+  borrado** y va siempre por `serverCall`. Solo con conexión (sin ella, el estado `offline` como en otras
+  pantallas de solo servidor).
+  1. Al abrir: `{ mode: 'preview' }` → plan (query sin caché: `staleTime`/`gcTime` 0). La pantalla lo
+     enseña tal cual: cada mascota propia «pasará a {nombre}» (co-tutor editor aceptado más antiguo) o
+     «se borrará con sus registros, fotos, agenda y consultas», cuántas compartidas dejará y qué más se
+     borra. Avisa si hay cambios solo en el dispositivo (los mismos que cuenta el cierre de sesión,
+     `useUnsyncedChanges`: Daily Logs y Pets) porque se perderán, y sugiere exportar antes (texto; aún sin
+     enlace: «Descargar mis datos», `/settings/export`, llega en otra rama).
+  2. Confirmación explícita: casilla «Entiendo que…» + botón `danger` + `Dialog` de peligro (Cancelar
+     arriba). Se envía `{ mode: 'delete', confirm: 'DELETE', expected }` con el plan visto.
+  3. `plan_changed` (409): se sustituye el plan por el nuevo, se desmarca la casilla y se pide revisar.
+     `deletion_incomplete`: se vuelve a pedir la vista previa y se confirma de nuevo (repetir converge).
+     `network`/`session`/`server`: error en el diálogo, se puede repetir.
+  4. Éxito (o `410 account_not_found`, la cuenta ya no existe; si llega en la vista previa, la pantalla
+     ofrece «Cerrar sesión»): `finishAccountDeletion` para los motores de Daily Logs y Pets (espera como
+     mucho 5 s a lo que esté en vuelo), borra **todo** lo local del usuario (`clearLocalUserData`: todas
+     las claves `kitom:v1:<userId>:…`, es decir registros, operaciones pendientes, copias de mascotas,
+     catálogo de razas, mascota activa y diario de fotos) y sus avisos programados, cierra la sesión (el
+     servidor ya no tiene el usuario; auth-js y el controlador la quitan del dispositivo igualmente) y
+     vuelve a borrar lo local por si algo escribió entre medias. Es la única excepción a «cerrar sesión
+     con `useSignOutFlow`». La protección de rutas lleva al acceso y un toast confirma el borrado.
 
 ## 5. Offline (daily logs y pets)
 
@@ -1610,7 +1680,9 @@ reinicio. Sin probar: iOS, dispositivo Android físico y development build propi
 | `invitation_expired` (estado ya no es `pending`) | refrescar la lista de invitaciones, mensaje claro |
 | `ownership_transfer_failed` | mostrar el motivo exacto que da la excepción de `transfer_pet_ownership` (usuario no es co-tutor aceptado, etc.) |
 | `invalid_log_date` | mismo tratamiento que "fecha inválida / futura" arriba |
-| `has_pets` (respuesta 409 de `delete-account`) | dirigir a `OwnershipTransferScreen`, mensaje "transfiere tus mascotas antes de eliminar la cuenta" |
+| `plan_changed` (409 de `delete-account`; sustituye al antiguo `has_pets`) | mostrar el plan nuevo que trae la respuesta y pedir otra confirmación (`DeleteAccountScreen`) |
+| `account_not_found` (410 de `delete-account`) | la cuenta ya no existe: limpiar el dispositivo y cerrar sesión, como tras un borrado correcto |
+| `deletion_incomplete` (500 de `delete-account`) | se hizo una parte: volver a pedir la vista previa y dejar repetir (converge) |
 | `invalid_timezone` | si ocurre, es un bug del cliente: revisar que se está enviando un nombre IANA (ver sección 9), nunca una abreviatura |
 
 ## 7. Avisos locales (implementado, 2026-10-21) y push tokens
@@ -1661,7 +1733,7 @@ No intentar hacer `insert`/`update` directo sobre `push_tokens` para este caso �
 
 - **La `service_role` key NUNCA va en la app** — solo `anon` key + JWT de sesión.
 - El cliente **nunca** confía en valores que él mismo generó o recibió para decidir lógica de negocio: `user_id`, `owner_id`, plan de suscripción, entitlement de IA, coste/modelo/proveedor/estado/resultado de IA, `used_full_history`. Todo eso se re-lee siempre desde Supabase (RLS/RPC son la autoridad), nunca se calcula ni se confía en el lado del cliente aunque "ya se sepa" por una pantalla anterior.
-- **Ninguna llamada a una RPC de validación (`request_ai_analysis`, `request_generate_report`, o consultar `owner_has_pets`) sustituye la autorización real de la Edge Function que viene después.** El frontend debe estar preparado para que `ai-analysis-process`, `generate-pet-report` o `delete-account` devuelvan `403`/`409` aunque el paso anterior haya ido bien — no es un bug, es el contrato de seguridad: cada Edge Function se autoriza a sí misma de forma independiente (ver sección 4, `AIAnalysisScreen`/`ReportsScreen`/`DeleteAccountScreen`).
+- **Ninguna llamada a una RPC de validación (`request_ai_analysis`, `request_generate_report`, o la vista previa de `delete-account`) sustituye la autorización real de la Edge Function que viene después.** El frontend debe estar preparado para que `ai-analysis-process`, `generate-pet-report` o `delete-account` devuelvan `403`/`409` aunque el paso anterior haya ido bien — no es un bug, es el contrato de seguridad: cada Edge Function se autoriza a sí misma de forma independiente (ver sección 4, `AIAnalysisScreen`/`ReportsScreen`/`DeleteAccountScreen`).
 - Cualquier UI que oculte una acción por permisos (botones deshabilitados, pantallas no accesibles) es solo UX — la protección real está en la base de datos, así que un fallo de UI nunca es un fallo de seguridad.
 
 ## 9. Timezone — formato exacto que espera el backend

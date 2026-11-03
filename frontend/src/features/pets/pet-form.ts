@@ -31,6 +31,16 @@ export type PetFieldError =
   | 'invalid_weight';
 export type PetFormErrors = Partial<Record<PetFormField, PetFieldError>>;
 
+/**
+ * Longitud máxima de los campos de texto libre. La base de datos los limita con CHECK (migración
+ * `20261030090318`: raza ≤ 100, notas ≤ 2000, listas ≤ 100 elementos de ≤ 200): los de la app no
+ * pueden superarlos, o un alta o edición sin conexión no se podría sincronizar nunca. Una lista de
+ * 200 caracteres separada por comas da como mucho 100 elementos de 200.
+ */
+export const PET_BREED_TEXT_MAX_LENGTH = 60;
+export const PET_LIST_MAX_LENGTH = 200;
+export const PET_TEMPERAMENT_NOTES_MAX_LENGTH = 2000;
+
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const WEIGHT_PATTERN = /^\d+(\.\d{1,3})?$/; // numeric(9,3)
 const MAX_WEIGHT_KG = 1_000_000; // numeric(9,3): hasta 999999.999

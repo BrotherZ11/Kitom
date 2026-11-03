@@ -47,8 +47,12 @@ function CoOwnersList({ pet, isHolder }: { pet: Pet; isHolder: boolean }) {
   const close = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
   const openInvite = () => router.push({ pathname: '/pets/[id]/co-owners/invite', params: { id: pet.id } });
   const locale = getLocale();
-  const nameOf = (member: Member) =>
-    member.userId === user?.id ? t('coOwners.you') : (member.fullName ?? t('coOwners.noName'));
+  const nameOf = (member: Member) => {
+    if (member.userId !== null && member.userId === user?.id) return t('coOwners.you');
+    if (member.fullName) return member.fullName;
+    // Pendiente: el servidor no dice quién es hasta que acepta (SEC-04).
+    return member.status === 'pending' ? t('coOwners.pendingName') : t('coOwners.noName');
+  };
 
   const setRole = (member: Member, role: Member['role']) => {
     setSelected(null);

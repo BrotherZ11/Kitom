@@ -26,10 +26,23 @@ export function normalizeTimeZone(value: unknown): string | null {
   }
 }
 
+/**
+ * Alias sin región que equivalen a UTC (sin horario de verano). Algunos dispositivos y emuladores
+ * informan `GMT`, que la BD no admite; para la zona del dispositivo se guarda `UTC` en su lugar.
+ * Solo en la detección: lo que escribe el usuario sigue validándose con `normalizeTimeZone`.
+ */
+const UTC_ALIASES = new Set(['GMT', 'UCT', 'ZULU', 'UNIVERSAL', 'GREENWICH', 'GMT0', 'GMT+0', 'GMT-0']);
+
+/** Zona del dispositivo (`timeZone` de `Intl`) como valor válido para el perfil, o `null`. */
+export function deviceTimeZoneFrom(raw: unknown): string | null {
+  if (typeof raw === 'string' && UTC_ALIASES.has(raw.trim().toUpperCase())) return 'UTC';
+  return normalizeTimeZone(raw);
+}
+
 /** Zona IANA del dispositivo, o `null` si no se puede obtener una válida. Nunca lanza. */
 export function getDeviceTimeZone(): string | null {
   try {
-    return normalizeTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    return deviceTimeZoneFrom(Intl.DateTimeFormat().resolvedOptions().timeZone);
   } catch {
     return null;
   }
