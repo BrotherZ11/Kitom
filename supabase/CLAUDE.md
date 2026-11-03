@@ -73,15 +73,33 @@
   total) y desde cero con `db diff --local` (sin diferencias de sus objetos; el motor `pg-delta` lista como
   `CREATE OR REPLACE` funciones anteriores que no cambian). **Sin aplicar en `kitom-dev`** (`db push` del
   usuario). Decisión: `docs/DECISIONS.md`.
+- Migración `20261030090318_abuse_limits_and_db_hardening.sql` (rama `db/hardening-2`, segunda
+  migración de endurecimiento): `request_ai_analysis` con 1 solicitud/min (`ai_rate_limited`) y 3 fallos
+  por día UTC (`ai_failure_limit`; `ai_misconfigured` no cuenta), en `private.ai_analysis_usage`
+  (`failed_at`, `failure_code`); `invite_pet_member_by_email` con 20 intentos/24 h (`invite_rate_limited`,
+  `private.pet_invitation_attempts`); `get_pet_members` y la política SELECT de `pet_co_owners` sin la
+  identidad de las invitaciones pendientes de otros; CHECK de longitud (SEC-18; `handle_new_user` recorta
+  el nombre); `submit_ai_feedback` ≤ 1000 (`ai_feedback_too_long`); `(select auth.uid())` en 22
+  políticas; `is_pet_member`/`can_edit_pet` `STABLE`; 12 índices de FK;
+  `ai_analysis_requests.processing_started_at` (la anota el reclamo); `pg_cron` + `pg_net` y las tareas
+  `kitom-pet-storage-cleanup*` (`private.invoke_pet_storage_cleanup`, secretos de Vault
+  `kitom_project_url` y `pet_storage_cleanup_secret`; sin ellos no hace nada). Sin cambios de firmas (tipos:
+  solo la columna nueva). Validada en local con `migration up --local`, pgTAP (`abuse_limits`,
+  `db_hardening`; 510 casos en total), concurrencia (`abuse_limits_concurrency.sh`) y `db diff --local` (sin
+  diferencias de sus objetos). **Sin aplicar en `kitom-dev`** (`db push` del usuario); después, desplegar
+  `ai-analysis-process` (lee la columna nueva) y crear los secretos de Vault. Contrato: `docs/README.md`
+  §5, §8, §11, §13 y §20.2.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
-  `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `ai_quota`, `reminders`
+  `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `ai_quota`,
+  `abuse_limits`, `db_hardening`, `reminders`
   (permisos de la tabla con el esquema base), `reminders_is_active`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
   -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.
 - Pruebas de concurrencia: `bash supabase/tests/concurrency/daily_logs_concurrency.sh`,
   `pets_concurrency.sh` (alta con la misma clave y edición con la misma versión base),
-  `pets_delete_concurrency.sh` y `pet_storage_cleanup_concurrency.sh` (reservas simultáneas, caducadas y
-  caídas, informes duplicados, subida durante el borrado; necesita el bucket local) (solo local, vía
+  `pets_delete_concurrency.sh`, `pet_storage_cleanup_concurrency.sh` (reservas simultáneas, caducadas y
+  caídas, informes duplicados, subida durante el borrado; necesita el bucket local) y
+  `abuse_limits_concurrency.sh` (solicitudes de IA e invitaciones simultáneas en el límite) (solo local, vía
   `docker exec`; varias sesiones de psql a la vez; crea datos con ids fijos y los borra al terminar).
   `.gitattributes` fuerza LF en `*.sh` (con `core.autocrlf=true` saldrían con CRLF y bash fallaría).
   pgTAP corre en una transacción y no puede probar carreras: toda lógica que dependa de bloqueos o
@@ -104,6 +122,18 @@
   en otra tabla que referencia al padre, violan su FK. Además el orden de las cascadas depende del
   nombre (OID) de los triggers de FK y varía entre entornos. Probar siempre "borrar el padre con hijos"
   con 2+ filas hijas.
+- Lección límites de frecuencia: en pgTAP `now()` no avanza, así que dos `request_ai_analysis` seguidas
+  chocan con el límite de 1/min; adelantar antes las filas de `private.ai_analysis_usage` 61 s
+  (`test_helpers.age_ai_usage()`, `SECURITY DEFINER`). Las carreras del límite, en
+  `abuse_limits_concurrency.sh`.
+- Lección CHECK con función: quien escribe necesita `EXECUTE` sobre toda función que use un CHECK (como
+  en las políticas). `private.text_array_within` lo concede a `authenticated` y `service_role`; sin
+  `USAGE` del esquema `private` no se puede llamar por nombre.
+- Lección pg_net: `pg_net` concede `EXECUTE` sobre `net.*` a `anon`/`authenticated` como
+  `supabase_admin`; `postgres` no puede revocarlo (solo avisa). El esquema `net` no está expuesto por la API.
+- Lección comparaciones en pgTAP: columnas de tipo `name` (catálogos) convertidas a `text` conservan la
+  intercalación `C`; compararlas con `results_eq` contra `values (...)` da «could not determine which
+  collation»: añadir `collate "default"`.
 - Lección upsert: PostgREST hace `ON CONFLICT DO UPDATE SET` de todas las columnas enviadas, así que
   necesita UPDATE sobre las columnas inmutables. En tablas con GRANT por columna, usar una RPC.
 - Edge Functions: `functions/ai-analysis-process/` y `functions/pet-storage-cleanup/` implementadas (ver

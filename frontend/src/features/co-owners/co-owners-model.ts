@@ -11,8 +11,9 @@ export const CO_OWNER_ROLES: readonly CoOwnerRole[] = ['viewer', 'editor'];
 /** Co-tutor de una mascota (`get_pet_members`): invitación pendiente o aceptada. */
 export type Member = {
   invitationId: string;
-  userId: string;
-  /** `null` si la persona no ha puesto nombre en su perfil. */
+  /** `null` en una invitación pendiente: el servidor no dice quién es hasta que acepta (SEC-04). */
+  userId: string | null;
+  /** `null` si la persona no ha puesto nombre en su perfil o la invitación está pendiente. */
   fullName: string | null;
   role: CoOwnerRole;
   status: 'pending' | 'accepted';
@@ -32,7 +33,8 @@ export type Invitation = {
 
 type MemberRow = {
   invitation_id: string;
-  user_id: string;
+  /** NULL en las pendientes desde la migración `20261030090318` (el tipo generado no lo refleja). */
+  user_id: string | null;
   full_name: string | null;
   role: CoOwnerRole;
   status: string;
@@ -60,7 +62,7 @@ export function toMembers(rows: readonly MemberRow[] | null | undefined): Member
     .filter((row) => row.status === 'pending' || row.status === 'accepted')
     .map((row) => ({
       invitationId: row.invitation_id,
-      userId: row.user_id,
+      userId: row.user_id ?? null,
       fullName: cleanName(row.full_name),
       role: row.role,
       status: row.status as Member['status'],
@@ -96,7 +98,14 @@ export function isPlausibleEmail(email: string): boolean {
   return value.length <= 320 && EMAIL_PATTERN.test(value);
 }
 
-export type CoOwnerErrorCode = 'invalid_email' | 'not_owner' | 'not_member' | 'changed' | 'network' | 'unknown';
+export type CoOwnerErrorCode =
+  | 'invalid_email'
+  | 'not_owner'
+  | 'not_member'
+  | 'changed'
+  | 'rate_limited'
+  | 'network'
+  | 'unknown';
 
 type ErrorLike = { hint?: unknown; message?: unknown; name?: unknown };
 
@@ -114,6 +123,7 @@ export function toCoOwnerErrorCode(error: unknown): CoOwnerErrorCode {
   if (hint === 'invalid_email') return 'invalid_email';
   if (hint === 'not_pet_owner' || NOT_OWNER.test(text)) return 'not_owner';
   if (hint === 'not_pet_member') return 'not_member';
+  if (hint === 'invite_rate_limited') return 'rate_limited';
   if (CHANGED.test(text)) return 'changed';
   return 'unknown';
 }

@@ -13,6 +13,11 @@
 //  5. Solo entonces usa service_role: reclama el análisis de forma atómica
 //     (claim_ai_analysis_for_processing), lee el contexto, llama a la IA y
 //     guarda el resultado. Un fallo deja status = 'failed' (no gasta cupo).
+//  Toda escritura de estado exige status = 'processing' (SEC-16): con dos
+//  invocaciones solapadas, ninguna pisa el resultado de la otra. La
+//  caducidad de 'processing' se cuenta desde el reclamo
+//  (processing_started_at, migración 20261030090318: desplegar la función
+//  después de aplicarla, porque la lee).
 //
 // Variables (supabase secrets set, las pone el usuario): GEMINI_API_KEY y,
 // opcionales, GEMINI_MODEL (por defecto DEFAULT_GEMINI_MODEL), AI_PROVIDER
@@ -29,11 +34,11 @@ import {
   buildUserPrompt,
   estimateCostUsd,
   finalizeGuidance,
+  isStaleProcessing,
   isUuid,
   minimumUrgency,
   parseGuidance,
   PROMPT_VERSION,
-  STALE_PROCESSING_MS,
   SYSTEM_PROMPT,
   type DailyLogContext,
 } from './guidance.ts';
@@ -76,10 +81,21 @@ type AnalysisRow = {
   used_full_history: boolean;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   created_at: string;
+  processing_started_at: string | null;
 };
 
-async function markFailed(admin: SupabaseClient, analysisId: string, code: string) {
-  await admin.from('ai_analysis_requests').update({ status: 'failed', error_message: code }).eq('id', analysisId);
+/**
+ * Pasa a `failed` solo si sigue en `processing` (nunca pisa un resultado ya guardado ni un fallo
+ * anterior). Devuelve si lo cambió.
+ */
+async function markFailed(admin: SupabaseClient, analysisId: string, code: string): Promise<boolean> {
+  const { data, error } = await admin
+    .from('ai_analysis_requests')
+    .update({ status: 'failed', error_message: code })
+    .eq('id', analysisId)
+    .eq('status', 'processing')
+    .select('id');
+  return !error && (data?.length ?? 0) > 0;
 }
 
 /** Contexto para el modelo: perfil sin nombres, señales, registros recientes y la foto (si la hay). */
@@ -204,7 +220,7 @@ Deno.serve(async (req) => {
   // 4. Reautorización: solo quien lo pidió.
   const { data: row, error: rowError } = await admin
     .from('ai_analysis_requests')
-    .select('id, pet_id, requested_by, photo_path, used_full_history, status, created_at')
+    .select('id, pet_id, requested_by, photo_path, used_full_history, status, created_at, processing_started_at')
     .eq('id', analysisId)
     .maybeSingle();
   if (rowError) return json(500, { error: 'server_error' });
@@ -217,9 +233,12 @@ Deno.serve(async (req) => {
   }
   if (analysis.status === 'processing') {
     // Una invocación anterior se cortó a medias: se da por fallido (no gasta cupo) para poder repetir.
-    if (Date.now() - new Date(analysis.created_at).getTime() > STALE_PROCESSING_MS) {
-      await markFailed(admin, analysis.id, 'timeout');
-      return json(200, { status: 'failed', error: 'timeout' });
+    // Si entretanto terminó (la escritura condicionada no cambia nada), no se toca.
+    if (isStaleProcessing(analysis, Date.now())) {
+      const failed = await markFailed(admin, analysis.id, 'timeout');
+      return failed
+        ? json(200, { status: 'failed', error: 'timeout' })
+        : json(200, { status: 'already_processing_or_done' });
     }
     return json(200, { status: 'already_processing_or_done' });
   }
@@ -243,7 +262,7 @@ Deno.serve(async (req) => {
     });
     const parsed = parseGuidance(response.output);
     if (!parsed.ok) {
-      await admin
+      const { data: failedRows } = await admin
         .from('ai_analysis_requests')
         .update({
           status: 'failed',
@@ -254,11 +273,15 @@ Deno.serve(async (req) => {
           response_raw: response.raw,
           latency_ms: Date.now() - started,
         })
-        .eq('id', analysis.id);
-      return json(200, { status: 'failed', error: 'ai_unavailable' });
+        .eq('id', analysis.id)
+        .eq('status', 'processing')
+        .select('id');
+      return (failedRows?.length ?? 0) > 0
+        ? json(200, { status: 'failed', error: 'ai_unavailable' })
+        : json(200, { status: 'already_processing_or_done' });
     }
     const guidance = finalizeGuidance(parsed.guidance, context.symptomCodes);
-    const { error: saveError } = await admin
+    const { data: savedRows, error: saveError } = await admin
       .from('ai_analysis_requests')
       .update({
         status: 'completed',
@@ -276,14 +299,20 @@ Deno.serve(async (req) => {
         latency_ms: Date.now() - started,
         error_message: null,
       })
-      .eq('id', analysis.id);
+      .eq('id', analysis.id)
+      .eq('status', 'processing')
+      .select('id');
     if (saveError) throw new Error('save_failed');
+    // Otra invocación lo dio por caducado mientras tanto: su estado se respeta (la app lo vuelve a leer).
+    if ((savedRows?.length ?? 0) === 0) return json(200, { status: 'already_processing_or_done' });
     return json(200, { status: 'completed' });
   } catch (error) {
     const code = error instanceof ProviderError ? error.code : 'ai_unavailable';
     // Detalle solo en los logs de la función (sin datos de la mascota ni la clave).
     console.error('[ai-analysis-process]', analysis.id, error instanceof Error ? error.message : 'unknown');
-    await markFailed(admin, analysis.id, code === 'ai_misconfigured' ? 'ai_misconfigured' : 'ai_unavailable');
-    return json(200, { status: 'failed', error: 'ai_unavailable' });
+    const failed = await markFailed(admin, analysis.id, code === 'ai_misconfigured' ? 'ai_misconfigured' : 'ai_unavailable');
+    return failed
+      ? json(200, { status: 'failed', error: 'ai_unavailable' })
+      : json(200, { status: 'already_processing_or_done' });
   }
 });

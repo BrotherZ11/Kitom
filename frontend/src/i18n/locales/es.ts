@@ -419,6 +419,8 @@ export const es = {
     holder: 'Titular',
     holderText: 'Quien comparte a {name}',
     noName: 'Sin nombre en su perfil',
+    /** Invitación pendiente: el servidor no dice quién es hasta que acepta (SEC-04). */
+    pendingName: 'Invitación pendiente',
     roles: {
       viewer: 'Solo ver',
       editor: 'Puede editar',
@@ -488,6 +490,7 @@ export const es = {
       not_owner: 'Solo quien es titular puede hacerlo.',
       not_member: 'Ya no tienes acceso a esta mascota.',
       changed: 'Esto ha cambiado mientras tanto. Ya está actualizado.',
+      rate_limited: 'Has enviado muchas invitaciones hoy. Vuelve a intentarlo mañana.',
       network: 'Sin conexión. Inténtalo de nuevo.',
       unknown: 'No se ha podido completar. Inténtalo de nuevo.',
     },
@@ -618,6 +621,8 @@ export const es = {
       not_allowed: 'Solo quien puede editar la mascota puede pedir una orientación.',
       archived: 'Esta mascota ya no está disponible.',
       disclaimer: 'Antes de pedir una orientación, acepta el aviso veterinario en Tu cuenta › Privacidad.',
+      rate_limited: 'Espera un minuto antes de pedir otra orientación.',
+      failure_limit: 'Hoy no hemos podido preparar varias orientaciones seguidas. Vuelve a intentarlo mañana.',
       network: 'Sin conexión. La orientación necesita conexión.',
       photo: 'No se ha podido subir la foto. Inténtalo de nuevo o sigue sin foto.',
       unknown: 'Algo ha salido mal. Inténtalo de nuevo.',
