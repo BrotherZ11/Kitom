@@ -171,6 +171,8 @@ eso exigiría una transacción de subida abierta más de 25 h.
    habilitados en las migraciones, y los valores en Vault, nunca en el repo):
 
 ```sql
+-- SUPERADO (2026-10-30): la migración 20261030090318 ya programa las tareas y lee 'kitom_project_url' y
+-- 'pet_storage_cleanup_secret' de Vault; ver docs/DEPLOYMENT.md §8. Plantilla original:
 select vault.create_secret('<URL del proyecto>', 'pet_storage_cleanup_url');
 select vault.create_secret('<PET_STORAGE_CLEANUP_SECRET>', 'pet_storage_cleanup_secret');
 

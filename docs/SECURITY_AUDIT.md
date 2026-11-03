@@ -1,6 +1,6 @@
 # Kitom — Auditoría de seguridad
 
-Revisión: **2026-10-29** sobre `main` @ `41d0a07` (13 migraciones). Documento vivo: cada hallazgo
+Revisión inicial: **2026-10-29** sobre `main` @ `41d0a07` (13 migraciones); estado de las correcciones al 2026-11-03. Documento vivo: cada hallazgo
 lleva su estado de corrección; al corregir uno, actualizar la fila y la sección «Estado».
 Contexto general y resto de la auditoría: [`PROJECT_STATUS.md`](PROJECT_STATUS.md). Plan de
 corrección: [`ROADMAP.md`](ROADMAP.md).
@@ -46,7 +46,7 @@ hallazgos no significa que no existan: las superficies «no verificado» siguen 
 |---|---|---|
 | CRÍTICA | 0 | — |
 | ALTA | 3 | SEC-01, SEC-02, SEC-03 |
-| MEDIA | 6 | SEC-04 … SEC-09 |
+| MEDIA | 7 | SEC-04 … SEC-09, SEC-23 |
 | BAJA | 10 | SEC-10 … SEC-19 |
 | INFORMATIVA | 3 | SEC-20 … SEC-22 |
 
@@ -63,7 +63,7 @@ prueba de verificación · estado.
 - **Impacto**: coste de proveedor ilimitado por usuario; el plan Premium pierde sentido.
 - **Solución**: registro de uso que sobrevive al borrado (tabla privada sin FK a `pets`) del que cuente la cuota.
 - **Esfuerzo**: 0,5–1 día (migración + pgTAP). **Prueba**: pgTAP que pide 3, borra la mascota, recrea y espera `can_request = false`.
-- **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); **pendiente de `db push` en `kitom-dev`**. Reproducido antes en local: tras borrar y recrear la mascota el cupo volvía a 0 de 3.
+- **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); aplicado en `kitom-dev`. Reproducido antes en local: tras borrar y recrear la mascota el cupo volvía a 0 de 3.
 
 ### SEC-02 — Sin eliminación de cuenta ni exportación de datos
 - **ALTA · CONFIRMADO** · Edge Function `delete-account` inexistente; UI oculta (`frontend/src/app/(app)/settings/index.tsx:58-62`);
@@ -97,7 +97,7 @@ prueba de verificación · estado.
 - **Impacto**: acceso a los datos de salud de la mascota de un tercero.
 - **Solución**: exigir `email_confirmed_at is not null` y cuenta no baneada/borrada; activar la confirmación de email en el remoto.
 - **Esfuerzo**: 1–2 h. **Prueba**: pgTAP con una cuenta sin confirmar → no se crea invitación.
-- **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); **pendiente de `db push` en `kitom-dev`**.
+- **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); aplicado en `kitom-dev`.
 
 ### SEC-06 — Los análisis fallidos no cuentan: abuso de coste del proveedor
 - **MEDIA · PROBABLE** · cuota (`status <> 'failed'`), `ai-analysis-process/index.ts`, `guidance.ts`.
@@ -113,7 +113,7 @@ prueba de verificación · estado.
 - **Impacto**: coste de almacenamiento, contenido no deseado alojado; la Edge Function de IA descarga antes de rechazar >5 MB.
 - **Solución**: `pet-photos` limitado a 5 MB y `image/jpeg` (la app y el CHECK `pets_photo_path_own_pet` solo usan `.jpg`), y límites para los demás cuando tengan uso; versionado en una migración.
 - **Esfuerzo**: 1–2 h. **Prueba**: subida de 6 MB o PNG → rechazada; foto real de la app → aceptada.
-- **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); **pendiente de `db push` en `kitom-dev`**.
+- **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); aplicado en `kitom-dev`.
 
 ### SEC-08 — Datos de salud sin cifrar en el dispositivo tras cerrar sesión
 - **MEDIA · CONFIRMADO** · `frontend/src/lib/local-store/` (AsyncStorage / `localStorage` en web); `sign-out-flow.ts` («conservar» mantiene los datos a propósito).
@@ -134,17 +134,17 @@ prueba de verificación · estado.
 - **BAJA · CONFIRMADO** · `request_ai_analysis` no comprueba `profiles.disclaimer_accepted_at`, que además el cliente puede escribir.
 - **Impacto**: cumplimiento (el PRD exige aceptarlo antes de usar la IA); un cliente modificado lo salta.
 - **Solución**: comprobarlo en `request_ai_analysis`. **Esfuerzo**: 1 h. **Prueba**: pgTAP sin aviso → error.
-- **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); **pendiente de `db push` en `kitom-dev`**.
+- **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); aplicado en `kitom-dev`.
 
 ### SEC-11 — Privilegios de tabla sobrantes para `anon` y `authenticated`
 - **BAJA · CONFIRMADO** · `anon` conserva DML completo y `TRUNCATE` en casi todas las tablas; `authenticated`, `TRUNCATE`/`TRIGGER`/`REFERENCES` (`remote_schema.sql:2267-2807`). RLS bloquea el DML; `TRUNCATE` no pasa por RLS aunque PostgREST no lo expone.
 - **Solución**: revocar `TRUNCATE, TRIGGER, REFERENCES` a ambos roles (defensa en profundidad). **Esfuerzo**: 1 h. **Prueba**: pgTAP de privilegios.
-- **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); **pendiente de `db push` en `kitom-dev`**.
+- **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); aplicado en `kitom-dev`.
 
 ### SEC-12 — Avisos del linter de Supabase
 - **BAJA · CONFIRMADO (remoto)** · `public.trigger_set_timestamp` sin `search_path` fijo; extensión `pg_trgm` en `public`.
 - **Solución**: fijar `search_path` (migración en preparación); mover `pg_trgm` a `extensions` solo con plan (los índices trigram dependen de ella). **Esfuerzo**: 1 h / 0,5 día.
-- **Estado**: `search_path` corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); **pendiente de `db push` en `kitom-dev`**; `pg_trgm` pendiente (P2).
+- **Estado**: `search_path` corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); aplicado en `kitom-dev`; `pg_trgm` pendiente (P2).
 
 ### SEC-13 — Códigos de referido de clínicas legibles por todos
 - **BAJA–MEDIA · CONFIRMADO** · `vet_clinics.referral_code` con SELECT para `authenticated` (`:2803`); `create_clinic_referral` acepta cualquier código.
@@ -200,13 +200,30 @@ prueba de verificación · estado.
 - Revisión de la configuración de Auth del proyecto de producción (Dashboard).
 - Prueba en dispositivo: SecureStore, copia local tras cerrar sesión, permisos.
 
+### SEC-23 — Verificador PKCE con `Math.random` y challenge `plain` en Hermes
+- **MEDIA · CONFIRMADO** (hallado en el emulador, 2026-10-30) · auth-js usa `crypto.getRandomValues` y
+  `crypto.subtle`, que Hermes no trae: generaba el verificador con `Math.random` y enviaba el challenge en `plain`.
+- **Impacto**: verificador predecible en los flujos de Auth con PKCE (registro, recuperación, Google).
+- **Solución**: `lib/web-crypto.ts` + `device-web-crypto.ts` completan `crypto` con `expo-crypto` antes de crear
+  ningún cliente. **Prueba**: unitarias y comprobación en emulador de que `crypto.subtle` existe.
+- **Estado**: corregido.
+
 ## 5. Estado de las correcciones
 
 | ID | Estado |
 |---|---|
-| SEC-01, SEC-05, SEC-07 (`pet-photos`), SEC-10, SEC-11, SEC-12 (`search_path`) | corregidos en local — rama `db/ai-quota-and-invitations` (`ccc2e2c`); 406/406 pgTAP, concurrencia e integración en verde; **en `kitom-dev` siguen abiertos hasta el `db push` del usuario** |
-| SEC-19 (cliente) | corregido — rama `fix/audit-hardening` (`5b162e2`); sin validación manual en dispositivo |
-| Resto | pendiente — ver `ROADMAP.md` |
+| SEC-01, SEC-05, SEC-07 (`pet-photos`), SEC-10, SEC-11, SEC-12 (`search_path`) | corregidos y **aplicados en `kitom-dev`** (migración `20261029151011`) |
+| SEC-02 | corregido en el código (`delete-account`, descarga de datos); **falta desplegar** la función |
+| SEC-03 | textos publicables y consentimiento exacto; faltan activar GitHub Pages, la revisión legal y el **plan de pago de Gemini** (los textos ya lo presuponen) |
+| SEC-04 | mitigado (20 invitaciones/24 h, identidad oculta de pendientes): migración `20261030090318`, **sin aplicar**; riesgo residual documentado (una fila pendiente sigue revelando que el email tiene cuenta) |
+| SEC-06, SEC-18, SEC-21 | corregidos en la migración `20261030090318`, **sin aplicar** |
+| SEC-08 | parcial: copia de Android desactivada (`allowBackup: false`) y borrado local al eliminar la cuenta; falta la purga al cerrar sesión |
+| SEC-09 | parte de la app hecha (mínimo 8, errores, reenvío); la configuración del Dashboard es manual (`AUTH.md` §3) y **sigue pendiente** |
+| SEC-16 | código corregido; desplegar `ai-analysis-process` **después** de la migración |
+| SEC-17 | corregido; sin prueba manual |
+| SEC-19 (cliente), SEC-23 | corregidos |
+| SEC-20 | parches del SDK aplicados; los avisos de `npm audit` restantes son de herramientas de Expo |
+| SEC-22 | licencia y `reset-project` resueltos; `dev-components` sigue en el bundle, protegida con `__DEV__` |
+| SEC-12 (`pg_trgm`), SEC-13, SEC-14, SEC-15 | pendientes, sin impacto en la v1 (funciones sin cliente o riesgo bajo aceptado) |
 
-Hasta que las ramas se integren en `main` y la migración se aplique, el remoto conserva todos los
-hallazgos tal como se describen arriba.
+Hasta aplicar lo marcado como «sin aplicar», el remoto conserva esos hallazgos.

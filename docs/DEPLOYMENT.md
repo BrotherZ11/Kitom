@@ -146,3 +146,37 @@ con un servicio de errores (p. ej. Sentry, a decidir) y un canal de feedback (em
   `db push` a producción, copia de seguridad o PITR.
 - **Edge Functions**: volver a desplegar la versión anterior desde git.
 - Plan de incidentes y soporte: pendiente (`ROADMAP.md`).
+
+## 8. Lista de acciones del responsable para publicar (en orden)
+
+Todo lo que no puede hacerse desde el repositorio. Los `functions deploy` y `db push` se repiten en el proyecto de producción.
+
+**A. Desarrollo (`kitom-dev`)**
+1. Comprobar antes la consulta de solo lectura de la cabecera de `20261030090318` y hacer `npx supabase db push`.
+2. Regenerar tipos: `npx supabase gen types typescript --linked --schema public > frontend/src/types/database.types.ts` (desde Bash).
+3. `npx supabase functions deploy ai-analysis-process` (**después** de la migración) y `npx supabase functions deploy delete-account`.
+4. Revisar la IA: secreto `GEMINI_API_KEY`, logs de la función y una consulta real hasta `completed`.
+5. Limpieza: `functions deploy pet-storage-cleanup`, secreto `PET_STORAGE_CLEANUP_SECRET` (≥ 32 caracteres) y, en el editor SQL,
+   `select vault.create_secret('https://<ref>.supabase.co', 'kitom_project_url');` y
+   `select vault.create_secret('<el mismo secreto>', 'pet_storage_cleanup_secret');`. Primero en modo informe; `PET_STORAGE_CLEANUP_MODE=delete`
+   cuando el informe sea correcto. Comprobar `cron.job_run_details`.
+
+**B. Páginas legales**
+6. Hacer `push` de `main`, poner Settings › Pages › Source = GitHub Actions y comprobar las tres URL de `frontend/src/lib/legal-links.ts`
+   (Pages en un repo privado exige plan de pago, o un repo público aparte).
+7. Confirmar los supuestos de los textos (España, región UE de Supabase, edad mínima 16) y pedir revisión legal.
+
+**C. Proveedores**
+8. Plan de pago de Gemini: los textos legales y el consentimiento lo presuponen.
+9. Validación del prompt y de las reglas de IA por un veterinario (`guidance.ts`, `draft-2026-10-23`).
+10. Sentry: crear proyecto, DSN en `EXPO_PUBLIC_SENTRY_DSN` y retención de 90 días, como dice la política.
+
+**D. Producción**
+11. Proyecto Supabase en la UE y pasos de §5, con la lista del Dashboard de `AUTH.md` §3 (confirmar email, mínimo 8, contraseñas
+    filtradas, SMTP propio, `kitom://**`, Google).
+
+**E. Google Play**
+12. Cuentas de Expo y Play; `eas init` y variables por entorno (§4); build `preview` en móviles reales.
+13. Prueba manual en móvil: emails reales, recuperación, Google, fotos, avisos, IA, dos cuentas con co-tutores.
+14. Build `production`, Play App Signing, copia del keystore, fichas, Data Safety (`PRIVACY.md` §5), justificación de
+    `SCHEDULE_EXACT_ALARM` y prueba cerrada.

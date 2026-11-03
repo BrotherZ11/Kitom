@@ -95,9 +95,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   módulo local `frontend/modules/kitom-exact-alarms`), logros (`pet_achievements`), ajustes completos
   (tema del dispositivo, notificaciones, seguridad, privacidad, ayuda, legal) y «Próximo» en Hoy
   (`docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4 y §7). Sin implementar (backend o decisión pendiente):
-  teléfono, adjuntos de la agenda, señales y alertas, Premium, exportar
-  datos, clínica propia y voz de la mascota; del acceso, texto legal, reenviar el email, repetir la
-  contraseña y la regla visible de longitud (`docs/DECISIONS.md`).
+  adjuntos de la agenda, Premium (fuera de la v1), clínica propia y voz de la mascota (`docs/DECISIONS.md`).
   Marca enlazada en `app.json` (nombre «Kitom», icono iOS/Android, splash y favicon desde
   `frontend/assets/brand/app-icon/`); `slug` (`frontend`) y esquema (`kitom`) sin cambiar.
   `android.package` = `com.kitom.app` (2026-10-20, no cambiarlo: otra APK no actualizaría la
@@ -121,6 +119,10 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `kitom-dev` el 2026-10-29 (`db push` del usuario) y tipos regenerados con `--linked`. Activar/desactivar
   en la app (rama `feat/reminders-active`, integrada en `main` el 2026-10-29): un desactivado no avisa ni cuenta como pendiente; validado
   en web y en el emulador Android (la alarma se cancela y vuelve al activarlo). Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
+- Preparación de la v1 (Android, gratuita; 2026-11-03): eliminar la cuenta, descargar los datos, páginas legales (`site/`),
+  Auth endurecido, idioma del dispositivo y Sentry, integrados en `main`. Migración `20261029151011`: aplicada en
+  `kitom-dev`. Migración `20261030090318_abuse_limits_and_db_hardening.sql`: **sin aplicar**. Lo que falta para
+  publicar lo hace el usuario: `docs/DEPLOYMENT.md` §8; estado: `docs/PROJECT_STATUS.md`.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev` (los 4 privados, **sin límite de
   tamaño ni de tipo**, comprobado el 2026-10-28; el remoto no tiene `pg_cron` ni `pg_net`); en local solo `pet-photos`

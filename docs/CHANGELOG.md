@@ -3,6 +3,29 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-03
+
+Preparación de la primera versión (Android, gratuita), integrada en `main`:
+
+- **Lanzamiento** (`chore/release-config`): `eas.json`, `slug` `kitom`, `ios.bundleIdentifier`, copia de Android
+  desactivada, permisos sobrantes bloqueados, parches del SDK 57, licencia propietaria, sin `reset-project`.
+- **Idioma del dispositivo** (`i18n/locale.ts`): español o, si no, inglés. **Sentry** solo en release con DSN y sin
+  datos personales.
+- **Descargar mis datos** (`feat/data-export`): JSON con la cuenta y cada mascota, por el menú de compartir.
+- **Eliminar la cuenta** (`feat/account-deletion`): Edge Function `delete-account` (vista previa y borrado; contrato en
+  `docs/README.md` §12) y pantalla en Ajustes; cada mascota pasa al co-tutor editor más antiguo o se borra. **Sin desplegar.**
+- **Legal y privacidad** (`feat/legal-and-privacy`): páginas públicas en `site/` (es/en) con su flujo de GitHub Pages,
+  Legal, Privacidad y Ayuda con canales reales, consentimiento de IA exacto, sin Premium ni teléfono en la interfaz.
+- **Auth** (`feat/auth-hardening`): mínimo de 8 caracteres, casilla de términos, reenviar confirmación, recuperación
+  persistente y con la sesión iniciada, cambiar contraseña pidiendo la actual, «Crear contraseña» para cuentas de Google.
+- **Base de datos** (`db/hardening-2`, migración `20261030090318`, **sin aplicar en `kitom-dev`**): 1 consulta de IA/min y
+  3 fallos/día, 20 invitaciones/24 h, identidad oculta de invitados pendientes, límites de longitud, `(select auth.uid())` en
+  22 políticas, `STABLE`, 12 índices de FK, `pg_cron`/`pg_net` y limpieza programada con secretos en Vault;
+  `ai-analysis-process` con escrituras condicionadas y `processing_started_at`.
+- **Encontrado probando en el emulador** (`fix/v1-polish`): PKCE con `Math.random` y `plain` en Hermes (SEC-23); botones del
+  pie tapados por el teclado en Android (edge-to-edge); zona `GMT` del dispositivo sin guardar; idioma fijo en la
+  configuración inicial; selector de fecha nativo en lugar de texto `AAAA-MM-DD`.
+
 ## 2026-10-29
 
 - Auditoría integral (rama `docs/production-audit`, sin cambios de código): estado real, inventario de

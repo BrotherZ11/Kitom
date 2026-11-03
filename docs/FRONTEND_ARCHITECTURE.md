@@ -508,7 +508,8 @@ del estetoscopio en Hoy (si puede editar la mascota) y «Consultar con una foto�
   límite con la fecha en que vuelve y por qué hay límite (sin Premium ni paywall: lanzamiento gratuito).
   Errores de `request_ai_analysis` por `hint`
   (`ai_quota_exceeded`, `ai_disclaimer_required`, `ai_not_allowed`, `ai_pet_unavailable`,
-  `ai_invalid_photo`, `ai_invalid_symptoms`; migración `20261029151011`) y, en un servidor anterior, por
+  `ai_invalid_photo`, `ai_invalid_symptoms`; migración `20261029151011`; `ai_rate_limited` y
+  `ai_failure_limit`, migración `20261030090318`) y, en un servidor anterior, por
   el mensaje (`ai-analysis-model.ts › toRequestErrorCode`).
 - **Resultado** (`consult/[analysisId]`): polling de la fila cada 2 s mientras no sea terminal; si sigue
   `pending` a los 8 s se reinvoca la función una vez (el servidor no reprocesa) y a los 60 s se ofrece
@@ -596,6 +597,11 @@ con teléfono: retirado del alcance (decisión 2026-10-29).
 - **WRITE:** `profiles` (columnas permitidas), `notification_preferences`, `push_tokens`
 - **RPC:** `register_push_token(token, platform, device_id, app_version, os_version)` — llamar en login, en app launch y en cada refresh de token (ver sección 10)
 - **Storage:** `avatars` (insert/delete, path `{user_id}/{uuid}`)
+
+> Co-tutores (migración `20261030090318`): `get_pet_members` devuelve `user_id` y `full_name` NULL en las
+> invitaciones pendientes (la app muestra «Invitación pendiente» y revoca por `invitation_id`);
+> `invite_rate_limited` → `coOwners.errors.rate_limited`. Mascotas: `maxLength` de raza libre 60, listas 200 y
+> notas 2000, para que un cambio sin conexión nunca choque con los CHECK de la base.
 
 ### DataExportScreen
 **Implementado (2026-10-30, rama `feat/data-export`)**: `(app)/settings/export`, entrada «Descargar mis datos» en

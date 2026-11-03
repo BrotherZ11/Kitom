@@ -3,6 +3,40 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-03 — Primera versión: alcance y decisiones de la preparación
+
+**Alcance (del responsable, 2026-10-29).** Android primero, gratuita (3 consultas de IA al mes), sin inicio de sesión con
+teléfono; responsable legal: persona física, con páginas en GitHub Pages.
+
+**Borrado de cuenta.** Sustituye el contrato `409 has_pets` de v2.2.1. Tras una vista previa y una confirmación explícita,
+`delete-account` pasa cada mascota propia al co-tutor editor aceptado más antiguo (`transfer_pet_ownership`) o la borra en
+cascada, quita los `avatars` y borra el usuario de Auth. Todo con el JWT del usuario (RLS y RPC deciden), salvo
+`auth.admin.deleteUser` al final. La app envía el plan que vio (`409 plan_changed` si cambió) y cada llamada replanifica, así que
+un fallo a medias converge. En el dispositivo se borran los datos locales de la cuenta: única excepción a «cerrar sesión no
+borra datos locales».
+
+**Contraseña actual con un cliente aparte.** Se comprueba con un cliente en memoria (`password-check-client.ts`) y
+`signOut({scope:'local'})`, antes de `updateUser`. Descartados `reauthenticate()` siempre (un email por cambio, y no prueba la
+contraseña) y volver a entrar en el cliente de la app (sustituye la sesión y deja viva la anterior).
+
+**Recuperación pendiente por usuario** en el almacenamiento seguro; **`/auth-callback` fuera de los grupos protegidos**: con
+sesión solo se canjean enlaces de recuperación, para que un enlace no cambie de cuenta saltándose el cierre con pendientes.
+**Mínimo de 8 caracteres** en la app (no se aplica al iniciar sesión, por las cuentas anteriores). La aceptación de los términos
+no se guarda en el servidor (posible seguimiento).
+
+**Límites de abuso.** 1 consulta/min y 3 fallos/día UTC por usuario, en `private.ai_analysis_usage`; `ai_misconfigured` no cuenta.
+20 invitaciones por propietario en 24 h móviles, sin guardar el email; identidad de pendientes oculta en `get_pet_members` y en la
+política SELECT de `pet_co_owners`. Riesgo residual aceptado: una fila pendiente revela que el email tiene cuenta.
+
+**Longitudes:** límites de BD ≥ app, y la app limita sus campos libres para que un cambio sin conexión nunca quede sin poder
+sincronizar. **Limpieza programada:** `pg_cron` + `pg_net` en la migración, URL y secreto solo en Vault; sin ellos, no hace nada.
+
+**Textos legales** propios: España (RGPD + LOPDGDD, AEPD; supuesto a confirmar), edad mínima 16, plazos en `PRIVACY.md`, redactados
+para el plan de pago de Gemini: solo son ciertos con él activo. Revisión legal recomendada.
+
+**Crypto en Hermes.** `crypto` se completa con `expo-crypto` antes de crear clientes de Supabase, solo lo que falte.
+**Teclado:** `KeyboardAvoidingView` con `padding` en ambas plataformas (edge-to-edge siempre activo en RN 0.86).
+
 ## 2026-10-29 — Cupo de IA en un registro privado y endurecimiento tras la auditoría (migración)
 
 **Contexto.** La auditoría del 2026-10-29 (`docs/SECURITY_AUDIT.md`) reprodujo en local que el cupo
