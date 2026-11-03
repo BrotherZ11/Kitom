@@ -79,7 +79,7 @@ Ramas `feat/…`, `fix/…`, `chore/…`, `docs/…`, `db/…` · Conventional C
 | [FRONTEND_ARCHITECTURE](docs/FRONTEND_ARCHITECTURE.md) | contrato pantalla ↔ datos, offline, sesión |
 | [README (SQL)](docs/README.md) · [DATABASE](docs/DATABASE.md) | contrato de la base · estado desplegado y cobertura |
 | [SECURITY_AUDIT](docs/SECURITY_AUDIT.md) · [PRIVACY](docs/PRIVACY.md) | hallazgos de seguridad · inventario de datos personales |
-| [TESTING](docs/TESTING.md) · [DEPLOYMENT](docs/DEPLOYMENT.md) | pruebas · entornos, compilación y publicación |
+| [TESTING](docs/TESTING.md) · [DEPLOYMENT](docs/DEPLOYMENT.md) · [STORE_LISTING](docs/STORE_LISTING.md) | pruebas · entornos, compilación y publicación · ficha y declaraciones de Play |
 | [AUTH](docs/AUTH.md) · [SEED](docs/SEED.md) | autenticación y deep links · datos de referencia |
 | [DECISIONS](docs/DECISIONS.md) · [CHANGELOG](docs/CHANGELOG.md) | decisiones técnicas · cambios |
 | [PRD](docs/PRD.md) · [design/](docs/design/) | producto · diseño de pantallas y marca |

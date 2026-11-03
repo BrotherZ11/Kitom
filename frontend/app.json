@@ -3,7 +3,7 @@
     "name": "Kitom",
     "slug": "kitom",
     "version": "1.1.0",
-    "description": "Bienestar emocional y conductual de perros y gatos: registro diario, agenda, logros y orientación con IA (no diagnostica).",
+    "description": "Bienestar emocional y conductual de perros y gatos: registro diario, agenda, logros y orientación con IA, que no sustituye al veterinario.",
     "orientation": "portrait",
     "icon": "./assets/brand/app-icon/app-icon-ios.png",
     "scheme": "kitom",

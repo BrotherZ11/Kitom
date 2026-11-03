@@ -71,7 +71,7 @@ y su corrección. TEST-02 sigue abierto.
 | Comando | Resultado |
 |---|---|
 | `tsc`, `expo lint`, `expo-doctor` | correctos (21/21) |
-| `npm test` | 828/828 |
+| `npm test` | 841/841 |
 | `npm run test:integration` | 66/66 |
 | `npx supabase test db` | 510/510 (11 archivos) |
 | Concurrencia (5 suites) | correctas |
@@ -80,6 +80,10 @@ y su corrección. TEST-02 sigue abierto.
 
 Manual en emulador Android (build de depuración, inglés, Supabase local): registro con términos, configuración inicial, selector
 de fecha, registro del día, avisos, descargar los datos (JSON revisado), eliminar la cuenta de punta a punta e iniciar sesión.
+Después: cerrar sesión con todo subido borra la copia local (24 → 0 claves de AsyncStorage en el dispositivo); recuperación de contraseña
+con PKCE `s256` (`auth.flow_state`) y sin avisos de WebCrypto; **build de release** (`assembleRelease`, bundle embebido, `targetSdk` 36,
+`allowBackup` desactivado, permisos revisados con `aapt`), arranca sin Metro y, sin red, muestra los datos locales con «Sin conexión».
+En las builds de depuración, el indicador de la pestaña activa puede verse rectangular; en release sale redondeado.
 Web: inicio de sesión. **Sin probar:** móvil físico, iOS, emails reales, fotos con un bucket remoto, IA en el remoto.
 
 ### Fallos analizados

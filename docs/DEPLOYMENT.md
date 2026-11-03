@@ -178,5 +178,5 @@ Todo lo que no puede hacerse desde el repositorio. Los `functions deploy` y `db 
 **E. Google Play**
 12. Cuentas de Expo y Play; `eas init` y variables por entorno (§4); build `preview` en móviles reales.
 13. Prueba manual en móvil: emails reales, recuperación, Google, fotos, avisos, IA, dos cuentas con co-tutores.
-14. Build `production`, Play App Signing, copia del keystore, fichas, Data Safety (`PRIVACY.md` §5), justificación de
+14. Build `production`, Play App Signing, copia del keystore, fichas y Data Safety (borrador en `STORE_LISTING.md`), justificación de
     `SCHEDULE_EXACT_ALARM` y prueba cerrada.

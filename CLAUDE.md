@@ -14,7 +14,7 @@ Stack: Expo (React Native) + TypeScript + Supabase. Documentación en español; 
   necesaria en Supabase), `SEED.md` (datos de referencia), `DECISIONS.md` (decisiones técnicas), `CHANGELOG_v2.2.1.md` (histórico) y
   `CHANGELOG.md` (cambios actuales). Auditoría 2026-10-29 (estado real y camino a producción):
   `PROJECT_STATUS.md`, `ROADMAP.md`, `ARCHITECTURE.md`, `DATABASE.md`, `SECURITY_AUDIT.md`,
-  `TESTING.md`, `DEPLOYMENT.md` y `PRIVACY.md`; mantenerlos al día cuando cambie lo que describen.
+  `TESTING.md`, `DEPLOYMENT.md`, `PRIVACY.md` y `STORE_LISTING.md`; mantenerlos al día cuando cambie lo que describen.
 - `docs/design/` — diseño de la app (identidad «Ritmo», tokens, componentes, prototipo de 90 pantallas,
   inventario `PANTALLAS.md` y `PLAN_DESARROLLO.md`). Recursos de marca para la app en `frontend/assets/brand/`.
 
