@@ -289,6 +289,12 @@ validación, resize/compresión), `pet-photo-ops.ts` (reglas, fase 10), `api/pet
   del día.
 - **WRITE:** — · **RPC:** ninguno
 
+**Señales de cambio** (2026-11-03, `features/daily-logs/change-signals.ts`, puro y probado): tarjeta en Hoy si los últimos 3 días
+se apartan de los 28 anteriores. Por escala (apetito, ánimo, energía, actividad): al menos 2 registros recientes y 7 de referencia,
+diferencia de medias ≥ 1 punto y cada día reciente ≥ 0,5 hacia el mismo lado; mejor ánimo no avisa. Conducta inusual: 2 días o más, con
+el mismo historial mínimo. Sale del historial combinado, sin consultas nuevas y también sin conexión. Solo compara registros: no
+interpreta causas ni urgencia, y siempre recuerda que no es una valoración médica.
+
 ### DailyLogScreen
 Backend: migraciones `20261008150202_daily_logs_fixes.sql` y
 `20261010160332_daily_logs_concurrency.sql`. Frontend: registro de hoy e historial, con guardado

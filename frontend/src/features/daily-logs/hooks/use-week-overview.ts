@@ -1,3 +1,4 @@
+import { computeChangeSignals, type ChangeSignal } from '@/features/daily-logs/change-signals';
 import { useDailyLogHistory } from '@/features/daily-logs/hooks/use-daily-log';
 import { useTodayLogDate } from '@/features/daily-logs/hooks/use-today-log-date';
 import { computeWeekOverview, type WeekOverview } from '@/features/daily-logs/week-overview';
@@ -5,7 +6,7 @@ import { computeWeekOverview, type WeekOverview } from '@/features/daily-logs/we
 export type WeekOverviewState =
   | { state: 'loading' }
   | { state: 'error'; error: unknown; retry: () => void }
-  | { state: 'ready'; overview: WeekOverview; today: string; offline: boolean };
+  | { state: 'ready'; overview: WeekOverview; signals: ChangeSignal[]; today: string; offline: boolean };
 
 /**
  * Semana de una mascota para Hoy y la barra de pestañas. Sale de la primera página del historial
@@ -24,5 +25,6 @@ export function useWeekOverview(petId: string): WeekOverviewState {
     today,
     offline: view.offline,
     overview: computeWeekOverview(view.items, today, { hasMore: history.hasNextPage }),
+    signals: computeChangeSignals(view.items, today),
   };
 }

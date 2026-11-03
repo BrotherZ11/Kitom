@@ -86,8 +86,9 @@ avance: no hay un método reproducible que los respalde.
 | 40 | Clínicas y referidos | PENDIENTE | tablas y RPC sin cliente | SEC-13 antes de activarlo | P3 |
 | 41 | Analítica de producto | PENDIENTE | `analytics_events` sin cliente | decidir herramienta y consentimiento | P3 |
 | 42 | Organizaciones (B2B) | PENDIENTE (fuera del MVP) | archivo 27 no desplegado | — | — |
+| 43 | Señales de cambio respecto a lo normal | COMPLETA Y VERIFICADA | `change-signals.ts` (pruebas unitarias), tarjeta en Hoy comprobada en emulador con historial sembrado | umbrales sin validar por un veterinario | P2 |
 
-Totales: 16 COMPLETA Y VERIFICADA · 12 IMPLEMENTADA, NO VERIFICADA · 1 PARCIAL · 0 INCOMPLETA · 11 PENDIENTE · 2 BLOQUEADA · 0 CON ERRORES (42 funcionalidades; «verificada» con la matización de cada fila, nada en iOS ni en un móvil físico).
+Totales: 17 COMPLETA Y VERIFICADA · 12 IMPLEMENTADA, NO VERIFICADA · 1 PARCIAL · 0 INCOMPLETA · 11 PENDIENTE · 2 BLOQUEADA · 0 CON ERRORES (43 funcionalidades; «verificada» con la matización de cada fila, nada en iOS ni en un móvil físico).
 
 ## 4. Bugs y limitaciones conocidas
 

@@ -14,6 +14,7 @@ import { Text } from '@/components/ui/text';
 import { useToast } from '@/components/ui/toast';
 import { OfflineSessionNotice } from '@/features/auth/components/offline-session-notice';
 import { InvitationsEntry } from '@/features/co-owners/components/invitations-entry';
+import { ChangeSignalsCard } from '@/features/daily-logs/components/change-signals-card';
 import { DayCard } from '@/features/daily-logs/components/day-card';
 import { UnsyncedDailyLogsEntry } from '@/features/daily-logs/components/unsynced-entry';
 import { EvolutionCard, WeekSummary } from '@/features/daily-logs/components/week-summary';
@@ -74,6 +75,7 @@ function PetToday({ pet }: { pet: Pet }) {
           canEdit={canEdit.data ?? null}
           onOpenLog={openLog}
         />
+        <ChangeSignalsCard petName={pet.name} signals={week.signals} onOpenHistory={() => router.navigate('/history')} />
         <NextReminderCard petId={pet.id} petName={pet.name} canEdit={canEdit.data === true} />
         {overview.loggedCount < TREND_THRESHOLD ? (
           <EvolutionCard petName={pet.name} loggedCount={overview.loggedCount} />
