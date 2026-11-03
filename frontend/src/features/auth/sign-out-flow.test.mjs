@@ -8,7 +8,7 @@ import { createSignOutFlow, unsyncedTotal } from './sign-out-flow.ts';
 
 const NONE = { pending: 0, failed: 0, conflict: 0 };
 
-function setup({ summaries = [NONE], sync = async () => ({ status: 'completed' }), signOutError = null } = {}) {
+function setup({ summaries = [NONE], sync = async () => ({ status: 'completed' }), signOutError = null, clearLocalData } = {}) {
   const calls = { check: 0, sync: 0, signOut: 0 };
   const queue = [...summaries];
   const flow = createSignOutFlow({
@@ -26,6 +26,7 @@ function setup({ summaries = [NONE], sync = async () => ({ status: 'completed' }
       calls.signOut += 1;
       return { error: signOutError };
     },
+    clearLocalData,
   });
   return { flow, calls };
 }
@@ -147,6 +148,56 @@ describe('createSignOutFlow', () => {
     release();
     assert.equal((await pending).status, 'signed_out');
     assert.equal(flow.getState(), 'idle');
+  });
+
+  describe('copia local al cerrar', () => {
+    const clearing = () => {
+      const state = { cleared: 0 };
+      return { state, clearLocalData: async () => (state.cleared += 1) };
+    };
+
+    it('sin nada pendiente se borra, después de cerrar sesión', async () => {
+      const { state, clearLocalData } = clearing();
+      const { flow, calls } = setup({ clearLocalData });
+      assert.equal((await flow.request()).status, 'signed_out');
+      assert.equal(state.cleared, 1);
+      assert.equal(calls.signOut, 1);
+    });
+
+    it('tras sincronizar sin que quede nada, también', async () => {
+      const { state, clearLocalData } = clearing();
+      const { flow } = setup({ clearLocalData, summaries: [{ ...NONE, pending: 1 }, NONE] });
+      await flow.request();
+      assert.equal((await flow.syncAndSignOut()).status, 'signed_out');
+      assert.equal(state.cleared, 1);
+    });
+
+    it('«conservar y cerrar» nunca borra', async () => {
+      const { state, clearLocalData } = clearing();
+      const { flow } = setup({ clearLocalData, summaries: [{ ...NONE, pending: 1 }, NONE] });
+      await flow.request();
+      assert.equal((await flow.keepAndSignOut()).status, 'signed_out');
+      assert.equal(state.cleared, 0);
+    });
+
+    it('si aparece algo pendiente justo antes, o no se puede leer, no se borra', async () => {
+      for (const second of [{ ...NONE, pending: 1 }, new Error('storage')]) {
+        const { state, clearLocalData } = clearing();
+        const { flow } = setup({ clearLocalData, summaries: [NONE, second] });
+        assert.equal((await flow.request()).status, 'signed_out');
+        assert.equal(state.cleared, 0);
+      }
+    });
+
+    it('un fallo al borrar no impide cerrar sesión', async () => {
+      const { flow, calls } = setup({
+        clearLocalData: async () => {
+          throw new Error('storage');
+        },
+      });
+      assert.deepEqual(await flow.request(), { status: 'signed_out', error: null });
+      assert.equal(calls.signOut, 1);
+    });
   });
 
   it('unsyncedTotal suma pendientes, fallidos y conflictos', () => {

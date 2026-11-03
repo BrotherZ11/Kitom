@@ -217,7 +217,7 @@ prueba de verificación · estado.
 | SEC-03 | textos publicables y consentimiento exacto; faltan activar GitHub Pages, la revisión legal y el **plan de pago de Gemini** (los textos ya lo presuponen) |
 | SEC-04 | mitigado (20 invitaciones/24 h, identidad oculta de pendientes): migración `20261030090318`, **sin aplicar**; riesgo residual documentado (una fila pendiente sigue revelando que el email tiene cuenta) |
 | SEC-06, SEC-18, SEC-21 | corregidos en la migración `20261030090318`, **sin aplicar** |
-| SEC-08 | parcial: copia de Android desactivada (`allowBackup: false`) y borrado local al eliminar la cuenta; falta la purga al cerrar sesión |
+| SEC-08 | mitigado: copia de Android desactivada (`allowBackup: false`), borrado local al eliminar la cuenta y al cerrar sesión con todo subido. Queda sin cifrar mientras la sesión está abierta o si el usuario conserva cambios pendientes (riesgo aceptado para la v1) |
 | SEC-09 | parte de la app hecha (mínimo 8, errores, reenvío); la configuración del Dashboard es manual (`AUTH.md` §3) y **sigue pendiente** |
 | SEC-16 | código corregido; desplegar `ai-analysis-process` **después** de la migración |
 | SEC-17 | corregido; sin prueba manual |

@@ -128,8 +128,8 @@ function userPrefixOf(userId: string): string {
 /**
  * Borra **todo** lo que este dispositivo guarda de un usuario, de todas las colecciones (registros,
  * operaciones pendientes, copias de mascotas, catálogo de razas…). Solo para una cuenta que ya no existe
- * (borrado de cuenta): el cierre de sesión nunca borra datos locales. Las claves de otros usuarios no se
- * tocan. Devuelve cuántas claves borró; si una falla, lanza y lo ya borrado queda borrado (repetir sigue).
+ * (borrado de cuenta) o que cierra sesión con todo sincronizado (`sign-out-flow.ts`): nunca con cambios que
+ * solo estén aquí. Las claves de otros usuarios no se tocan. Devuelve cuántas claves borró; si una falla, lanza y lo ya borrado queda borrado (repetir sigue).
  */
 export async function clearLocalUserData(storage: KeyValueStorage, userId: string): Promise<number> {
   // Termina en separador: el usuario `abc` no borra las claves de `abcd`.

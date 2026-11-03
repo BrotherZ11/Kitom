@@ -889,7 +889,8 @@ pantalla `(app)/sign-out`). «Cerrar sesión» lee del dispositivo **los registr
 ediciones de mascotas** (fase 8.5: pendientes de crear, ediciones pendientes, enviadas sin confirmar,
 en conflicto, fallidas, sin permiso e ilegibles). Si cualquiera de los dos almacenes no se puede leer,
 no se da por vacío:
-- Ninguno: cierra sesión como siempre.
+- Ninguno: cierra sesión y, tras comprobarlo otra vez, borra la copia local de la cuenta (`clearLocalUserData`;
+  2026-11-03, SEC-08): todo está en el servidor y no debe quedar en un móvil compartido o perdido.
 - Alguno, o no se pudo leer el dispositivo: no cierra y abre la pantalla de decisión, con cuántos hay
   de cada tipo, que esos cambios solo existen en este dispositivo y el acceso a «Registros sin
   sincronizar» (resolver, copiar o descartar uno a uno, como siempre). No hay descarte masivo.

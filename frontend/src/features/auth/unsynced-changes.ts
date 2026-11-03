@@ -58,11 +58,13 @@ export function createAppSignOutFlow<E>({
   dailyLogs,
   pets,
   signOut,
+  clearLocalData,
   timeoutMs,
 }: {
   dailyLogs: { repository: Pick<DailyLogRepository, 'list'>; engine: Pick<DailyLogSyncEngine, 'syncNow'> };
   pets: { operations: Pick<PetOperationRepository, 'list' | 'unreadableCount'>; engine: Pick<PetSyncEngine, 'syncNow'> };
   signOut: () => Promise<{ error: E | null }>;
+  clearLocalData?: () => Promise<unknown>;
   timeoutMs: number;
 }): SignOutFlow<E, SignOutSummary> {
   return createSignOutFlow<E, SignOutSummary>({
@@ -74,5 +76,6 @@ export function createAppSignOutFlow<E>({
     syncNow: async () =>
       combineSyncNow(await Promise.all([dailyLogs.engine.syncNow({ timeoutMs }), pets.engine.syncNow({ timeoutMs })])),
     signOut,
+    clearLocalData,
   });
 }

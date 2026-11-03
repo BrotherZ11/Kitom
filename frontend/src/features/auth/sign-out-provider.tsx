@@ -12,6 +12,8 @@ import { usePetOperations } from '@/features/pets/hooks/use-pet-writes';
 import { summarizePetOperations } from '@/features/pets/offline/pet-operation';
 import { petKeys } from '@/features/pets/query-keys';
 import { usePetSync } from '@/features/pets/sync/pet-sync-provider';
+import { deviceStorage } from '@/lib/local-store/device-storage';
+import { clearLocalUserData } from '@/lib/local-store/local-store';
 
 /**
  * Cierre de sesión de la zona autenticada con **todos** los cambios que solo existen en el dispositivo:
@@ -22,6 +24,7 @@ import { usePetSync } from '@/features/pets/sync/pet-sync-provider';
  *   almacenes no se puede leer, pide una decisión. Nunca da por vacío lo que no pudo leer.
  * - Sincronizar y cerrar: una pasada acotada de los dos motores; solo cierra si después no queda nada
  *   (tampoco altas o ediciones de resultado incierto, en conflicto, fallidas o sin permiso).
+ * - Sin nada pendiente, al cerrar se borra la copia local de la cuenta (todo está en el servidor).
  * - Conservar y cerrar: no toca nada. Las operaciones de cada cuenta siguen en el dispositivo, aisladas
  *   por usuario; los motores de la cuenta que sale se paran y quedan sin sesión, y cada envío lleva el
  *   token del dueño: nada sale con otra cuenta.
@@ -43,6 +46,7 @@ export function SignOutFlowProvider({ children }: PropsWithChildren) {
       dailyLogs: daily,
       pets,
       signOut: (): Promise<AuthResult> => signOut(),
+      clearLocalData: () => clearLocalUserData(deviceStorage, daily.userId),
       timeoutMs: SIGN_OUT_SYNC_TIMEOUT_MS,
     })
   );
