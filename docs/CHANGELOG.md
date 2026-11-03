@@ -22,6 +22,7 @@ Preparación de la primera versión (Android, gratuita), integrada en `main`:
   3 fallos/día, 20 invitaciones/24 h, identidad oculta de invitados pendientes, límites de longitud, `(select auth.uid())` en
   22 políticas, `STABLE`, 12 índices de FK, `pg_cron`/`pg_net` y limpieza programada con secretos en Vault;
   `ai-analysis-process` con escrituras condicionadas y `processing_started_at`.
+- **Señales de cambio** (`feat/change-signals`): tarjeta en Hoy cuando los últimos días se apartan de las semanas anteriores, lo que ya prometía la bienvenida; solo compara registros, sin consultas nuevas y también sin conexión.
 - **Encontrado probando en el emulador** (`fix/v1-polish`): PKCE con `Math.random` y `plain` en Hermes (SEC-23); botones del
   pie tapados por el teclado en Android (edge-to-edge); zona `GMT` del dispositivo sin guardar; idioma fijo en la
   configuración inicial; selector de fecha nativo en lugar de texto `AAAA-MM-DD`.

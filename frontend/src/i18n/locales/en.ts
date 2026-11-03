@@ -164,6 +164,17 @@ export const en: Translations = {
       ringPending: '{count} of 7 days logged this week; today pending',
       ringDone: '{count} of 7 days logged, today included',
     },
+    signals: {
+      title: 'Something has changed these days',
+      intro: "Compared with {name}'s previous weeks:",
+      unusual: 'Unusual behavior on several days',
+      appetite: { lower: 'Less appetite than usual', higher: 'More appetite than usual' },
+      mood: { lower: 'Lower mood than usual', higher: 'Better mood than usual' },
+      energy: { lower: 'Less energy than usual', higher: 'More energy than usual' },
+      activity: { lower: 'Less activity than usual', higher: 'More activity than usual' },
+      note: "This comes from comparing your logs: it isn't a medical assessment. If it continues or worries you, talk to your vet.",
+      history: 'See their history',
+    },
     evolution: {
       startTitle: "This is how you'll see their progress",
       startText: "With 3 logs you'll start seeing their trends. In a few weeks you'll see what's normal for {name}.",

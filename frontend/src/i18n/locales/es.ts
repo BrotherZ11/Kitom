@@ -171,6 +171,17 @@ export const es = {
       ringPending: '{count} de 7 días registrados esta semana; hoy pendiente',
       ringDone: '{count} de 7 días registrados, hoy incluido',
     },
+    signals: {
+      title: 'Algo ha cambiado estos días',
+      intro: 'Comparado con las semanas anteriores de {name}:',
+      unusual: 'Conductas inusuales varios días',
+      appetite: { lower: 'Menos apetito de lo habitual', higher: 'Más apetito de lo habitual' },
+      mood: { lower: 'Peor ánimo de lo habitual', higher: 'Mejor ánimo de lo habitual' },
+      energy: { lower: 'Menos energía de lo habitual', higher: 'Más energía de lo habitual' },
+      activity: { lower: 'Menos actividad de lo habitual', higher: 'Más actividad de lo habitual' },
+      note: 'Sale de comparar tus registros: no es una valoración médica. Si sigue igual o te preocupa, consulta con tu veterinario.',
+      history: 'Ver su historial',
+    },
     evolution: {
       startTitle: 'Así verás su evolución',
       startText: 'Con 3 registros empezarás a ver sus tendencias. Con unas semanas verás qué es lo normal en {name}.',

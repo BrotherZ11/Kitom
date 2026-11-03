@@ -29,6 +29,8 @@ export { default as Eye } from 'lucide-react-native/icons/eye';
 export { default as EyeOff } from 'lucide-react-native/icons/eye-off';
 export { default as FileText } from 'lucide-react-native/icons/file-text';
 export { default as Flame } from 'lucide-react-native/icons/flame';
+export { default as TrendingDown } from 'lucide-react-native/icons/trending-down';
+export { default as TrendingUp } from 'lucide-react-native/icons/trending-up';
 export { default as Globe } from 'lucide-react-native/icons/globe';
 export { default as Heart } from 'lucide-react-native/icons/heart';
 export { default as House } from 'lucide-react-native/icons/house';
