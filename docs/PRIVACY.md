@@ -63,7 +63,7 @@ Plazos publicados en la política (`site/privacy.html` §6) y estado real:
 | Copias de seguridad | se sobrescriben en ≤ 30 días | según el plan de Supabase |
 | Emails de soporte | 12 meses tras cerrar la conversación | manual |
 | Solicitudes de derechos | 3 años (fecha, email y respuesta) | manual |
-| Copia local en el dispositivo | hasta desinstalar o borrar los datos de la app | persiste tras cerrar sesión (purga: P1-09) |
+| Copia local en el dispositivo | hasta cerrar sesión con todo subido, eliminar la cuenta, desinstalar o borrar los datos de la app | al cerrar sesión con todo subido se borra; si el usuario elige conservar cambios pendientes, se queda |
 | `reminder-attachments`, `shared-reports`, `avatars` | — | sin uso; definir antes de usarlos |
 
 Al eliminar la cuenta: las mascotas propias pasan a un co-tutor `editor` si lo hay; si no, se eliminan

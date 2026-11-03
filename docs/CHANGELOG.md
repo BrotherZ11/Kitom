@@ -23,6 +23,7 @@ Preparación de la primera versión (Android, gratuita), integrada en `main`:
   22 políticas, `STABLE`, 12 índices de FK, `pg_cron`/`pg_net` y limpieza programada con secretos en Vault;
   `ai-analysis-process` con escrituras condicionadas y `processing_started_at`.
 - **Señales de cambio** (`feat/change-signals`): tarjeta en Hoy cuando los últimos días se apartan de las semanas anteriores, lo que ya prometía la bienvenida; solo compara registros, sin consultas nuevas y también sin conexión.
+- **Cerrar sesión** con todo subido borra la copia local de la cuenta (SEC-08); con cambios pendientes, se siguen conservando si el usuario lo elige.
 - **Encontrado probando en el emulador** (`fix/v1-polish`): PKCE con `Math.random` y `plain` en Hermes (SEC-23); botones del
   pie tapados por el teclado en Android (edge-to-edge); zona `GMT` del dispositivo sin guardar; idioma fijo en la
   configuración inicial; selector de fecha nativo en lugar de texto `AAAA-MM-DD`.

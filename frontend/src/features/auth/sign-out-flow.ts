@@ -10,11 +10,14 @@ import type { SyncNowOutcome } from '@/features/daily-logs/offline/daily-log-syn
  *   cierra sesión. Si queda algo, vuelve a pedir la decisión con lo que queda y por qué.
  * - `keepAndSignOut()` (B): cierra sesión sin tocar los datos locales (se conservan en el dispositivo,
  *   aislados por usuario, y se recuperan al volver a entrar con la misma cuenta).
+ * - Con todo sincronizado (`request` o A), tras cerrar se borra la copia local de la cuenta (`clearLocalData`):
+ *   todo está en el servidor y no debe quedar en un móvil que puede ser compartido o perderse. Se comprueba
+ *   otra vez justo antes: con algo pendiente, o si no se puede leer, no se borra nada.
  * - `cancel()` (C): no cambia nada; si había una pasada de A en curso, sigue en segundo plano pero ya no
  *   cierra sesión al terminar.
  *
- * Nunca descarta datos: ninguna opción borra nada del dispositivo. Una operación a la vez: mientras hay
- * una en curso, las demás devuelven `busy` (dobles toques, dos pantallas a la vez).
+ * Nunca descarta datos que solo estén en el dispositivo. Una operación a la vez: mientras hay una en
+ * curso, las demás devuelven `busy` (dobles toques, dos pantallas a la vez).
  */
 
 export type UnsyncedSummary = { pending: number; failed: number; conflict: number };
@@ -52,6 +55,8 @@ export type SignOutFlowDeps<E, S = UnsyncedSummary> = {
   /** Pasada acotada de sincronización (`engine.syncNow`). */
   syncNow(): Promise<SyncNowOutcome>;
   signOut(): Promise<{ error: E | null }>;
+  /** Borra la copia local de la cuenta; solo se llama sin nada pendiente. Un fallo no impide cerrar. */
+  clearLocalData?: () => Promise<unknown>;
 };
 
 export type SignOutFlow<E, S = UnsyncedSummary> = {
@@ -83,10 +88,14 @@ export function createSignOutFlow<E, S = UnsyncedSummary>(deps: SignOutFlowDeps<
     }
   };
 
-  const signOut = async (): Promise<SignOutOutcome<E, S>> => {
+  const signOut = async ({ purge }: { purge: boolean }): Promise<SignOutOutcome<E, S>> => {
     setState('signing_out');
     try {
       const { error } = await deps.signOut();
+      if (purge && deps.clearLocalData) {
+        const summary = await check();
+        if (summary && total(summary) === 0) await deps.clearLocalData().catch(() => undefined);
+      }
       return { status: 'signed_out', error };
     } finally {
       setState('idle');
@@ -114,7 +123,7 @@ export function createSignOutFlow<E, S = UnsyncedSummary>(deps: SignOutFlowDeps<
     request: () =>
       exclusive('checking', async () => {
         const summary = await check();
-        if (summary && total(summary) === 0) return signOut();
+        if (summary && total(summary) === 0) return signOut({ purge: true });
         return { status: 'needs_decision', summary, attempt: null };
       }),
 
@@ -131,11 +140,11 @@ export function createSignOutFlow<E, S = UnsyncedSummary>(deps: SignOutFlowDeps<
         const summary = await check();
         if (!isCurrent()) return { status: 'cancelled' };
         // Solo se cierra sesión si lo leído del dispositivo confirma que no queda nada.
-        if (summary && total(summary) === 0) return signOut();
+        if (summary && total(summary) === 0) return signOut({ purge: true });
         return { status: 'needs_decision', summary, attempt };
       }),
 
-    keepAndSignOut: () => exclusive('signing_out', () => signOut()),
+    keepAndSignOut: () => exclusive('signing_out', () => signOut({ purge: false })),
 
     cancel() {
       if (state === 'signing_out') return;

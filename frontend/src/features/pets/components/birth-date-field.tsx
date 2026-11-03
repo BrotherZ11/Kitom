@@ -1,4 +1,4 @@
-import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
@@ -51,9 +51,7 @@ export function BirthDateField({ value, onChange, error }: BirthDateFieldProps) 
         value: pickerInitialDate(value, today),
         mode: 'date',
         maximumDate: today,
-        onChange: (event: DateTimePickerEvent, date?: Date) => {
-          if (event.type === 'set' && date) onChange(localDateToIsoDate(date));
-        },
+        onValueChange: (_event, date) => onChange(localDateToIsoDate(date)),
       });
       return;
     }
@@ -91,9 +89,7 @@ export function BirthDateField({ value, onChange, error }: BirthDateFieldProps) 
             display="spinner"
             maximumDate={new Date()}
             locale={getLocale()}
-            onChange={(_event, date) => {
-              if (date) setIosDraft(date);
-            }}
+            onValueChange={(_event, date) => setIosDraft(date)}
           />
         </BottomSheet>
       ) : null}
