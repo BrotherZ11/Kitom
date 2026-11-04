@@ -29,7 +29,11 @@ export function initErrorReporting(): void {
       delete event.user;
       delete event.request;
       delete event.extra;
-      if (event.contexts) delete event.contexts.profile;
+      if (event.contexts) {
+        delete event.contexts.profile;
+        // Identificador estable de la instalación: permitiría seguir a una persona entre informes.
+        delete event.contexts.device?.id;
+      }
       return event;
     },
     beforeBreadcrumb(breadcrumb) {

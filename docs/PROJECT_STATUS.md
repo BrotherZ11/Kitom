@@ -145,7 +145,8 @@ hasta aplicar la migración.
 2. Rechazo en tiendas por falta de eliminación de cuenta, política de privacidad y declaraciones.
 3. Tratamiento de datos (fotos y salud de mascotas, notas del dueño) sin base legal documentada.
 4. iOS: nunca compilado ni probado (fuera de la v1).
-5. Monitorización: Sentry integrado en el código, inactivo hasta tener DSN.
+5. Monitorización: Sentry comprobado con errores reales, source maps y reglas de privacidad en APK locales (2026-11-04).
+   Falta llevar el DSN y el token a EAS cuando exista el proyecto (`DEPLOYMENT.md` §8, paso 10).
 6. Mantenimiento: documentación muy extensa (`FRONTEND_ARCHITECTURE.md` 1663 líneas, `DECISIONS.md`
    1166) que hay que mantener sincronizada.
 

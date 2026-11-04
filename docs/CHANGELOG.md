@@ -18,6 +18,14 @@ Cambios tras probar la APK en un móvil real (rama `feat/signup-legal-and-valida
 - **Marca:** retiradas las frases «Hecha para Atom y Kika» y «y para el tuyo» de la app y de `site/`.
 - **Nueva guía** `docs/SETUP_GUIDE.md`: GitHub Pages, dominio, SMTP, Supabase Auth, Google Cloud y cuenta de Play.
 
+Sentry (sin migraciones):
+
+- **Proyecto** `kitom-app` creado y errores reales de JS y nativos comprobados desde una APK de release.
+- **Privacidad:** los errores de JS ya no envían `device.id`, y las reglas del panel de Sentry eliminan la ubicación
+  deducida de la IP y el identificador de instalación de los cierres nativos (`docs/DEPLOYMENT.md` §8, paso 10).
+- **Source maps:** `metro.config.js`, organización y proyecto en `app.json`; comprobados desde una build local. Los perfiles
+  `preview` y `production` de EAS también los suben y necesitarán `SENTRY_AUTH_TOKEN`.
+
 ## 2026-11-03
 
 Preparación de la primera versión (Android, gratuita), integrada en `main`:

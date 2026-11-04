@@ -80,6 +80,15 @@ En web contra el Supabase local: aviso único, sugerencia de email, `/legal/*`, 
 7,5 kg aceptados. Correo de recuperación recibido en Mailpit con plantilla y asunto de Kitom. Página puente con
 Playwright: PC (registro, recuperación, error por query y por fragmento), Android con y sin app, y flujo desconocido.
 
+### Sentry (2026-11-04)
+
+APK de release en emulador Android, contra el Supabase local, con una ruta temporal que forzaba los errores (ya retirada):
+
+- Error de JS y cierre nativo recibidos en `kitom-app`, con entorno y release correctos. Hay que reabrir la app para que lleguen algunos eventos.
+- Privacidad: con las reglas del panel activas (`DEPLOYMENT.md` §8, paso 10), ni el error de JS ni el cierre nativo guardan usuario, ubicación ni `device.id`.
+- Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
+- **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
+
 ### Integración de la primera versión (2026-11-03)
 
 | Comando | Resultado |

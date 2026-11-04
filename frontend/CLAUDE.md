@@ -86,6 +86,8 @@ error y «sin mascotas».
   generados desde `site/` con `npm run legal:build` (no editarlos a mano; una prueba comprueba que coinciden).
 - `src/lib/error-reporting.ts` — Sentry solo en release con `EXPO_PUBLIC_SENTRY_DSN`; sin datos
   personales (`beforeSend`/`beforeBreadcrumb`). Nunca añadir contexto de usuario ni contenido a los eventos.
+  `beforeSend` no filtra los cierres nativos ni la IP: eso lo limpian las reglas del panel de Sentry (`docs/DEPLOYMENT.md` §8).
+  `metro.config.js` usa `getSentryExpoConfig`: es lo que relaciona cada bundle con su source map.
 - `src/lib/legal-links.ts` — URL base de las páginas públicas, página puente de los emails y email de soporte.
 - `src/components/ui/` — componentes de marca (F1); lista y reglas en «Tema y diseño» abajo.
 - `src/features/daily-logs/` — registro diario (hoy: ruta `(app)/pets/[id]/daily-log`, tarjeta en la

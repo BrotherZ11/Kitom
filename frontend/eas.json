@@ -5,16 +5,16 @@
   },
   "build": {
     "base": {
-      "node": "24.12.0",
-      "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
-      }
+      "node": "24.12.0"
     },
     "development": {
       "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "android": { "buildType": "apk" }
     },
     "preview": {

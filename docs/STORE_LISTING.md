@@ -106,7 +106,9 @@ Recogidos, cifrados en tránsito y con eliminación a petición del usuario. Nin
   definición de Play eso no suele contar como «compartir». **A validar:** la foto y los datos de la mascota salen hacia Google
   para preparar la orientación, y debe quedar reflejado como corresponda.
 - **Datos de salud:** son de la mascota, no del usuario. Comprobar si el formulario pide declararlos igualmente.
-- **Sin** ubicación, contactos, identificadores publicitarios ni seguimiento entre apps.
+- **Sin** ubicación, contactos, identificadores publicitarios ni seguimiento entre apps. **A validar:** los informes de Sentry
+  salen del dispositivo con la IP y, en los cierres nativos, con un identificador de instalación; las reglas del panel los
+  quitan al llegar, no antes de enviarlos. Comprobar si hay que declarar «ID de dispositivo u otros ID» (`PRIVACY.md`).
 
 ## Permisos que Play puede pedir justificar
 
