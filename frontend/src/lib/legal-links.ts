@@ -1,12 +1,12 @@
 /**
- * Páginas públicas de Kitom (GitHub Pages del repositorio, carpeta `site/`) y contacto. Las tiendas
- * exigen que la política de privacidad y la solicitud de borrado sean accesibles sin la app.
- * Responsable: persona física (ver `docs/PRIVACY.md`). Cambiar aquí si se mueve el dominio.
+ * Páginas públicas de Kitom (GitHub Pages del repositorio, carpeta `site/`) y contacto. La app enseña sus
+ * propias copias de los textos legales (`/legal/[doc]`), pero las tiendas exigen URL accesibles sin la app:
+ * `privacy.html`, `terms.html` y `delete-account.html`. Responsable: persona física (ver `docs/PRIVACY.md`).
+ * Cambiar aquí si se mueve el dominio, y en Supabase Auth (`docs/SETUP_GUIDE.md`).
  */
 export const LEGAL_SITE_URL = 'https://brotherz11.github.io/Kitom';
 
-export const PRIVACY_POLICY_URL = `${LEGAL_SITE_URL}/privacy.html`;
-export const TERMS_URL = `${LEGAL_SITE_URL}/terms.html`;
-export const ACCOUNT_DELETION_URL = `${LEGAL_SITE_URL}/delete-account.html`;
+/** Página puente de los enlaces de email: `site/auth/callback.html` (ver `auth-callback-plan.ts`). */
+export const EMAIL_LINK_BRIDGE_URL = `${LEGAL_SITE_URL}/auth/callback.html`;
 
 export const SUPPORT_EMAIL = 'dzarzavillaborrego@gmail.com';

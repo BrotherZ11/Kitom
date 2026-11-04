@@ -1,8 +1,10 @@
 import { isAuthPKCECodeVerifierMissingError } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
+import { Platform } from 'react-native';
 
-import { readUrlParams, toFlow, type AuthRedirectFlow } from '@/features/auth/auth-callback-plan';
+import { emailLinkRedirectUrl, readUrlParams, toFlow, type AuthRedirectFlow } from '@/features/auth/auth-callback-plan';
 import { toAuthErrorCode, type AuthErrorCode } from '@/features/auth/auth-errors';
+import { EMAIL_LINK_BRIDGE_URL } from '@/lib/legal-links';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -26,10 +28,12 @@ const CALLBACK_PATH = 'auth-callback';
 
 /**
  * URL a la que Supabase redirige tras verificar el enlace. Debe estar en Auth > URL Configuration >
- * Redirect URLs. Build: `kitom://auth-callback?flow=…`; Expo Go: `exp://<host>/--/auth-callback?flow=…`.
+ * Redirect URLs. Release: los emails, a la página puente (`emailLinkRedirectUrl`), y Google,
+ * `kitom://auth-callback?flow=oauth`; desarrollo: `exp://<host>/--/auth-callback?flow=…`.
  * La usan el registro, el reenvío de la confirmación, la recuperación y Google.
  */
 export function getAuthRedirectUrl(flow: AuthRedirectFlow): string {
+  if (!__DEV__ && Platform.OS !== 'web' && flow !== 'oauth') return emailLinkRedirectUrl(EMAIL_LINK_BRIDGE_URL, flow);
   return Linking.createURL(CALLBACK_PATH, { queryParams: { flow } });
 }
 
