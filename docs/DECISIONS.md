@@ -3,6 +3,29 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-04 — Registro: aviso legal único, textos en la app, puente de email y datos plausibles
+
+**Contexto.** Revisión del responsable con la APK en su móvil: dos avisos legales en el registro, textos
+abiertos fuera de la app, enlaces de email sin destino en el PC y sin control de datos imposibles.
+
+**Decisiones.**
+
+- **Aviso único sin casilla.** Un texto («Al crear tu cuenta, con email o con Google, aceptas…») sustituye a la
+  casilla y al aviso de Google, y sale del inicio de sesión. Quien crea su cuenta con Google desde el inicio de
+  sesión lo ve en la configuración inicial. La aceptación sigue sin guardarse en el servidor. Pendiente de la
+  revisión legal (`DEPLOYMENT.md` §8.7).
+- **Textos legales dentro de la app, generados desde `site/`.** Las tiendas exigen URL pública, así que `site/`
+  sigue siendo el original y `scripts/build-legal-documents.mjs` genera la copia; una prueba falla si difieren.
+  Descartado escribirlos dos veces (se desincronizan) y un WebView (paquete nativo nuevo, y sin red no se leen).
+- **Página puente para los emails** (`site/auth/callback.html`). Descartados los App Links de Android: exigen
+  dominio y huella de firma, y siguen sin resolver el enlace abierto en el PC. La página depende de GitHub Pages:
+  si cae, el registro queda confirmado pero sin destino visible.
+- **Límites por especie solo en el formulario** (`pet-plausibility.ts`), holgados, para detectar erratas. No hay
+  CHECK en la base: los límites son una estimación, cambiarían con cada migración y podrían bloquear la
+  sincronización de un dato ya guardado en el dispositivo.
+- **Existencia del email:** patrón estricto, sugerencia ante erratas y confirmación por correo. Sin servicios
+  externos de verificación: enviarían cada email a un tercero y no son concluyentes.
+
 ## 2026-11-03 — Primera versión: alcance y decisiones de la preparación
 
 **Alcance (del responsable, 2026-10-29).** Android primero, gratuita (3 consultas de IA al mes), sin inicio de sesión con

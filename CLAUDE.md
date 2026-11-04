@@ -15,6 +15,7 @@ Stack: Expo (React Native) + TypeScript + Supabase. Documentación en español; 
   `CHANGELOG.md` (cambios actuales). Auditoría 2026-10-29 (estado real y camino a producción):
   `PROJECT_STATUS.md`, `ROADMAP.md`, `ARCHITECTURE.md`, `DATABASE.md`, `SECURITY_AUDIT.md`,
   `TESTING.md`, `DEPLOYMENT.md`, `PRIVACY.md` y `STORE_LISTING.md`; mantenerlos al día cuando cambie lo que describen.
+  `SETUP_GUIDE.md`: paneles de Supabase, correo, Google Cloud y Play, paso a paso.
 - `docs/design/` — diseño de la app (identidad «Ritmo», tokens, componentes, prototipo de 90 pantallas,
   inventario `PANTALLAS.md` y `PLAN_DESARROLLO.md`). Recursos de marca para la app en `frontend/assets/brand/`.
 
@@ -35,11 +36,10 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   **no desplegados** en el remoto. Fuera del MVP; no crear migración salvo petición expresa.
 - Edge Functions: `ai-analysis-process` implementada en `supabase/functions/` (rama `feat/ai-guidance`,
   Gemini de Google AI Studio por defecto; prompt y reglas en borrador hasta que los valide un
-  veterinario). En `kitom-dev` está **desplegada** (v1, `verify_jwt`; comprobado en solo lectura el
-  2026-10-28), pero el secreto no es consultable y ningún análisis del remoto ha llegado a `completed`
-  (2 en `pending`): pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `delete-account`
-  implementada (rama `feat/account-deletion`, 2026-10-29, sin migraciones; probada contra el local;
-  **sin desplegar**, lo hace el usuario; `docs/README.md` §12) con su pantalla en Ajustes.
+  veterinario). En `kitom-dev` están **desplegadas** `ai-analysis-process` (v2), `delete-account` (v1) y
+  `pet-storage-cleanup` (v1; comprobado en solo lectura el 2026-11-04). El secreto de IA no es consultable:
+  pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `delete-account`: `docs/README.md` §12, con su
+  pantalla en Ajustes.
   `generate-pet-report` y `revenuecat-webhook`: **pendientes**; la carpeta `edge-functions/` que citan
   los docs no está en el repo.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
@@ -76,7 +76,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   sobre `photo_path` y diario local (§5 «Pets: eliminación sin conexión y fotos (fase 10)»); sin validar a
   mano todavía. La limpieza de Storage tras borrar una mascota (fase 12B, rama `db/pet-storage-cleanup`):
   migraciones `20261027194904_pets_photo_path_own_pet.sql`, `20261027194908_pet_storage_cleanup.sql` y
-  `20261028114317_pet_storage_cleanup_guards.sql` y Edge Function `pet-storage-cleanup`, probadas en local; migraciones aplicadas en `kitom-dev` el 2026-10-28 (`db push` del usuario) y tipos regenerados; la función, **sin desplegar** (sin secreto ni cron)
+  `20261028114317_pet_storage_cleanup_guards.sql` y Edge Function `pet-storage-cleanup`, probadas en local; migraciones aplicadas en `kitom-dev` el 2026-10-28 (`db push` del usuario) y tipos regenerados; la función, desplegada (2026-11-04), sin secretos de Vault comprobados
   (`docs/proposals/2026-10-26-pet-photos-cleanup.md`). Fase 11 (2026-10-26, sin migraciones):
   estabilización E2E validada en el emulador Android con Expo Go, en web y contra el Supabase local;
   corregidas la señal de red atascada, el envío de fotos con otra sesión y el aviso de Ajustes (§5
@@ -97,7 +97,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   (`docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4 y §7). Sin implementar (backend o decisión pendiente):
   adjuntos de la agenda, Premium (fuera de la v1), clínica propia y voz de la mascota (`docs/DECISIONS.md`).
   Marca enlazada en `app.json` (nombre «Kitom», icono iOS/Android, splash y favicon desde
-  `frontend/assets/brand/app-icon/`); `slug` (`frontend`) y esquema (`kitom`) sin cambiar.
+  `frontend/assets/brand/app-icon/`); esquema `kitom` sin cambiar.
   `android.package` = `com.kitom.app` (2026-10-20, no cambiarlo: otra APK no actualizaría la
   instalada); `ios.bundleIdentifier` sin definir. APK de prueba compilada en local
   (`npx expo prebuild --platform android` + `gradlew assembleRelease`; `/android` está ignorado por git
@@ -121,8 +121,12 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   en web y en el emulador Android (la alarma se cancela y vuelve al activarlo). Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
 - Preparación de la v1 (Android, gratuita; 2026-11-03): eliminar la cuenta, descargar los datos, páginas legales (`site/`),
   Auth endurecido, idioma del dispositivo y Sentry, integrados en `main`. Migración `20261029151011`: aplicada en
-  `kitom-dev`. Migración `20261030090318_abuse_limits_and_db_hardening.sql`: **sin aplicar**. Lo que falta para
-  publicar lo hace el usuario: `docs/DEPLOYMENT.md` §8; estado: `docs/PROJECT_STATUS.md`.
+  `kitom-dev`. Migración `20261030090318_abuse_limits_and_db_hardening.sql`: aplicada en `kitom-dev` (`db push` del
+  usuario, 2026-11-04) y tipos regenerados. Lo que falta para publicar lo hace el usuario: `docs/DEPLOYMENT.md` §8 y
+  `docs/SETUP_GUIDE.md`; estado: `docs/PROJECT_STATUS.md`.
+- Registro (2026-11-04, sin migraciones): aviso legal único, textos legales en la app (`/legal/[doc]`, generados
+  desde `site/`), peso y fecha plausibles por especie, y enlaces de email por la página puente
+  `site/auth/callback.html`, que exige configurar Redirect URLs y SMTP propio (`docs/SETUP_GUIDE.md`).
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev` (los 4 privados, **sin límite de
   tamaño ni de tipo**, comprobado el 2026-10-28; el remoto no tiene `pg_cron` ni `pg_net`); en local solo `pet-photos`

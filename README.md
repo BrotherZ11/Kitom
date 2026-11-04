@@ -81,5 +81,6 @@ Ramas `feat/…`, `fix/…`, `chore/…`, `docs/…`, `db/…` · Conventional C
 | [SECURITY_AUDIT](docs/SECURITY_AUDIT.md) · [PRIVACY](docs/PRIVACY.md) | hallazgos de seguridad · inventario de datos personales |
 | [TESTING](docs/TESTING.md) · [DEPLOYMENT](docs/DEPLOYMENT.md) · [STORE_LISTING](docs/STORE_LISTING.md) | pruebas · entornos, compilación y publicación · ficha y declaraciones de Play |
 | [AUTH](docs/AUTH.md) · [SEED](docs/SEED.md) | autenticación y deep links · datos de referencia |
+| [SETUP_GUIDE](docs/SETUP_GUIDE.md) | configurar Supabase, correo, Google Cloud y Google Play, paso a paso |
 | [DECISIONS](docs/DECISIONS.md) · [CHANGELOG](docs/CHANGELOG.md) | decisiones técnicas · cambios |
 | [PRD](docs/PRD.md) · [design/](docs/design/) | producto · diseño de pantallas y marca |

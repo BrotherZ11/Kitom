@@ -44,8 +44,8 @@ avance: no hay un método reproducible que los respalde.
 
 | # | Funcionalidad | Estado | Evidencia | Qué falta | Prioridad |
 |---|---|---|---|---|---|
-| 1 | Registro e inicio de sesión con email | COMPLETA Y VERIFICADA | `features/auth/`, integración local y emulador Android (registro, casilla de términos, regla de 8 caracteres, redirección) | confirmar el email real en producción | P1 |
-| 2 | Inicio de sesión con Google | IMPLEMENTADA, NO VERIFICADA | `auth-context.tsx:141-166`, PKCE (`auth-redirect.ts`); guía `docs/AUTH.md` | configurar cliente OAuth y redirecciones en producción; probar en Android/iOS | P1 |
+| 1 | Registro e inicio de sesión con email | COMPLETA Y VERIFICADA | `features/auth/`, integración local y emulador Android (registro, aviso legal único, regla de 8 caracteres, redirección); plantillas y página puente de email probadas en local | SMTP propio y Redirect URLs (`SETUP_GUIDE.md`); confirmar el email real en producción | P0 |
+| 2 | Inicio de sesión con Google | IMPLEMENTADA, NO VERIFICADA | `auth-context.tsx:141-166`, PKCE (`auth-redirect.ts`); guía `docs/AUTH.md` | el proveedor responde en `kitom-dev` (solo lectura, 2026-11-04); falta publicar la pantalla de consentimiento, comprobar `kitom://**` y probarlo en un móvil (`SETUP_GUIDE.md` §4) | P1 |
 | 3 | Inicio de sesión con teléfono | PENDIENTE (retirada del alcance, decisión 2026-10-29) | fila y textos eliminados de la app | nada: no se va a implementar | — |
 | 4 | Recuperación de contraseña | IMPLEMENTADA, NO VERIFICADA | marca persistente por usuario (`password-recovery.ts`), enlace válido con la sesión iniciada, pruebas unitarias | probar con un email real y matando la app | P1 |
 | 5 | Confirmación de email por deep link | IMPLEMENTADA, NO VERIFICADA | `app/auth-callback.tsx`, «Reenviar email» con espera de 60 s, salida a los 15 s; reenvío comprobado contra el Auth local | probar con email real en un móvil | P1 |
@@ -82,7 +82,7 @@ avance: no hay un método reproducible que los respalde.
 | 36 | Premium / suscripción | PENDIENTE (fuera de la v1, decisión 2026-10-29) | retirado de la interfaz; `process_revenuecat_event` en BD sin webhook | decisión de precio y límites; webhook; productos en tiendas | P3 |
 | 37 | Informes PDF para el veterinario | PENDIENTE | `request_generate_report` es un esbozo; sin Edge Function | — | P3 |
 | 38 | Idiomas | COMPLETA Y VERIFICADA | idioma del dispositivo (`i18n/locale.ts`): inglés en emulador, español en web | textos de permisos de iOS (al publicar en iOS) | P3 |
-| 39 | Política de privacidad y términos | PARCIAL | `site/` (es/en), enlaces en registro y ajustes, consentimiento de IA exacto | activar GitHub Pages; revisión legal; plan de pago de Gemini | P0 |
+| 39 | Política de privacidad y términos | PARCIAL | `site/` (es/en), copia dentro de la app (`/legal/[doc]`), aviso único en el registro, consentimiento de IA exacto | publicar `site/` con un `push` (Pages ya activado); revisión legal; plan de pago de Gemini | P0 |
 | 40 | Clínicas y referidos | PENDIENTE | tablas y RPC sin cliente | SEC-13 antes de activarlo | P3 |
 | 41 | Analítica de producto | PENDIENTE | `analytics_events` sin cliente | decidir herramienta y consentimiento | P3 |
 | 42 | Organizaciones (B2B) | PENDIENTE (fuera del MVP) | archivo 27 no desplegado | — | — |
@@ -132,7 +132,8 @@ hasta aplicar la migración.
 | Supabase `kitom-dev` (desarrollo) | operativo; 13 migraciones; `ai-analysis-process` desplegada (v1, `verify_jwt`) |
 | Supabase de producción | **no existe** |
 | Google AI Studio (Gemini) | función desplegada; secreto no verificable desde aquí; plan gratuito no apto para usuarios reales (los textos legales describen el plan de pago) |
-| Google Cloud OAuth (login con Google) | por verificar en producción |
+| Google Cloud OAuth (login con Google) | responde en `kitom-dev`; falta probarlo en un móvil. Pasos: `SETUP_GUIDE.md` §4 |
+| Correo (SMTP propio) | **no configurado**: sin él, los usuarios reales no reciben la confirmación. Pasos: `SETUP_GUIDE.md` §2 |
 | Google Play Console / Expo (EAS) | `eas.json` preparado; faltan las cuentas. Apple, tras la v1 (Android primero) |
 | RevenueCat | no integrado |
 | Asesoría legal y veterinario asesor | necesarios: textos legales y validación del prompt |

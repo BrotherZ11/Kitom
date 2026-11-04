@@ -3,6 +3,21 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-04
+
+Cambios tras probar la APK en un móvil real (rama `feat/signup-legal-and-validation`, sin migraciones):
+
+- **Registro:** un solo aviso legal, sin casilla; ninguno al iniciar sesión. Sugerencia ante erratas en el email y
+  patrón más estricto.
+- **Textos legales dentro de la app** (`/legal/[doc]`), generados desde `site/` con `npm run legal:build`.
+- **Mascotas:** peso y fecha de nacimiento imposibles para la especie se rechazan en el formulario (`pet-plausibility.ts`).
+- **Emails:** plantillas de Kitom (`supabase/templates/`) y página puente `site/auth/callback.html`, que abre la
+  app en el móvil y explica qué hacer en el PC. Requiere configurar Supabase: `docs/SETUP_GUIDE.md`.
+- **Corregido:** en web, `installWebCrypto` borraba `crypto.getRandomValues` nativo, y el registro y Google
+  fallaban como «sin conexión». Android no estaba afectado.
+- **Marca:** retiradas las frases «Hecha para Atom y Kika» y «y para el tuyo» de la app y de `site/`.
+- **Nueva guía** `docs/SETUP_GUIDE.md`: GitHub Pages, dominio, SMTP, Supabase Auth, Google Cloud y cuenta de Play.
+
 ## 2026-11-03
 
 Preparación de la primera versión (Android, gratuita), integrada en `main`:

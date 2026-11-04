@@ -71,7 +71,7 @@ y su corrección. TEST-02 sigue abierto.
 | Comando | Resultado |
 |---|---|
 | `tsc`, `expo lint`, `expo-doctor` | correctos (21/21) |
-| `npm test` | 841/841 |
+| `npm test` | 867/867 (2026-11-04) |
 | `npm run test:integration` | 66/66 |
 | `npx supabase test db` | 510/510 (11 archivos) |
 | Concurrencia (5 suites) | correctas |

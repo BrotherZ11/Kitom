@@ -82,10 +82,11 @@ error y «sin mascotas».
   sesión pantalla a pantalla.
 - `src/i18n/` — `t(key)` tipado; `es` y `en` con las mismas claves (`Translations`). Idioma del
   dispositivo al arrancar (`locale.ts`, puro y probado: español o, si no, inglés; con `Intl`, sin
-  paquetes). Ningún texto visible fuera de `src/i18n/locales/`.
+  paquetes). Ningún texto visible fuera de `src/i18n/locales/`, salvo los textos legales: `src/i18n/legal/`,
+  generados desde `site/` con `npm run legal:build` (no editarlos a mano; una prueba comprueba que coinciden).
 - `src/lib/error-reporting.ts` — Sentry solo en release con `EXPO_PUBLIC_SENTRY_DSN`; sin datos
   personales (`beforeSend`/`beforeBreadcrumb`). Nunca añadir contexto de usuario ni contenido a los eventos.
-- `src/lib/legal-links.ts` — URLs públicas (privacidad, términos, borrado de cuenta) y email de soporte.
+- `src/lib/legal-links.ts` — URL base de las páginas públicas, página puente de los emails y email de soporte.
 - `src/components/ui/` — componentes de marca (F1); lista y reglas en «Tema y diseño» abajo.
 - `src/features/daily-logs/` — registro diario (hoy: ruta `(app)/pets/[id]/daily-log`, tarjeta en la
   ficha). Guardar es local + motor de sincronización (nunca llamar a `save_daily_log` desde pantallas);
@@ -129,9 +130,9 @@ error y «sin mascotas».
   fijar otro por feature sin revisar `docs/DECISIONS.md` (2026-10-13).
 - `src/lib/submit-guard.ts` — evita envíos dobles (toques antes de que el botón se deshabilite).
   `src/lib/single-flight.ts` — llamadas simultáneas comparten una ejecución (`signOut` de AuthProvider).
-- `src/lib/legal-links.ts` — URL de las páginas públicas (`site/`: privacidad, términos, eliminar la
-  cuenta) y `SUPPORT_EMAIL`; nunca redefinirlas. `src/lib/open-link.ts` — `openWebPage` (navegador
-  integrado, `expo-web-browser`) y `openSupportEmail` (`mailto:`); devuelven `false` si no se pudo abrir.
+- Textos legales: ruta pública `src/app/legal/[doc].tsx`; siempre con `router.push` a `/legal/[doc]`, y
+  `LegalNotice` (`features/auth/components/legal-consent.tsx`) para el aviso de quien crea la cuenta.
+  `src/lib/open-link.ts` — `openSupportEmail` (`mailto:`); devuelve `false` si no se pudo abrir.
 - MVP (2026-10-21): `src/features/profile/onboarding.ts` + `hooks/use-profile.ts` (configuración
   inicial, `useOnboardingGate` en el layout de `(tabs)`; rutas `(app)/setup/*`), `src/features/reminders/`
   (agenda; lógica pura en `reminder-model.ts`/`reminder-format.ts`; escrituras siempre con precondición
@@ -169,9 +170,9 @@ error y «sin mascotas».
   `import type` con `@/` sí vale (se elimina); un módulo puro que importa otro en ejecución usa ruta
   relativa con extensión (`./otro.ts`).
   Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
-  Supabase) y exige un nuevo development build. `name`/`slug` siguen siendo `frontend`.
-  Login por teléfono (OTP): retirado del alcance (decisión 2026-10-29). Pendiente en Pets: desplegar la limpieza de fotos de mascotas borradas (migraciones
-  ya en `kitom-dev`, Edge Function sin desplegar; la app no cambia), archivar (`is_active`), selector de fecha nativo, gestión de co-tutores y límite de mascotas del plan free.
+  Supabase) y exige un nuevo development build. `slug`: `kitom`.
+  Login por teléfono (OTP): retirado del alcance (decisión 2026-10-29). Pendiente en Pets: archivar (`is_active`) y límite de mascotas del plan free.
+  Peso y fecha de nacimiento: el formato en `pet-form.ts` y lo posible por especie en `pet-plausibility.ts` (solo cliente).
 
 ## Tema y diseño (diseño v2, `docs/design/`)
 

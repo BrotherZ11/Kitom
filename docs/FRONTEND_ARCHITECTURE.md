@@ -132,10 +132,10 @@ No se introduce Redux ni una capa de estado global adicional — con React Query
 - **WRITE:** `supabase.auth.signIn/signUp/resetPasswordForEmail` y `resend({ type: 'signup' })` (reenviar la
   confirmación desde «Revisa tu correo» y desde el login con `email_not_confirmed`, espera de 60 s)
 - **RPC / Edge Function / Storage:** ninguno
-- Registro: contraseña de al menos 8 caracteres (`MIN_PASSWORD_LENGTH`, regla visible) y casilla
-  obligatoria de Términos y Privacidad (`lib/legal-links.ts`, navegador dentro de la app); con Google, el
-  aviso como texto. Errores nuevos de `AuthErrorCode` (`auth-error-code.ts`): `password_too_short`,
-  `password_mismatch`, `pwned_password`, `wrong_current_password`, `code_invalid`, `terms_not_accepted`.
+- Registro: contraseña de al menos 8 caracteres (`MIN_PASSWORD_LENGTH`, regla visible), sugerencia ante
+  una errata en el email y un único aviso legal, que vale también para Google (`LegalNotice`, abre
+  `/legal/[doc]`). Errores nuevos de `AuthErrorCode` (`auth-error-code.ts`): `password_too_short`,
+  `password_mismatch`, `pwned_password`, `wrong_current_password`, `code_invalid`.
   Detalle: `AUTH.md` §5.
 
 ### ProfileSetup / Disclaimer (onboarding)
@@ -594,8 +594,8 @@ aceptado con fecha y versión, `marketing_opt_in`, y «Tus derechos»: política
 soporte), ayuda (preguntas frecuentes y email de soporte) y legal (política de privacidad y términos con
 su fecha de entrada en vigor, resumen, aviso veterinario y responsable), «Mis mascotas», «Registros sin
 sincronizar», «Descargar mis datos» (`DataExportScreen`), cerrar sesión (mismo flujo con pendientes, §5
-«Sesión») y «Eliminar mi cuenta» (`DeleteAccountScreen`, 2026-10-29). Las páginas públicas (`site/`,
-URL en `src/lib/legal-links.ts`) se abren en el navegador integrado y el soporte con `mailto:`
+«Sesión») y «Eliminar mi cuenta» (`DeleteAccountScreen`, 2026-10-29). La política y los términos se leen en la ruta pública
+`/legal/[doc]`, con el texto generado desde `site/` (`npm run legal:build`), y el soporte con `mailto:`
 (`src/lib/open-link.ts`; si no hay app de correo, la pantalla muestra la dirección). Sin servicio
 todavía, no se muestran: suscripción, fotos de consultas, clínica propia y voz de la mascota. Entrar
 con teléfono: retirado del alcance (decisión 2026-10-29).
