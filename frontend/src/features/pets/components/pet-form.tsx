@@ -128,6 +128,7 @@ export function PetForm({
   const handleSubmit = () => {
     const nextErrors = validatePetForm(values, {
       breedSpeciesId: findBreed(breedCatalog.view, values.breedId)?.speciesId,
+      speciesCode: species.find((item) => item.id === values.speciesId)?.code,
     });
     setErrors(nextErrors);
     if (hasPetFormErrors(nextErrors)) return;

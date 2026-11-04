@@ -1,5 +1,7 @@
 import type { BreedStatus, Pet, PetFields, PetSex } from '@/features/pets/types';
 
+import { isPlausibleBirthDate, isPlausibleWeight } from './pet-plausibility.ts';
+
 /** Valores del formulario como texto editable; se convierten a `PetFields` al enviar. */
 export type PetFormValues = {
   name: string;
@@ -28,7 +30,9 @@ export type PetFieldError =
   | 'breed_species_mismatch'
   | 'invalid_date'
   | 'future_date'
-  | 'invalid_weight';
+  | 'implausible_birth_date'
+  | 'invalid_weight'
+  | 'implausible_weight';
 export type PetFormErrors = Partial<Record<PetFormField, PetFieldError>>;
 
 /**
@@ -121,10 +125,11 @@ function toNullableText(value: string): string | null {
  * `breedSpeciesId`: especie de la raza elegida según el catálogo (del servidor o del dispositivo), si
  * se conoce; una raza de otra especie no se envía nunca (la FK `pets_breed_species_fkey` la rechazaría
  * y, sin conexión, el alta o la edición se quedaría sin poder sincronizar).
+ * `speciesCode`: código de la especie elegida; con él se detectan erratas (`pet-plausibility.ts`).
  */
 export function validatePetForm(
   values: PetFormValues,
-  { breedSpeciesId }: { breedSpeciesId?: string } = {}
+  { breedSpeciesId, speciesCode }: { breedSpeciesId?: string; speciesCode?: string } = {}
 ): PetFormErrors {
   const errors: PetFormErrors = {};
 
@@ -150,6 +155,7 @@ export function validatePetForm(
   if (birthDate !== '') {
     if (!isRealDate(birthDate)) errors.birthDate = 'invalid_date';
     else if (birthDate > todayIsoDate()) errors.birthDate = 'future_date';
+    else if (!isPlausibleBirthDate(birthDate, todayIsoDate(), speciesCode)) errors.birthDate = 'implausible_birth_date';
   }
 
   const weight = normalizeDecimal(values.weightKg);
@@ -157,6 +163,8 @@ export function validatePetForm(
     const parsed = Number(weight);
     if (!WEIGHT_PATTERN.test(weight) || parsed <= 0 || parsed >= MAX_WEIGHT_KG) {
       errors.weightKg = 'invalid_weight';
+    } else if (!isPlausibleWeight(parsed, speciesCode)) {
+      errors.weightKg = 'implausible_weight';
     }
   }
 
