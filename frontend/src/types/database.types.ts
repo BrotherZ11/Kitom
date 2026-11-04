@@ -52,6 +52,7 @@ export type Database = {
           pet_id: string
           photo_path: string | null
           possible_causes: string[] | null
+          processing_started_at: string | null
           prompt_version: string | null
           recommendations: string[] | null
           requested_by: string | null
@@ -73,6 +74,7 @@ export type Database = {
           pet_id: string
           photo_path?: string | null
           possible_causes?: string[] | null
+          processing_started_at?: string | null
           prompt_version?: string | null
           recommendations?: string[] | null
           requested_by?: string | null
@@ -94,6 +96,7 @@ export type Database = {
           pet_id?: string
           photo_path?: string | null
           possible_causes?: string[] | null
+          processing_started_at?: string | null
           prompt_version?: string | null
           recommendations?: string[] | null
           requested_by?: string | null
