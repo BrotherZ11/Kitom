@@ -33,6 +33,23 @@ describe('installWebCrypto', () => {
     await assert.rejects(target.crypto.subtle.digest('SHA-1', new Uint8Array([1])), /no soportado/);
   });
 
+  it('en un navegador (métodos en el prototipo) no toca la implementación nativa', () => {
+    class NativeCrypto {
+      getRandomValues() {
+        return 'native';
+      }
+      get subtle() {
+        return { digest: () => 'native' };
+      }
+    }
+    const native = new NativeCrypto();
+    const target = { crypto: native };
+    installWebCrypto(target, impl);
+    assert.deepEqual(Object.getOwnPropertyNames(native), []);
+    assert.equal(target.crypto.getRandomValues(), 'native');
+    assert.equal(target.crypto.subtle.digest(), 'native');
+  });
+
   it('con crypto nativo completo no cambia nada', () => {
     const native = { getRandomValues: () => 'native', subtle: { digest: () => 'native' } };
     const target = { crypto: native };

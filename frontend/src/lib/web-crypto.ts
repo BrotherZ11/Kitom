@@ -23,7 +23,8 @@ function toBytes(data: ArrayBuffer | ArrayBufferView): Uint8Array {
 
 export function installWebCrypto(target: { crypto?: unknown }, impl: CryptoImpl): void {
   const current = (target.crypto ?? {}) as { getRandomValues?: unknown; subtle?: unknown };
-  const next: Record<string, unknown> = { ...current };
+  // Solo lo que falta: en un navegador los métodos están en el prototipo y no se copian con `...`.
+  const next: Record<string, unknown> = {};
   if (typeof current.getRandomValues !== 'function') next.getRandomValues = impl.getRandomValues;
   if (typeof current.subtle !== 'object' || current.subtle === null) {
     next.subtle = {
@@ -39,13 +40,11 @@ export function installWebCrypto(target: { crypto?: unknown }, impl: CryptoImpl)
     target.crypto = next;
   } else {
     // Algunos motores exponen un `crypto` no extensible: solo se completa si se puede.
-    for (const key of ['getRandomValues', 'subtle'] as const) {
-      if (next[key] !== current[key]) {
-        try {
-          Object.defineProperty(target.crypto, key, { value: next[key], configurable: true });
-        } catch {
-          // Sin `crypto` completo, supabase-js sigue funcionando (con el PKCE débil de antes).
-        }
+    for (const [key, value] of Object.entries(next)) {
+      try {
+        Object.defineProperty(target.crypto, key, { value, configurable: true });
+      } catch {
+        // Sin `crypto` completo, supabase-js sigue funcionando (con el PKCE débil de antes).
       }
     }
   }
