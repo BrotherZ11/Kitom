@@ -26,7 +26,7 @@ del lanzamiento.
 | Co-tutores | email del invitado (no se guarda; se busca su cuenta), relación y rol | `pet_co_owners` | dueño | compartir la mascota | contrato |
 | Plan | plan y estado (siempre `free` hoy; no se muestra en la app) | `subscriptions` | servidor | cupo de IA | contrato |
 | Técnicos | tokens de sesión (SecureStore), copia local de mascotas, registros y catálogo (AsyncStorage, **sin cifrar**), avisos programados | dispositivo | app | modo offline | contrato |
-| Errores | informes de fallos sin datos personales (Sentry, cuando se integre) y logs del servidor (IP, hora, petición) | Sentry, Supabase | app / servidor | seguridad y corrección de errores | interés legítimo |
+| Errores | informes de fallos sin email, nombre ni contenido (Sentry; ver la nota sobre IP e identificador de instalación) y logs del servidor (IP, hora, petición) | Sentry, Supabase | app / servidor | seguridad y corrección de errores | interés legítimo |
 | Sin uso todavía | teléfono (login por teléfono retirado del alcance, decisión 2026-10-29), avatar propio, tokens push, eventos de analítica, referidos de clínicas, informes compartidos | tablas existentes sin cliente | — | — | — |
 
 Datos de terceros: las fotos pueden incluir personas (la app pide repetirlas si sale alguien).
@@ -39,7 +39,7 @@ Datos de terceros: las fotos pueden incluir personas (la app pide repetirlas si 
 | Google (Gemini API, AI Studio) | foto, síntomas, datos de la mascota (especie, raza, edad, peso, sexo, esterilizado, condiciones, alergias) y registros recientes con notas; sin nombres ni email | la política describe el **plan de pago** (Google no usa el contenido para mejorar sus productos). En el plan gratuito sí lo usa (`DECISIONS.md`): **no abrir a usuarios reales hasta activar el de pago** |
 | OpenAI (alternativo, desactivado por defecto) | lo mismo que Gemini | solo si `AI_PROVIDER=openai`; **no figura en la política**: añadirlo antes de activarlo |
 | Google (OAuth) | inicio de sesión con Google | si el usuario lo elige |
-| Sentry | informes de errores configurados sin datos personales | en la política (retención 90 días); integración pendiente (ROADMAP P1-03) |
+| Sentry | informes de errores sin email, nombre ni contenido | en la política (retención 90 días). Comprobado el 2026-11-04: la IP llega a Sentry, que deducía de ella la ubicación aproximada, y los cierres nativos llevan un identificador de instalación que `beforeSend` no puede quitar. Las reglas del panel los eliminan al llegar y no se guardan (`DEPLOYMENT.md` §8, paso 10), pero salen del dispositivo: revisar si la política y la ficha de Play deben mencionarlo |
 | Expo / EAS | ninguno en runtime hoy (no se usan push remotas ni EAS Update) | revisar la política si se adopta EAS Update o push |
 | GitHub Pages | IP de las visitas a `site/` (registro técnico de GitHub) | sin cookies ni analítica |
 
@@ -58,7 +58,7 @@ Plazos publicados en la política (`site/privacy.html` §6) y estado real:
 | Consultas con IA (foto, señales, resultado, `response_raw`) | con la consulta, hasta eliminar la mascota o la cuenta | igual que las mascotas; no hay borrado de una consulta suelta |
 | Registro de uso de la IA | mientras exista la cuenta | `ON DELETE CASCADE` con el perfil |
 | Contenido enviado a Google | lo que fije Google para detectar abusos (plan de pago) | depende del plan de Google |
-| Informes de errores | 90 días | fijar en Sentry al integrarlo |
+| Informes de errores | 90 días | comprobar que la retención del plan de Sentry lo cumple |
 | Logs del servidor | máximo 90 días | según el plan de Supabase |
 | Copias de seguridad | se sobrescriben en ≤ 30 días | según el plan de Supabase |
 | Emails de soporte | 12 meses tras cerrar la conversación | manual |

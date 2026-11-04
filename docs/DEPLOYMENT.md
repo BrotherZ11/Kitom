@@ -55,8 +55,11 @@ Expo Go no sirve para producción ni para probar avisos (el módulo `kitom-exact
 ### Local (pruebas)
 
 `npx expo prebuild --platform android` + `cd android && ./gradlew assembleRelease`: APK firmada con
-la **clave de depuración**, `/android` ignorado por git. No vale para Google Play. Con Sentry instalado,
-exportar `SENTRY_DISABLE_AUTO_UPLOAD=true` antes de Gradle mientras no haya token de Sentry.
+la **clave de depuración**, `/android` ignorado por git. No vale para Google Play. Sin token de Sentry,
+exportar `SENTRY_DISABLE_AUTO_UPLOAD=true` antes de Gradle. Para subir los source maps, poner `SENTRY_AUTH_TOKEN` en
+la terminal o en `frontend/.env.sentry-build-plugin` (ignorado por git) y repetir `prebuild`, que escribe la
+organización y el proyecto de `app.json` en `android/sentry.properties` (y cambia los `scripts` de `package.json`: revertirlos).
+La APK solo envía errores si se compila con `EXPO_PUBLIC_SENTRY_DSN`, en `frontend/.env` o en la terminal.
 
 Antes de instalar una APK local, comprobar a qué servidor apunta: compilar sin `EXPO_PUBLIC_*` en la terminal (se usan las de
 `frontend/.env`; las variables del proceso tienen prioridad) y buscar en `android/app/build/generated/assets/` el bundle, que debe contener
@@ -64,8 +67,8 @@ Antes de instalar una APK local, comprobar a qué servidor apunta: compilar sin 
 
 ### EAS (publicación)
 
-`frontend/eas.json` ya define los perfiles (todos heredan `base`: Node 24.12 y
-`SENTRY_DISABLE_AUTO_UPLOAD=true` hasta configurar Sentry):
+`frontend/eas.json` ya define los perfiles (todos heredan `base`: Node 24.12). Solo `development` lleva
+`SENTRY_DISABLE_AUTO_UPLOAD=true`: `preview` y `production` suben los source maps y necesitan `SENTRY_AUTH_TOKEN`:
 
 | Perfil | Uso | Android | Entorno de variables EAS |
 |---|---|---|---|
@@ -79,8 +82,8 @@ Antes de instalar una APK local, comprobar a qué servidor apunta: compilar sin 
    `extra.eas.projectId` a `app.json`: commitearlo).
 2. Variables por entorno en EAS (Project › Environment variables), nunca en el repo:
    `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` (del proyecto de ese entorno) y
-   `EXPO_PUBLIC_SENTRY_DSN`; para subir source maps, además `SENTRY_ORG`, `SENTRY_PROJECT` y el secreto
-   `SENTRY_AUTH_TOKEN`, y quitar `SENTRY_DISABLE_AUTO_UPLOAD` de `eas.json`.
+   `EXPO_PUBLIC_SENTRY_DSN` (Sentry › proyecto `kitom-app` › Client Keys). En `preview` y `production`, además, el
+   secreto `SENTRY_AUTH_TOKEN` (token de organización, visibilidad *sensitive*): la organización y el proyecto ya están en `app.json`.
 3. `npx eas-cli@latest build -p android --profile preview` → instalar en móviles reales.
 4. Firma: EAS genera y custodia el keystore (`eas credentials`); descargar una copia de seguridad.
    Activar Play App Signing al crear la app en Play Console.
@@ -131,7 +134,7 @@ Una migración que rompa versiones antiguas de la app necesita una ventana en la
 ### Distribución de pruebas
 
 Android: pista de prueba interna/cerrada de Play con la AAB de EAS. iOS: TestFlight. Recoger fallos
-con un servicio de errores (p. ej. Sentry, a decidir) y un canal de feedback (email de soporte).
+con Sentry y un canal de feedback (email de soporte).
 
 ### Antes de cada lanzamiento
 
@@ -174,7 +177,10 @@ Las cuentas y los paneles (GitHub Pages, dominio, SMTP, Supabase Auth, Google Cl
 **C. Proveedores**
 8. Plan de pago de Gemini: los textos legales y el consentimiento lo presuponen.
 9. Validación del prompt y de las reglas de IA por un veterinario (`guidance.ts`, `draft-2026-10-23`).
-10. Sentry: crear proyecto, DSN en `EXPO_PUBLIC_SENTRY_DSN` y retención de 90 días, como dice la política.
+10. Sentry: ✅ proyecto `kitom-app` (organización `kitom`, región UE), errores reales y source maps comprobados y reglas de privacidad
+    activas (`[Remove] [Anything] from [$user.geo.**]`, `[$user.id]` y `[contexts.device.id]`, motivo en `PRIVACY.md`; 2026-11-04). Falta:
+    - Al crear el proyecto EAS, `EXPO_PUBLIC_SENTRY_DSN` y `SENTRY_AUTH_TOKEN` en sus variables (§4).
+    - Comprobar que la retención del plan cumple los 90 días de la política.
 
 **D. Producción**
 11. Proyecto Supabase en la UE y pasos de §5, con `SETUP_GUIDE.md` §2-§4 (SMTP propio, plantillas, página puente, `kitom://**`, Google) y la

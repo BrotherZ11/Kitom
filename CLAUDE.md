@@ -124,6 +124,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `kitom-dev`. Migración `20261030090318_abuse_limits_and_db_hardening.sql`: aplicada en `kitom-dev` (`db push` del
   usuario, 2026-11-04) y tipos regenerados. Lo que falta para publicar lo hace el usuario: `docs/DEPLOYMENT.md` §8 y
   `docs/SETUP_GUIDE.md`; estado: `docs/PROJECT_STATUS.md`.
+- Sentry (2026-11-04): organización `kitom`, proyecto `kitom-app` (región UE). Errores, source maps y reglas de privacidad comprobados
+  en APK locales; falta el DSN y el token en EAS, aún sin proyecto (`docs/DEPLOYMENT.md` §8, paso 10).
 - Registro (2026-11-04, sin migraciones): aviso legal único, textos legales en la app (`/legal/[doc]`, generados
   desde `site/`), peso y fecha plausibles por especie, y enlaces de email por la página puente
   `site/auth/callback.html`, que exige configurar Redirect URLs y SMTP propio (`docs/SETUP_GUIDE.md`).
