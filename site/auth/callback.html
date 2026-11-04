@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kitom</title>
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="light dark">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" type="image/png">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .open-app {
+      display: inline-block;
+      margin-bottom: 24px;
+      padding: 14px 24px;
+      border-radius: 12px;
+      background: #1F6F6B;
+      color: #FFFFFF;
+      font-weight: 600;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <!--
+    Destino de los enlaces de los emails de Supabase Auth (confirmar la cuenta y recuperar la contraseña). En el
+    móvil abre la app con el mismo código; en el PC, donde no hay app, explica qué hacer. Solo reenvía a la propia
+    app (`kitom://auth-callback`): nunca a una dirección que venga en la URL. El código no sirve sin la clave que
+    guarda el móvil que pidió el enlace (PKCE).
+  -->
+  <header class="site-header">
+    <div class="wrap">
+      <span class="logo">
+        <picture>
+          <source srcset="../assets/kitom-logotipo-inverso.svg" media="(prefers-color-scheme: dark)">
+          <img src="../assets/kitom-logotipo.svg" alt="Kitom" width="110" height="32">
+        </picture>
+      </span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1 id="title">Vuelve a Kitom en tu móvil</h1>
+    <p class="lead" id="text">Abre la app en tu móvil para continuar. / Open the app on your phone to continue.</p>
+    <a class="open-app" id="open" href="#" hidden>Abrir Kitom</a>
+    <p id="hint" hidden></p>
+  </main>
+
+  <script>
+    (function () {
+      var COPY = {
+        es: {
+          opening: ['Abriendo Kitom…', 'Si la app no se abre sola, pulsa el botón.', 'Abrir Kitom'],
+          confirmed: ['¡Email confirmado!', 'Tu cuenta ya está activa. Abre Kitom en tu móvil e inicia sesión con tu email y tu contraseña.'],
+          recovery: ['Abre este enlace en tu móvil', 'Cambiar la contraseña solo funciona en el móvil donde la pediste, y este enlace ya se ha usado. Pide otro desde Kitom y abre el correo en ese móvil.'],
+          invalid: ['Este enlace ya no vale', 'Ha caducado o ya se ha usado. Pide otro desde Kitom. Si tu email ya está confirmado, solo tienes que iniciar sesión.'],
+          generic: ['Vuelve a Kitom en tu móvil', 'Abre la app en tu móvil para continuar.'],
+          noApp: 'Si no tienes la app instalada, instálala y vuelve a abrir este enlace.'
+        },
+        en: {
+          opening: ['Opening Kitom…', "If the app doesn't open by itself, tap the button.", 'Open Kitom'],
+          confirmed: ['Email confirmed!', 'Your account is now active. Open Kitom on your phone and sign in with your email and password.'],
+          recovery: ['Open this link on your phone', 'Changing your password only works on the phone where you asked for it, and this link has already been used. Ask for another one in Kitom and open the email on that phone.'],
+          invalid: ['This link no longer works', 'It has expired or has already been used. Ask for another one in Kitom. If your email is already confirmed, you just need to sign in.'],
+          generic: ['Go back to Kitom on your phone', 'Open the app on your phone to continue.'],
+          noApp: "If you don't have the app, install it and open this link again."
+        }
+      };
+      var lang = /^es\b/i.test(navigator.language || '') ? 'es' : 'en';
+      var copy = COPY[lang];
+      document.documentElement.lang = lang;
+
+      var query = new URLSearchParams(location.search);
+      var hash = new URLSearchParams(location.hash.slice(1));
+      var read = function (key) { return query.get(key) || hash.get(key) || ''; };
+      var flow = read('flow');
+      var code = read('code');
+      var failed = read('error_code') || read('error');
+      var returned = query.get('opened') === '1';
+      var isAndroid = /Android/i.test(navigator.userAgent);
+      var isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      var show = function (content) {
+        document.getElementById('title').textContent = content[0];
+        document.getElementById('text').textContent = content[1];
+      };
+
+      if (failed) return show(copy.invalid);
+
+      var known = flow === 'signup' || flow === 'recovery';
+      if (code && known && !returned && (isAndroid || isIos)) {
+        var appQuery = 'flow=' + flow + '&code=' + encodeURIComponent(code);
+        var link = 'kitom://auth-callback?' + appQuery;
+        if (isAndroid) {
+          // Sin la app instalada, Android vuelve aquí con `opened=1` en vez de quedarse en un error.
+          var fallback = location.origin + location.pathname + '?flow=' + flow + '&opened=1';
+          link = 'intent://auth-callback?' + appQuery + '#Intent;scheme=kitom;package=com.kitom.app;' +
+            'S.browser_fallback_url=' + encodeURIComponent(fallback) + ';end';
+        }
+        show(copy.opening);
+        var button = document.getElementById('open');
+        button.textContent = copy.opening[2];
+        button.href = link;
+        button.hidden = false;
+        var hint = document.getElementById('hint');
+        hint.textContent = copy.noApp;
+        hint.hidden = false;
+        location.href = link;
+        return;
+      }
+
+      if (flow === 'signup') return show(copy.confirmed);
+      if (flow === 'recovery') return show(copy.recovery);
+      show(copy.generic);
+    })();
+  </script>
+</body>
+</html>

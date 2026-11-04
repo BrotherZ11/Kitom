@@ -14,27 +14,22 @@ import { TopBar } from '@/components/ui/top-bar';
 import { DISCLAIMER_VERSION } from '@/features/profile/onboarding';
 import { formatFullDate } from '@/features/reminders/reminder-format';
 import { getLocale, t, tf } from '@/i18n';
-import { PRIVACY_POLICY_URL, SUPPORT_EMAIL, TERMS_URL } from '@/lib/legal-links';
-import { openSupportEmail, openWebPage } from '@/lib/open-link';
+import { SUPPORT_EMAIL } from '@/lib/legal-links';
+import { openSupportEmail } from '@/lib/open-link';
 import { spacing } from '@/theme/tokens';
 
 /** Fecha «En vigor desde» de la política de privacidad y los términos publicados en `site/`. */
 const LEGAL_EFFECTIVE_DATE = new Date(2026, 9, 30);
 
 /**
- * Información legal y de la app (tablero 10.8): versión, política de privacidad y términos (páginas
- * públicas de `site/`, abiertas en el navegador integrado), resumen, aviso veterinario y contacto del
- * responsable.
+ * Información legal y de la app (tablero 10.8): versión, política de privacidad y términos (dentro de la
+ * app, `/legal/[doc]`), resumen, aviso veterinario y contacto del responsable.
  */
 export default function LegalScreen() {
   const router = useRouter();
   const version = Constants.expoConfig?.version ?? '—';
   const [error, setError] = useState<string | null>(null);
 
-  const open = async (url: string) => {
-    setError(null);
-    if (!(await openWebPage(url))) setError(tf('settings.legalScreen.openError', { url }));
-  };
   const write = async () => {
     setError(null);
     if (!(await openSupportEmail())) setError(tf('settings.helpScreen.mailError', { email: SUPPORT_EMAIL }));
@@ -57,7 +52,7 @@ export default function LegalScreen() {
             icon={Shield}
             title={t('settings.legalScreen.privacyPolicy')}
             subtitle={t('settings.legalScreen.privacyPolicyText')}
-            onPress={() => void open(PRIVACY_POLICY_URL)}
+            onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacy' } })}
             divider
           />
           <ListItem
@@ -65,7 +60,7 @@ export default function LegalScreen() {
             icon={FileText}
             title={t('settings.legalScreen.terms')}
             subtitle={t('settings.legalScreen.termsText')}
-            onPress={() => void open(TERMS_URL)}
+            onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })}
           />
         </Card>
         <Text variant="caption" color="inkMuted">

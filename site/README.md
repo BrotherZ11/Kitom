@@ -1,8 +1,9 @@
 # Kitom — páginas públicas (`site/`)
 
 Sitio estático que exigen las tiendas: política de privacidad, términos y cómo eliminar la cuenta sin
-la app. Sin scripts, sin cookies, sin analítica y sin recursos externos (las fuentes y los logos están
-en `assets/`). Tema claro/oscuro según el sistema con los colores de `docs/design`.
+la app. Sin cookies, sin analítica y sin recursos externos (las fuentes y los logos están en `assets/`).
+Tema claro/oscuro según el sistema con los colores de `docs/design`. La única página con script es
+`auth/callback.html` (abre la app desde un enlace de email; no enlazada desde el resto del sitio).
 
 | Página | Español | Inglés |
 |---|---|---|
@@ -10,10 +11,14 @@ en `assets/`). Tema claro/oscuro según el sistema con los colores de `docs/desi
 | Política de privacidad | `privacy.html` | `en/privacy.html` |
 | Términos de uso | `terms.html` | `en/terms.html` |
 | Eliminar la cuenta | `delete-account.html` | `en/delete-account.html` |
+| Puente de los enlaces de email | `auth/callback.html` | la misma, según el idioma del navegador |
 
-Las URL públicas son las de `frontend/src/lib/legal-links.ts` (`https://brotherz11.github.io/Kitom/…`).
-Si cambian el usuario, el nombre del repositorio o el dominio, se cambian allí y en las fichas de las
-tiendas. Todos los enlaces internos son relativos.
+La app muestra sus propias copias de la política y los términos (`/legal/[doc]`). Se generan desde estas
+páginas: después de cambiarlas, `npm run legal:build` en `frontend/` (una prueba falla si se olvida).
+
+La URL base es `LEGAL_SITE_URL` de `frontend/src/lib/legal-links.ts` (`https://brotherz11.github.io/Kitom`).
+Si cambian el usuario, el nombre del repositorio o el dominio, se cambia allí, en las fichas de las tiendas y
+en las Redirect URLs de Supabase Auth (`docs/SETUP_GUIDE.md`). Todos los enlaces internos son relativos.
 
 ## Publicar con GitHub Pages
 

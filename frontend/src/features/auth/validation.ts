@@ -1,6 +1,22 @@
 import type { AuthErrorCode } from './auth-error-code.ts';
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Parte local sin espacios ni puntos en los extremos; dominio con etiquetas válidas y un TLD de letras. */
+const EMAIL_PATTERN = /^[^\s@.]+(\.[^\s@.]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
+const MAX_EMAIL_LENGTH = 254;
+
+/** Dominios en los que un error de una o dos letras es casi seguro una errata (`gmial.com`). */
+const COMMON_EMAIL_DOMAINS = [
+  'gmail.com',
+  'hotmail.com',
+  'hotmail.es',
+  'outlook.com',
+  'outlook.es',
+  'yahoo.com',
+  'yahoo.es',
+  'icloud.com',
+  'live.com',
+  'protonmail.com',
+];
 
 /**
  * Longitud mínima de una contraseña nueva (registro, recuperación y cambio en ajustes). Es la que debe
@@ -15,8 +31,39 @@ export const MIN_PASSWORD_LENGTH = 8;
  */
 export function validateEmail(email: string): AuthErrorCode | null {
   if (email.trim() === '') return 'missing_fields';
-  if (!EMAIL_PATTERN.test(email.trim())) return 'invalid_email';
+  const trimmed = email.trim();
+  if (trimmed.length > MAX_EMAIL_LENGTH || !EMAIL_PATTERN.test(trimmed)) return 'invalid_email';
   return null;
+}
+
+/** Distancia de edición (inserción, borrado, sustitución o trasposición de letras contiguas). */
+function editDistance(a: string, b: string): number {
+  const rows = Array.from({ length: a.length + 1 }, (_, i) => [i, ...new Array<number>(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j += 1) rows[0][j] = j;
+  for (let i = 1; i <= a.length; i += 1) {
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        rows[i][j] = Math.min(rows[i][j], rows[i - 2][j - 2] + 1);
+      }
+    }
+  }
+  return rows[a.length][b.length];
+}
+
+/**
+ * Sugerencia para una errata en un dominio habitual (`ana@gmial.com` → `ana@gmail.com`), o `null`. Solo
+ * orienta y nunca impide continuar: que un buzón exista únicamente lo demuestra el email de confirmación.
+ */
+export function suggestEmailCorrection(email: string): string | null {
+  const trimmed = email.trim();
+  const at = trimmed.lastIndexOf('@');
+  if (at <= 0) return null;
+  const domain = trimmed.slice(at + 1).toLowerCase();
+  if (domain.length < 4 || COMMON_EMAIL_DOMAINS.includes(domain)) return null;
+  const match = COMMON_EMAIL_DOMAINS.find((candidate) => editDistance(domain, candidate) <= 2);
+  return match ? `${trimmed.slice(0, at)}@${match}` : null;
 }
 
 /** Inicio de sesión: no se aplica la regla de longitud (cuentas anteriores a ella siguen entrando). */
@@ -40,9 +87,9 @@ export function validateNewPassword(password: string): AuthErrorCode | null {
   return null;
 }
 
-/** Registro con email: email válido, contraseña nueva válida y Términos aceptados (en ese orden). */
-export function validateSignUp(email: string, password: string, acceptedTerms: boolean): AuthErrorCode | null {
-  return validateCredentials(email, password) ?? validateNewPassword(password) ?? (acceptedTerms ? null : 'terms_not_accepted');
+/** Registro con email: email válido y contraseña nueva válida (en ese orden). */
+export function validateSignUp(email: string, password: string): AuthErrorCode | null {
+  return validateCredentials(email, password) ?? validateNewPassword(password);
 }
 
 /**

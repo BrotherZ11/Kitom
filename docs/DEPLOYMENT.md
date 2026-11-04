@@ -58,6 +58,10 @@ Expo Go no sirve para producción ni para probar avisos (el módulo `kitom-exact
 la **clave de depuración**, `/android` ignorado por git. No vale para Google Play. Con Sentry instalado,
 exportar `SENTRY_DISABLE_AUTO_UPLOAD=true` antes de Gradle mientras no haya token de Sentry.
 
+Antes de instalar una APK local, comprobar a qué servidor apunta: compilar sin `EXPO_PUBLIC_*` en la terminal (se usan las de
+`frontend/.env`; las variables del proceso tienen prioridad) y buscar en `android/app/build/generated/assets/` el bundle, que debe contener
+`supabase.co` y no `127.0.0.1`. Una APK con la URL local da «No hay conexión» en un móvil real.
+
 ### EAS (publicación)
 
 `frontend/eas.json` ya define los perfiles (todos heredan `base`: Node 24.12 y
@@ -112,7 +116,7 @@ Una migración que rompa versiones antiguas de la app necesita una ventana en la
 | Requisito | Tipo | Estado |
 |---|---|---|
 | Cuenta Google Play Console y Apple Developer Program | obligatorio | PENDIENTE (usuario) |
-| Eliminación de cuenta desde la app (y URL web en Play) | obligatorio | En la app: P0-02. URL web lista: `site/delete-account.html` → `ACCOUNT_DELETION_URL` (`frontend/src/lib/legal-links.ts`); falta activar GitHub Pages (`site/README.md`) |
+| Eliminación de cuenta desde la app (y URL web en Play) | obligatorio | En la app: P0-02. URL web lista: `site/delete-account.html` (base: `LEGAL_SITE_URL` de `frontend/src/lib/legal-links.ts`); Pages activado, falta el `push` |
 | Política de privacidad pública y enlazada | obligatorio | LISTA: `site/privacy.html` y `site/terms.html` (es/en), enlazadas en Ajustes › Legal, Privacidad y la consulta con IA; falta activar GitHub Pages y la revisión legal recomendada |
 | Formulario Data Safety (Play) y etiquetas de privacidad (App Store) | obligatorio | PENDIENTE; borrador en `PRIVACY.md` |
 | Justificación de `SCHEDULE_EXACT_ALARM` en Play | condicional (si se mantiene el permiso) | PENDIENTE |
@@ -151,19 +155,20 @@ con un servicio de errores (p. ej. Sentry, a decidir) y un canal de feedback (em
 
 Todo lo que no puede hacerse desde el repositorio. Los `functions deploy` y `db push` se repiten en el proyecto de producción.
 
+Las cuentas y los paneles (GitHub Pages, dominio, SMTP, Supabase Auth, Google Cloud y Play), paso a paso: [`SETUP_GUIDE.md`](SETUP_GUIDE.md).
+
 **A. Desarrollo (`kitom-dev`)**
-1. Comprobar antes la consulta de solo lectura de la cabecera de `20261030090318` y hacer `npx supabase db push`.
-2. Regenerar tipos: `npx supabase gen types typescript --linked --schema public > frontend/src/types/database.types.ts` (desde Bash).
-3. `npx supabase functions deploy ai-analysis-process` (**después** de la migración) y `npx supabase functions deploy delete-account`.
+1. ✅ `db push` de `20261030090318` (2026-11-04).
+2. ✅ Tipos regenerados.
+3. ✅ `ai-analysis-process` (v2), `delete-account` (v1) y `pet-storage-cleanup` (v1) desplegadas (comprobado en solo lectura, 2026-11-04).
 4. Revisar la IA: secreto `GEMINI_API_KEY`, logs de la función y una consulta real hasta `completed`.
-5. Limpieza: `functions deploy pet-storage-cleanup`, secreto `PET_STORAGE_CLEANUP_SECRET` (≥ 32 caracteres) y, en el editor SQL,
+5. Limpieza: secreto `PET_STORAGE_CLEANUP_SECRET` (≥ 32 caracteres) y, en el editor SQL,
    `select vault.create_secret('https://<ref>.supabase.co', 'kitom_project_url');` y
    `select vault.create_secret('<el mismo secreto>', 'pet_storage_cleanup_secret');`. Primero en modo informe; `PET_STORAGE_CLEANUP_MODE=delete`
    cuando el informe sea correcto. Comprobar `cron.job_run_details`.
 
 **B. Páginas legales**
-6. Hacer `push` de `main`, poner Settings › Pages › Source = GitHub Actions y comprobar las tres URL de `frontend/src/lib/legal-links.ts`
-   (Pages en un repo privado exige plan de pago, o un repo público aparte).
+6. Pages ya está activado (Source = GitHub Actions; 2026-11-04). Falta hacer `push` de `main` para publicar y comprobar las URL: `SETUP_GUIDE.md` §1.
 7. Confirmar los supuestos de los textos (España, región UE de Supabase, edad mínima 16) y pedir revisión legal.
 
 **C. Proveedores**
@@ -172,8 +177,8 @@ Todo lo que no puede hacerse desde el repositorio. Los `functions deploy` y `db 
 10. Sentry: crear proyecto, DSN en `EXPO_PUBLIC_SENTRY_DSN` y retención de 90 días, como dice la política.
 
 **D. Producción**
-11. Proyecto Supabase en la UE y pasos de §5, con la lista del Dashboard de `AUTH.md` §3 (confirmar email, mínimo 8, contraseñas
-    filtradas, SMTP propio, `kitom://**`, Google).
+11. Proyecto Supabase en la UE y pasos de §5, con `SETUP_GUIDE.md` §2-§4 (SMTP propio, plantillas, página puente, `kitom://**`, Google) y la
+    lista de `AUTH.md` §3. **Sin SMTP propio, los usuarios reales no reciben los correos de confirmación.**
 
 **E. Google Play**
 12. Cuentas de Expo y Play; `eas init` y variables por entorno (§4); build `preview` en móviles reales.

@@ -55,7 +55,7 @@
   (las RPC no trabajan si su propietario no ve `storage.objects` entero o falta el CHECK) (rama
   `db/pet-storage-cleanup`, fase 12B): validadas en local con `migration up --local` (sin `db reset`) y
   desde cero con `db diff --local`; aplicadas en `kitom-dev` el 2026-10-28 (`db push` del usuario) y tipos regenerados. La Edge Function
-  `pet-storage-cleanup`, **sin desplegar** (sin secreto ni cron). Diseño,
+  `pet-storage-cleanup`, desplegada (2026-11-04), sin secretos de Vault comprobados. Diseño,
   revisión y despliegue: `docs/proposals/2026-10-26-pet-photos-cleanup.md`.
 - Migración `20261028200659_reminders_is_active.sql` (rama `db/reminders-active`, fase 13):
   `reminders.is_active boolean NOT NULL DEFAULT true` y `GRANT INSERT/UPDATE (is_active)` a
@@ -71,7 +71,7 @@
   `trigger_set_timestamp` con `search_path` y `pet-photos` a 5 MB/`image/jpeg`. Sin cambios de firmas
   (tipos iguales). Validada en local con `migration up --local`, pgTAP (`ai_quota.test.sql`, 406 casos en
   total) y desde cero con `db diff --local` (sin diferencias de sus objetos; el motor `pg-delta` lista como
-  `CREATE OR REPLACE` funciones anteriores que no cambian). **Sin aplicar en `kitom-dev`** (`db push` del
+  `CREATE OR REPLACE` funciones anteriores que no cambian). Aplicada en `kitom-dev` (`db push` del
   usuario). Decisión: `docs/DECISIONS.md`.
 - Migración `20261030090318_abuse_limits_and_db_hardening.sql` (rama `db/hardening-2`, segunda
   migración de endurecimiento): `request_ai_analysis` con 1 solicitud/min (`ai_rate_limited`) y 3 fallos
@@ -86,8 +86,8 @@
   `kitom_project_url` y `pet_storage_cleanup_secret`; sin ellos no hace nada). Sin cambios de firmas (tipos:
   solo la columna nueva). Validada en local con `migration up --local`, pgTAP (`abuse_limits`,
   `db_hardening`; 510 casos en total), concurrencia (`abuse_limits_concurrency.sh`) y `db diff --local` (sin
-  diferencias de sus objetos). **Sin aplicar en `kitom-dev`** (`db push` del usuario); después, desplegar
-  `ai-analysis-process` (lee la columna nueva) y crear los secretos de Vault. Contrato: `docs/README.md`
+  diferencias de sus objetos). Aplicada en `kitom-dev` (`db push` del usuario, 2026-11-04), con
+  `ai-analysis-process` desplegada; falta crear los secretos de Vault. Contrato: `docs/README.md`
   §5, §8, §11, §13 y §20.2.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
   `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `ai_quota`,
@@ -136,11 +136,12 @@
   collation»: añadir `collate "default"`.
 - Lección upsert: PostgREST hace `ON CONFLICT DO UPDATE SET` de todas las columnas enviadas, así que
   necesita UPDATE sobre las columnas inmutables. En tablas con GRANT por columna, usar una RPC.
-- Edge Functions: `functions/ai-analysis-process/` y `functions/pet-storage-cleanup/` implementadas (ver
-  abajo); las demás, **pendientes** (la carpeta `edge-functions/` que citan los docs no está en el repo).
-  En `kitom-dev` (solo lectura, 2026-10-28): `ai-analysis-process` desplegada (v1, `verify_jwt`),
-  `pet-storage-cleanup` no; sin `pg_cron` ni `pg_net` (la limpieza no se puede programar aún); buckets
-  privados sin límites. Estado de la base y cobertura de pruebas: `docs/DATABASE.md`; hallazgos:
+- Plantillas de email: `templates/`, enlazadas en `config.toml` para el stack local (reiniciarlo para aplicarlas:
+  `npx supabase stop` + `start`, sin borrar datos). En el remoto las pega el usuario: `docs/SETUP_GUIDE.md` §3.
+- Edge Functions: `functions/ai-analysis-process/`, `functions/delete-account/` y
+  `functions/pet-storage-cleanup/` implementadas (ver abajo); las demás, **pendientes** (la carpeta
+  `edge-functions/` que citan los docs no está en el repo). En `kitom-dev` (solo lectura, 2026-11-04): las tres
+  desplegadas. Estado de la base y cobertura de pruebas: `docs/DATABASE.md`; hallazgos:
   `docs/SECURITY_AUDIT.md`.
 - Esquema v2.2.1 **congelado**: solo cambia por bugs reales detectados construyendo el frontend.
 

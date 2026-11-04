@@ -79,6 +79,8 @@ function RootNavigator() {
         dónde sale lo decide `features/auth/auth-callback-plan.ts`.
       */}
       <Stack.Screen name="auth-callback" options={{ title: t('auth.callback.processing') }} />
+      {/* Textos legales: se enlazan desde el registro, sin sesión, y desde Ajustes, con ella. */}
+      <Stack.Screen name="legal/[doc]" />
       {/* Galería del sistema de diseño: solo en desarrollo, con o sin sesión. */}
       <Stack.Protected guard={__DEV__}>
         <Stack.Screen name="dev-components" options={{ headerShown: true }} />

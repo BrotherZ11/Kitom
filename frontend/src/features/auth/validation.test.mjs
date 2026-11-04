@@ -6,7 +6,9 @@ import { es } from '../../i18n/locales/es.ts';
 import {
   MIN_PASSWORD_LENGTH,
   passwordLength,
+  suggestEmailCorrection,
   validateCredentials,
+  validateEmail,
   validateNewPassword,
   validatePasswordChange,
   validateSignUp,
@@ -35,12 +37,41 @@ describe('validateNewPassword', () => {
 });
 
 describe('validateSignUp', () => {
-  it('comprueba email, contraseña y Términos, en ese orden', () => {
-    assert.equal(validateSignUp('', '', false), 'missing_fields');
-    assert.equal(validateSignUp('no-es-email', '12345678', true), 'invalid_email');
-    assert.equal(validateSignUp('a@b.co', 'corta', true), 'password_too_short');
-    assert.equal(validateSignUp('a@b.co', '12345678', false), 'terms_not_accepted');
-    assert.equal(validateSignUp(' a@b.co ', '12345678', true), null);
+  it('comprueba email y contraseña, en ese orden', () => {
+    assert.equal(validateSignUp('', ''), 'missing_fields');
+    assert.equal(validateSignUp('no-es-email', '12345678'), 'invalid_email');
+    assert.equal(validateSignUp('a@b.co', 'corta'), 'password_too_short');
+    assert.equal(validateSignUp(' a@b.co ', '12345678'), null);
+  });
+});
+
+describe('validateEmail', () => {
+  it('acepta direcciones reales, también con alias, subdominios y mayúsculas', () => {
+    for (const email of ['a@b.co', 'ana.garcia+kitom@correo.example.es', 'ANA@GMAIL.COM', ' ana_1@mi-dominio.com ']) {
+      assert.equal(validateEmail(email), null, email);
+    }
+  });
+
+  it('rechaza lo que no puede ser un buzón', () => {
+    for (const email of ['ana', 'ana@', '@gmail.com', 'ana@gmail', 'ana@gmail.c', 'ana@gmail..com', 'ana..b@gmail.com', '.ana@gmail.com', 'ana.@gmail.com', 'an a@gmail.com', 'ana@-gmail.com', 'ana@gmail-.com', 'ana@gmail.c0m', 'a@b@gmail.com']) {
+      assert.equal(validateEmail(email), 'invalid_email', email);
+    }
+    assert.equal(validateEmail(`${'a'.repeat(250)}@b.co`), 'invalid_email');
+  });
+});
+
+describe('suggestEmailCorrection', () => {
+  it('propone el dominio habitual ante una errata', () => {
+    assert.equal(suggestEmailCorrection('ana@gmial.com'), 'ana@gmail.com');
+    assert.equal(suggestEmailCorrection('ana@gmail.con'), 'ana@gmail.com');
+    assert.equal(suggestEmailCorrection(' ana@hotmial.com '), 'ana@hotmail.com');
+    assert.equal(suggestEmailCorrection('ana@outlok.es'), 'ana@outlook.es');
+  });
+
+  it('calla si el dominio es correcto, lejano o está a medio escribir', () => {
+    for (const email of ['ana@gmail.com', 'ana@hotmail.es', 'ana@empresa.es', 'ana@kitom.app', 'ana', 'ana@', 'ana@gm']) {
+      assert.equal(suggestEmailCorrection(email), null, email);
+    }
   });
 });
 

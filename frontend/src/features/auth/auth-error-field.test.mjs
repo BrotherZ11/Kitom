@@ -26,7 +26,6 @@ describe('authErrorField', () => {
   it('deja en la alerta del formulario el resto (incluido missing_fields)', () => {
     for (const code of [
       'missing_fields',
-      'terms_not_accepted',
       'email_not_confirmed',
       'link_invalid',
       'oauth_failed',

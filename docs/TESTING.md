@@ -66,12 +66,26 @@ Antes de la migración, `ai_quota.test.sql` falló en local en los casos que rep
 recuperado al recrear la mascota) y SEC-10 (consulta sin aviso aceptado): la prueba demuestra el fallo
 y su corrección. TEST-02 sigue abierto.
 
+### Registro, emails y APK contra `kitom-dev` (2026-11-04)
+
+Build de release en emulador Android, con el bundle comprobado (`supabase.co` sí, `127.0.0.1` no):
+
+- Inicio de sesión: sin aviso legal y con respuesta del servidor («contraseña incorrecta»), sin error de red.
+- Google: abre `accounts.google.com` con `redirect_uri` de Supabase. **Sin completar:** falta una cuenta de Google.
+- Página puente en Chrome: abre la app sola (con un código falso, que la app rechaza).
+- **Sin probar:** acceso con una cuenta real (`usuario-a@kitom.test` ya no existe), confirmación y recuperación con
+  correo real, y Redirect URLs del remoto. Quedan en `SETUP_GUIDE.md` §5.
+
+En web contra el Supabase local: aviso único, sugerencia de email, `/legal/*`, 7000 kg y 1950 rechazados en un perro, y
+7,5 kg aceptados. Correo de recuperación recibido en Mailpit con plantilla y asunto de Kitom. Página puente con
+Playwright: PC (registro, recuperación, error por query y por fragmento), Android con y sin app, y flujo desconocido.
+
 ### Integración de la primera versión (2026-11-03)
 
 | Comando | Resultado |
 |---|---|
 | `tsc`, `expo lint`, `expo-doctor` | correctos (21/21) |
-| `npm test` | 841/841 |
+| `npm test` | 867/867 (2026-11-04) |
 | `npm run test:integration` | 66/66 |
 | `npx supabase test db` | 510/510 (11 archivos) |
 | Concurrencia (5 suites) | correctas |

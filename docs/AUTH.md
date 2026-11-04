@@ -7,7 +7,7 @@ los enlaces de email y el login con Google funcionen. Código: `frontend/src/fea
 
 | Método | Estado |
 |---|---|
-| Email + contraseña (registro, login, logout) | ✅ (mínimo 8 caracteres y Términos aceptados, sección 5) |
+| Email + contraseña (registro, login, logout) | ✅ (mínimo 8 caracteres y aviso legal, sección 5) |
 | Confirmación de email por enlace | ✅ (requiere configuración, sección 3) |
 | Reenviar el email de confirmación | ✅ (espera de 60 s, sección 5) |
 | Recuperación de contraseña por enlace | ✅ (requiere configuración, sección 3; sobrevive a cerrar la app) |
@@ -43,33 +43,45 @@ URL de retorno generada con `Linking.createURL('auth-callback', { queryParams: {
 
 | Entorno | URL |
 |---|---|
-| Development/production build | `kitom://auth-callback?flow=signup\|recovery\|oauth` |
+| Release nativa, emails | `https://brotherz11.github.io/Kitom/auth/callback.html?flow=signup\|recovery` (página puente) |
+| Release nativa, Google | `kitom://auth-callback?flow=oauth` |
+| Development build | `kitom://auth-callback?flow=signup\|recovery\|oauth` |
 | Expo Go | `exp://<ip>:<puerto>/--/auth-callback?flow=…` |
 | Web (dev) | `http://localhost:8081/auth-callback?flow=…` |
+
+**Página puente (`site/auth/callback.html`).** Un enlace `kitom://` en un correo abierto en el PC no lleva a
+ninguna parte, y Supabase no permite saber dónde se abrirá. Por eso, en la app publicada, los enlaces de email
+pasan por una página pública: en Android abre la app (`intent://`, con botón por si el navegador no lo permite
+solo), en iOS con `kitom://`, y en el PC explica qué hacer. Para el registro, el email ya queda confirmado al
+pulsar el enlace, así que basta con iniciar sesión en la app. La recuperación solo se completa en el móvil que
+la pidió (el `code` no sirve sin su verifier), y la página pide otro enlace. Solo reenvía a la propia app, nunca
+a una dirección de la URL.
 
 El esquema `kitom` está en `frontend/app.json` (`expo.scheme`). **Cambiarlo exige generar un nuevo
 development build**; Expo Go siempre usa `exp://`.
 
 ## 3. Configuración de Supabase (Dashboard de `kitom-dev`)
 
-La hace el usuario en el Dashboard. Claude no modifica la configuración remota (`config push` está
-bloqueado). `supabase/config.toml` solo describe el entorno local.
+La hace el usuario en el Dashboard, paso a paso en [`SETUP_GUIDE.md`](SETUP_GUIDE.md). Claude no modifica la
+configuración remota (`config push` está bloqueado). `supabase/config.toml` solo describe el entorno local.
 
 **Authentication > URL Configuration**
 
 - **Redirect URLs** (añadir):
+  - `https://brotherz11.github.io/Kitom/auth/callback.html**`: enlaces de email de la app publicada.
   - `kitom://**`: builds de la app.
   - `exp://**`: Expo Go. **Solo en el proyecto de desarrollo, nunca en producción.**
   - `http://localhost:8081/**`: solo si se prueba la versión web en local.
 - **Site URL**: es la URL que se usa si `redirectTo` no está en la lista; por eso los enlaces
-  abrían `localhost`. Mientras no haya web, se recomienda `kitom://auth-callback`.
+  abrían `localhost`. Se recomienda la página puente: `https://brotherz11.github.io/Kitom/auth/callback.html`.
 
 Si `redirectTo` no coincide con ninguna Redirect URL, Supabase usa la Site URL en silencio.
 
 **Authentication > Emails (plantillas)**
 
-Las plantillas por defecto usan `{{ .ConfirmationURL }}`, que ya incluye la URL de retorno. Si se
-personalizan, deben seguir usando `{{ .ConfirmationURL }}`. No construir el enlace con
+Las de Kitom están en `supabase/templates/` (el stack local las lee por `config.toml`; en el proyecto remoto
+se pegan en el Dashboard) y usan `{{ .ConfirmationURL }}`, que ya incluye la URL de retorno. Si se
+personalizan, deben seguir usándola. No construir el enlace con
 `{{ .SiteURL }}`, porque ignora el `redirectTo` de la app. La plantilla **Reauthentication** (código
 para cambiar la contraseña, sección 5) debe incluir `{{ .Token }}`.
 
@@ -99,10 +111,9 @@ ya está preparada para cada punto (SEC-09 / SEC-17 de `SECURITY_AUDIT.md`).
 - [ ] **Rate Limits**: revisar «emails sent per hour» (con SMTP propio, p. ej. 30–100), «sign-ups and
       sign-ins» y «token verifications». La app espera 60 s entre reenvíos y muestra
       «Demasiados intentos» si el servidor rechaza por límite.
-- [ ] **URL Configuration › Redirect URLs**: `kitom://**` (y nada de `exp://**` ni `localhost` en
-      producción); **Site URL** `kitom://auth-callback` mientras no haya web.
-- [ ] **Emails › Templates**: todas con `{{ .ConfirmationURL }}` (y `{{ .Token }}` en Reauthentication),
-      en español.
+- [ ] **URL Configuration › Redirect URLs**: la página puente y `kitom://**` (y nada de `exp://**` ni
+      `localhost` en producción); **Site URL**: la página puente.
+- [ ] **Emails › Templates**: las de `supabase/templates/`. Exigen SMTP propio en proyectos gratuitos recientes.
 - [ ] **Attack Protection › CAPTCHA**: solo si aparecen registros falsos (la app aún no envía
       `captchaToken`; activarlo sin cambiar la app rompería el registro).
 
@@ -139,10 +150,14 @@ cuando el email está verificado.
 
 **Registro con email** (`(auth)/register.tsx`). Bajo la contraseña se ve la regla «Mínimo 8
 caracteres.» antes de enviar, y la app la comprueba (`validation.ts`: `MIN_PASSWORD_LENGTH`, contada en
-caracteres). La casilla «Acepto los Términos y la Política de privacidad» es obligatoria; los enlaces
-abren `TERMS_URL` y `PRIVACY_POLICY_URL` (`lib/legal-links.ts`) en el navegador dentro de la app
-(`expo-web-browser`). Con Google (registro e inicio de sesión: la primera vez crea la cuenta), el mismo
-aviso va como texto bajo el botón. La aceptación no se guarda en el servidor. Errores del servidor:
+caracteres). El email se valida con un patrón estricto y, ante una errata en un dominio habitual
+(`gmial.com`), se ofrece corregirla sin impedir continuar (`suggestEmailCorrection`). Que el buzón exista solo
+lo demuestra el email de confirmación: por eso «Confirm email» debe seguir activado.
+
+Un único aviso legal bajo el formulario (`LegalNotice`) vale para el email y para Google; sus enlaces abren
+los textos dentro de la app (`/legal/[doc]`). El inicio de sesión no lleva aviso: quien crea su cuenta con
+Google desde allí lo ve en la configuración inicial (`setup/privacy`). La aceptación no se guarda en el
+servidor. Errores del servidor:
 `weak_password` (requisitos) y, con la protección activa, `pwned_password` (contraseña filtrada: motivo
 `pwned` de `AuthWeakPasswordError`), ambos en el campo de contraseña. Iniciar sesión no aplica la regla
 de 8 (las cuentas anteriores siguen entrando).

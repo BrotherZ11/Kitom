@@ -10,30 +10,29 @@ import { EmptyState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
+import { TextLink } from '@/components/ui/text-link';
 import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
 import { authErrorField } from '@/features/auth/auth-error-field';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { AuthDivider } from '@/features/auth/components/auth-divider';
 import { GoogleLogo } from '@/features/auth/components/google-logo';
-import { GoogleTermsNotice, TermsConsent } from '@/features/auth/components/legal-consent';
+import { LegalNotice } from '@/features/auth/components/legal-consent';
 import { ResendButton } from '@/features/auth/components/resend-button';
-import { validateSignUp } from '@/features/auth/validation';
+import { suggestEmailCorrection, validateSignUp } from '@/features/auth/validation';
 import { t, tf } from '@/i18n';
 import { createSubmitGuard } from '@/lib/submit-guard';
 import { fontFamily, spacing } from '@/theme/tokens';
 
 /**
  * Crear cuenta (tablero 1.3) y, si hay que confirmar el email, «Revisa tu correo» (tablero 1.4) con
- * «Reenviar email». Con email: regla de longitud visible y casilla obligatoria de Términos y Privacidad;
- * con Google, el mismo aviso como texto bajo el botón.
+ * «Reenviar email». Un único aviso legal bajo el formulario, que vale para el email y para Google.
  */
 export default function RegisterScreen() {
   const router = useRouter();
   const { signUp, signInWithGoogle, resendSignUpEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<AuthErrorCode | null>(null);
   /** Instante del email de confirmación (`null`: no hay que confirmar). */
   const [confirmationSentAt, setConfirmationSentAt] = useState<number | null>(null);
@@ -55,7 +54,7 @@ export default function RegisterScreen() {
 
   const handleSubmit = () => {
     void guard.run(async () => {
-      const validationError = validateSignUp(email, password, acceptedTerms);
+      const validationError = validateSignUp(email, password);
       if (validationError) {
         setError(validationError);
         return;
@@ -129,6 +128,7 @@ export default function RegisterScreen() {
   const fieldError = (field: 'email' | 'password') =>
     error && errorField === field ? authErrorMessage(error) : null;
   const formError = error && errorField !== 'email' && errorField !== 'password' ? authErrorMessage(error) : null;
+  const emailSuggestion = suggestEmailCorrection(email);
 
   return (
     <Screen
@@ -164,7 +164,6 @@ export default function RegisterScreen() {
         disabled={isSubmitting}
         onPress={handleGoogle}
       />
-      <GoogleTermsNotice />
 
       <AuthDivider label={t('auth.emailDivider')} />
 
@@ -180,6 +179,12 @@ export default function RegisterScreen() {
         keyboardType="email-address"
         textContentType="emailAddress"
       />
+      {emailSuggestion ? (
+        <TextLink
+          label={tf('auth.register.emailSuggestion', { email: emailSuggestion })}
+          onPress={() => setEmail(emailSuggestion)}
+        />
+      ) : null}
       <TextField
         label={t('auth.fields.password')}
         value={password}
@@ -191,13 +196,7 @@ export default function RegisterScreen() {
         textContentType="newPassword"
         onSubmitEditing={handleSubmit}
       />
-      <TermsConsent
-        checked={acceptedTerms}
-        onChange={(checked) => {
-          setAcceptedTerms(checked);
-          if (checked && error === 'terms_not_accepted') setError(null);
-        }}
-      />
+      <LegalNotice lead={t('auth.legal.signupNotice')} />
     </Screen>
   );
 }

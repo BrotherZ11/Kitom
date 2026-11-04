@@ -3,7 +3,7 @@
 Revisión 2026-10-29. **Inventario técnico**, no asesoramiento legal: lo que la app trata realmente,
 según el código. Los textos para el usuario son las páginas públicas de [`site/`](../site/README.md)
 (política de privacidad, términos y eliminación de la cuenta, en español y en inglés, en vigor desde el
-2026-10-30), publicadas en GitHub Pages en las URL de `frontend/src/lib/legal-links.ts`. Si cambia algo
+2026-10-30), publicadas en GitHub Pages (base: `LEGAL_SITE_URL` de `frontend/src/lib/legal-links.ts`) y copiadas en la app (`/legal/[doc]`). Si cambia algo
 de este inventario, revisar también esas páginas y los textos de la app (`settings.legalScreen`,
 `settings.privacyScreen`, `consult.*`). Requisitos de producto: PRD §9 y §13. Hallazgos relacionados:
 SEC-02, SEC-03, SEC-08 en [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md).

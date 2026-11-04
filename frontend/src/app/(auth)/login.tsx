@@ -14,7 +14,6 @@ import { authErrorField } from '@/features/auth/auth-error-field';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { AuthDivider } from '@/features/auth/components/auth-divider';
 import { GoogleLogo } from '@/features/auth/components/google-logo';
-import { GoogleTermsNotice } from '@/features/auth/components/legal-consent';
 import { ResendButton } from '@/features/auth/components/resend-button';
 import { validateCredentials } from '@/features/auth/validation';
 import { t, tf } from '@/i18n';
@@ -113,8 +112,6 @@ export default function LoginScreen() {
         disabled={isSubmitting}
         onPress={handleGoogle}
       />
-      {/* Con Google, la primera vez se crea la cuenta: el aviso legal va también aquí. */}
-      <GoogleTermsNotice />
 
       <AuthDivider label={t('auth.emailDivider')} />
 

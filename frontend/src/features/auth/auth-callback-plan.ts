@@ -33,6 +33,15 @@ export function toFlow(value: string | undefined): AuthRedirectFlow | null {
   return value === 'signup' || value === 'recovery' || value === 'oauth' ? value : null;
 }
 
+/**
+ * Destino de un enlace de email en la app publicada. Un cliente de correo de PC no sabe abrir `kitom://` y
+ * el enlace se quedaría en nada, así que Supabase redirige a una página pública (`site/auth/callback.html`):
+ * en el móvil abre la app y en el PC explica qué hacer. Google vuelve siempre directo (mismo dispositivo).
+ */
+export function emailLinkRedirectUrl(bridgeUrl: string, flow: Exclude<AuthRedirectFlow, 'oauth'>): string {
+  return `${bridgeUrl}?flow=${flow}`;
+}
+
 /** Flujo declarado en la URL de retorno (`?flow=`, lo pone `getAuthRedirectUrl`). */
 export function redirectFlow(url: string): AuthRedirectFlow | null {
   return toFlow(readUrlParams(url).flow);

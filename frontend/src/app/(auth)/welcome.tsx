@@ -34,9 +34,6 @@ export default function WelcomeScreen() {
             label={t('auth.welcome.haveAccount')}
             onPress={() => router.push('/login')}
           />
-          <Text variant="caption" style={[styles.center, { color: withAlpha(theme.inkInverse, 0.7) }]}>
-            {t('auth.welcome.dedication')}
-          </Text>
         </>
       }>
       <StatusBar style="light" />

@@ -26,8 +26,6 @@ import type { PreparedPetPhoto } from '@/features/pets/pet-photo';
 import type { Pet } from '@/features/pets/types';
 import { formatFullDate } from '@/features/reminders/reminder-format';
 import { getLocale, t, tf } from '@/i18n';
-import { PRIVACY_POLICY_URL } from '@/lib/legal-links';
-import { openWebPage } from '@/lib/open-link';
 import { createSubmitGuard } from '@/lib/submit-guard';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -287,20 +285,14 @@ function NewConsult({ pet }: { pet: Pet }) {
   );
 }
 
-/** Enlace a la política de privacidad (qué se envía a Google y por qué), en el navegador integrado. */
+/** Enlace a la política de privacidad (qué se envía a Google y por qué). */
 function PrivacyPolicyLink() {
-  const [failed, setFailed] = useState(false);
+  const router = useRouter();
   return (
-    <>
-      <TextLink
-        label={t('consult.privacyPolicy')}
-        onPress={() => {
-          setFailed(false);
-          void openWebPage(PRIVACY_POLICY_URL).then((opened) => setFailed(!opened));
-        }}
-      />
-      {failed ? <Alert tone="error" message={tf('settings.legalScreen.openError', { url: PRIVACY_POLICY_URL })} /> : null}
-    </>
+    <TextLink
+      label={t('consult.privacyPolicy')}
+      onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacy' } })}
+    />
   );
 }
 
