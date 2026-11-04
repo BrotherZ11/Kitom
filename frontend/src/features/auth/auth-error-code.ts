@@ -28,7 +28,6 @@ export type AuthErrorCode =
   /** El código de verificación (nonce de `reauthenticate`) no es válido o ha caducado. */
   | 'code_invalid'
   /** Registro sin aceptar los Términos y la Política de privacidad. */
-  | 'terms_not_accepted'
   | 'email_not_confirmed'
   | 'link_invalid'
   | 'oauth_failed'

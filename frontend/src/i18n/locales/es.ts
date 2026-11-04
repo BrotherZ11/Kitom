@@ -27,11 +27,12 @@ export const es = {
     },
     /** Regla visible bajo el campo de contraseña nueva. El número es `MIN_PASSWORD_LENGTH` (`validation.ts`). */
     passwordRule: 'Mínimo 8 caracteres.',
-    /** Casilla obligatoria del registro y aviso bajo «Continuar con Google». */
+    /** Aviso único al crear la cuenta: en el registro y, a quien entra con Google, en la configuración inicial. */
     legal: {
-      accept: 'Acepto los Términos y la Política de privacidad',
-      googleNotice: 'Al continuar con Google aceptas los Términos y la Política de privacidad.',
+      signupNotice: 'Al crear tu cuenta, con email o con Google, aceptas los',
+      setupNotice: 'Al usar Kitom aceptas los',
       terms: 'Términos',
+      and: 'y la',
       privacy: 'Política de privacidad',
       openTerms: 'Abrir los Términos',
       openPrivacy: 'Abrir la Política de privacidad',
@@ -78,6 +79,7 @@ export const es = {
       submit: 'Crear cuenta',
       submitting: 'Creando la cuenta…',
       goToLogin: 'Ya tengo cuenta',
+      emailSuggestion: '¿Querías decir {email}?',
     },
     /** Tras el registro, si hay que confirmar el email (tablero 1.4). */
     verifyEmail: {
@@ -95,7 +97,6 @@ export const es = {
         'Registra cómo está tu perro o tu gato en menos de un minuto, entiende sus cambios y sabe cuándo hace falta un veterinario.',
       start: 'Empezar',
       haveAccount: 'Ya tengo cuenta',
-      dedication: 'Hecha para Atom y Kika, y para el tuyo.',
       ringLabel: 'Ilustración: anillo de la semana con seis días registrados',
     },
     /** Cómo funciona (tablero 1.2). */
@@ -135,7 +136,6 @@ export const es = {
       same_password: 'La nueva contraseña debe ser distinta de la anterior.',
       wrong_current_password: 'La contraseña actual no es correcta.',
       code_invalid: 'El código no es válido o ha caducado. Pide otro.',
-      terms_not_accepted: 'Para crear la cuenta, acepta los Términos y la Política de privacidad.',
       email_not_confirmed: 'Confirma tu email antes de iniciar sesión.',
       link_invalid:
         'El enlace ha caducado o ya se ha usado. Ábrelo en el mismo dispositivo donde lo pediste o solicita uno nuevo.',
@@ -827,7 +827,7 @@ export const es = {
     helpFaq: 'Preguntas frecuentes',
     legal: 'Información legal y de la app',
     signOut: 'Cerrar sesión',
-    version: 'Kitom {version} · Hecha para Atom y Kika',
+    version: 'Kitom {version}',
     offline: 'Sin conexión: los cambios de tu cuenta necesitan conexión.',
     saveError: 'No se ha podido guardar. Comprueba la conexión e inténtalo de nuevo.',
     exportScreen: {
@@ -988,7 +988,7 @@ export const es = {
         'Solo tratamos lo necesario para que Kitom funcione. Para preparar una orientación con IA enviamos a Google los datos de esa consulta, sin tu nombre ni tu email, y no se usan para entrenar modelos. No vendemos tus datos ni hay publicidad. Puedes descargarlos o eliminar tu cuenta desde Tu cuenta.',
       contactTitle: 'Responsable y contacto',
       controller: 'David Zarzavilla Borrego',
-      openError: 'No se ha podido abrir la página. Puedes verla en {url}',
+      notFound: 'No encontramos este documento.',
     },
   },
   offlineSession: {
@@ -1367,6 +1367,8 @@ export const es = {
       invalid_date: 'Introduce una fecha válida con el formato AAAA-MM-DD.',
       future_date: 'La fecha de nacimiento no puede ser futura.',
       invalid_weight: 'Introduce un peso mayor que 0, con hasta 3 decimales.',
+      implausible_weight: 'Ese peso no parece posible para esta especie. Revísalo: va en kilos.',
+      implausible_birth_date: 'Esa fecha es demasiado antigua para esta especie. Revísala.',
     },
     errors: {
       network: 'No hay conexión. Comprueba tu red e inténtalo de nuevo.',

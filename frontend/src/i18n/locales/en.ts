@@ -28,9 +28,10 @@ export const en: Translations = {
     },
     passwordRule: 'At least 8 characters.',
     legal: {
-      accept: 'I accept the Terms and the Privacy Policy',
-      googleNotice: 'By continuing with Google you accept the Terms and the Privacy Policy.',
+      signupNotice: 'By creating your account, with email or Google, you accept the',
+      setupNotice: 'By using Kitom you accept the',
       terms: 'Terms',
+      and: 'and the',
       privacy: 'Privacy Policy',
       openTerms: 'Open the Terms',
       openPrivacy: 'Open the Privacy Policy',
@@ -75,6 +76,7 @@ export const en: Translations = {
       submit: 'Create account',
       submitting: 'Creating your account…',
       goToLogin: 'I already have an account',
+      emailSuggestion: 'Did you mean {email}?',
     },
     verifyEmail: {
       title: 'Check your email',
@@ -90,7 +92,6 @@ export const en: Translations = {
         'Log how your dog or cat is doing in under a minute, understand their changes and know when they need a vet.',
       start: 'Get started',
       haveAccount: 'I already have an account',
-      dedication: 'Made for Atom and Kika, and for yours.',
       ringLabel: 'Illustration: week ring with six days logged',
     },
     howItWorks: {
@@ -129,7 +130,6 @@ export const en: Translations = {
       same_password: 'The new password must be different from the previous one.',
       wrong_current_password: 'The current password is not correct.',
       code_invalid: 'The code is not valid or has expired. Request a new one.',
-      terms_not_accepted: 'To create the account, accept the Terms and the Privacy Policy.',
       email_not_confirmed: 'Confirm your email before signing in.',
       link_invalid:
         'The link has expired or has already been used. Open it on the same device where you requested it, or request a new one.',
@@ -811,7 +811,7 @@ export const en: Translations = {
     helpFaq: 'Frequently asked questions',
     legal: 'Legal and app information',
     signOut: 'Sign out',
-    version: 'Kitom {version} · Made for Atom and Kika',
+    version: 'Kitom {version}',
     offline: 'Offline: changes to your account need a connection.',
     saveError: "Couldn't save. Check your connection and try again.",
     exportScreen: {
@@ -968,7 +968,7 @@ export const en: Translations = {
         "We only process what Kitom needs to work. To prepare AI guidance we send Google the data of that check, without your name or email, and it isn't used to train models. We don't sell your data and there are no ads. You can download it or delete your account from Your account.",
       contactTitle: 'Controller and contact',
       controller: 'David Zarzavilla Borrego',
-      openError: "The page couldn't be opened. You can see it at {url}",
+      notFound: "We couldn't find this document.",
     },
   },
   offlineSession: {
@@ -1336,6 +1336,8 @@ export const en: Translations = {
       invalid_date: 'Enter a valid date in the format YYYY-MM-DD.',
       future_date: 'The date of birth cannot be in the future.',
       invalid_weight: 'Enter a weight greater than 0, with up to 3 decimals.',
+      implausible_weight: "That weight doesn't look possible for this species. Check it: it's in kilograms.",
+      implausible_birth_date: 'That date is too long ago for this species. Check it.',
     },
     errors: {
       network: 'No connection. Check your network and try again.',

@@ -18,8 +18,8 @@ import { DISCLAIMER_VERSION } from '@/features/profile/onboarding';
 import { formatFullDate } from '@/features/reminders/reminder-format';
 import { useIsOnline } from '@/hooks/use-is-online';
 import { getLocale, t, tf } from '@/i18n';
-import { PRIVACY_POLICY_URL, SUPPORT_EMAIL } from '@/lib/legal-links';
-import { openSupportEmail, openWebPage } from '@/lib/open-link';
+import { SUPPORT_EMAIL } from '@/lib/legal-links';
+import { openSupportEmail } from '@/lib/open-link';
 import { spacing } from '@/theme/tokens';
 
 /**
@@ -54,10 +54,7 @@ export default function PrivacyScreen() {
     );
   };
 
-  const openPolicy = async () => {
-    setError(null);
-    if (!(await openWebPage(PRIVACY_POLICY_URL))) setError(tf('settings.legalScreen.openError', { url: PRIVACY_POLICY_URL }));
-  };
+  const openPolicy = () => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacy' } });
   const writeToSupport = async () => {
     setError(null);
     if (!(await openSupportEmail(t('settings.privacyScreen.emailSubject')))) {
