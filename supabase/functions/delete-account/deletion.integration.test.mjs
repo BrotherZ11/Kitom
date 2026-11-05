@@ -266,3 +266,199 @@ describe('delete-account contra el Supabase local', { skip }, () => {
     assert.equal(again.status, 410);
   });
 });
+
+// El borrado real (Auth → supabase_auth_admin → FK SET NULL → triggers de auditoría), con datos de la cuenta en
+// mascotas que sobreviven. Fue el defecto D-11 de docs/DATABASE.md: Auth respondía 500 y la cuenta seguía viva.
+describe('delete-account con datos en mascotas que sobreviven (Supabase local)', { skip }, () => {
+  const users = [];
+  const petIds = [];
+  let speciesId;
+
+  const newUser = async (name) => {
+    const user = await signUp(name);
+    users.push(user);
+    return user;
+  };
+
+  const createPet = async (owner, name) => {
+    const { status, data } = await api('/rest/v1/pets', {
+      method: 'POST',
+      token: owner.token,
+      body: { owner_id: owner.id, name, species_id: speciesId },
+      headers: { Prefer: 'return=representation' },
+    });
+    assert.equal(status, 201);
+    petIds.push(data[0].id);
+    return data[0].id;
+  };
+
+  const share = async (owner, petId, invitee, role) => {
+    const invited = await rpc(owner, 'invite_pet_member', { target_pet_id: petId, invitee_user_id: invitee.id, initial_role: role });
+    assert.ok([200, 204].includes(invited.status), JSON.stringify(invited.data));
+    const { data } = await api(`/rest/v1/pet_co_owners?select=id&pet_id=eq.${petId}&user_id=eq.${invitee.id}`, { token: invitee.token });
+    const accepted = await rpc(invitee, 'accept_pet_invitation', { invitation_id: data[0].id });
+    assert.ok([200, 204].includes(accepted.status), JSON.stringify(accepted.data));
+  };
+
+  const addReminder = async (user, petId, title) => {
+    const { status, data } = await api('/rest/v1/reminders', {
+      method: 'POST',
+      token: user.token,
+      body: { pet_id: petId, created_by: user.id, type: 'bath', title, due_at: new Date(Date.now() + 86_400_000).toISOString() },
+      headers: { Prefer: 'return=representation' },
+    });
+    assert.equal(status, 201, JSON.stringify(data));
+    return data[0].id;
+  };
+
+  const dayOffset = (days) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+
+  const addLog = async (user, petId, daysAgo, notes) => {
+    const { status, data } = await api('/rest/v1/daily_logs', {
+      method: 'POST',
+      token: user.token,
+      body: { pet_id: petId, logged_by: user.id, log_date: dayOffset(daysAgo), mood_level: 3, notes },
+      headers: { Prefer: 'return=representation' },
+    });
+    assert.equal(status, 201, JSON.stringify(data));
+    return data[0].id;
+  };
+
+  const editLog = async (user, logId, notes) => {
+    const { status, data } = await api(`/rest/v1/daily_logs?id=eq.${logId}`, {
+      method: 'PATCH',
+      token: user.token,
+      body: { notes },
+      headers: { Prefer: 'return=representation' },
+    });
+    assert.equal(status, 200, JSON.stringify(data));
+    assert.equal(data.length, 1);
+  };
+
+  const row = async (table, id) => (await admin(`/rest/v1/${table}?select=*&id=eq.${id}`)).data[0] ?? null;
+
+  const deleteAccount = async (user, adminOverride) => {
+    const preview = await invoke(user, { mode: 'preview' });
+    assert.equal(preview.status, 200);
+    return invoke(user, { mode: 'delete', confirm: CONFIRM_TOKEN, expected: expectedFromPlan(preview.body.plan) }, adminOverride);
+  };
+
+  before(async () => {
+    const reader = await newUser(null);
+    const { data } = await api('/rest/v1/species?select=id&code=eq.dog', { token: reader.token });
+    speciesId = data[0].id;
+  });
+
+  after(async () => {
+    for (const petId of petIds) await admin(`/rest/v1/pets?id=eq.${petId}`, { method: 'DELETE' });
+    for (const user of users) await admin(`/auth/v1/admin/users/${user.id}`, { method: 'DELETE' });
+  });
+
+  it('co-tutora: se borra la cuenta; sus filas se quedan sin autor y lo demás no cambia', async () => {
+    const owner = await newUser('Olga');
+    const stays = await newUser('Eva');
+    const leaver = await newUser('Ana');
+    const pet = await createPet(owner, 'Kika');
+    await share(owner, pet, stays, 'editor');
+    await share(owner, pet, leaver, 'editor');
+
+    const leaverReminder = await addReminder(leaver, pet, 'De Ana');
+    const ownerReminder = await addReminder(owner, pet, 'De Olga');
+    // Autora y última edición de la misma cuenta: las dos FK sobre una fila ya confirmada.
+    const sameAccount = await addLog(leaver, pet, 0, 'De Ana');
+    await editLog(leaver, sameAccount, 'De Ana, editado por Ana');
+    // De Ana, editado por Eva: se debe conservar quién lo editó.
+    const editedByOther = await addLog(leaver, pet, 1, 'De Ana');
+    await editLog(stays, editedByOther, 'De Ana, editado por Eva');
+    // De Eva, editado por Ana: se debe conservar a su autora.
+    const leaverEdited = await addLog(stays, pet, 2, 'De Eva');
+    await editLog(leaver, leaverEdited, 'De Eva, editado por Ana');
+    const untouched = await addLog(owner, pet, 3, 'De Olga');
+    const untouchedBefore = await row('daily_logs', untouched);
+    const ownerReminderBefore = await row('reminders', ownerReminder);
+    const reminderBefore = await row('reminders', leaverReminder);
+
+    const { status, body } = await deleteAccount(leaver);
+    assert.deepEqual([status, body], [200, { status: 'deleted', transferred: 0, deleted: 0, avatars_removed: 0 }]);
+    assert.equal((await admin(`/auth/v1/admin/users/${leaver.id}`)).status, 404, 'usuario de Auth borrado');
+    assert.deepEqual((await admin(`/rest/v1/profiles?select=id&id=eq.${leaver.id}`)).data, []);
+    assert.deepEqual((await admin(`/rest/v1/pet_co_owners?select=id&user_id=eq.${leaver.id}`)).data, []);
+
+    const reminder = await row('reminders', leaverReminder);
+    assert.equal(reminder.created_by, null);
+    assert.equal(reminder.title, 'De Ana');
+    assert.equal(reminder.created_at, reminderBefore.created_at);
+    assert.deepEqual(await row('reminders', ownerReminder), ownerReminderBefore, 'lo de otra persona no se toca');
+
+    const same = await row('daily_logs', sameAccount);
+    assert.deepEqual([same.logged_by, same.last_edited_by, same.notes], [null, null, 'De Ana, editado por Ana']);
+    const other = await row('daily_logs', editedByOther);
+    assert.deepEqual([other.logged_by, other.last_edited_by, other.notes], [null, stays.id, 'De Ana, editado por Eva']);
+    const edited = await row('daily_logs', leaverEdited);
+    assert.deepEqual([edited.logged_by, edited.last_edited_by], [stays.id, null]);
+    assert.deepEqual(await row('daily_logs', untouched), untouchedBefore, 'lo de otra persona no se toca');
+
+    // Siguen siendo usables por quien se queda, sin que nadie herede el autor.
+    const patched = await api(`/rest/v1/reminders?id=eq.${leaverReminder}`, {
+      method: 'PATCH',
+      token: stays.token,
+      body: { title: 'Editado por Eva' },
+      headers: { Prefer: 'return=representation' },
+    });
+    assert.equal(patched.status, 200);
+    assert.deepEqual([patched.data[0].title, patched.data[0].created_by], ['Editado por Eva', null]);
+    const claim = await api(`/rest/v1/reminders?id=eq.${leaverReminder}`, { method: 'PATCH', token: stays.token, body: { created_by: stays.id } });
+    assert.equal(claim.status, 403, 'nadie puede apropiarse del recordatorio');
+    await editLog(stays, sameAccount, 'Editado por Eva');
+    const reEdited = await row('daily_logs', sameAccount);
+    assert.deepEqual([reEdited.logged_by, reEdited.last_edited_by], [null, stays.id]);
+  });
+
+  it('propietaria con mascota transferida: fallo al final sin cambios en sus filas y el reintento termina', async () => {
+    const leaver = await newUser('Tomás');
+    const heir = await newUser('Eva');
+    const pet = await createPet(leaver, 'Rex');
+    await share(leaver, pet, heir, 'editor');
+    const reminder = await addReminder(leaver, pet, 'De Tomás');
+    const log = await addLog(leaver, pet, 0, 'De Tomás');
+
+    // El último paso falla: lo anterior queda hecho (decisión: docs/README.md §12), pero sus filas siguen siendo suyas.
+    const failing = { deleteUser: async () => { throw new GatewayError('simulated'); } };
+    const first = await deleteAccount(leaver, failing);
+    assert.deepEqual([first.status, first.body], [500, { error: 'deletion_incomplete', step: 'delete_user', transferred: 1, deleted: 0, avatars_removed: 0 }]);
+    assert.equal(await ownerOf(pet), heir.id);
+    assert.equal((await row('reminders', reminder)).created_by, leaver.id);
+    assert.equal((await row('daily_logs', log)).logged_by, leaver.id);
+    assert.equal((await admin(`/auth/v1/admin/users/${leaver.id}`)).status, 200, 'la cuenta sigue viva');
+
+    const second = await deleteAccount(leaver);
+    assert.deepEqual([second.status, second.body], [200, { status: 'deleted', transferred: 0, deleted: 0, avatars_removed: 0 }]);
+    assert.equal((await admin(`/auth/v1/admin/users/${leaver.id}`)).status, 404);
+    assert.equal(await ownerOf(pet), heir.id, 'la mascota sigue con quien la recibió');
+    assert.equal((await row('reminders', reminder)).created_by, null);
+    assert.equal((await row('daily_logs', log)).logged_by, null);
+    const { data: seen } = await api(`/rest/v1/reminders?select=title&id=eq.${reminder}`, { token: heir.token });
+    assert.deepEqual(seen, [{ title: 'De Tomás' }]);
+  });
+
+  it('Auth de verdad falla (aún es propietaria): la transacción entera se deshace', async () => {
+    const leaver = await newUser('Bea');
+    const owner = await newUser('Olga');
+    const own = await createPet(leaver, 'Luna');
+    const shared = await createPet(owner, 'Mia');
+    await share(owner, shared, leaver, 'editor');
+    const reminder = await addReminder(leaver, shared, 'De Bea');
+    const log = await addLog(leaver, shared, 0, 'De Bea');
+    const reminderBefore = await row('reminders', reminder);
+    const logBefore = await row('daily_logs', log);
+
+    const direct = await admin(`/auth/v1/admin/users/${leaver.id}`, { method: 'DELETE' });
+    assert.equal(direct.status, 500, JSON.stringify(direct.data));
+    assert.deepEqual(await row('reminders', reminder), reminderBefore, 'el recordatorio no cambia, ni su updated_at');
+    assert.deepEqual(await row('daily_logs', log), logBefore, 'el registro no cambia, ni su updated_at');
+    assert.equal((await admin(`/auth/v1/admin/users/${leaver.id}`)).status, 200);
+    assert.equal((await admin(`/rest/v1/profiles?select=id&id=eq.${leaver.id}`)).data.length, 1);
+    assert.equal((await admin(`/rest/v1/pet_co_owners?select=id&user_id=eq.${leaver.id}`)).data.length, 1);
+    assert.equal(await ownerOf(own), leaver.id);
+  });
+});
