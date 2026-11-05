@@ -118,12 +118,18 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   (activar/desactivar) y pruebas pgTAP de permisos de `reminders`: probadas en local; aplicada en
   `kitom-dev` el 2026-10-29 (`db push` del usuario) y tipos regenerados con `--linked`. Activar/desactivar
   en la app (rama `feat/reminders-active`, integrada en `main` el 2026-10-29): un desactivado no avisa ni cuenta como pendiente; validado
-  en web y en el emulador Android (la alarma se cancela y vuelve al activarlo). Agenda solo con conexión (propuesta offline en `docs/proposals/2026-10-28-reminders-offline.md`).
+  en web y en el emulador Android (la alarma se cancela y vuelve al activarlo). Agenda solo con conexión (propuesta offline aprobada: `docs/proposals/2026-10-28-reminders-offline.md`).
+- Fase 14, agenda sin conexión (2026-11-05): migración `20261105093545_reminders_client_request_id.sql` (rama
+  `db/integration-account-deletion-reminders`), probada en local; **pendiente de `db push` del usuario y de regenerar los tipos**. El
+  frontend espera a eso.
 - Preparación de la v1 (Android, gratuita; 2026-11-03): eliminar la cuenta, descargar los datos, páginas legales (`site/`),
   Auth endurecido, idioma del dispositivo y Sentry, integrados en `main`. Migración `20261029151011`: aplicada en
   `kitom-dev`. Migración `20261030090318_abuse_limits_and_db_hardening.sql`: aplicada en `kitom-dev` (`db push` del
   usuario, 2026-11-04) y tipos regenerados. Lo que falta para publicar lo hace el usuario: `docs/DEPLOYMENT.md` §8 y
   `docs/SETUP_GUIDE.md`; estado: `docs/PROJECT_STATUS.md`.
+- Borrar una cuenta, D-11 (2026-11-05): corregido por la migración `20261105122353_account_deletion_audit_triggers.sql` (rama
+  `db/integration-account-deletion-reminders`), probada en local. **`kitom-dev` no la tiene todavía** (`db push` del usuario): hasta entonces, allí no se
+  puede eliminar la cuenta de quien creó recordatorios o registros en una mascota que sigue existiendo (`docs/DATABASE.md`).
 - Sentry (2026-11-04): organización `kitom`, proyecto `kitom-app` (región UE). Errores, source maps y reglas de privacidad comprobados
   en APK locales; falta el DSN y el token en EAS, aún sin proyecto (`docs/DEPLOYMENT.md` §8, paso 10).
 - Registro (2026-11-04, sin migraciones): aviso legal único, textos legales en la app (`/legal/[doc]`, generados

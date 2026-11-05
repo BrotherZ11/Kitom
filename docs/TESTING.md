@@ -89,6 +89,28 @@ APK de release en emulador Android, contra el Supabase local, con una ruta tempo
 - Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
 - **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
 
+### Borrar una cuenta y agenda sin conexión: backend (2026-11-05, en local)
+
+Migraciones `20261105093545` y `20261105122353`, juntas. Sobre un Supabase local desechable: primero las 15 migraciones de `kitom-dev`
+y luego estas dos con `migration up`, como haría un `db push`; `db diff` contra una base aplicada desde cero (17): sin cambios.
+
+| Comando | Sin la corrección de D-11 | Con las dos migraciones |
+|---|---|---|
+| `account_deletion_audit.test.sql` | falla | 81/81 |
+| `reminders_client_request_id.test.sql` | — | 28/28 |
+| `npx supabase test db` | — | 619 casos, 13 archivos |
+| `account_deletion_concurrency.sh` | falla | 27 comprobaciones |
+| `reminders_concurrency.sh` | — | 22 comprobaciones |
+| Otras suites de concurrencia (`daily_logs`, `pets`, `pets_delete`, `abuse_limits`, `pet_storage_cleanup`) | — | 21, 17, 20, 9 y 30 comprobaciones |
+| `delete-account`, integración con Auth real | 7/9 | 9/9 |
+| Edge Functions, unitarias | — | 62/62 |
+| `npm run test:integration` | — | 66/66 |
+| `npm test`, `tsc`, `expo lint` (frontend sin cambios) | — | 867/867, correctos |
+| Borrar una cuenta con 3650 registros (Auth real) | HTTP 504 a los 10 s | HTTP 200 en 418 ms |
+
+`delete-account` con fallos inyectados en cada paso que escribe (fallo, respuesta perdida y muerte de la función, 26 casos, con un arnés fuera del repo):
+todos dejan hecho lo anterior y todos convergen al reintentar. Una clave de servicio inválida transfiere y borra antes de fallar: `ROADMAP.md` P1-13.
+
 ### Integración de la primera versión (2026-11-03)
 
 | Comando | Resultado |

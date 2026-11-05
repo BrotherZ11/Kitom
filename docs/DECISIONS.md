@@ -3,6 +3,51 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-05 — Borrar una cuenta: la auditoría reconoce la FK por el estado, no por el rol
+
+**Contexto.** Borrar una cuenta con recordatorios o registros diarios en una mascota que sigue existiendo fallaba (D-11):
+`auth.users → profiles` (CASCADE) `→ reminders.created_by`, `daily_logs.logged_by`/`last_edited_by` (SET NULL), y
+esa acción de FK dispara los `BEFORE UPDATE` de auditoría, que la rechazaban. Auth respondía 500 y la cuenta seguía viva.
+
+Contexto medido dentro del trigger durante `auth.admin.deleteUser`: `current_user = postgres` (la FK cambia al dueño de la
+tabla), `session_user = supabase_auth_admin` y `auth.uid()`, `auth.role()` y los claims a `NULL`.
+
+**Decisión.** Los triggers permiten únicamente pasar a `NULL` y solo si el perfil al que apuntaba la columna ya no existe.
+
+- **Descartado comprobar `auth.uid() IS NULL` o `current_user`:** cualquier `UPDATE` sin JWT da lo mismo.
+- **Descartado comprobar `session_user`:** dejaría fuera otros caminos de borrado y ataría la auditoría al nombre de un rol interno de Supabase.
+- **Descartado `pg_trigger_depth()`:** también es mayor que 1 si la actualización llega desde otro trigger.
+- **Descartado un GUC como `kitom.ownership_transfer_in_progress`:** Auth no lo fija, y cualquier sesión puede fijarlo.
+
+Una persona no puede fabricar ese estado: `profiles` no tiene política de DELETE, y sin perfil no queda ninguna fila que le apunte. El GRANT
+por columna sigue siendo la primera capa.
+
+`set_last_edited_by` y `trg_recompute_pet_streak_fn` reconocen el mismo estado. El primero conserva quién editó un registro de otra persona.
+El segundo no recalcula, porque por cada fila era cuadrático: con 3650 registros Auth agotaba sus 10 s (HTTP 504). Con la corrección, 418 ms.
+
+**Consecuencias.** `updated_at` cambia en esas filas: una edición sin conexión con la versión anterior se ve como conflicto (seguro, aunque el contenido
+no haya cambiado). `delete-account` sigue sin ser atómica en sus pasos previos: un fallo en `deleteUser` deja hechas las transferencias, como ya
+documentaba `docs/README.md` §12; el reintento converge.
+## 2026-11-05 — Agenda sin conexión: alta idempotente y permiso guardado
+
+**Contexto.** La fase 14 pide escribir recordatorios sin conexión. `reminders` no permite reconocer un alta cuya respuesta
+se perdió: sin clave, reenviarla podría duplicarla. Además, un lector debe no poder encolar escrituras, pero su rol no se
+puede deducir sin conexión. Propuesta: `docs/proposals/2026-10-28-reminders-offline.md`.
+
+**Decisiones** (David, 2026-11-05).
+
+- **`reminders.client_request_id`,** con el diseño de `pets` (migración `20261105093545`). Descartado `GRANT INSERT (id)`, que
+  permitiría recrear una fila borrada con su id, y buscar una fila igual, que no es una identidad.
+- **Límite aceptado:** si la respuesta se pierde y otra persona borra el recordatorio antes del reenvío, este vuelve a
+  crearse. No duplica y no justifica lápidas en el servidor.
+- **Último `can_edit_pet` confirmado, guardado en el dispositivo y solo como indicación de interfaz** (cambia, solo para la
+  agenda, la regla de no guardarlo de `docs/FRONTEND_ARCHITECTURE.md` §5). `true`: se permite encolar. `false`: se bloquea. Sin
+  valor conocido: solo lectura. Nunca es una autorización del servidor: si el permiso se revoca sin conexión, la operación
+  queda pendiente, RLS la rechaza al sincronizar y se conserva, sin descartarla automáticamente.
+
+**Consecuencias.** El frontend de la fase 14 espera al `db push` y a los tipos regenerados. La decisión del 2026-10-21 («agenda
+solo con conexión») sigue vigente hasta entonces.
+
 ## 2026-11-04 — Registro: aviso legal único, textos en la app, puente de email y datos plausibles
 
 **Contexto.** Revisión del responsable con la APK en su móvil: dos avisos legales en el registro, textos

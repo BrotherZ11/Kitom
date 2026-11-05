@@ -3,6 +3,22 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-05
+
+Borrar una cuenta (rama `db/integration-account-deletion-reminders`, migración `20261105122353`, **pendiente de `db push`**):
+
+- **Corregido:** eliminar la cuenta fallaba si había creado recordatorios o registros diarios en una mascota que sigue
+  existiendo (co-tutores y propietarios que transfieren). Esas filas se quedan, con el autor a `NULL`. Nadie puede
+  cambiar el autor a mano: solo se permite cuando el perfil ya no existe.
+- **Corregido:** al borrar la cuenta de quien creó un registro ya no se pierde quién lo editó después.
+- **Corregido:** las cuentas con miles de registros agotaban el tiempo de Auth (3650 registros: de HTTP 504 a 418 ms).
+- **Pruebas:** `account_deletion_audit.test.sql`, `account_deletion_concurrency.sh` y tres casos de integración con Auth real.
+
+Agenda sin conexión, fase 14: preparación del backend (rama `db/integration-account-deletion-reminders`; la app no cambia todavía):
+
+- **Migración `20261105093545_reminders_client_request_id.sql`:** alta idempotente de recordatorios, con el mismo diseño
+  que en `pets`. Probada en local, con pgTAP y con la nueva suite `reminders_concurrency.sh`; pendiente de `db push`.
+
 ## 2026-11-04
 
 Cambios tras probar la APK en un móvil real (rama `feat/signup-legal-and-validation`, sin migraciones):

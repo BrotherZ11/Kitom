@@ -1,7 +1,7 @@
 # Kitom — Estado del proyecto
 
-Revisión: **2026-11-03** · app `1.1.0` · 15 migraciones en el repo (14 aplicadas en `kitom-dev`; falta
-`20261030090318`). Auditoría inicial del 2026-10-29 y estado tras las correcciones. Detalle por área:
+Revisión: **2026-11-05** · app `1.1.0` · 17 migraciones en el repo (15 aplicadas en `kitom-dev`; faltan
+`20261105093545` y `20261105122353`). Auditoría inicial del 2026-10-29 y estado tras las correcciones. Detalle por área:
 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md), [`DATABASE.md`](DATABASE.md), [`TESTING.md`](TESTING.md),
 [`DEPLOYMENT.md`](DEPLOYMENT.md), [`PRIVACY.md`](PRIVACY.md); plan: [`ROADMAP.md`](ROADMAP.md).
 
@@ -77,7 +77,7 @@ avance: no hay un método reproducible que los respalde.
 | 31 | Valoración de la orientación (útil / no útil) | IMPLEMENTADA, NO VERIFICADA | RPC `submit_ai_feedback` | pgTAP | P2 |
 | 32 | Ajustes: nombre, zona horaria, tema, notificaciones, seguridad, privacidad, ayuda, legal | COMPLETA Y VERIFICADA | `(app)/settings/*` recorridos en emulador; pgTAP `profile_timezone` | preferencias de alertas/marketing no editables | P3 |
 | 33 | Cambiar contraseña | IMPLEMENTADA, NO VERIFICADA | pide la actual con un cliente de Auth aparte (integración local), código de reautenticación, «Crear contraseña» para cuentas de Google | prueba manual; reautenticación con el Dashboard configurado | P1 |
-| 34 | Eliminar cuenta | COMPLETA Y VERIFICADA (local) | `delete-account` + pantalla; integración local (6/6) y de punta a punta en emulador contra el Supabase local | desplegar en `kitom-dev`/producción | P0 |
+| 34 | Eliminar cuenta | COMPLETA Y VERIFICADA (local) | `delete-account` + pantalla; integración local (9/9) y de punta a punta en emulador contra el Supabase local | `db push` de `20261105122353` (sin ella falla a co-tutores y a quien transfiere: D-11) y producción | P0 |
 | 35 | Exportar mis datos | COMPLETA Y VERIFICADA (Android) | `settings/export`, menú de compartir y JSON revisado en emulador; lógica con pruebas | — | — |
 | 36 | Premium / suscripción | PENDIENTE (fuera de la v1, decisión 2026-10-29) | retirado de la interfaz; `process_revenuecat_event` en BD sin webhook | decisión de precio y límites; webhook; productos en tiendas | P3 |
 | 37 | Informes PDF para el veterinario | PENDIENTE | `request_generate_report` es un esbozo; sin Edge Function | — | P3 |

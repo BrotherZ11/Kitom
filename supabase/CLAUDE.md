@@ -89,17 +89,31 @@
   diferencias de sus objetos). Aplicada en `kitom-dev` (`db push` del usuario, 2026-11-04), con
   `ai-analysis-process` desplegada; falta crear los secretos de Vault. Contrato: `docs/README.md`
   §5, §8, §11, §13 y §20.2.
+- Migración `20261105093545_reminders_client_request_id.sql` (rama `db/integration-account-deletion-reminders`, fase 14):
+  `reminders.client_request_id uuid` (nullable), índice único parcial
+  `reminders_creator_client_request_id_key` sobre `(created_by, client_request_id)` y `GRANT INSERT
+  (client_request_id)` a `authenticated` (sin UPDATE): alta idempotente para la agenda sin conexión. Sin cambios
+  de RLS, triggers ni `reminders.id`. Validada en local con `migration up --local`, pgTAP
+  (`reminders_client_request_id`), concurrencia (`reminders_concurrency.sh`) y `db diff --local` (sin
+  diferencias de sus objetos). **Pendiente:** `db push` del usuario y tipos con `--linked`. Decisión: `docs/DECISIONS.md`.
+- Migración `20261105122353_account_deletion_audit_triggers.sql` (rama `db/integration-account-deletion-reminders`, D-11): los
+  triggers de auditoría permiten `created_by`/`logged_by` a `NULL` solo si el perfil ya no existe (la FK al borrar la cuenta);
+  `set_last_edited_by` y `trg_recompute_pet_streak_fn` reconocen ese estado. Sin cambios de firmas, tablas, GRANT, RLS ni tipos.
+  Validada desde cero en un Supabase local desechable, con pgTAP, concurrencia, Auth real y `db diff`; **pendiente de `db push`
+  del usuario**. Decisión: `docs/DECISIONS.md`.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
   `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `ai_quota`,
-  `abuse_limits`, `db_hardening`, `reminders`
-  (permisos de la tabla con el esquema base), `reminders_is_active`; pgTAP, en
+  `abuse_limits`, `db_hardening`, `account_deletion_audit`, `reminders`
+  (permisos de la tabla con el esquema base), `reminders_is_active`, `reminders_client_request_id`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
   -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.
 - Pruebas de concurrencia: `bash supabase/tests/concurrency/daily_logs_concurrency.sh`,
   `pets_concurrency.sh` (alta con la misma clave y edición con la misma versión base),
   `pets_delete_concurrency.sh`, `pet_storage_cleanup_concurrency.sh` (reservas simultáneas, caducadas y
-  caídas, informes duplicados, subida durante el borrado; necesita el bucket local) y
-  `abuse_limits_concurrency.sh` (solicitudes de IA e invitaciones simultáneas en el límite) (solo local, vía
+  caídas, informes duplicados, subida durante el borrado; necesita el bucket local),
+  `abuse_limits_concurrency.sh` (solicitudes de IA e invitaciones simultáneas en el límite),
+  `reminders_concurrency.sh` (alta con la misma clave; edición y borrado con la misma versión base) y
+  `account_deletion_concurrency.sh` (borrar una cuenta, conectado como `supabase_auth_admin`, mientras otros escriben) (solo local, vía
   `docker exec`; varias sesiones de psql a la vez; crea datos con ids fijos y los borra al terminar).
   `.gitattributes` fuerza LF en `*.sh` (con `core.autocrlf=true` saldrían con CRLF y bash fallaría).
   pgTAP corre en una transacción y no puede probar carreras: toda lógica que dependa de bloqueos o
@@ -122,6 +136,11 @@
   en otra tabla que referencia al padre, violan su FK. Además el orden de las cascadas depende del
   nombre (OID) de los triggers de FK y varía entre entornos. Probar siempre "borrar el padre con hijos"
   con 2+ filas hijas.
+- Lección FK y triggers: una acción `ON DELETE SET NULL` dispara los `BEFORE UPDATE` de la tabla hija y se ejecuta como
+  dueño de esa tabla: `current_user = postgres` aunque borre `supabase_auth_admin`, con `auth.uid()` a `NULL`. El rol no
+  la distingue de un `UPDATE` sin JWT; el estado sí (la fila referenciada ya no existe). Además, un trigger que recalcula
+  por fila se vuelve cuadrático: medir con volumen. En pgTAP la fila creada en la misma transacción hace que Postgres
+  compruebe también la otra FK (`RI_FKey_fk_upd_check_required`); probar dos FK a la misma cuenta con filas confirmadas.
 - Lección límites de frecuencia: en pgTAP `now()` no avanza, así que dos `request_ai_analysis` seguidas
   chocan con el límite de 1/min; adelantar antes las filas de `private.ai_analysis_usage` 61 s
   (`test_helpers.age_ai_usage()`, `SECURITY DEFINER`). Las carreras del límite, en
