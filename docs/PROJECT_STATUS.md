@@ -1,7 +1,7 @@
 # Kitom — Estado del proyecto
 
-Revisión: **2026-11-05** · app `1.1.0` · 17 migraciones en el repo (15 aplicadas en `kitom-dev`; faltan
-`20261105093545` y `20261105122353`). Auditoría inicial del 2026-10-29 y estado tras las correcciones. Detalle por área:
+Revisión: **2026-11-05** · app `1.1.0` · 17 migraciones en el repo (todas aplicadas en
+`kitom-dev`). Auditoría inicial del 2026-10-29 y estado tras las correcciones. Detalle por área:
 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md), [`DATABASE.md`](DATABASE.md), [`TESTING.md`](TESTING.md),
 [`DEPLOYMENT.md`](DEPLOYMENT.md), [`PRIVACY.md`](PRIVACY.md); plan: [`ROADMAP.md`](ROADMAP.md).
 
@@ -67,7 +67,7 @@ avance: no hay un método reproducible que los respalde.
 | 21 | Rachas | COMPLETA Y VERIFICADA | `recompute_pet_streak` (trigger), pgTAP | — | — |
 | 22 | Logros | IMPLEMENTADA, NO VERIFICADA | concedidos por la BD (`award_pet_achievement` desde rachas y consultas); `pets/[id]/achievements.tsx` | pgTAP de concesión; «primera consulta» se concede al pedirla, no al completarla | P2 |
 | 23 | Desafíos semanales | PENDIENTE | «Próximamente» en logros | diseño y backend | P3 |
-| 24 | Agenda y recordatorios (CRUD, repetición, posponer, activar/desactivar) | COMPLETA Y VERIFICADA | `features/reminders/`, pgTAP `reminders*.test.sql`, fase 13 validada en web y Android; sin conexión (fase 14) con pruebas unitarias y de integración | `db push` de `20261105093545`, tipos y validación a mano de la fase 14 | P1 |
+| 24 | Agenda y recordatorios (CRUD, repetición, posponer, activar/desactivar) | COMPLETA Y VERIFICADA | `features/reminders/`, pgTAP `reminders*.test.sql`, fase 13 validada en web y Android; sin conexión (fase 14) con pruebas unitarias y de integración | probar la fase 14 en web | P2 |
 | 25 | Avisos locales (incluidas alarmas exactas en Android) | COMPLETA Y VERIFICADA (Android) | `notification-sync.tsx`, módulo `modules/kitom-exact-alarms`; build debug en emulador | iOS sin probar; declaración de `SCHEDULE_EXACT_ALARM` en Play | P1 |
 | 26 | Notificaciones push remotas | PENDIENTE | tabla `push_tokens` y RPC sin cliente | solo si el producto las necesita para el lanzamiento | P3 |
 | 27 | Adjuntos de recordatorios | PENDIENTE | bucket `reminder-attachments` sin cliente | — | P3 |
@@ -77,7 +77,7 @@ avance: no hay un método reproducible que los respalde.
 | 31 | Valoración de la orientación (útil / no útil) | IMPLEMENTADA, NO VERIFICADA | RPC `submit_ai_feedback` | pgTAP | P2 |
 | 32 | Ajustes: nombre, zona horaria, tema, notificaciones, seguridad, privacidad, ayuda, legal | COMPLETA Y VERIFICADA | `(app)/settings/*` recorridos en emulador; pgTAP `profile_timezone` | preferencias de alertas/marketing no editables | P3 |
 | 33 | Cambiar contraseña | IMPLEMENTADA, NO VERIFICADA | pide la actual con un cliente de Auth aparte (integración local), código de reautenticación, «Crear contraseña» para cuentas de Google | prueba manual; reautenticación con el Dashboard configurado | P1 |
-| 34 | Eliminar cuenta | COMPLETA Y VERIFICADA (local) | `delete-account` + pantalla; integración local (9/9) y de punta a punta en emulador contra el Supabase local | `db push` de `20261105122353` (sin ella falla a co-tutores y a quien transfiere: D-11) y producción | P0 |
+| 34 | Eliminar cuenta | COMPLETA Y VERIFICADA (local) | `delete-account` + pantalla; integración local (9/9) y de punta a punta en emulador contra el Supabase local | producción | P0 |
 | 35 | Exportar mis datos | COMPLETA Y VERIFICADA (Android) | `settings/export`, menú de compartir y JSON revisado en emulador; lógica con pruebas | — | — |
 | 36 | Premium / suscripción | PENDIENTE (fuera de la v1, decisión 2026-10-29) | retirado de la interfaz; `process_revenuecat_event` en BD sin webhook | decisión de precio y límites; webhook; productos en tiendas | P3 |
 | 37 | Informes PDF para el veterinario | PENDIENTE | `request_generate_report` es un esbozo; sin Edge Function | — | P3 |

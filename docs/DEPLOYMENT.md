@@ -162,8 +162,7 @@ Las cuentas y los paneles (GitHub Pages, dominio, SMTP, Supabase Auth, Google Cl
 
 **A. Desarrollo (`kitom-dev`)**
 1. ✅ `db push` de `20261030090318` (2026-11-04).
-   - **Pendiente:** `db push` de `20261105093545` y `20261105122353`, las dos a la vez (se aplican en ese orden y no hace falta `--include-all`). Sin la segunda, eliminar la cuenta falla a co-tutores y a quien transfiere (`DATABASE.md` D-11). No hay que redesplegar `delete-account`.
-   - **Después:** regenerar los tipos con `--linked` (solo por `reminders.client_request_id`).
+   - ✅ `db push` de `20261105093545` y `20261105122353` (2026-11-06) y tipos regenerados.
 2. ✅ Tipos regenerados.
 3. ✅ `ai-analysis-process` (v2), `delete-account` (v1) y `pet-storage-cleanup` (v1) desplegadas (comprobado en solo lectura, 2026-11-04).
 4. Revisar la IA: secreto `GEMINI_API_KEY`, logs de la función y una consulta real hasta `completed`.

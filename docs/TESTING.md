@@ -103,7 +103,27 @@ Contra el Supabase local con las 17 migraciones (`migration up --local`, sin `db
 
 En la primera ejecución completa de la integración, las suites de razas y de la agenda online se cancelaron en su
 `before` (lectura de especies vacía), como ya pasó el 2026-11-05; aisladas pasan, y al repetirla, 76/76. Sin explicar.
-Sin hacer todavía: la validación a mano en el emulador Android y en web.
+Validación a mano en el emulador Android (2026-11-06; build de depuración nativa, Supabase local, modo avión para
+cortar la red), con la propietaria y una co-tutora editora:
+
+- **Con conexión:** la agenda carga y guarda la copia y el permiso.
+- **En modo avión:**
+  - la agenda dice que se ve la copia del dispositivo;
+  - se crea un recordatorio («Guardado en este dispositivo») y se marca otro como hecho;
+  - los avisos siguen la agenda: el del alta nueva se programa y el del hecho se cancela; los 14 diarios no se tocan.
+- **Arranque en frío sin conexión:** «Hoy» y la agenda salen de la copia, con los cambios locales encima, y «Cambios
+  sin sincronizar» los lista.
+- **Al volver la red:**
+  - el alta se crea una sola vez, con su clave;
+  - el hecho conserva la hora real a la que se marcó;
+  - una edición del mismo título que la co-tutora cambió en el servidor queda en conflicto, con las dos versiones;
+  - «Quedarme con lo mío» la envía, y los avisos quedan sin duplicar con el id del servidor.
+- **Eliminar sin conexión:** desaparece de la lista y se cancela su aviso. El cierre de sesión la cuenta en «Agenda»;
+  al volver la red se envía sola y, al cerrar sesión, no queda ningún aviso de Kitom.
+- **Permiso revocado:** la co-tutora crea sin conexión y la propietaria la baja a lectora. Al volver, RLS lo rechaza,
+  queda «Sin permiso», se conserva, el servidor no tiene nada y solo se descarta cuando ella lo pide.
+- **Corregido durante la prueba:** Ajustes decía «hay cambios de mascotas» por un cambio de la agenda.
+- **Sin probar a mano:** web, posponer y «Deshacer», y la red que vuelve con la app en segundo plano.
 
 ### Borrar una cuenta y agenda sin conexión: backend (2026-11-05, en local)
 

@@ -1,7 +1,7 @@
 # Kitom — Base de datos (estado desplegado)
 
 Revisión: **2026-11-05**. Fotografía del esquema **realmente desplegado** (`supabase/migrations/`,
-15 migraciones aplicadas en `kitom-dev` y 2 pendientes), de su cobertura de pruebas y de sus problemas conocidos.
+17 migraciones, todas aplicadas en `kitom-dev`), de su cobertura de pruebas y de sus problemas conocidos.
 El **contrato** (matriz de permisos, RPC, códigos de error, Edge Functions) está en
 [`docs/README.md`](README.md) y no se repite aquí; las decisiones, en [`DECISIONS.md`](DECISIONS.md);
 las reglas de trabajo, en [`supabase/CLAUDE.md`](../supabase/CLAUDE.md).
@@ -24,8 +24,8 @@ las reglas de trabajo, en [`supabase/CLAUDE.md`](../supabase/CLAUDE.md).
 | `20261028114317_pet_storage_cleanup_guards` | salvaguardas de las RPC de limpieza | aplicada |
 | `20261028200659_reminders_is_active` | activar/desactivar recordatorios | aplicada |
 | `20261030090318_abuse_limits_and_db_hardening` | límites de IA (1/min, 3 fallos/día) e invitaciones (20/24 h), identidad oculta de invitaciones pendientes, CHECK de longitud, `(select auth.uid())` en 22 políticas, `STABLE`, 12 índices de FK, `processing_started_at`, `pg_cron`/`pg_net` y tareas de limpieza | aplicada (2026-11-04) |
-| `20261105093545_reminders_client_request_id` | alta idempotente de recordatorios (agenda sin conexión, fase 14) | **pendiente** (`db push` del usuario; probada en local) |
-| `20261105122353_account_deletion_audit_triggers` | borrar una cuenta con datos en mascotas que sobreviven (D-11): la FK `ON DELETE SET NULL` pasa los triggers de auditoría, conserva `last_edited_by` y no recalcula la racha | **pendiente** (`db push` del usuario; probada en local) |
+| `20261105093545_reminders_client_request_id` | alta idempotente de recordatorios (agenda sin conexión, fase 14) | aplicada (2026-11-06) |
+| `20261105122353_account_deletion_audit_triggers` | borrar una cuenta con datos en mascotas que sobreviven (D-11): la FK `ON DELETE SET NULL` pasa los triggers de auditoría, conserva `last_edited_by` y no recalcula la racha | aplicada (2026-11-06) |
 
 Procedimiento (resumen; completo en `supabase/CLAUDE.md` y [`DEPLOYMENT.md`](DEPLOYMENT.md) §5):
 migración nueva → `migration up --local` → pgTAP → PR `db/…` → `db push` **del usuario** → tipos con
@@ -152,7 +152,7 @@ Con el volumen actual no hay impacto medible; son tareas P2 antes de crecer.
 | D-08 | La limpieza de Storage no puede programarse: el remoto no tiene `pg_cron` ni `pg_net` (la migración `20261030090318` los habilita y programa las tareas; no hacen nada hasta crear los secretos de Vault) | `ROADMAP.md` P1-04 |
 | D-09 | `catalog_translations` polimórfica, `recurrence_rule` con validación básica, co-tutores sin avatares ajenos | `docs/README.md` §22 |
 | D-10 | Sin entorno de producción: `kitom-dev` es el único remoto | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
-| D-11 | Borrar una cuenta fallaba si creó recordatorios o registros diarios en una mascota que sigue existiendo (Auth respondía 500). **Corregido** por `20261105122353`; `kitom-dev` lo tendrá al aplicarla (§1) | [`DECISIONS.md`](DECISIONS.md) |
+| D-11 | Borrar una cuenta fallaba si creó recordatorios o registros diarios en una mascota que sigue existiendo (Auth respondía 500). **Corregido** por `20261105122353`, aplicada en `kitom-dev` (2026-11-06) | [`DECISIONS.md`](DECISIONS.md) |
 
 Copias de seguridad: dependen del plan de Supabase del proyecto (en el plan gratuito no hay
 recuperación a un momento dado); no hay procedimiento de restauración probado.

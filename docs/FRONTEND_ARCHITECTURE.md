@@ -1727,9 +1727,8 @@ propuesta aprobada `docs/proposals/2026-10-28-reminders-offline.md`. Mismo patr�
   servidor falso (`fake-reminder-server.mjs`). `reminders-offline.integration.test.mjs` los prueba contra el Supabase
   local (23505 y RLS reales).
 - **Pendiente:**
-  - Validación a mano en el emulador Android (avisos reales, reinicios, red en segundo plano) y en web.
+  - Validada a mano en el emulador Android (2026-11-06, `docs/TESTING.md`). Falta web y la red que vuelve en segundo plano.
   - Coordinación entre pestañas en web, como en Daily Logs y Pets.
-  - Los tipos llevan `client_request_id` añadido a mano hasta regenerarlos con `--linked` tras el `db push`.
 
 ## 6. Errores — comportamiento esperado
 

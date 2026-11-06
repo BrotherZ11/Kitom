@@ -5,8 +5,8 @@ decisión permanece en su documento de referencia.
 
 ## 2026-11-06
 
-Agenda sin conexión, fase 14: frontend (rama `db/integration-account-deletion-reminders`; necesita la migración
-`20261105093545` en el remoto):
+Agenda sin conexión, fase 14: frontend. Las migraciones `20261105093545` y `20261105122353` ya están en `kitom-dev`, con los
+tipos regenerados; validada a mano en el emulador Android:
 
 - **Sin conexión** se ve la agenda guardada en el dispositivo y se crea, edita, marca hecho, pospone, activa,
   desactiva y elimina. Todo se envía al volver la red, sin duplicar aunque se pierda una respuesta.

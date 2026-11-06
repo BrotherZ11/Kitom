@@ -95,12 +95,12 @@
   (client_request_id)` a `authenticated` (sin UPDATE): alta idempotente para la agenda sin conexión. Sin cambios
   de RLS, triggers ni `reminders.id`. Validada en local con `migration up --local`, pgTAP
   (`reminders_client_request_id`), concurrencia (`reminders_concurrency.sh`) y `db diff --local` (sin
-  diferencias de sus objetos). **Pendiente:** `db push` del usuario y tipos con `--linked`. Decisión: `docs/DECISIONS.md`.
+  diferencias de sus objetos). Aplicada en `kitom-dev` (`db push` del usuario, 2026-11-06) y tipos regenerados. Decisión: `docs/DECISIONS.md`.
 - Migración `20261105122353_account_deletion_audit_triggers.sql` (rama `db/integration-account-deletion-reminders`, D-11): los
   triggers de auditoría permiten `created_by`/`logged_by` a `NULL` solo si el perfil ya no existe (la FK al borrar la cuenta);
   `set_last_edited_by` y `trg_recompute_pet_streak_fn` reconocen ese estado. Sin cambios de firmas, tablas, GRANT, RLS ni tipos.
-  Validada desde cero en un Supabase local desechable, con pgTAP, concurrencia, Auth real y `db diff`; **pendiente de `db push`
-  del usuario**. Decisión: `docs/DECISIONS.md`.
+  Validada desde cero en un Supabase local desechable, con pgTAP, concurrencia, Auth real y `db diff`; aplicada en
+  `kitom-dev` (`db push` del usuario, 2026-11-06). Decisión: `docs/DECISIONS.md`.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
   `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `ai_quota`,
   `abuse_limits`, `db_hardening`, `account_deletion_audit`, `reminders`

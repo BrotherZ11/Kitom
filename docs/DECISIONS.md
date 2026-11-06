@@ -18,10 +18,10 @@ solo con conexión. Sustituye a la decisión del 2026-10-21 en ese punto.
 - **Mapeos y lápidas confirmados se olvidan a los 7 días:** la agenda escribe mucho más que Pets.
 - **Avisos sin conexión:** solo se tocan los `reminder:*`, con un tope que deja sitio a los diarios.
 - **Tipos:** `client_request_id` se añadió a mano a `database.types.ts` (las 3 líneas que genera el CLI) para no bloquear la
-  fase hasta el `db push`; se regeneran con `--linked` después y deben quedar iguales.
+  fase hasta el `db push`. Regenerados con `--linked` tras aplicarla (2026-11-06): idénticos.
 
-**Consecuencias.** La app no se publica antes de aplicar la migración en el remoto: sin la columna, cada alta fallaría.
-Falta la validación a mano en dispositivo y la coordinación entre pestañas en web.
+**Consecuencias.** La migración ya está en `kitom-dev` (2026-11-06). Validada a mano en el emulador Android; falta web y la
+coordinación entre pestañas en web.
 
 ## 2026-11-05 — Borrar una cuenta: la auditoría reconoce la FK por el estado, no por el rol
 

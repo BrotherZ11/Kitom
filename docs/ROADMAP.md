@@ -58,7 +58,7 @@ para el lanzamiento · **P2** estabilidad y calidad · **P3** posterior. Esfuerz
 | P2-06 ✅ | Parches del SDK 57 (`npx expo install --check`) y revisión de `npm audit` (SEC-20) | 0,5 |
 | P2-07 | E2E (Maestro) de los flujos críticos en CI | 3–5 |
 | P2-08 | Accesibilidad: TalkBack/VoiceOver, texto grande, contraste de tokens | 2 |
-| P2-09 ✅ local | Agenda sin conexión (fase 14, `docs/FRONTEND_ARCHITECTURE.md` §5; falta el `db push` y la validación a mano) | 3–5 |
+| P2-09 ✅ | Agenda sin conexión (fase 14, `docs/FRONTEND_ARCHITECTURE.md` §5; validada en el emulador Android, falta web) | 3–5 |
 | P2-10 | Borrar registros diarios; co-tutor que abandona; transferir propiedad en la UI | 2–3 |
 | P2-11 | Selector de fecha nativo para el nacimiento; límites de longitud en BD (SEC-18) | 1 |
 | P2-12 | DELETE de Storage solo del autor o del dueño (SEC-15); `pg_trgm` fuera de `public` (SEC-12) | 1 |
