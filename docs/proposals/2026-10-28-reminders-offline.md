@@ -1,8 +1,8 @@
-# Agenda sin conexión (propuesta, sin implementar)
+# Agenda sin conexión (propuesta, implementada)
 
-> **Estado: PROPUESTA de la fase 14, aprobada el 2026-11-05 (revisada sobre `main` `72d3c14`).** La migración está en la
-> rama `db/integration-account-deletion-reminders`, probada en local y pendiente de `db push`. El frontend no está
-> implementado: la agenda sigue solo con conexión (decisión del 2026-10-21 en `docs/DECISIONS.md`).
+> **Estado: aprobada el 2026-11-05 e implementada el 2026-11-06** (rama `db/integration-account-deletion-reminders`). La
+> migración está probada en local y pendiente de `db push`. Lo implementado y sus límites:
+> `docs/FRONTEND_ARCHITECTURE.md` §5 «Agenda sin conexión (fase 14)». Este documento queda como diseño y plan de pruebas.
 
 ## Por qué hace falta backend
 

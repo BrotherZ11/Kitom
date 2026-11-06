@@ -3,6 +3,26 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-06 — Agenda sin conexión: frontend de la fase 14
+
+**Contexto.** Con la clave de alta (`20261105093545`) y el permiso guardado aprobados el 2026-11-05, la agenda deja de ser
+solo con conexión. Sustituye a la decisión del 2026-10-21 en ese punto.
+
+**Decisiones.**
+
+- Mismo modelo que Pets: un motor propio y sus almacenes. No se crea uno genérico.
+- «Hecho», «posponer», activar y desactivar también se guardan primero en el dispositivo; si siguieran solo con
+  conexión, chocarían con una edición pendiente.
+- **Conflicto:** se decide entero («lo mío» o «lo del servidor»), no grupo a grupo. Lo que no choca se conserva siempre.
+- **Antes de enseñar un conflicto, `can_edit_pet`:** a quien ya no puede escribir no se le pide resolver nada.
+- **Mapeos y lápidas confirmados se olvidan a los 7 días:** la agenda escribe mucho más que Pets.
+- **Avisos sin conexión:** solo se tocan los `reminder:*`, con un tope que deja sitio a los diarios.
+- **Tipos:** `client_request_id` se añadió a mano a `database.types.ts` (las 3 líneas que genera el CLI) para no bloquear la
+  fase hasta el `db push`; se regeneran con `--linked` después y deben quedar iguales.
+
+**Consecuencias.** La app no se publica antes de aplicar la migración en el remoto: sin la columna, cada alta fallaría.
+Falta la validación a mano en dispositivo y la coordinación entre pestañas en web.
+
 ## 2026-11-05 — Borrar una cuenta: la auditoría reconoce la FK por el estado, no por el rol
 
 **Contexto.** Borrar una cuenta con recordatorios o registros diarios en una mascota que sigue existiendo fallaba (D-11):

@@ -118,10 +118,12 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   (activar/desactivar) y pruebas pgTAP de permisos de `reminders`: probadas en local; aplicada en
   `kitom-dev` el 2026-10-29 (`db push` del usuario) y tipos regenerados con `--linked`. Activar/desactivar
   en la app (rama `feat/reminders-active`, integrada en `main` el 2026-10-29): un desactivado no avisa ni cuenta como pendiente; validado
-  en web y en el emulador Android (la alarma se cancela y vuelve al activarlo). Agenda solo con conexión (propuesta offline aprobada: `docs/proposals/2026-10-28-reminders-offline.md`).
-- Fase 14, agenda sin conexión (2026-11-05): migración `20261105093545_reminders_client_request_id.sql` (rama
-  `db/integration-account-deletion-reminders`), probada en local; **pendiente de `db push` del usuario y de regenerar los tipos**. El
-  frontend espera a eso.
+  en web y en el emulador Android (la alarma se cancela y vuelve al activarlo). Agenda sin conexión desde la fase 14 (abajo).
+- Fase 14, agenda sin conexión (2026-11-05/06, rama `db/integration-account-deletion-reminders`): migración
+  `20261105093545_reminders_client_request_id.sql`, probada en local; **pendiente de `db push` del usuario y de regenerar los tipos**
+  (`client_request_id` está añadido a mano en `database.types.ts` hasta entonces). Frontend implementado: copia, operaciones y motor
+  propios (`docs/FRONTEND_ARCHITECTURE.md` §5 «Agenda sin conexión (fase 14)»); sin validar a mano en dispositivo todavía.
+  No publicar la app sin la migración aplicada.
 - Preparación de la v1 (Android, gratuita; 2026-11-03): eliminar la cuenta, descargar los datos, páginas legales (`site/`),
   Auth endurecido, idioma del dispositivo y Sentry, integrados en `main`. Migración `20261029151011`: aplicada en
   `kitom-dev`. Migración `20261030090318_abuse_limits_and_db_hardening.sql`: aplicada en `kitom-dev` (`db push` del

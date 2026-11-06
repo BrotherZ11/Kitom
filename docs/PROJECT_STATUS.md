@@ -67,7 +67,7 @@ avance: no hay un método reproducible que los respalde.
 | 21 | Rachas | COMPLETA Y VERIFICADA | `recompute_pet_streak` (trigger), pgTAP | — | — |
 | 22 | Logros | IMPLEMENTADA, NO VERIFICADA | concedidos por la BD (`award_pet_achievement` desde rachas y consultas); `pets/[id]/achievements.tsx` | pgTAP de concesión; «primera consulta» se concede al pedirla, no al completarla | P2 |
 | 23 | Desafíos semanales | PENDIENTE | «Próximamente» en logros | diseño y backend | P3 |
-| 24 | Agenda y recordatorios (CRUD, repetición, posponer, activar/desactivar) | COMPLETA Y VERIFICADA | `features/reminders/`, pgTAP `reminders*.test.sql`, fase 13 validada en web y Android | sin conexión (propuesta `docs/proposals/2026-10-28-reminders-offline.md`) | P2 |
+| 24 | Agenda y recordatorios (CRUD, repetición, posponer, activar/desactivar) | COMPLETA Y VERIFICADA | `features/reminders/`, pgTAP `reminders*.test.sql`, fase 13 validada en web y Android; sin conexión (fase 14) con pruebas unitarias y de integración | `db push` de `20261105093545`, tipos y validación a mano de la fase 14 | P1 |
 | 25 | Avisos locales (incluidas alarmas exactas en Android) | COMPLETA Y VERIFICADA (Android) | `notification-sync.tsx`, módulo `modules/kitom-exact-alarms`; build debug en emulador | iOS sin probar; declaración de `SCHEDULE_EXACT_ALARM` en Play | P1 |
 | 26 | Notificaciones push remotas | PENDIENTE | tabla `push_tokens` y RPC sin cliente | solo si el producto las necesita para el lanzamiento | P3 |
 | 27 | Adjuntos de recordatorios | PENDIENTE | bucket `reminder-attachments` sin cliente | — | P3 |
@@ -109,7 +109,7 @@ Defectos demostrables por código (no reproducidos en dispositivo salvo que se i
 | TEST-01 | pgTAP `daily_logs` caso 121 falla según los OID del entorno: el escenario «cascada desfavorable» no se reproduce en el local actual | `supabase/tests/database/daily_logs.test.sql:702-711` |
 | TEST-02 | Integración de `pet-storage-cleanup` falla si la cola local tiene trabajos vencidos de otras pruebas (392 en el local actual) | `cleanup.integration.test.mjs:161-162` |
 
-Limitaciones de diseño: agenda solo con conexión; sin coordinación entre pestañas en web; copia
+Limitaciones de diseño: sin coordinación entre pestañas en web; copia
 local sin cifrar y sin limpieza de cuentas que no vuelven; listas renderizadas con `ScrollView` + `map`
 (sin `FlatList`); componentes grandes (`pet-operation.ts` 781 líneas, `pet-sync-engine.ts` 684,
 `pet-history.tsx` 588).

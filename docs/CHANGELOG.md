@@ -3,6 +3,20 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-06
+
+Agenda sin conexión, fase 14: frontend (rama `db/integration-account-deletion-reminders`; necesita la migración
+`20261105093545` en el remoto):
+
+- **Sin conexión** se ve la agenda guardada en el dispositivo y se crea, edita, marca hecho, pospone, activa,
+  desactiva y elimina. Todo se envía al volver la red, sin duplicar aunque se pierda una respuesta.
+- **Conflictos, falta de permiso y datos rechazados** se enseñan en el recordatorio con qué hacer. Nunca se
+  descarta nada sin que lo pida el usuario.
+- **Permiso sin conexión:** se usa el último confirmado en el dispositivo, solo para decidir qué se ofrece.
+- **Avisos** también con lo apuntado sin conexión, sin tocar los del registro diario.
+- **Cierre de sesión, «Cambios sin sincronizar» y eliminar la cuenta** cuentan la agenda.
+- **Pruebas:** 74 unitarias nuevas y 10 de integración contra el Supabase local.
+
 ## 2026-11-05
 
 Borrar una cuenta (rama `db/integration-account-deletion-reminders`, migración `20261105122353`, **pendiente de `db push`**):

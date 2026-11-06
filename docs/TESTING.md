@@ -89,6 +89,22 @@ APK de release en emulador Android, contra el Supabase local, con una ruta tempo
 - Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
 - **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
 
+### Agenda sin conexión: frontend (2026-11-06, fase 14)
+
+Contra el Supabase local con las 17 migraciones (`migration up --local`, sin `db reset`):
+
+| Comando | Resultado |
+|---|---|
+| `npm test` | 941/941 (74 nuevas: `reminder-sync-engine`, `reminder-offline`) |
+| `npm run test:integration` | 76/76 (10 nuevas: `reminders-offline.integration.test.mjs`) |
+| `tsc`, `expo lint` | correctos |
+| `expo export` Android y web | correctos |
+| `expo-doctor` | 20/21: hay parches nuevos de paquetes de Expo (`expo` 57.0.32 frente a 57.0.31…), sin actualizar en esta fase |
+
+En la primera ejecución completa de la integración, las suites de razas y de la agenda online se cancelaron en su
+`before` (lectura de especies vacía), como ya pasó el 2026-11-05; aisladas pasan, y al repetirla, 76/76. Sin explicar.
+Sin hacer todavía: la validación a mano en el emulador Android y en web.
+
 ### Borrar una cuenta y agenda sin conexión: backend (2026-11-05, en local)
 
 Migraciones `20261105093545` y `20261105122353`, juntas. Sobre un Supabase local desechable: primero las 15 migraciones de `kitom-dev`

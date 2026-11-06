@@ -442,7 +442,7 @@ en `history-view.ts`.
   borrado en esta fase.
 
 ### RemindersScreen
-**Implementado (2026-10-21; fase 13, 2026-10-28)**: pestaña `/agenda` (mascota activa), `reminders`
+**Implementado (2026-10-21; fase 13, 2026-10-28; sin conexión, fase 14, 2026-11-06)**: pestaña `/agenda` (mascota activa), `reminders`
 (todas las mascotas), `reminders/new`, `reminders/[id]` y `reminders/[id]/edit`; resumen en la ficha de
 la mascota (`PetRemindersSummary`: vencidos y los 3 próximos pendientes). Código: `features/reminders/`
 (lógica pura y probada en `reminder-model.ts` y `reminder-format.ts`; acceso a datos con el cliente
@@ -453,7 +453,9 @@ el Supabase local en `api/reminders.integration.test.mjs`; hooks en `hooks/use-r
   vencidos y desactivados incluidos, para el listado general (`reminderKeys.pending`); y, para los
   avisos, solo los pendientes activos que aún tienen que sonar (`eq(is_active, true)`,
   `or(due_at.gt.ahora, snooze_until.gt.ahora)`, `reminderKeys.upcoming`). RLS `is_pet_member` decide qué se ve. Tope de 300 filas por consulta.
-- **WRITE:** insert con `pet_id`, `created_by = auth.uid()`, `status = 'pending'` y las columnas del
+- **WRITE** (desde la fase 14, siempre primero en el dispositivo y enviadas por el motor de §5 «Agenda sin conexión»;
+  `api/reminders-remote.ts` conserva las escrituras directas, probadas, que ya no usa la app): insert con `pet_id`,
+  `created_by = auth.uid()`, `status = 'pending'` y las columnas del
   formulario (`type`, `title`, `description`, `due_at`, `recurrence_rule`); update solo de `type`,
   `title`, `description`, `due_at`, `recurrence_rule`, `snooze_until`, `status` e `is_active`, siempre con
   precondición `eq('updated_at', base)`; delete con `select('id')`. Si no toca filas (RLS filtra, no da
@@ -492,10 +494,9 @@ el Supabase local en `api/reminders.integration.test.mjs`; hooks en `hooks/use-r
   tal cual (si su hora pasó, como vencido). Sin la columna en la caché (versión anterior), activo
   (`isReminderActive`). Las versiones de la app anteriores a esta fase ignoran la columna: en un
   dispositivo con una de ellas, un desactivado seguiría avisando.
-- **Sin conexión:** se ve lo ya cargado; escribir necesita conexión (sin copia en el dispositivo), así
-  que no hay cambios pendientes de la agenda: todo lo que se ve es del servidor. Una mascota aún sin
-  crear en el servidor (id local) no tiene agenda. Escritura sin conexión: propuesta en
-  `docs/proposals/2026-10-28-reminders-offline.md` (falta un alta idempotente).
+- **Sin conexión (fase 14):** se ve la copia del dispositivo y se crea, edita, marca hecho, pospone, activa,
+  desactiva y elimina si el último `can_edit_pet` confirmado lo permitía. Todo se guarda aquí y se envía al
+  volver; ver §5 «Agenda sin conexión (fase 14)». Una mascota aún sin crear en el servidor (id local) sigue sin agenda.
 - **Storage:** `reminder-attachments` — **pendiente** (adjuntos no implementados).
 
 ### AIAnalysisScreen
@@ -656,7 +657,7 @@ probado: lectura de respuestas, errores y cierre en el dispositivo), `api/accoun
      vuelve a borrar lo local por si algo escribió entre medias. Es la única excepción a «cerrar sesión
      con `useSignOutFlow`». La protección de rutas lleva al acceso y un toast confirma el borrado.
 
-## 5. Offline (daily logs y pets)
+## 5. Offline (daily logs, pets y agenda)
 
 ```
 Usuario pulsa Guardar
@@ -1670,6 +1671,66 @@ AsyncStorage sobre un `localStorage` falso) **no equivalen** a una prueba en dis
 el 2026-10-13: Android 16 (emulador, Expo Go 57.0.9) y Chromium, correcta en ambos, incluido el
 reinicio. Sin probar: iOS, dispositivo Android físico y development build propio.
 
+### Agenda sin conexión (fase 14)
+
+**Implementada (2026-11-06)** sobre la migración `20261105093545_reminders_client_request_id.sql` (alta idempotente) y la
+propuesta aprobada `docs/proposals/2026-10-28-reminders-offline.md`. Mismo patrón que Pets (fases 8 y 10). Código en
+`features/reminders/`:
+- `offline/reminder-operation.ts`: modelo, validación y transiciones (puro).
+- `offline/reminder-operation-repository.ts` y `offline/reminder-cache-repository.ts`: almacenes.
+- `offline/reminder-sync-engine.ts`: motor.
+- `offline/reminder-view.ts`: vistas.
+- `api/reminder-writes-remote.ts`: lecturas y escrituras con el token del dueño.
+- `sync/reminder-sync-provider.tsx`: proveedor, dentro de `PetSyncProvider`.
+- `components/reminder-sync-status.tsx`: estado y acciones.
+
+- **Operación local** (`kitom:v1:<userId>:reminder-ops:<localId>`): una por recordatorio, con `kind` (`create`, `update` o
+  `delete`), contenido, `baseRow`, `restore`, `operationId`, estado y reintentos.
+  - **Estados:** `pending` (con `inFlightSince`, resultado incierto), `conflict`, `failed`, `forbidden` y `synced`.
+  - **Alta:** `local-<uuid>` con `client_request_id` = `operationId`. Confirmada, queda como mapeo al id del servidor.
+  - **Ediciones:** se consolidan. «Hecho», «posponer», activar y desactivar son ediciones; «Hecho» conserva su hora
+    real (`completed_at`, que el trigger respeta).
+  - **Eliminación:** se puede deshacer hasta que sale. Confirmada, queda la lápida.
+  - **Olvido:** mapeos y lápidas se olvidan a los 7 días (`SYNCED_RETENTION_MS`).
+- **Fusión** a tres bandas por grupos: datos (`type`, `title`, `description`), fecha (`due_at`, `recurrence_rule`,
+  `snooze_until`), estado (`status`, `completed_at`) y avisos (`is_active`). Los instantes se comparan por su valor, no
+  por su texto: el cliente envía `…Z` y el servidor devuelve `…+00:00`. Un conflicto se decide entero: «lo mío» o
+  «lo del servidor». Lo que no choca se conserva en los dos casos.
+- **Envío:**
+  - **Alta:** un 23505 del índice de la clave se resuelve leyendo la fila por `(created_by, client_request_id)` y
+    comprobando `pet_id`.
+  - **Edición y eliminación:** con `eq('updated_at', base)`. Con 0 filas se lee la actual: mismo contenido es
+    confirmada; misma versión, `forbidden`; otros campos, se reaplica; los mismos campos, conflicto.
+  - **Antes de declarar un conflicto** se pregunta `can_edit_pet`: sin permiso es `forbidden`, no conflicto.
+  - **Sin permiso o datos rechazados:** `forbidden` o `failed` se conservan; nada se descarta solo.
+  - **Mascota con una eliminación guardada:** sus operaciones se retienen y todo vuelve al deshacerla. Con la
+    eliminación confirmada, se cierran.
+- **Permiso sin conexión** (decisión del 2026-11-05): se guarda el último `can_edit_pet` confirmado por mascota
+  (`reminder-permissions`), solo como indicación de interfaz. `true` permite encolar, `false` lo bloquea y sin valor
+  conocido es solo lectura. RLS decide al sincronizar.
+- **Copia** (`reminders`, `reminder-scopes`): una entrada por recordatorio y una lista por alcance (`pending`,
+  `upcoming` y `pet-<id>`), con marcas de lectura como Pets.
+  - Una lista **confirmada** puede estar vacía; una nunca descargada da `offline_unavailable`.
+  - Una consulta que llega al tope de 300 filas queda `complete: false`: lo que no vino no se olvida y la pantalla
+    avisa de que puede haber más.
+  - Un fallo de red nunca borra la copia, y no se guardan URLs ni tokens.
+- **Vistas:**
+  - Cada fila con un cambio local dice su estado («Guardado en este dispositivo», «En conflicto»…).
+  - Un id `local-…` nunca se pide al servidor; al confirmarse, su ruta redirige al id del servidor.
+  - Un alta enviada sin respuesta que ya viene en la lista se enseña una vez.
+- **Avisos** (§7): se derivan de la agenda que se ve, con lo local encima. Sin preferencias del servidor, el plan
+  solo toca los `reminder:*` (alcance `reminders`, con tope `MAX_OFFLINE_REMINDERS`) y nunca cancela los diarios.
+  Un alta local avisa como `reminder:<local-id>`; al confirmarse, el mismo plan cambia ese id por el del servidor.
+- **Cierre de sesión y cuenta:** `SignOutSummary.reminders` cuenta igual que Pets, ilegibles incluidos. «Cambios sin
+  sincronizar» los lista. Al eliminar la cuenta, el motor también se para antes de borrar lo local.
+- **Pruebas:** `reminder-sync-engine.test.mjs` y `reminder-offline.test.mjs` cubren los 20 casos del encargo con un
+  servidor falso (`fake-reminder-server.mjs`). `reminders-offline.integration.test.mjs` los prueba contra el Supabase
+  local (23505 y RLS reales).
+- **Pendiente:**
+  - Validación a mano en el emulador Android (avisos reales, reinicios, red en segundo plano) y en web.
+  - Coordinación entre pestañas en web, como en Daily Logs y Pets.
+  - Los tipos llevan `client_request_id` añadido a mano hasta regenerarlos con `--linked` tras el `db push`.
+
 ## 6. Errores — comportamiento esperado
 
 | Código/situación | Comportamiento en UI |
@@ -1709,8 +1770,9 @@ push remoto ni `push_tokens`. `NotificationSync` (montado en `(app)/_layout.tsx`
   entonces con el mismo identificador, sin duplicados (comprobado en el emulador).
 - El detalle de un recordatorio nunca dice que avisará si no puede: en web, sin el módulo nativo, sin
   permiso, con la hora ya pasada o con la mascota eliminándose (`reminderNotifyState`).
-- Solo con permiso, sesión utilizable y datos del servidor (sin ellos no se toca lo programado). Al
-  cerrar sesión se quitan todos. Tocar un aviso abre su ruta (`data.url`, solo rutas internas).
+- Solo con permiso y datos fiables de la agenda (servidor, o copia del dispositivo con lo local encima; nunca
+  descargada o ilegible: no se toca nada). Sin preferencias del servidor (sin conexión) solo se tocan los
+  `reminder:*` (fase 14, §5 «Agenda sin conexión»). Al cerrar sesión se quitan todos. Tocar un aviso abre su ruta (`data.url`, solo rutas internas).
 - El módulo se carga bajo demanda (`device-notifications.ts`): si falta su parte nativa (Expo Go 57.0.9
   no trae `ExpoTopicSubscriptionModule`, que importa `expo-notifications` 57.0.23) o en web, los avisos
   quedan «no disponibles» y la app sigue funcionando. Funcionan en un development o production build.
