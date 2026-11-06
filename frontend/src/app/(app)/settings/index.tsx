@@ -37,6 +37,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { useSignOutFlow, useUnsyncedChanges } from '@/features/auth/sign-out-provider';
 import { signOutTotal } from '@/features/auth/unsynced-changes';
+import { reminderUnsyncedTotal } from '@/features/reminders/offline/reminder-operation';
 import { formatTimeOfDay, parseTimeOfDay } from '@/features/notifications/notification-plan';
 import { petUnsyncedTotal } from '@/features/pets/offline/pet-operation';
 import {
@@ -71,7 +72,9 @@ export default function SettingsScreen() {
   const { flow, state } = useSignOutFlow();
   const changes = useUnsyncedChanges();
   const { preference, setPreference } = useAppTheme();
-  const petChanges = changes.view.state === 'ready' && petUnsyncedTotal(changes.view.summary.pets) > 0;
+  const petChanges =
+    changes.view.state === 'ready' &&
+    petUnsyncedTotal(changes.view.summary.pets) + reminderUnsyncedTotal(changes.view.summary.reminders) > 0;
   const [error, setError] = useState<AuthErrorCode | null>(null);
   const [sheet, setSheet] = useState<'name' | 'timezone' | null>(null);
   const serverUsable = canUseServer && online;

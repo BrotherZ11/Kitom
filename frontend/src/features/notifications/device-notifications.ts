@@ -9,6 +9,7 @@ import {
   fingerprint,
   REMINDER_PREFIX,
   type PlannedNotification,
+  type ScheduleScope,
 } from '@/features/notifications/notification-plan';
 
 /**
@@ -151,7 +152,7 @@ function isOurs(identifier: string): boolean {
  * Deja programados exactamente los avisos de `desired` (solo toca los de Kitom). Devuelve cuántos
  * cambió. Un aviso que falla al programarse no impide los demás.
  */
-export async function syncScheduledNotifications(desired: readonly PlannedNotification[]): Promise<number> {
+export async function syncScheduledNotifications(desired: readonly PlannedNotification[], scope: ScheduleScope = 'all'): Promise<number> {
   const N = load();
   if (!N) return 0;
   await configureNotifications();
@@ -163,7 +164,8 @@ export async function syncScheduledNotifications(desired: readonly PlannedNotifi
       return { id: request.identifier, fingerprint: typeof fp === 'string' ? fp : null };
     }),
     desired,
-    mode
+    mode,
+    scope
   );
   await Promise.all(cancel.map((id) => N.cancelScheduledNotificationAsync(id).catch(() => undefined)));
   for (const item of schedule) {

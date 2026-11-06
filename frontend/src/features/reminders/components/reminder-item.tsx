@@ -1,9 +1,11 @@
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
-import { Check } from '@/components/ui/icons';
+import { Check, CloudUpload } from '@/components/ui/icons';
 import { PressedOverlay } from '@/components/ui/pressed-overlay';
 import { Text } from '@/components/ui/text';
+import { reminderSyncLabel } from '@/features/reminders/components/reminder-sync-status';
+import type { ReminderSyncDisplay } from '@/features/reminders/offline/reminder-operation';
 import { isReminderActive, type Reminder } from '@/features/reminders/reminder-model';
 import { REMINDER_TYPE_ICONS, reminderSubtitle } from '@/features/reminders/reminder-text';
 import { useTheme } from '@/hooks/use-theme';
@@ -21,6 +23,8 @@ type ReminderItemProps = {
   onToggle?: () => void;
   /** Escritura en curso de esta fila. */
   busy?: boolean;
+  /** Cambio guardado en el dispositivo y aún sin confirmar. */
+  sync?: ReminderSyncDisplay | null;
   divider?: boolean;
 };
 
@@ -29,13 +33,14 @@ type ReminderItemProps = {
  * tipo y cuándo, y el círculo de «hecho» a la derecha (44 de área táctil). El estado se dice con
  * icono y texto, no solo con color.
  */
-export function ReminderItem({ reminder, now, petName, onOpen, onToggle, busy = false, divider = false }: ReminderItemProps) {
+export function ReminderItem({ reminder, now, petName, onOpen, onToggle, busy = false, sync = null, divider = false }: ReminderItemProps) {
   const theme = useTheme();
   const done = reminder.status !== 'pending';
   // Desactivado: atenuado y sin «hecho» (se activa desde el detalle).
   const paused = !done && !isReminderActive(reminder);
   const muted = done || paused;
   const subtitle = petName ? `${petName} · ${reminderSubtitle(reminder, now)}` : reminderSubtitle(reminder, now);
+  const syncLabel = sync ? reminderSyncLabel(sync) : null;
 
   return (
     <View
@@ -45,7 +50,7 @@ export function ReminderItem({ reminder, now, petName, onOpen, onToggle, busy = 
       ]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${tf(done ? 'agenda.doneA11y' : paused ? 'agenda.pausedA11y' : 'agenda.pendingA11y', { title: reminder.title })}. ${subtitle}`}
+        accessibilityLabel={`${tf(done ? 'agenda.doneA11y' : paused ? 'agenda.pausedA11y' : 'agenda.pendingA11y', { title: reminder.title })}. ${subtitle}${syncLabel ? `. ${syncLabel}` : ''}`}
         onPress={onOpen}
         style={styles.main}>
         {({ pressed }) => (
@@ -64,6 +69,14 @@ export function ReminderItem({ reminder, now, petName, onOpen, onToggle, busy = 
               <Text variant="caption" color="inkMuted">
                 {subtitle}
               </Text>
+              {syncLabel ? (
+                <View style={styles.sync}>
+                  <Icon icon={CloudUpload} size={12} color="inkMuted" />
+                  <Text variant="caption" color="inkMuted">
+                    {syncLabel}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </>
         )}
@@ -120,6 +133,11 @@ const styles = StyleSheet.create({
   },
   text: {
     flex: 1,
+  },
+  sync: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   strike: {
     textDecorationLine: 'line-through',

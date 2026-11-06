@@ -4,11 +4,9 @@ import { StyleSheet, View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
-import { useAuth } from '@/features/auth/auth-context';
 import { ReminderItem } from '@/features/reminders/components/reminder-item';
 import { usePetReminders } from '@/features/reminders/hooks/use-reminders';
 import { groupReminders } from '@/features/reminders/reminder-model';
-import { useIsOnline } from '@/hooks/use-is-online';
 import { t, tf } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 
@@ -17,22 +15,20 @@ const SHOWN = 3;
 
 /**
  * La agenda en la ficha de una mascota del servidor: cuántos hay vencidos y los próximos pendientes
- * (vencidos primero). Solo lectura: cada fila abre el detalle. Sin conexión y sin datos cargados, lo
+ * (vencidos primero). Solo lectura: cada fila abre el detalle. Sin conexión, de la copia; sin copia, lo
  * dice en una línea (la ficha no depende de la agenda).
  */
 export function PetRemindersSummary({ petId, petName, onOpenAgenda }: { petId: string; petName: string; onOpenAgenda: () => void }) {
   const router = useRouter();
-  const { canUseServer } = useAuth();
-  const online = useIsOnline();
   const reminders = usePetReminders(petId);
 
   const content = () => {
     if (reminders.data === undefined) {
-      if (!canUseServer || !online || reminders.fetchStatus === 'idle') {
+      if (reminders.view.state === 'offline_unavailable') {
         return <Text variant="caption" color="inkMuted">{t('agenda.summary.offline')}</Text>;
       }
-      if (reminders.isError) return <Text variant="caption" color="inkMuted">{t('agenda.summary.error')}</Text>;
-      return null;
+      if (reminders.view.state === 'loading') return null;
+      return <Text variant="caption" color="inkMuted">{t('agenda.summary.error')}</Text>;
     }
     const now = new Date();
     const groups = groupReminders(reminders.data, now);
@@ -55,6 +51,7 @@ export function PetRemindersSummary({ petId, petName, onOpenAgenda }: { petId: s
               reminder={reminder}
               now={now}
               divider={index < shown.length - 1}
+              sync={reminders.displayOf(reminder.id)}
               onOpen={() => router.push({ pathname: '/reminders/[id]', params: { id: reminder.id } })}
             />
           ))}

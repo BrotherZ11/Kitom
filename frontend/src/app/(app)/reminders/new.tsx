@@ -6,6 +6,7 @@ import { useReminderNotifyHint } from '@/features/notifications/hooks/use-notify
 import { useActivePet } from '@/features/pets/active-pet-context';
 import { ReminderForm } from '@/features/reminders/components/reminder-form';
 import { ReminderScreenGate } from '@/features/reminders/components/reminder-screen-gate';
+import { reminderOutcomeMessage } from '@/features/reminders/components/reminder-sync-status';
 import { useCreateReminder } from '@/features/reminders/hooks/use-reminders';
 import { reminderErrorMessage } from '@/features/reminders/reminder-errors';
 import {
@@ -20,7 +21,7 @@ import { t } from '@/i18n';
 
 /**
  * Nuevo recordatorio (tablero 8.3). `petId` es la mascota; `date` (`YYYY-MM-DD`, desde el calendario)
- * y `type` (desde los accesos de la agenda vacía) son opcionales.
+ * y `type` (desde los accesos de la agenda vacía) son opcionales. Se guarda primero en el dispositivo.
  */
 export default function NewReminderScreen() {
   const { petId, date, type } = useLocalSearchParams<{ petId: string; date?: string; type?: string }>();
@@ -53,11 +54,11 @@ function NewReminderForm({ petId, petName, date, type }: { petId: string; petNam
   const submit = async (values: ReminderFormValues) => {
     setError(null);
     try {
-      await create.mutateAsync(toReminderWrite(values));
+      const outcome = await create.mutateAsync(toReminderWrite(values));
       setSaved(true);
       // La agenda que se ve es la de la mascota activa: la del recordatorio nuevo.
       setActivePet(petId);
-      toast({ message: t('agenda.toast.created') });
+      toast({ message: reminderOutcomeMessage(outcome, t('agenda.toast.created')) });
       close();
     } catch (cause) {
       setError(reminderErrorMessage(cause));

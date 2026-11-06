@@ -12,13 +12,17 @@ import { usePetOperations } from '@/features/pets/hooks/use-pet-writes';
 import { summarizePetOperations } from '@/features/pets/offline/pet-operation';
 import { petKeys } from '@/features/pets/query-keys';
 import { usePetSync } from '@/features/pets/sync/pet-sync-provider';
+import { useReminderOperations } from '@/features/reminders/hooks/use-reminders';
+import { summarizeReminderOperations } from '@/features/reminders/offline/reminder-operation';
+import { reminderKeys } from '@/features/reminders/query-keys';
+import { useReminderSync } from '@/features/reminders/sync/reminder-sync-provider';
 import { deviceStorage } from '@/lib/local-store/device-storage';
 import { clearLocalUserData } from '@/lib/local-store/local-store';
 
 /**
  * Cierre de sesión de la zona autenticada con **todos** los cambios que solo existen en el dispositivo:
- * registros diarios y altas y ediciones de mascotas (fase 8.5). Montar dentro de los proveedores de
- * Daily Logs y de Pets (`(app)/_layout.tsx`): se crea uno por cuenta, porque esos proveedores se
+ * registros diarios, altas y ediciones de mascotas (fase 8.5) y la agenda (fase 14). Montar dentro de los
+ * proveedores de Daily Logs, Pets y Agenda (`(app)/_layout.tsx`): se crea uno por cuenta, porque esos proveedores se
  * vuelven a montar al cambiar de usuario. El flujo es `features/auth/sign-out-flow.ts`:
  * - `request`: sin nada pendiente, cierra; con algo pendiente (de cualquier fuente), o si alguno de los
  *   almacenes no se puede leer, pide una decisión. Nunca da por vacío lo que no pudo leer.
@@ -40,11 +44,13 @@ const SignOutFlowContext = createContext<Flow | null>(null);
 export function SignOutFlowProvider({ children }: PropsWithChildren) {
   const daily = useDailyLogSync();
   const pets = usePetSync();
+  const reminders = useReminderSync();
   const { signOut } = useAuth();
   const [flow] = useState<Flow>(() =>
     createAppSignOutFlow<AuthErrorCode>({
       dailyLogs: daily,
       pets,
+      reminders,
       signOut: (): Promise<AuthResult> => signOut(),
       clearLocalData: () => clearLocalUserData(deviceStorage, daily.userId),
       timeoutMs: SIGN_OUT_SYNC_TIMEOUT_MS,
@@ -78,10 +84,17 @@ export type UnsyncedChangesView =
 export function useUnsyncedChanges(): { view: UnsyncedChangesView; refetch: () => void } {
   const { view: dailyView, refetch: refetchDaily } = useUnsyncedDailyLogs();
   const operations = usePetOperations();
+  const reminderOperations = useReminderOperations();
   const { userId, operations: repository } = usePetSync();
+  const { operations: reminderRepository } = useReminderSync();
   const unreadable = useQuery({
     queryKey: [...petKeys.operations(userId), 'unreadable'],
     queryFn: () => repository.unreadableCount(),
+    ...localQueryOptions,
+  });
+  const unreadableReminders = useQuery({
+    queryKey: [...reminderKeys.operations(userId), 'unreadable'],
+    queryFn: () => reminderRepository.unreadableCount(),
     ...localQueryOptions,
   });
 
@@ -89,9 +102,19 @@ export function useUnsyncedChanges(): { view: UnsyncedChangesView; refetch: () =
     refetchDaily();
     void operations.refetch();
     void unreadable.refetch();
+    void reminderOperations.refetch();
+    void unreadableReminders.refetch();
   };
-  if (dailyView.state === 'error' || operations.isError || unreadable.isError) return { view: { state: 'error' }, refetch };
-  if (dailyView.state !== 'ready' || operations.data === undefined || unreadable.data === undefined) {
+  if (dailyView.state === 'error' || operations.isError || unreadable.isError || reminderOperations.isError || unreadableReminders.isError) {
+    return { view: { state: 'error' }, refetch };
+  }
+  if (
+    dailyView.state !== 'ready' ||
+    operations.data === undefined ||
+    unreadable.data === undefined ||
+    reminderOperations.data === undefined ||
+    unreadableReminders.data === undefined
+  ) {
     return { view: { state: 'loading' }, refetch };
   }
   return {
@@ -100,6 +123,7 @@ export function useUnsyncedChanges(): { view: UnsyncedChangesView; refetch: () =
       summary: {
         dailyLogs: summarizeUnsynced(dailyView.items.map((item) => item.record)),
         pets: summarizePetOperations(operations.data, unreadable.data),
+        reminders: summarizeReminderOperations(reminderOperations.data, unreadableReminders.data),
       },
     },
     refetch,

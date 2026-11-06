@@ -18,6 +18,8 @@
 export const DAILY_LOG_DAYS_AHEAD = 14;
 /** Los sistemas limitan los avisos programados (iOS: 64 por app). Se dejan los más próximos. */
 export const MAX_SCHEDULED = 60;
+/** Sin conexión solo se tocan los de la agenda: se deja sitio a los diarios que ya estén programados. */
+export const MAX_OFFLINE_REMINDERS = MAX_SCHEDULED - DAILY_LOG_DAYS_AHEAD;
 
 export const DAILY_LOG_PREFIX = 'daily-log:';
 export const REMINDER_PREFIX = 'reminder:';
@@ -93,10 +95,12 @@ export type PlanInput = {
   reminderBody: (reminder: ReminderForPlan) => string;
   /** Mascotas que se ven en la app; los recordatorios de las demás no se programan. */
   visiblePetIds: ReadonlySet<string>;
+  /** Tope de avisos del plan (`MAX_SCHEDULED`; sin conexión, `MAX_OFFLINE_REMINDERS`). */
+  max?: number;
 };
 
 /** Todos los avisos que deberían estar programados ahora, los más próximos primero (con tope). */
-export function planNotifications({ now, daily, reminders, reminderBody, visiblePetIds }: PlanInput): PlannedNotification[] {
+export function planNotifications({ now, daily, reminders, reminderBody, visiblePetIds, max = MAX_SCHEDULED }: PlanInput): PlannedNotification[] {
   const planned: PlannedNotification[] = [];
   if (daily) {
     for (const date of dailyLogDates(now, daily.time, { loggedToday: daily.loggedToday })) {
@@ -114,7 +118,7 @@ export function planNotifications({ now, daily, reminders, reminderBody, visible
     });
   }
   planned.sort((a, b) => a.date.getTime() - b.date.getTime());
-  return planned.slice(0, MAX_SCHEDULED);
+  return planned.slice(0, max);
 }
 
 /**
@@ -132,15 +136,24 @@ export function fingerprint(
 export type ScheduledSummary = { id: string; fingerprint: string | null };
 
 /**
+ * Alcance de un plan. `reminders`: solo la agenda (sin conexión no hay `notification_preferences`, así que el plan
+ * no sabe nada de los diarios y no debe cancelarlos).
+ */
+export type ScheduleScope = 'all' | 'reminders';
+
+/**
  * Qué cancelar y qué programar para pasar de lo programado a lo deseado. Solo se tocan los avisos
- * de Kitom (prefijos propios); un aviso igual que ya está programado se deja tal cual.
+ * de Kitom (prefijos propios) y de su alcance; un aviso igual que ya está programado se deja tal cual.
  */
 export function diffSchedule(
   scheduled: readonly ScheduledSummary[],
   desired: readonly PlannedNotification[],
-  mode = ''
+  mode = '',
+  scope: ScheduleScope = 'all'
 ): { cancel: string[]; schedule: PlannedNotification[] } {
-  const ours = scheduled.filter((item) => item.id.startsWith(DAILY_LOG_PREFIX) || item.id.startsWith(REMINDER_PREFIX));
+  const ours = scheduled.filter(
+    (item) => item.id.startsWith(REMINDER_PREFIX) || (scope === 'all' && item.id.startsWith(DAILY_LOG_PREFIX))
+  );
   const wanted = new Map(desired.map((item) => [item.id, item]));
   const current = new Map(ours.map((item) => [item.id, item.fingerprint]));
   const cancel = ours

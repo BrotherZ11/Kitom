@@ -6,7 +6,6 @@ import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { ChevronRight, Plus } from '@/components/ui/icons';
 import { Text } from '@/components/ui/text';
-import { useAuth } from '@/features/auth/auth-context';
 import { isLocalPetId } from '@/features/pets/offline/pet-operation';
 import { usePetReminders } from '@/features/reminders/hooks/use-reminders';
 import { effectiveDueAt, nextPendingReminder, startOfDay } from '@/features/reminders/reminder-model';
@@ -17,15 +16,14 @@ import { radius, spacing } from '@/theme/tokens';
 
 /**
  * «Próximo» en Hoy (tableros 4.2/4.3): el siguiente cuidado pendiente de la agenda (o el vencido) y,
- * sin nada apuntado, una invitación breve a apuntarlo. Sin conexión o sin datos aún, no se muestra
- * (Hoy no depende de la agenda).
+ * sin nada apuntado, una invitación breve a apuntarlo. Sin conexión usa la copia del dispositivo; sin
+ * datos, no se muestra (Hoy no depende de la agenda).
  */
 export function NextReminderCard({ petId, petName, canEdit }: { petId: string; petName: string; canEdit: boolean }) {
   const router = useRouter();
   const theme = useTheme();
-  const { canUseServer } = useAuth();
   const reminders = usePetReminders(petId);
-  if (isLocalPetId(petId) || !canUseServer || reminders.data === undefined) return null;
+  if (isLocalPetId(petId) || reminders.data === undefined) return null;
 
   const next = nextPendingReminder(reminders.data);
   if (!next) {

@@ -1,4 +1,6 @@
-import { ReminderChangedError, ReminderNotWritableError } from '@/features/reminders/api/reminders-api';
+import { ReminderChangedError, ReminderNotWritableError } from '@/features/reminders/api/reminders-remote';
+import { ReminderOperationRepositoryError } from '@/features/reminders/offline/reminder-operation-repository';
+import { ReminderEditRejectedError } from '@/features/reminders/offline/reminder-sync-engine';
 import { t } from '@/i18n';
 import { classifyServerError } from '@/lib/server-errors';
 
@@ -7,6 +9,12 @@ export function reminderErrorMessage(error: unknown): string {
   if (error instanceof ReminderChangedError) return t('agenda.errors.changed');
   if (error instanceof ReminderNotWritableError) {
     return error.reason === 'not_allowed' ? t('agenda.errors.notAllowed') : t('agenda.errors.gone');
+  }
+  if (error instanceof ReminderEditRejectedError) {
+    return error.code === 'invalid_content' ? t('agenda.errors.invalid') : t('agenda.sync.blockedEdit');
+  }
+  if (error instanceof ReminderOperationRepositoryError || (error as { name?: unknown } | null)?.name === 'LocalStoreError') {
+    return t('agenda.errors.localWrite');
   }
   switch (classifyServerError(error)) {
     case 'network':
