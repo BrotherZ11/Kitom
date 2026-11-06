@@ -89,6 +89,64 @@ APK de release en emulador Android, contra el Supabase local, con una ruta tempo
 - Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
 - **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
 
+### Agenda sin conexión: frontend (2026-11-06, fase 14)
+
+Contra el Supabase local con las 17 migraciones (`migration up --local`, sin `db reset`):
+
+| Comando | Resultado |
+|---|---|
+| `npm test` | 941/941 (74 nuevas: `reminder-sync-engine`, `reminder-offline`) |
+| `npm run test:integration` | 76/76 (10 nuevas: `reminders-offline.integration.test.mjs`) |
+| `tsc`, `expo lint` | correctos |
+| `expo export` Android y web | correctos |
+| `expo-doctor` | 20/21: hay parches nuevos de paquetes de Expo (`expo` 57.0.32 frente a 57.0.31…), sin actualizar en esta fase |
+
+En la primera ejecución completa de la integración, las suites de razas y de la agenda online se cancelaron en su
+`before` (lectura de especies vacía), como ya pasó el 2026-11-05; aisladas pasan, y al repetirla, 76/76. Sin explicar.
+Validación a mano en el emulador Android (2026-11-06; build de depuración nativa, Supabase local, modo avión para
+cortar la red), con la propietaria y una co-tutora editora:
+
+- **Con conexión:** la agenda carga y guarda la copia y el permiso.
+- **En modo avión:**
+  - la agenda dice que se ve la copia del dispositivo;
+  - se crea un recordatorio («Guardado en este dispositivo») y se marca otro como hecho;
+  - los avisos siguen la agenda: el del alta nueva se programa y el del hecho se cancela; los 14 diarios no se tocan.
+- **Arranque en frío sin conexión:** «Hoy» y la agenda salen de la copia, con los cambios locales encima, y «Cambios
+  sin sincronizar» los lista.
+- **Al volver la red:**
+  - el alta se crea una sola vez, con su clave;
+  - el hecho conserva la hora real a la que se marcó;
+  - una edición del mismo título que la co-tutora cambió en el servidor queda en conflicto, con las dos versiones;
+  - «Quedarme con lo mío» la envía, y los avisos quedan sin duplicar con el id del servidor.
+- **Eliminar sin conexión:** desaparece de la lista y se cancela su aviso. El cierre de sesión la cuenta en «Agenda»;
+  al volver la red se envía sola y, al cerrar sesión, no queda ningún aviso de Kitom.
+- **Permiso revocado:** la co-tutora crea sin conexión y la propietaria la baja a lectora. Al volver, RLS lo rechaza,
+  queda «Sin permiso», se conserva, el servidor no tiene nada y solo se descarta cuando ella lo pide.
+- **Corregido durante la prueba:** Ajustes decía «hay cambios de mascotas» por un cambio de la agenda.
+- **Sin probar a mano:** web, posponer y «Deshacer», y la red que vuelve con la app en segundo plano.
+
+### Borrar una cuenta y agenda sin conexión: backend (2026-11-05, en local)
+
+Migraciones `20261105093545` y `20261105122353`, juntas. Sobre un Supabase local desechable: primero las 15 migraciones de `kitom-dev`
+y luego estas dos con `migration up`, como haría un `db push`; `db diff` contra una base aplicada desde cero (17): sin cambios.
+
+| Comando | Sin la corrección de D-11 | Con las dos migraciones |
+|---|---|---|
+| `account_deletion_audit.test.sql` | falla | 81/81 |
+| `reminders_client_request_id.test.sql` | — | 28/28 |
+| `npx supabase test db` | — | 619 casos, 13 archivos |
+| `account_deletion_concurrency.sh` | falla | 27 comprobaciones |
+| `reminders_concurrency.sh` | — | 22 comprobaciones |
+| Otras suites de concurrencia (`daily_logs`, `pets`, `pets_delete`, `abuse_limits`, `pet_storage_cleanup`) | — | 21, 17, 20, 9 y 30 comprobaciones |
+| `delete-account`, integración con Auth real | 7/9 | 9/9 |
+| Edge Functions, unitarias | — | 62/62 |
+| `npm run test:integration` | — | 66/66 |
+| `npm test`, `tsc`, `expo lint` (frontend sin cambios) | — | 867/867, correctos |
+| Borrar una cuenta con 3650 registros (Auth real) | HTTP 504 a los 10 s | HTTP 200 en 418 ms |
+
+`delete-account` con fallos inyectados en cada paso que escribe (fallo, respuesta perdida y muerte de la función, 26 casos, con un arnés fuera del repo):
+todos dejan hecho lo anterior y todos convergen al reintentar. Una clave de servicio inválida transfiere y borra antes de fallar: `ROADMAP.md` P1-13.
+
 ### Integración de la primera versión (2026-11-03)
 
 | Comando | Resultado |

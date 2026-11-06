@@ -10,6 +10,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useDailyLogSync } from '@/features/daily-logs/sync/daily-log-sync-provider';
 import { cancelAllAppNotifications } from '@/features/notifications/device-notifications';
 import { usePetSync } from '@/features/pets/sync/pet-sync-provider';
+import { useReminderSync } from '@/features/reminders/sync/reminder-sync-provider';
 import { deviceStorage } from '@/lib/local-store/device-storage';
 import { clearLocalUserData } from '@/lib/local-store/local-store';
 
@@ -52,7 +53,7 @@ export function useReplaceDeletionPlan() {
 
 /**
  * Cierre en el dispositivo tras borrar la cuenta (`finishAccountDeletion`): para los motores de Daily
- * Logs y Pets, borra todo lo local del usuario (registros, operaciones pendientes, copias, razas) y sus
+ * Logs, Pets y Agenda, borra todo lo local del usuario (registros, operaciones pendientes, copias, razas) y sus
  * avisos, y cierra la sesión. Es la única excepción a «cerrar sesión siempre con `useSignOutFlow`»: la
  * cuenta ya no existe y el usuario ya aceptó perder lo no sincronizado. Montar dentro de `(app)`.
  */
@@ -60,10 +61,11 @@ export function useFinishAccountDeletion() {
   const { signOut, user } = useAuth();
   const daily = useDailyLogSync();
   const pets = usePetSync();
+  const reminders = useReminderSync();
   const userId = user?.id ?? null;
   return () =>
     finishAccountDeletion({
-      engines: [daily.engine, pets.engine],
+      engines: [daily.engine, pets.engine, reminders.engine],
       idleTimeoutMs: ENGINE_IDLE_TIMEOUT_MS,
       clearLocalData: () => (userId ? clearLocalUserData(deviceStorage, userId) : Promise.resolve(0)),
       cancelNotifications: () => cancelAllAppNotifications(),

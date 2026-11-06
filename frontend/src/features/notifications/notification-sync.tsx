@@ -10,7 +10,7 @@ import {
   takeInitialNotificationUrl,
 } from '@/features/notifications/device-notifications';
 import { useNotificationPermission } from '@/features/notifications/hooks/use-notification-permission';
-import { parseTimeOfDay, planNotifications, type ReminderForPlan } from '@/features/notifications/notification-plan';
+import { MAX_OFFLINE_REMINDERS, MAX_SCHEDULED, parseTimeOfDay, planNotifications, type ReminderForPlan } from '@/features/notifications/notification-plan';
 import { useActivePet } from '@/features/pets/active-pet-context';
 import { isLocalPetId } from '@/features/pets/offline/pet-operation';
 import type { Pet } from '@/features/pets/types';
@@ -24,9 +24,11 @@ import { t, tf } from '@/i18n';
 const DEFAULT_DAILY_TIME = { hour: 20, minute: 0 };
 
 /**
- * Mantiene los avisos programados del dispositivo al día con los datos del servidor
- * (`notification-plan.ts`) y abre la pantalla de un aviso al tocarlo. Montado una vez en `(app)`.
- * Sin permiso, sin conexión o sin datos todavía no cambia nada (lo programado sigue funcionando).
+ * Mantiene los avisos programados del dispositivo al día con la agenda que se ve (servidor o copia, con los
+ * cambios guardados en el dispositivo encima; `notification-plan.ts`) y abre la pantalla de un aviso al tocarlo.
+ * Montado una vez en `(app)`. Sin conexión solo se tocan los avisos de la agenda: las preferencias del recordatorio
+ * diario no tienen copia local y el plan no debe cancelarlos. Sin permiso, o sin datos fiables (nunca descargada o
+ * copia ilegible), no cambia nada: lo programado sigue funcionando.
  * Al cerrar sesión (se desmonta la zona autenticada) quita todos los avisos de Kitom. Solo avisan las
  * mascotas de la lista (no las que se están eliminando en este dispositivo). Un cambio de zona del
  * dispositivo se aplica al siguiente arranque de la app (Hermes guarda la zona hasta entonces): los
@@ -66,25 +68,29 @@ function NotificationPlanner({ pet, loggedToday }: { pet: Pet | null; loggedToda
   const granted = permission?.status === 'granted';
   const preferences = useNotificationPreferences();
   const reminders = useUpcomingReminders(granted);
+  const reminderRows = reminders.data;
+  const reminderKey = reminderRows ? JSON.stringify(reminderRows.map((item) => [item.id, item.title, item.type, item.due_at, item.snooze_until])) : null;
   // Valores primitivos: la lista de mascotas es un array nuevo en cada render.
   const petNames = pets.data ? JSON.stringify(pets.data.map((item) => [item.id, item.name])) : null;
   const petId = pet?.id ?? null;
   const petName = pet?.name ?? null;
 
   useEffect(() => {
-    // Solo con datos de servidor: sin ellos no se sabría qué quitar.
-    if (!granted || !canUseServer || preferences.data === undefined || reminders.data === undefined || !petNames) return;
+    if (!granted || reminderRows === undefined || !petNames) return;
+    // Con preferencias del servidor, el plan completo; sin ellas, solo la agenda.
+    const full = canUseServer && preferences.data !== undefined;
     const prefs = preferences.data;
     const dailyEnabled = prefs?.daily_reminder_enabled ?? true;
     const time = parseTimeOfDay(prefs?.daily_reminder_time) ?? DEFAULT_DAILY_TIME;
     const names = new Map(JSON.parse(petNames) as [string, string][]);
     // La lista ya no incluye las mascotas con una eliminación guardada en el dispositivo.
     const visiblePetIds = new Set(names.keys());
-    const byId = new Map<string, Reminder>(reminders.data.map((item) => [item.id, item]));
+    const byId = new Map<string, Reminder>(reminderRows.map((item) => [item.id, item]));
     const dailyName = names.size === 1 ? [...names.values()][0] : petName;
     const plan = planNotifications({
       now: new Date(),
-      daily: dailyEnabled
+      max: full ? MAX_SCHEDULED : MAX_OFFLINE_REMINDERS,
+      daily: full && dailyEnabled
         ? {
             time,
             loggedToday,
@@ -94,7 +100,7 @@ function NotificationPlanner({ pet, loggedToday }: { pet: Pet | null; loggedToda
           }
         : null,
       // La consulta ya excluye los desactivados; se filtra también aquí por si llega uno en caché.
-      reminders: reminders.data.filter(isReminderActive).map(
+      reminders: reminderRows.filter(isReminderActive).map(
         (item): ReminderForPlan => ({
           id: item.id,
           petId: item.pet_id,
@@ -110,11 +116,13 @@ function NotificationPlanner({ pet, loggedToday }: { pet: Pet | null; loggedToda
       },
       visiblePetIds,
     });
-    void syncScheduledNotifications(plan).catch((error: unknown) => {
+    void syncScheduledNotifications(plan, full ? 'all' : 'reminders').catch((error: unknown) => {
       if (__DEV__) console.warn('[notifications] sync', error);
     });
     // `exactAlarms`: al conceder las alarmas exactas se reprograma todo (forma parte de la huella).
-  }, [granted, exactAlarms, canUseServer, preferences.data, reminders.data, petNames, petId, petName, loggedToday]);
+    // `reminderKey` resume `reminderRows`: la vista combinada es un array nuevo en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [granted, exactAlarms, canUseServer, preferences.data, reminderKey, petNames, petId, petName, loggedToday]);
 
   return null;
 }

@@ -14,19 +14,19 @@ import { Screen } from '@/components/ui/screen';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
 import { useToast } from '@/components/ui/toast';
-import { useAuth } from '@/features/auth/auth-context';
 import { formatLogDateLabel } from '@/features/daily-logs/log-date';
 import { ExactAlarmsNotice } from '@/features/notifications/components/exact-alarms-notice';
 import { notificationsSupported, openSystemSettings } from '@/features/notifications/device-notifications';
 import { useNotificationPermission } from '@/features/notifications/hooks/use-notification-permission';
 import { TAB_SCREEN_EDGES } from '@/features/pets/components/active-pet-gate';
 import { PetSelectorSheet } from '@/features/pets/components/pet-selector-sheet';
-import { useCanEditPet } from '@/features/pets/hooks/use-pets';
 import { isLocalPetId } from '@/features/pets/offline/pet-operation';
 import type { Pet } from '@/features/pets/types';
 import { ReminderItem } from '@/features/reminders/components/reminder-item';
 import { ReminderMonth, type MonthCursor } from '@/features/reminders/components/reminder-month';
-import { useCompleteReminder, usePetReminders, useReopenReminder } from '@/features/reminders/hooks/use-reminders';
+import { reminderOutcomeMessage } from '@/features/reminders/components/reminder-sync-status';
+import { useCompleteReminder, usePetReminders, useReminderPermission, useReopenReminder } from '@/features/reminders/hooks/use-reminders';
+import type { ReminderSyncDisplay } from '@/features/reminders/offline/reminder-operation';
 import { reminderErrorMessage } from '@/features/reminders/reminder-errors';
 import {
   effectiveDueAt,
@@ -39,7 +39,6 @@ import {
 } from '@/features/reminders/reminder-model';
 import { formatReminderDay } from '@/features/reminders/reminder-format';
 import { REMINDER_TYPE_ICONS, reminderWhenLabel } from '@/features/reminders/reminder-text';
-import { useIsOnline } from '@/hooks/use-is-online';
 import { getLocale, t, tf } from '@/i18n';
 import { size, spacing } from '@/theme/tokens';
 
@@ -47,18 +46,20 @@ type View_ = 'list' | 'month';
 
 /**
  * Agenda de la mascota activa (tableros 8.1, 8.2 y 8.6): lista (vencidos, hoy, próximos y hechos) o
- * mes. «Hecho» con un toque y «Deshacer». Solo con conexión (no hay copia en el dispositivo); los
- * avisos ya programados siguen llegando sin red.
+ * mes. «Hecho» con un toque y «Deshacer». Sin conexión se ve la copia del dispositivo y se puede escribir si el
+ * último permiso confirmado lo permitía: los cambios se guardan aquí y se envían al volver (fase 14).
  */
+type DisplayOf = (id: string) => ReminderSyncDisplay | null;
+
 export function PetAgenda({ pet, petCount }: { pet: Pet; petCount: number }) {
   const router = useRouter();
-  const { canUseServer } = useAuth();
-  const online = useIsOnline();
   const reminders = usePetReminders(pet.id);
-  const permission = useCanEditPet(pet.id);
+  const { permission } = useReminderPermission(pet.id);
   const [view, setView] = useState<View_>('list');
   const [selectorOpen, setSelectorOpen] = useState(false);
-  const canWrite = permission.data === true && canUseServer && online;
+  const canWrite = permission === 'editable' && !isLocalPetId(pet.id);
+  const { view: listView, displayOf } = reminders;
+  const stale = listView.state === 'ready' && listView.stale;
   const openNew = (params: { date?: string; type?: ReminderType } = {}) =>
     router.push({ pathname: '/reminders/new', params: { petId: pet.id, ...params } });
 
@@ -85,49 +86,43 @@ export function PetAgenda({ pet, petCount }: { pet: Pet; petCount: number }) {
     if (isLocalPetId(pet.id)) {
       return <EmptyState icon={CalendarDays} title={tf('agenda.errors.localPet', { name: pet.name })} />;
     }
-    if (reminders.data === undefined) {
-      if (!canUseServer || !online || reminders.fetchStatus === 'idle') {
-        return (
-          <ErrorState
-            offline
-            message={t('agenda.errors.offlineTitle')}
-            description={t('agenda.errors.offlineText')}
-            onRetry={() => void reminders.refetch()}
-          />
-        );
-      }
-      if (reminders.isError) {
-        return (
-          <ErrorState
-            message={tf('agenda.errors.load', { name: pet.name })}
-            description={reminderErrorMessage(reminders.error)}
-            onRetry={() => void reminders.refetch()}
-          />
-        );
-      }
-      return <LoadingState />;
+    if (listView.state === 'loading') return <LoadingState />;
+    if (listView.state === 'offline_unavailable') {
+      // Nunca descargada: no se dice que esté vacía. Si se puede escribir, el «+» de arriba sigue disponible.
+      return <ErrorState offline message={t('agenda.errors.offlineTitle')} description={t('agenda.offline.neverLoaded')} onRetry={reminders.refetch} />;
     }
-    if (reminders.data.length === 0) {
+    if (listView.state === 'local_error') return <ErrorState message={t('agenda.offline.localError')} onRetry={reminders.refetch} />;
+    if (listView.state === 'error') {
+      return (
+        <ErrorState
+          message={tf('agenda.errors.load', { name: pet.name })}
+          description={reminderErrorMessage(listView.error)}
+          onRetry={reminders.refetch}
+        />
+      );
+    }
+    if (listView.reminders.length === 0) {
+      if (listView.partial) return <Text color="inkMuted">{t('agenda.offline.partial')}</Text>;
       return (
         <AgendaEmpty
           petName={pet.name}
           canWrite={canWrite}
-          readOnly={permission.data === false}
+          readOnly={permission === 'read_only'}
           onAdd={(type) => openNew({ type })}
         />
       );
     }
     return view === 'list' ? (
-      <AgendaList reminders={reminders.data} canWrite={canWrite} />
+      <AgendaList reminders={listView.reminders} canWrite={canWrite} displayOf={displayOf} />
     ) : (
-      <AgendaMonth reminders={reminders.data} canWrite={canWrite} onAdd={(date) => openNew({ date })} />
+      <AgendaMonth reminders={listView.reminders} canWrite={canWrite} displayOf={displayOf} onAdd={(date) => openNew({ date })} />
     );
   };
 
   return (
     <Screen align="top" edges={[...TAB_SCREEN_EDGES]} gap={18}>
       {header}
-      {reminders.data !== undefined && reminders.data.length > 0 ? (
+      {listView.state === 'ready' && listView.reminders.length > 0 ? (
         <SegmentedControl
           accessibilityLabel={t('agenda.view')}
           options={[
@@ -138,12 +133,16 @@ export function PetAgenda({ pet, petCount }: { pet: Pet; petCount: number }) {
           onChange={setView}
         />
       ) : null}
-      {reminders.data !== undefined && (!canUseServer || !online) ? (
-        <Banner icon={WifiOff} message={t('agenda.errors.network')} />
+      {stale ? <Banner icon={WifiOff} message={t('agenda.offline.banner')} /> : null}
+      {listView.state === 'ready' && listView.partial && listView.reminders.length > 0 ? (
+        <Text variant="caption" color="inkMuted">
+          {t('agenda.offline.partial')}
+        </Text>
       ) : null}
+      {permission === 'unknown' && !isLocalPetId(pet.id) ? <Alert tone="info" message={t('agenda.offline.permissionUnknown')} /> : null}
       <NotificationsNotice />
       <ExactAlarmsNotice />
-      {permission.data === false ? <Alert tone="info" message={tf('agenda.detail.readOnly', { name: pet.name })} /> : null}
+      {permission === 'read_only' ? <Alert tone="info" message={tf('agenda.detail.readOnly', { name: pet.name })} /> : null}
       {body()}
       <PetSelectorSheet visible={selectorOpen} onClose={() => setSelectorOpen(false)} />
     </Screen>
@@ -183,9 +182,10 @@ function useToggleReminder() {
       reminder.status === 'pending'
         ? complete.mutateAsync(reminder).then((result) =>
             toast({
-              message: result.next
-                ? tf('agenda.toast.doneNext', { date: reminderWhenLabel(result.next, new Date()) })
-                : t('agenda.toast.done'),
+              message: reminderOutcomeMessage(
+                result,
+                result.next ? tf('agenda.toast.doneNext', { date: reminderWhenLabel(result.next, new Date()) }) : t('agenda.toast.done')
+              ),
               action: {
                 label: t('agenda.toast.undo'),
                 onPress: () => {
@@ -197,7 +197,7 @@ function useToggleReminder() {
               },
             })
           )
-        : reopen.mutateAsync(reminder).then(() => toast({ message: t('agenda.toast.reopened') }));
+        : reopen.mutateAsync(reminder).then((outcome) => toast({ message: reminderOutcomeMessage(outcome, t('agenda.toast.reopened')) }));
     action
       .catch((cause: unknown) => toast({ message: reminderErrorMessage(cause) }))
       .finally(() => setBusyId(null));
@@ -217,51 +217,57 @@ function Section({ title, tone, children }: { title: string; tone?: 'warning'; c
   );
 }
 
-function ReminderRows({ items, canWrite }: { items: Reminder[]; canWrite: boolean }) {
+function ReminderRows({ items, canWrite, displayOf }: { items: Reminder[]; canWrite: boolean; displayOf: DisplayOf }) {
   const router = useRouter();
   const { toggle, busyId } = useToggleReminder();
   const now = new Date();
-  return items.map((reminder, index) => (
-    <ReminderItem
-      key={reminder.id}
-      reminder={reminder}
-      now={now}
-      divider={index < items.length - 1}
-      busy={busyId === reminder.id}
-      onOpen={() => router.push({ pathname: '/reminders/[id]', params: { id: reminder.id } })}
-      onToggle={canWrite ? () => toggle(reminder) : undefined}
-    />
-  ));
+  return items.map((reminder, index) => {
+    const sync = displayOf(reminder.id);
+    // Con un conflicto o sin permiso, primero se decide en el detalle qué hacer con lo guardado.
+    const blocked = sync === 'conflict' || sync === 'forbidden';
+    return (
+      <ReminderItem
+        key={reminder.id}
+        reminder={reminder}
+        now={now}
+        divider={index < items.length - 1}
+        busy={busyId === reminder.id}
+        sync={sync}
+        onOpen={() => router.push({ pathname: '/reminders/[id]', params: { id: reminder.id } })}
+        onToggle={canWrite && !blocked ? () => toggle(reminder) : undefined}
+      />
+    );
+  });
 }
 
-function AgendaList({ reminders, canWrite }: { reminders: Reminder[]; canWrite: boolean }) {
+function AgendaList({ reminders, canWrite, displayOf }: { reminders: Reminder[]; canWrite: boolean; displayOf: DisplayOf }) {
   const now = new Date();
   const groups = groupReminders(reminders, now);
   return (
     <View style={styles.sections}>
       {groups.overdue.length > 0 ? (
         <Section title={t('agenda.sections.overdue')} tone="warning">
-          <ReminderRows items={groups.overdue} canWrite={canWrite} />
+          <ReminderRows items={groups.overdue} canWrite={canWrite} displayOf={displayOf} />
         </Section>
       ) : null}
       {groups.today.length > 0 ? (
         <Section title={tf('agenda.sections.today', { day: reminderDayLabelLong(now) })}>
-          <ReminderRows items={groups.today} canWrite={canWrite} />
+          <ReminderRows items={groups.today} canWrite={canWrite} displayOf={displayOf} />
         </Section>
       ) : null}
       {groups.upcoming.length > 0 ? (
         <Section title={t('agenda.sections.upcoming')}>
-          <ReminderRows items={groups.upcoming} canWrite={canWrite} />
+          <ReminderRows items={groups.upcoming} canWrite={canWrite} displayOf={displayOf} />
         </Section>
       ) : null}
       {groups.paused.length > 0 ? (
         <Section title={t('agenda.sections.paused')}>
-          <ReminderRows items={groups.paused} canWrite={canWrite} />
+          <ReminderRows items={groups.paused} canWrite={canWrite} displayOf={displayOf} />
         </Section>
       ) : null}
       {groups.done.length > 0 ? (
         <Section title={t('agenda.sections.done')}>
-          <ReminderRows items={groups.done.slice(0, 10)} canWrite={canWrite} />
+          <ReminderRows items={groups.done.slice(0, 10)} canWrite={canWrite} displayOf={displayOf} />
         </Section>
       ) : null}
     </View>
@@ -276,10 +282,12 @@ function reminderDayLabelLong(now: Date): string {
 function AgendaMonth({
   reminders,
   canWrite,
+  displayOf,
   onAdd,
 }: {
   reminders: Reminder[];
   canWrite: boolean;
+  displayOf: DisplayOf;
   onAdd: (date: string) => void;
 }) {
   const now = new Date();
@@ -319,7 +327,7 @@ function AgendaMonth({
         </Text>
         {dayItems.length > 0 ? (
           <Card flush>
-            <ReminderRows items={dayItems} canWrite={canWrite} />
+            <ReminderRows items={dayItems} canWrite={canWrite} displayOf={displayOf} />
           </Card>
         ) : (
           <Text color="inkMuted">{t('agenda.month.nothing')}</Text>

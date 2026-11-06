@@ -17,7 +17,8 @@ import { REMINDER_COLUMNS } from '../reminder-model.ts';
 /** Días que se siguen mostrando los recordatorios ya hechos. */
 export const DONE_RETENTION_DAYS = 30;
 /** Tope de filas por consulta (una agenda doméstica no se acerca). */
-const LIMIT = 300;
+export const REMINDER_QUERY_LIMIT = 300;
+const LIMIT = REMINDER_QUERY_LIMIT;
 
 /** Otro dispositivo o co-tutor lo cambió (o lo borró) después de leerlo. */
 export class ReminderChangedError extends Error {

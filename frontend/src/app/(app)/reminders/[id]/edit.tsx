@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { CalendarDays } from '@/components/ui/icons';
@@ -7,9 +7,9 @@ import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { TopBar } from '@/components/ui/top-bar';
 import { useReminderNotifyHint } from '@/features/notifications/hooks/use-notify-hint';
-import { ReminderChangedError } from '@/features/reminders/api/reminders-api';
 import { ReminderForm } from '@/features/reminders/components/reminder-form';
 import { ReminderScreenGate } from '@/features/reminders/components/reminder-screen-gate';
+import { reminderOutcomeMessage } from '@/features/reminders/components/reminder-sync-status';
 import { useEditReminder, useReminder } from '@/features/reminders/hooks/use-reminders';
 import { reminderErrorMessage } from '@/features/reminders/reminder-errors';
 import {
@@ -20,42 +20,61 @@ import {
 } from '@/features/reminders/reminder-model';
 import { t } from '@/i18n';
 
-/** Editar un recordatorio (tablero 8.3 con sus datos). */
+/**
+ * Editar un recordatorio (tablero 8.3 con sus datos), también sin conexión desde la copia o un alta local. Con un
+ * conflicto, sin permiso o con una eliminación guardada no se edita: primero se decide qué hacer (en el detalle).
+ */
 export default function EditReminderScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const reminder = useReminder(id);
+  const { view, refetch } = useReminder(id);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/agenda'));
 
-  if (reminder.data) {
-    const current = reminder.data;
-    return (
-      <ReminderScreenGate petId={current.pet_id}>
-        {(petName) => <EditReminderForm reminder={current} petName={petName} onRefetch={() => void reminder.refetch()} />}
-      </ReminderScreenGate>
-    );
+  if (view.state === 'redirect') return <Redirect href={{ pathname: '/reminders/[id]/edit', params: { id: view.reminderId } }} />;
+  if (view.state === 'ready') {
+    const blocked = view.op && (view.op.kind === 'delete' || view.op.status === 'conflict' || view.op.status === 'forbidden');
+    if (!blocked) {
+      const current = view.reminder;
+      return (
+        <ReminderScreenGate petId={current.pet_id}>
+          {(petName) => <EditReminderForm reminder={current} petName={petName} />}
+        </ReminderScreenGate>
+      );
+    }
   }
+  const content = () => {
+    switch (view.state) {
+      case 'loading':
+        return <LoadingState />;
+      case 'ready':
+        return <EmptyState icon={CalendarDays} title={t('agenda.sync.blockedEdit')} actionLabel={t('common.back')} onAction={back} />;
+      case 'offline_unavailable':
+        return <ErrorState offline message={t('agenda.errors.offlineTitle')} description={t('agenda.offline.neverLoaded')} onRetry={refetch} />;
+      case 'local_error':
+        return <ErrorState message={t('agenda.offline.localError')} onRetry={refetch} />;
+      case 'error':
+        return <ErrorState message={reminderErrorMessage(view.error)} onRetry={refetch} />;
+      default:
+        return (
+          <EmptyState
+            icon={CalendarDays}
+            title={t('agenda.detail.notFound')}
+            description={t('agenda.detail.notFoundText')}
+            actionLabel={t('common.back')}
+            onAction={back}
+          />
+        );
+    }
+  };
   return (
     <Screen align="top">
       <TopBar onBack={back} />
-      {reminder.isPending ? (
-        <LoadingState />
-      ) : reminder.isError ? (
-        <ErrorState message={reminderErrorMessage(reminder.error)} onRetry={() => void reminder.refetch()} />
-      ) : (
-        <EmptyState
-          icon={CalendarDays}
-          title={t('agenda.detail.notFound')}
-          description={t('agenda.detail.notFoundText')}
-          actionLabel={t('common.back')}
-          onAction={back}
-        />
-      )}
+      {content()}
     </Screen>
   );
 }
 
-function EditReminderForm({ reminder, petName, onRefetch }: { reminder: Reminder; petName: string; onRefetch: () => void }) {
+function EditReminderForm({ reminder, petName }: { reminder: Reminder; petName: string }) {
   const router = useRouter();
   const toast = useToast();
   const edit = useEditReminder(reminder);
@@ -67,20 +86,18 @@ function EditReminderForm({ reminder, petName, onRefetch }: { reminder: Reminder
   const submit = async (values: ReminderFormValues) => {
     setError(null);
     try {
-      await edit.mutateAsync(toReminderWrite(values));
+      const outcome = await edit.mutateAsync(toReminderWrite(values));
       setSaved(true);
-      toast({ message: t('agenda.toast.saved') });
+      toast({ message: reminderOutcomeMessage(outcome, t('agenda.toast.saved')) });
       close();
     } catch (cause) {
       setError(reminderErrorMessage(cause));
-      // Otro dispositivo lo cambió: se carga la versión nueva (el formulario se vuelve a montar con ella).
-      if (cause instanceof ReminderChangedError) onRefetch();
     }
   };
 
   return (
     <ReminderForm
-      // Una versión nueva del servidor vuelve a montar el formulario con sus datos.
+      // Una versión nueva vuelve a montar el formulario con sus datos.
       key={reminder.updated_at}
       mode="edit"
       petName={petName}

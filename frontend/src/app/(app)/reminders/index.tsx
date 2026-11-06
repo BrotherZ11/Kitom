@@ -9,52 +9,35 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-stat
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TopBar } from '@/components/ui/top-bar';
-import { useAuth } from '@/features/auth/auth-context';
 import { useActivePet } from '@/features/pets/active-pet-context';
 import { ReminderItem } from '@/features/reminders/components/reminder-item';
 import { usePendingReminders } from '@/features/reminders/hooks/use-reminders';
 import { reminderErrorMessage } from '@/features/reminders/reminder-errors';
 import { formatReminderDay } from '@/features/reminders/reminder-format';
 import { groupReminders, remindersOfPets, type Reminder } from '@/features/reminders/reminder-model';
-import { useIsOnline } from '@/hooks/use-is-online';
 import { getLocale, t, tf } from '@/i18n';
 
 /**
  * Lo pendiente de todas las mascotas (vencido, hoy, próximo y, aparte, lo desactivado), con el nombre de
  * cada una. Solo lectura: cada fila abre el detalle, que decide si se puede cambiar (RLS y
  * `can_edit_pet` de esa mascota). Las mascotas que se están eliminando en este dispositivo no salen.
- * Solo con conexión (sin copia local).
+ * Sin conexión, de la copia del dispositivo con los cambios guardados encima.
  */
 export default function AllRemindersScreen() {
   const router = useRouter();
-  const { canUseServer } = useAuth();
-  const online = useIsOnline();
   const { pets } = useActivePet();
   const reminders = usePendingReminders();
   const back = () => (router.canGoBack() ? router.back() : router.replace('/agenda'));
 
   const body = (): ReactNode => {
-    if (reminders.data === undefined) {
-      if (!canUseServer || !online || reminders.fetchStatus === 'idle') {
-        return (
-          <ErrorState
-            offline
-            message={t('agenda.errors.offlineTitle')}
-            description={t('agenda.errors.offlineText')}
-            onRetry={() => void reminders.refetch()}
-          />
-        );
-      }
-      if (reminders.isError) {
-        return (
-          <ErrorState
-            message={t('agenda.all.load')}
-            description={reminderErrorMessage(reminders.error)}
-            onRetry={() => void reminders.refetch()}
-          />
-        );
-      }
-      return <LoadingState />;
+    const { view } = reminders;
+    if (view.state === 'loading') return <LoadingState />;
+    if (view.state === 'offline_unavailable') {
+      return <ErrorState offline message={t('agenda.errors.offlineTitle')} description={t('agenda.offline.neverLoaded')} onRetry={reminders.refetch} />;
+    }
+    if (view.state === 'local_error') return <ErrorState message={t('agenda.offline.localError')} onRetry={reminders.refetch} />;
+    if (view.state === 'error') {
+      return <ErrorState message={t('agenda.all.load')} description={reminderErrorMessage(view.error)} onRetry={reminders.refetch} />;
     }
     // Hasta tener la lista de mascotas no se sabe cuáles se están eliminando.
     if (!pets.data) {
@@ -65,8 +48,10 @@ export default function AllRemindersScreen() {
       );
     }
     const names = new Map(pets.data.map((pet) => [pet.id, pet.name]));
-    const visible = remindersOfPets(reminders.data, new Set(names.keys()));
-    if (visible.length === 0) return <EmptyState icon={CalendarDays} title={t('agenda.all.empty')} />;
+    const visible = remindersOfPets(view.reminders, new Set(names.keys()));
+    if (visible.length === 0) {
+      return view.partial ? <Text color="inkMuted">{t('agenda.offline.partial')}</Text> : <EmptyState icon={CalendarDays} title={t('agenda.all.empty')} />;
+    }
     const now = new Date();
     const groups = groupReminders(visible, now);
     const rows = (items: Reminder[]) =>
@@ -77,6 +62,7 @@ export default function AllRemindersScreen() {
           now={now}
           petName={names.get(reminder.pet_id)}
           divider={index < items.length - 1}
+          sync={reminders.displayOf(reminder.id)}
           onOpen={() => router.push({ pathname: '/reminders/[id]', params: { id: reminder.id } })}
         />
       ));
@@ -109,8 +95,11 @@ export default function AllRemindersScreen() {
         </Text>
         <Text color="inkMuted">{t('agenda.all.subtitle')}</Text>
       </View>
-      {reminders.data !== undefined && (!canUseServer || !online) ? (
-        <Banner icon={WifiOff} message={t('agenda.errors.network')} />
+      {reminders.view.state === 'ready' && reminders.view.stale ? <Banner icon={WifiOff} message={t('agenda.offline.banner')} /> : null}
+      {reminders.view.state === 'ready' && reminders.view.partial && reminders.view.reminders.length > 0 ? (
+        <Text variant="caption" color="inkMuted">
+          {t('agenda.offline.partial')}
+        </Text>
       ) : null}
       {body()}
     </Screen>

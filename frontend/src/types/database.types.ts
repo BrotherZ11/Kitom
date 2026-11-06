@@ -762,6 +762,7 @@ export type Database = {
       reminders: {
         Row: {
           attachment_path: string | null
+          client_request_id: string | null
           completed_at: string | null
           created_at: string
           created_by: string | null
@@ -779,6 +780,7 @@ export type Database = {
         }
         Insert: {
           attachment_path?: string | null
+          client_request_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -796,6 +798,7 @@ export type Database = {
         }
         Update: {
           attachment_path?: string | null
+          client_request_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null

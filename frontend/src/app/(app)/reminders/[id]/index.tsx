@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -17,20 +17,21 @@ import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
 import { useToast } from '@/components/ui/toast';
 import { TopBar } from '@/components/ui/top-bar';
-import { useAuth } from '@/features/auth/auth-context';
 import { notificationsUnavailableReason } from '@/features/notifications/device-notifications';
 import { useNotificationPermission } from '@/features/notifications/hooks/use-notification-permission';
 import { reminderNotifyState } from '@/features/notifications/notification-plan';
 import { useActivePet } from '@/features/pets/active-pet-context';
-import { useCanEditPet } from '@/features/pets/hooks/use-pets';
+import { reminderOutcomeMessage, ReminderSyncPanel, ReminderSyncTag } from '@/features/reminders/components/reminder-sync-status';
 import {
   useCompleteReminder,
   useDeleteReminder,
   useReminder,
+  useReminderPermission,
   useReopenReminder,
   useSetReminderActive,
   useSnoozeReminder,
 } from '@/features/reminders/hooks/use-reminders';
+import type { LocalReminderOperation, ReminderSyncDisplay } from '@/features/reminders/offline/reminder-operation';
 import { reminderErrorMessage } from '@/features/reminders/reminder-errors';
 import { formatReminderLongDay, formatReminderTime } from '@/features/reminders/reminder-format';
 import {
@@ -43,32 +44,37 @@ import {
   type SnoozeOption,
 } from '@/features/reminders/reminder-model';
 import { REMINDER_TYPE_ICONS, reminderWhenLabel } from '@/features/reminders/reminder-text';
-import { useIsOnline } from '@/hooks/use-is-online';
 import { useTheme } from '@/hooks/use-theme';
 import { getLocale, t, tf } from '@/i18n';
 import { createSubmitGuard } from '@/lib/submit-guard';
 import { radius, spacing } from '@/theme/tokens';
 
-/** Detalle del recordatorio (tablero 8.4): cuándo, repetición, aviso, notas y acciones. */
+/**
+ * Detalle del recordatorio (tablero 8.4): cuándo, repetición, aviso, notas y acciones. También sin conexión (de la
+ * copia o de un alta local), con el estado de lo guardado en el dispositivo y qué se puede hacer con ello.
+ */
 export default function ReminderDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const reminder = useReminder(id);
+  const { view, refetch } = useReminder(id);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/agenda'));
 
-  if (reminder.data) return <ReminderDetail reminder={reminder.data} onBack={back} />;
+  // Un alta confirmada: el enlace de un aviso con su id local lleva al recordatorio del servidor.
+  if (view.state === 'redirect') return <Redirect href={{ pathname: '/reminders/[id]', params: { id: view.reminderId } }} />;
+  if (view.state === 'ready') {
+    return <ReminderDetail reminder={view.reminder} op={view.op} display={view.display} stale={view.stale} onBack={back} />;
+  }
   return (
     <Screen align="top">
       <TopBar onBack={back} />
-      {reminder.isPending && reminder.fetchStatus !== 'idle' ? (
+      {view.state === 'loading' ? (
         <LoadingState />
-      ) : reminder.isError || reminder.fetchStatus === 'idle' ? (
-        <ErrorState
-          offline={reminder.fetchStatus === 'idle'}
-          message={reminder.isError ? reminderErrorMessage(reminder.error) : t('agenda.errors.offlineTitle')}
-          description={reminder.isError ? undefined : t('agenda.errors.offlineText')}
-          onRetry={() => void reminder.refetch()}
-        />
+      ) : view.state === 'offline_unavailable' ? (
+        <ErrorState offline message={t('agenda.errors.offlineTitle')} description={t('agenda.offline.neverLoaded')} onRetry={refetch} />
+      ) : view.state === 'local_error' ? (
+        <ErrorState message={t('agenda.offline.localError')} onRetry={refetch} />
+      ) : view.state === 'error' ? (
+        <ErrorState message={reminderErrorMessage(view.error)} onRetry={refetch} />
       ) : (
         <EmptyState
           icon={CalendarDays}
@@ -82,15 +88,25 @@ export default function ReminderDetailScreen() {
   );
 }
 
-function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () => void }) {
+function ReminderDetail({
+  reminder,
+  op,
+  display,
+  stale,
+  onBack,
+}: {
+  reminder: Reminder;
+  op: LocalReminderOperation | null;
+  display: ReminderSyncDisplay | null;
+  stale: boolean;
+  onBack: () => void;
+}) {
   const router = useRouter();
   const theme = useTheme();
   const toast = useToast();
   const locale = getLocale();
-  const { canUseServer } = useAuth();
-  const online = useIsOnline();
   const { pets } = useActivePet();
-  const permission = useCanEditPet(reminder.pet_id);
+  const { permission } = useReminderPermission(reminder.pet_id);
   const { permission: notifications } = useNotificationPermission();
   const complete = useCompleteReminder();
   const reopen = useReopenReminder();
@@ -107,8 +123,11 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
   // agenda no se cambia (el servidor la borrará con sus recordatorios; si se deshace, todo vuelve).
   const deletion = pets.deletions.find((item) => item.op.petId === reminder.pet_id || item.op.localId === reminder.pet_id);
   const petName = pets.data?.find((pet) => pet.id === reminder.pet_id)?.name ?? deletion?.pet.name ?? '';
-  const canWrite = permission.data === true && canUseServer && online && !deletion;
-  const pending = reminder.status === 'pending';
+  // Solo indicación de interfaz: quien decide es RLS al sincronizar. Con un conflicto, sin permiso o con una
+  // eliminación guardada, primero se decide qué hacer con lo que hay en el dispositivo.
+  const blocked = op !== null && (op.kind === 'delete' || op.status === 'conflict' || op.status === 'forbidden');
+  const canWrite = permission === 'editable' && !deletion && !blocked;
+  const pending = reminder.status === 'pending' && op?.kind !== 'delete';
   const active = isReminderActive(reminder);
   // Desactivado: sigue pendiente en el servidor, pero no avisa ni cuenta (se activa desde aquí).
   const paused = pending && !active;
@@ -143,9 +162,10 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
     run(async () => {
       const result = await complete.mutateAsync(reminder);
       toast({
-        message: result.next
-          ? tf('agenda.toast.doneNext', { date: reminderWhenLabel(result.next, new Date()) })
-          : t('agenda.toast.done'),
+        message: reminderOutcomeMessage(
+          result,
+          result.next ? tf('agenda.toast.doneNext', { date: reminderWhenLabel(result.next, new Date()) }) : t('agenda.toast.done')
+        ),
         action: {
           label: t('agenda.toast.undo'),
           onPress: () => {
@@ -160,23 +180,23 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
 
   const markPending = () =>
     run(async () => {
-      await reopen.mutateAsync(reminder);
-      toast({ message: t('agenda.toast.reopened') });
+      const outcome = await reopen.mutateAsync(reminder);
+      toast({ message: reminderOutcomeMessage(outcome, t('agenda.toast.reopened')) });
     });
 
   const chooseSnooze = (option: SnoozeOption) => {
     setSheetOpen(false);
     run(async () => {
-      const saved = await snooze.mutateAsync({ reminder, option });
-      toast({ message: tf('agenda.toast.snoozed', { date: reminderWhenLabel(effectiveDueAt(saved), new Date()) }) });
+      const outcome = await snooze.mutateAsync({ reminder, option });
+      toast({ message: reminderOutcomeMessage(outcome, tf('agenda.toast.snoozed', { date: reminderWhenLabel(outcome.until, new Date()) })) });
     });
   };
 
   const confirmRemove = () =>
     run(async () => {
-      await remove.mutateAsync(reminder);
+      const outcome = await remove.mutateAsync(reminder);
       setConfirmDelete(false);
-      toast({ message: t('agenda.toast.deleted') });
+      toast({ message: reminderOutcomeMessage(outcome, t('agenda.toast.deleted')) });
       onBack();
     });
 
@@ -184,7 +204,7 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
     run(async () => {
       const result = await setActive.mutateAsync({ reminder, active: !active });
       toast({
-        message: active ? t('agenda.toast.deactivated') : t('agenda.toast.activated'),
+        message: reminderOutcomeMessage(result, active ? t('agenda.toast.deactivated') : t('agenda.toast.activated')),
         action: {
           label: t('agenda.toast.undo'),
           onPress: () => {
@@ -279,10 +299,17 @@ function ReminderDetail({ reminder, onBack }: { reminder: Reminder; onBack: () =
           ) : null}
         </View>
 
+        {display ? (
+          <View style={styles.tag}>
+            <ReminderSyncTag display={display} />
+          </View>
+        ) : null}
+        {op && display ? <ReminderSyncPanel op={op} display={display} onClosed={onBack} /> : null}
         {deletion ? <Alert tone="warning" message={tf('agenda.detail.petDeleting', { name: petName })} /> : null}
         {paused ? <Alert tone="info" message={t('agenda.detail.pausedText')} /> : null}
-        {permission.data === false ? <Alert tone="info" message={tf('agenda.detail.readOnly', { name: petName })} /> : null}
-        {!canUseServer || !online ? <Alert tone="warning" message={t('agenda.errors.network')} /> : null}
+        {permission === 'read_only' ? <Alert tone="info" message={tf('agenda.detail.readOnly', { name: petName })} /> : null}
+        {permission === 'unknown' ? <Alert tone="info" message={t('agenda.offline.permissionUnknown')} /> : null}
+        {stale ? <Alert tone="warning" message={t('agenda.offline.banner')} /> : null}
         {error ? <Alert tone="error" message={error} /> : null}
 
         <Card flush>

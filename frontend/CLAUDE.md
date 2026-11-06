@@ -137,8 +137,8 @@ error y «sin mascotas».
   `src/lib/open-link.ts` — `openSupportEmail` (`mailto:`); devuelve `false` si no se pudo abrir.
 - MVP (2026-10-21): `src/features/profile/onboarding.ts` + `hooks/use-profile.ts` (configuración
   inicial, `useOnboardingGate` en el layout de `(tabs)`; rutas `(app)/setup/*`), `src/features/reminders/`
-  (agenda; lógica pura en `reminder-model.ts`/`reminder-format.ts`; escrituras siempre con precondición
-  `updated_at`), `src/features/notifications/` (avisos locales: `notification-plan.ts` puro,
+  (agenda; lógica pura en `reminder-model.ts`/`reminder-format.ts`; desde la fase 14, escrituras siempre primero en el
+  dispositivo y enviadas por `offline/reminder-sync-engine.ts`, con clave de alta o precondición `updated_at`), `src/features/notifications/` (avisos locales: `notification-plan.ts` puro,
   `device-notifications.ts` carga `expo-notifications` con `require` protegido —nunca importarlo
   directamente: rompe Expo Go 57.0.9—, `NotificationSync` en `(app)/_layout.tsx`; alarmas exactas de
   Android con el módulo nativo local `modules/kitom-exact-alarms`, autoenlazado desde `modules/`: su

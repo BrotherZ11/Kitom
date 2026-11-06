@@ -9,6 +9,7 @@ import { describe, it } from 'node:test';
 import { createLocalStore } from '../../../lib/local-store/local-store.ts';
 import { createMemoryStorage } from '../../../lib/local-store/memory-storage.ts';
 import { NO_PET_CHANGES, signOutTotal } from '../../auth/unsynced-changes.ts';
+import { NO_REMINDER_CHANGES } from '../../reminders/offline/reminder-operation.ts';
 import { createPetCacheRepository } from './pet-cache-repository.ts';
 import { createPetOperationRepository } from './pet-operation-repository.ts';
 import {
@@ -511,7 +512,7 @@ describe('16. cierre de sesión y contador de pendientes', () => {
     let summary = summarizePetOperations(await a.operations.list());
     assert.equal(summary.pendingDelete, 1);
     assert.equal(petUnsyncedTotal(summary), 1);
-    assert.equal(signOutTotal({ dailyLogs: { pending: 0, failed: 0, conflict: 0 }, pets: summary }), 1, 'no se cierra sin preguntar');
+    assert.equal(signOutTotal({ dailyLogs: { pending: 0, failed: 0, conflict: 0 }, pets: summary, reminders: NO_REMINDER_CHANGES }), 1, 'no se cierra sin preguntar');
 
     server.editElsewhere(base.id, { name: 'Cambiada' });
     dev.online.value = true;

@@ -68,6 +68,7 @@ async function withBothPending({ disk = new Map() } = {}) {
   const flow = createAppSignOutFlow({
     dailyLogs: daily,
     pets,
+    reminders: noReminders(),
     signOut: async () => {
       signOuts.push(USER);
       return { error: null };
@@ -80,6 +81,12 @@ async function withBothPending({ disk = new Map() } = {}) {
   };
   return { disk, dailyServer, petServer, daily, pets, draft, flow, signOuts, online, goOnline };
 }
+
+/** Agenda sin nada guardado: su caso está en el bloque de abajo. */
+const noReminders = () => ({
+  operations: { list: async () => [], unreadableCount: async () => 0 },
+  engine: { syncNow: async () => ({ status: 'completed' }) },
+});
 
 describe('cerrar sesión con registros diarios y mascotas pendientes', () => {
   it('pedir cerrar sesión: no cierra y cuenta las dos fuentes', async () => {
@@ -109,7 +116,7 @@ describe('cerrar sesión con registros diarios y mascotas pendientes', () => {
     const base = petServer.insertElsewhere({ id: randomUUID(), owner_id: USER, ...petContent() });
     await pets.engine.saveEdit(base.id, { ...contentOf(base), name: 'Editada' }, base);
     const signOuts = [];
-    const flow = createAppSignOutFlow({ dailyLogs: daily, pets, signOut: async () => (signOuts.push(1), { error: null }), timeoutMs: 1_000 });
+    const flow = createAppSignOutFlow({ dailyLogs: daily, pets, reminders: noReminders(), signOut: async () => (signOuts.push(1), { error: null }), timeoutMs: 1_000 });
     const outcome = await flow.request();
     assert.equal(outcome.status, 'needs_decision');
     assert.deepEqual(outcome.summary.dailyLogs, { pending: 0, failed: 0, conflict: 0 });
@@ -221,6 +228,7 @@ describe('cerrar sesión con registros diarios y mascotas pendientes', () => {
     const flow = createAppSignOutFlow({
       dailyLogs: daily,
       pets: { operations, engine: { syncNow: async () => ({ status: 'completed' }) } },
+      reminders: noReminders(),
       signOut: async () => (signOuts.push(1), { error: null }),
       timeoutMs: 1_000,
     });

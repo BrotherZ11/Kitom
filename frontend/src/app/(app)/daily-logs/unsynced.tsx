@@ -17,12 +17,15 @@ import { PetSyncTag } from '@/features/pets/components/pet-sync-status';
 import { usePetOperations } from '@/features/pets/hooks/use-pet-writes';
 import { usePets } from '@/features/pets/hooks/use-pets';
 import { unsyncedPetItems } from '@/features/pets/offline/pet-write-view';
+import { ReminderSyncTag } from '@/features/reminders/components/reminder-sync-status';
+import { useReminderOperations } from '@/features/reminders/hooks/use-reminders';
+import { unsyncedReminderItems } from '@/features/reminders/offline/reminder-view';
 import { getLocale, t } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 
 /**
  * Cambios del dispositivo sin confirmar por el servidor, de todo el usuario: altas, ediciones y
- * eliminaciones de mascotas (fase 10) y registros diarios (pendientes, fallidos o en conflicto). Sale
+ * eliminaciones de mascotas (fase 10), de la agenda (fase 14) y registros diarios (pendientes, fallidos o en conflicto). Sale
  * de los almacenes locales: aparecen aunque la mascota ya no sea visible (sin permiso, ya no miembro o
  * eliminada). Cada uno abre donde se ve su estado y lo que se puede hacer (reintentar, resolver,
  * descartar o deshacer la eliminación).
@@ -34,6 +37,37 @@ export default function UnsyncedDailyLogsScreen() {
   const { view, refetch } = useUnsyncedDailyLogs(pets.data);
   const operations = usePetOperations();
   const petItems = unsyncedPetItems(operations.data, operations.syncingKey);
+  const reminderOperations = useReminderOperations();
+  const reminderItems = unsyncedReminderItems(reminderOperations.data, reminderOperations.syncingKey);
+  const petName = (petId: string) => pets.data?.find((pet) => pet.id === petId)?.name ?? t('dailyLogs.unsynced.unknownPet');
+
+  const remindersSection =
+    reminderItems.length > 0 ? (
+      <View style={styles.section}>
+        <Text variant="overline" color="inkMuted" accessibilityRole="header">
+          {t('dailyLogs.unsynced.remindersSection')}
+        </Text>
+        <Card flush>
+          {reminderItems.map((item, index) => (
+            <ListItem
+              key={item.key}
+              title={item.title}
+              subtitle={petName(item.petId)}
+              trailing={<ReminderSyncTag display={item.display} />}
+              divider={index < reminderItems.length - 1}
+              onPress={() => router.push({ pathname: '/reminders/[id]', params: { id: item.routeId } })}
+            />
+          ))}
+        </Card>
+      </View>
+    ) : null;
+  const remindersError = reminderOperations.isError ? (
+    <Alert
+      tone="warning"
+      message={t('agenda.offline.localError')}
+      action={{ label: t('common.retry'), onPress: () => void reminderOperations.refetch() }}
+    />
+  ) : null;
 
   const petsSection =
     petItems.length > 0 ? (
@@ -64,17 +98,19 @@ export default function UnsyncedDailyLogsScreen() {
   ) : null;
 
   const content = () => {
-    if (view.state === 'loading' || operations.isPending) return <LoadingState />;
+    if (view.state === 'loading' || operations.isPending || reminderOperations.isPending) return <LoadingState />;
     if (view.state === 'error') {
       return (
         <>
           {petsError}
           {petsSection}
+          {remindersError}
+          {remindersSection}
           <ErrorState message={t('dailyLogs.errors.local_read_failed')} onRetry={refetch} />
         </>
       );
     }
-    if (view.items.length === 0 && petItems.length === 0 && !operations.isError) {
+    if (view.items.length === 0 && petItems.length === 0 && reminderItems.length === 0 && !operations.isError && !reminderOperations.isError) {
       return <EmptyState icon={CloudUpload} title={t('dailyLogs.unsynced.none')} />;
     }
 
@@ -83,6 +119,8 @@ export default function UnsyncedDailyLogsScreen() {
         <Text color="inkMuted">{t('dailyLogs.unsynced.description')}</Text>
         {petsError}
         {petsSection}
+        {remindersError}
+        {remindersSection}
         {view.items.length > 0 ? (
           <View style={styles.section}>
             <Text variant="overline" color="inkMuted" accessibilityRole="header">

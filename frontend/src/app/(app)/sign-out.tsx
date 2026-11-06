@@ -15,16 +15,18 @@ import { authErrorMessage, type AuthErrorCode } from '@/features/auth/auth-error
 import { unsyncedTotal, type SignOutOutcome, type SyncAttemptResult } from '@/features/auth/sign-out-flow';
 import { useSignOutFlow, useUnsyncedChanges } from '@/features/auth/sign-out-provider';
 import { needsReview, signOutTotal, type SignOutSummary } from '@/features/auth/unsynced-changes';
+import { reminderUnsyncedTotal } from '@/features/reminders/offline/reminder-operation';
 import { petUnsyncedTotal, type PetUnsyncedSummary } from '@/features/pets/offline/pet-operation';
 import { t } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 
 const DAILY_LOG_COUNTS = ['pending', 'conflict', 'failed'] as const;
+const REMINDER_COUNTS = ['pendingCreate', 'pendingUpdate', 'pendingDelete', 'uncertain', 'conflict', 'failed', 'forbidden', 'unreadable'] as const;
 const PET_COUNTS = ['pendingCreate', 'pendingUpdate', 'pendingDelete', 'uncertain', 'conflict', 'failed', 'forbidden', 'unreadable'] as const satisfies readonly (keyof PetUnsyncedSummary)[];
 
 /**
  * Cerrar sesión con cambios que solo existen en el dispositivo (`features/auth/sign-out-flow.ts`): de
- * registros diarios y de mascotas (altas, ediciones, eliminaciones, envíos sin confirmar, conflictos,
+ * registros diarios, de mascotas y de la agenda (altas, ediciones, eliminaciones, envíos sin confirmar, conflictos,
  * fallos, sin permiso e ilegibles). Se llega desde «Cerrar sesión» solo si hay alguno, o si no se pudo comprobar.
  * Ninguna opción borra datos del dispositivo. Salir de la pantalla (atrás o «Cancelar») no cambia nada
  * y anula el cierre de un intento de sincronización en curso.
@@ -67,6 +69,7 @@ export default function SignOutScreen() {
   const total = summary ? signOutTotal(summary) : null;
   const dailyLogs = summary ? unsyncedTotal(summary.dailyLogs) : 0;
   const pets = summary ? petUnsyncedTotal(summary.pets) : 0;
+  const reminders = summary ? reminderUnsyncedTotal(summary.reminders) : 0;
 
   return (
     <Screen align="top">
@@ -109,6 +112,24 @@ export default function SignOutScreen() {
                       plain
                       title={t(`signOut.petCounts.${status}`)}
                       value={String(summary.pets[status])}
+                      divider={index < shown.length - 1}
+                    />
+                  ))}
+                </Card>
+              </>
+            ) : null}
+            {reminders > 0 ? (
+              <>
+                <Text variant="overline" color="inkMuted" accessibilityRole="header">
+                  {t('signOut.reminders')}
+                </Text>
+                <Card flush>
+                  {REMINDER_COUNTS.filter((status) => summary.reminders[status] > 0).map((status, index, shown) => (
+                    <ListItem
+                      key={status}
+                      plain
+                      title={t(`signOut.reminderCounts.${status}`)}
+                      value={String(summary.reminders[status])}
                       divider={index < shown.length - 1}
                     />
                   ))}

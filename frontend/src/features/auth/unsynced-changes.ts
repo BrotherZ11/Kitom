@@ -5,13 +5,17 @@ import type { PetSyncEngine } from '@/features/pets/offline/pet-sync-engine';
 
 import { summarizeUnsynced } from '../daily-logs/offline/daily-log-cache.ts';
 import { petUnsyncedTotal, summarizePetOperations, type PetUnsyncedSummary } from '../pets/offline/pet-operation.ts';
+import type { ReminderOperationRepository } from '../reminders/offline/reminder-operation-repository.ts';
+import { reminderUnsyncedTotal, summarizeReminderOperations, type ReminderUnsyncedSummary } from '../reminders/offline/reminder-operation.ts';
+import type { ReminderSyncEngine } from '../reminders/offline/reminder-sync-engine.ts';
 import { createSignOutFlow, unsyncedTotal, type SignOutFlow, type UnsyncedSummary } from './sign-out-flow.ts';
 
 /**
  * Cambios que solo existen en este dispositivo, de todas las fuentes, para decidir al cerrar sesión:
- * registros diarios (`daily-logs`) y altas y ediciones de mascotas (`pets`, fase 8). Módulo puro.
+ * registros diarios (`daily-logs`), altas y ediciones de mascotas (`pets`, fase 8) y la agenda (`reminders`,
+ * fase 14). Módulo puro.
  */
-export type SignOutSummary = { dailyLogs: UnsyncedSummary; pets: PetUnsyncedSummary };
+export type SignOutSummary = { dailyLogs: UnsyncedSummary; pets: PetUnsyncedSummary; reminders: ReminderUnsyncedSummary };
 
 export const NO_PET_CHANGES: PetUnsyncedSummary = {
   pendingCreate: 0,
@@ -26,13 +30,25 @@ export const NO_PET_CHANGES: PetUnsyncedSummary = {
 
 /** Todo lo que no está confirmado por el servidor (incluido lo incierto y lo ilegible). */
 export function signOutTotal(summary: SignOutSummary): number {
-  return unsyncedTotal(summary.dailyLogs) + petUnsyncedTotal(summary.pets);
+  return unsyncedTotal(summary.dailyLogs) + petUnsyncedTotal(summary.pets) + reminderUnsyncedTotal(summary.reminders);
 }
 
 /** Lo que necesita al usuario: sincronizar no lo resuelve solo. */
 export function needsReview(summary: SignOutSummary): boolean {
-  const { dailyLogs, pets } = summary;
-  return dailyLogs.conflict + dailyLogs.failed + pets.conflict + pets.failed + pets.forbidden + pets.unreadable > 0;
+  const { dailyLogs, pets, reminders } = summary;
+  return (
+    dailyLogs.conflict +
+      dailyLogs.failed +
+      pets.conflict +
+      pets.failed +
+      pets.forbidden +
+      pets.unreadable +
+      reminders.conflict +
+      reminders.failed +
+      reminders.forbidden +
+      reminders.unreadable >
+    0
+  );
 }
 
 /**
@@ -48,21 +64,23 @@ export function combineSyncNow(outcomes: readonly SyncNowOutcome[]): SyncNowOutc
 }
 
 /**
- * Flujo de cierre de sesión de la cuenta activa con las dos fuentes de cambios locales. Lo usa el
+ * Flujo de cierre de sesión de la cuenta activa con todas las fuentes de cambios locales. Lo usa el
  * proveedor (`sign-out-provider.tsx`) y se prueba tal cual (`sign-out-combined.test.mjs`):
- * - comprobar = leer los dos almacenes; si cualquiera falla al leer, el flujo pide decisión (`null`);
- * - sincronizar = las dos pasadas a la vez, cada una con su límite de tiempo;
- * - cerrar solo si el total (de los dos, incluidos inciertos e ilegibles) es 0.
+ * - comprobar = leer todos los almacenes; si cualquiera falla al leer, el flujo pide decisión (`null`);
+ * - sincronizar = todas las pasadas a la vez, cada una con su límite de tiempo;
+ * - cerrar solo si el total (de todos, incluidos inciertos e ilegibles) es 0.
  */
 export function createAppSignOutFlow<E>({
   dailyLogs,
   pets,
+  reminders,
   signOut,
   clearLocalData,
   timeoutMs,
 }: {
   dailyLogs: { repository: Pick<DailyLogRepository, 'list'>; engine: Pick<DailyLogSyncEngine, 'syncNow'> };
   pets: { operations: Pick<PetOperationRepository, 'list' | 'unreadableCount'>; engine: Pick<PetSyncEngine, 'syncNow'> };
+  reminders: { operations: Pick<ReminderOperationRepository, 'list' | 'unreadableCount'>; engine: Pick<ReminderSyncEngine, 'syncNow'> };
   signOut: () => Promise<{ error: E | null }>;
   clearLocalData?: () => Promise<unknown>;
   timeoutMs: number;
@@ -71,10 +89,13 @@ export function createAppSignOutFlow<E>({
     checkUnsynced: async () => ({
       dailyLogs: summarizeUnsynced(await dailyLogs.repository.list()),
       pets: summarizePetOperations(await pets.operations.list(), await pets.operations.unreadableCount()),
+      reminders: summarizeReminderOperations(await reminders.operations.list(), await reminders.operations.unreadableCount()),
     }),
     total: signOutTotal,
     syncNow: async () =>
-      combineSyncNow(await Promise.all([dailyLogs.engine.syncNow({ timeoutMs }), pets.engine.syncNow({ timeoutMs })])),
+      combineSyncNow(
+        await Promise.all([dailyLogs.engine.syncNow({ timeoutMs }), pets.engine.syncNow({ timeoutMs }), reminders.engine.syncNow({ timeoutMs })])
+      ),
     signOut,
     clearLocalData,
   });

@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { SignOutFlowProvider } from '@/features/auth/sign-out-provider';
 import { DailyLogSyncProvider } from '@/features/daily-logs/sync/daily-log-sync-provider';
 import { NotificationSync } from '@/features/notifications/notification-sync';
+import { ReminderSyncProvider } from '@/features/reminders/sync/reminder-sync-provider';
 import { ActivePetProvider } from '@/features/pets/active-pet-context';
 import { PetSyncProvider } from '@/features/pets/sync/pet-sync-provider';
 import { useProfileTimeZoneSync } from '@/features/profile/hooks/use-profile-timezone-sync';
@@ -23,20 +24,22 @@ export default function AppLayout() {
   return (
     <DailyLogSyncProvider>
       <PetSyncProvider>
-        <SignOutFlowProvider>
-          <ActivePetProvider>
-            {/* Avisos locales del dispositivo (recordatorio diario y agenda). */}
-            <NotificationSync />
-            <Stack screenOptions={{ ...screenOptions, headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-              {/* «Registrar» abre el registro a pantalla completa, desde abajo (PANTALLAS.md §1). */}
-              <Stack.Screen
-                name="pets/[id]/daily-log"
-                options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
-              />
-            </Stack>
-          </ActivePetProvider>
-        </SignOutFlowProvider>
+        <ReminderSyncProvider>
+          <SignOutFlowProvider>
+            <ActivePetProvider>
+              {/* Avisos locales del dispositivo (recordatorio diario y agenda). */}
+              <NotificationSync />
+              <Stack screenOptions={{ ...screenOptions, headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
+                {/* «Registrar» abre el registro a pantalla completa, desde abajo (PANTALLAS.md §1). */}
+                <Stack.Screen
+                  name="pets/[id]/daily-log"
+                  options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+                />
+              </Stack>
+            </ActivePetProvider>
+          </SignOutFlowProvider>
+        </ReminderSyncProvider>
       </PetSyncProvider>
     </DailyLogSyncProvider>
   );

@@ -1,7 +1,7 @@
 # Kitom — Base de datos (estado desplegado)
 
-Revisión: **2026-10-29**. Fotografía del esquema **realmente desplegado** (`supabase/migrations/`,
-13 migraciones, idénticas en `kitom-dev`), de su cobertura de pruebas y de sus problemas conocidos.
+Revisión: **2026-11-05**. Fotografía del esquema **realmente desplegado** (`supabase/migrations/`,
+17 migraciones, todas aplicadas en `kitom-dev`), de su cobertura de pruebas y de sus problemas conocidos.
 El **contrato** (matriz de permisos, RPC, códigos de error, Edge Functions) está en
 [`docs/README.md`](README.md) y no se repite aquí; las decisiones, en [`DECISIONS.md`](DECISIONS.md);
 las reglas de trabajo, en [`supabase/CLAUDE.md`](../supabase/CLAUDE.md).
@@ -23,7 +23,9 @@ las reglas de trabajo, en [`supabase/CLAUDE.md`](../supabase/CLAUDE.md).
 | `20261027194908_pet_storage_cleanup` | cola `private.pet_storage_cleanup_jobs` + RPC de servicio | aplicada |
 | `20261028114317_pet_storage_cleanup_guards` | salvaguardas de las RPC de limpieza | aplicada |
 | `20261028200659_reminders_is_active` | activar/desactivar recordatorios | aplicada |
-| `20261030090318_abuse_limits_and_db_hardening` | límites de IA (1/min, 3 fallos/día) e invitaciones (20/24 h), identidad oculta de invitaciones pendientes, CHECK de longitud, `(select auth.uid())` en 22 políticas, `STABLE`, 12 índices de FK, `processing_started_at`, `pg_cron`/`pg_net` y tareas de limpieza | **pendiente** (`db push` del usuario; probada en local) |
+| `20261030090318_abuse_limits_and_db_hardening` | límites de IA (1/min, 3 fallos/día) e invitaciones (20/24 h), identidad oculta de invitaciones pendientes, CHECK de longitud, `(select auth.uid())` en 22 políticas, `STABLE`, 12 índices de FK, `processing_started_at`, `pg_cron`/`pg_net` y tareas de limpieza | aplicada (2026-11-04) |
+| `20261105093545_reminders_client_request_id` | alta idempotente de recordatorios (agenda sin conexión, fase 14) | aplicada (2026-11-06) |
+| `20261105122353_account_deletion_audit_triggers` | borrar una cuenta con datos en mascotas que sobreviven (D-11): la FK `ON DELETE SET NULL` pasa los triggers de auditoría, conserva `last_edited_by` y no recalcula la racha | aplicada (2026-11-06) |
 
 Procedimiento (resumen; completo en `supabase/CLAUDE.md` y [`DEPLOYMENT.md`](DEPLOYMENT.md) §5):
 migración nueva → `migration up --local` → pgTAP → PR `db/…` → `db push` **del usuario** → tipos con
@@ -79,7 +81,7 @@ concurrencia en `supabase/tests/concurrency/`):
 | `daily_logs` + `save_daily_log` | S/I/U/D | sí (186 casos pgTAP + concurrencia) |
 | `pets` | S/I/U/D | sí (pgTAP `pets_*`, concurrencia de alta/edición/borrado) |
 | `profiles` | S/I/U | parcial (zona horaria y aislamiento entre usuarios) |
-| `reminders` | S/I/U/D | sí (`reminders.test.sql`, `reminders_is_active.test.sql`) |
+| `reminders` | S/I/U/D | sí (`reminders.test.sql`, `reminders_is_active.test.sql`, `reminders_client_request_id.test.sql`, concurrencia `reminders_concurrency.sh`) |
 | `pet_co_owners` + RPC de invitación por email | S + RPC | parcial (por email, su límite, la identidad oculta de las pendientes y `revoke` de una pendiente sí: `pet_invitations`, `abuse_limits`; `change_pet_member_role`, `decline`, `invite_pet_member` por id, no) |
 | Límites de IA (`request_ai_analysis`: cupo, 1/min, 3 fallos/día, aviso) | RPC | sí (`ai_quota`, `abuse_limits`, concurrencia `abuse_limits_concurrency.sh`) |
 | CHECK de longitud, políticas con `(select auth.uid())`, índices de FK, tareas de `pg_cron` | — | sí (`db_hardening.test.sql`) |
@@ -88,7 +90,8 @@ concurrencia en `supabase/tests/concurrency/`):
 | `ai_analysis_requests`, `ai_analysis_symptoms`, `request_ai_analysis`, `get_ai_analysis_entitlement`, `submit_ai_feedback` | S + RPC | **no** |
 | `subscriptions`, `subscription_events`, `process_revenuecat_event` | S | **no** |
 | `push_tokens`, `notification_preferences`, `analytics_events`, `clinic_referrals`, `vet_clinics`, `pet_shared_reports`, catálogos | varias | **no** |
-| `transfer_pet_ownership` | RPC | **no** |
+| `transfer_pet_ownership` | RPC | parcial (transferir y borrar después la cuenta anterior: `account_deletion_audit`) |
+| Borrar una cuenta: FK a `profiles`, triggers de auditoría y rachas | — | sí (`account_deletion_audit.test.sql`, concurrencia `account_deletion_concurrency.sh`, integración con Auth real en `delete-account`) |
 | Storage `avatars`, `reminder-attachments`, `shared-reports` | varias | **no** |
 
 ## 4. Funciones y triggers
@@ -103,7 +106,8 @@ concurrencia en `supabase/tests/concurrency/`):
   `recompute_pet_streak`, `process_revenuecat_event`, `pet_storage_cleanup_*`.
 - **Triggers**: `handle_new_user` (perfil + preferencias + suscripción free al registrarse);
   `set_timestamp_*`; protección de campos (`trg_protect_pet_structural_fields`,
-  `trg_protect_daily_log_audit`, `trg_protect_reminder_audit`); validaciones (fecha del registro,
+  `trg_protect_daily_log_audit`, `trg_protect_reminder_audit`; la única excepción a `created_by`/`logged_by` es pasar a
+  `NULL` cuando el perfil ya no existe, es decir, la FK al borrar la cuenta); validaciones (fecha del registro,
   nacimiento, zona horaria, ruta de foto de IA, adjunto de recordatorio, especie del síntoma); rachas
   (`trg_daily_logs_streak`, concede logros); `trg_sync_reminder_completion`;
   `trg_pets_enqueue_storage_cleanup` (`AFTER DELETE`).
@@ -148,6 +152,7 @@ Con el volumen actual no hay impacto medible; son tareas P2 antes de crecer.
 | D-08 | La limpieza de Storage no puede programarse: el remoto no tiene `pg_cron` ni `pg_net` (la migración `20261030090318` los habilita y programa las tareas; no hacen nada hasta crear los secretos de Vault) | `ROADMAP.md` P1-04 |
 | D-09 | `catalog_translations` polimórfica, `recurrence_rule` con validación básica, co-tutores sin avatares ajenos | `docs/README.md` §22 |
 | D-10 | Sin entorno de producción: `kitom-dev` es el único remoto | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
+| D-11 | Borrar una cuenta fallaba si creó recordatorios o registros diarios en una mascota que sigue existiendo (Auth respondía 500). **Corregido** por `20261105122353`, aplicada en `kitom-dev` (2026-11-06) | [`DECISIONS.md`](DECISIONS.md) |
 
 Copias de seguridad: dependen del plan de Supabase del proyecto (en el plan gratuito no hay
 recuperación a un momento dado); no hay procedimiento de restauración probado.
