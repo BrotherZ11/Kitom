@@ -16,9 +16,10 @@ Tema claro/oscuro según el sistema con los colores de `docs/design`. La única 
 La app muestra sus propias copias de la política y los términos (`/legal/[doc]`). Se generan desde estas
 páginas: después de cambiarlas, `npm run legal:build` en `frontend/` (una prueba falla si se olvida).
 
-La URL base es `LEGAL_SITE_URL` de `frontend/src/lib/legal-links.ts` (`https://brotherz11.github.io/Kitom`).
-Si cambian el usuario, el nombre del repositorio o el dominio, se cambia allí, en las fichas de las tiendas y
-en las Redirect URLs de Supabase Auth (`docs/SETUP_GUIDE.md`). Todos los enlaces internos son relativos.
+La URL base es `LEGAL_SITE_URL` de `frontend/src/lib/legal-links.ts` (`https://kitom.app`, dominio propio
+configurado en GitHub Pages; la antigua `https://brotherz11.github.io/Kitom` redirige allí). Si cambia el
+dominio, se cambia allí, en las fichas de las tiendas, en Google Cloud y en las Redirect URLs de Supabase Auth
+(`docs/SETUP_GUIDE.md`). Todos los enlaces internos son relativos. Contacto: `soporte@kitom.app` (Zoho Mail).
 
 ## Publicar con GitHub Pages
 
@@ -30,7 +31,9 @@ GitHub Pages solo sirve desde la raíz o `/docs` de una rama; `site/` se publica
 2. En GitHub: **Settings › Pages › Build and deployment › Source = «GitHub Actions»**.
 3. Lanzar el workflow (pestaña **Actions › Pages › Run workflow**) o hacer un push a `main` que toque
    `site/`. Al terminar, la URL aparece en el resumen del job y en Settings › Pages.
-4. Comprobar que abren `…/Kitom/privacy.html`, `…/terms.html` y `…/delete-account.html`.
+4. Dominio propio: **Settings › Pages › Custom domain** = `kitom.app`, con los registros DNS de
+   `docs/SETUP_GUIDE.md` §1 y **Enforce HTTPS**. Con un workflow de Actions no hace falta archivo `CNAME`.
+5. Comprobar que abren `https://kitom.app/privacy.html`, `…/terms.html` y `…/delete-account.html`.
 
 Notas:
 
