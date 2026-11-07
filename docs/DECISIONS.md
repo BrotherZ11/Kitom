@@ -3,6 +3,27 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-07 — Dominio propio `kitom.app` y correo de soporte
+
+**Contexto.** El responsable compró `kitom.app` (Cloudflare), creó `soporte@kitom.app` en Zoho Mail y configuró
+Resend para el SMTP de Supabase. Las páginas públicas estaban en `brotherz11.github.io/Kitom` y el contacto era
+su Gmail personal.
+
+**Decisiones.**
+
+- `site/` se sigue publicando con GitHub Pages, ahora con dominio propio en la raíz (`https://kitom.app`). La URL
+  antigua redirige; las Redirect URLs de Supabase la conservan mientras queden APK anteriores.
+- Contacto público (app, páginas legales, Play, Google): `soporte@kitom.app`. El responsable sigue siendo la
+  persona física.
+- Zoho (buzón, registros en la raíz) y Resend (envío de Auth, subdominio `send`) conviven; Resend y Zoho pasan
+  a la política de privacidad como encargados (en vigor desde el 2026-11-07).
+- Logotipo para Google: `frontend/assets/brand/store/kitom-logo-google-120.jpg`, del icono de la app.
+
+**Pendiente de decidir: la URI de redirección `…supabase.co` en Google.** No se puede quitar sin romper el acceso
+con Google, y su dominio impide la verificación de marca. Opciones: Google Sign-In nativo en Android
+(`@react-native-google-signin/google-signin` + `signInWithIdToken`; gratis, requiere instalar el paquete y una
+build nueva) o dominio personalizado de Supabase (de pago). Detalle: `SETUP_GUIDE.md` §4.
+
 ## 2026-11-06 — Agenda sin conexión: frontend de la fase 14
 
 **Contexto.** Con la clave de alta (`20261105093545`) y el permiso guardado aprobados el 2026-11-05, la agenda deja de ser

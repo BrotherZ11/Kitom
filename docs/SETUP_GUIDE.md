@@ -4,7 +4,7 @@ Pasos, en orden, de lo que solo puede hacer el responsable en los paneles de Sup
 proveedor de correo. Por qué funciona así: [`AUTH.md`](AUTH.md). Publicación y builds:
 [`DEPLOYMENT.md`](DEPLOYMENT.md) §8.
 
-Comprobado el 2026-11-04. Lo marcado **[confirmar]** no se ha podido verificar en una fuente oficial, o
+Comprobado el 2026-11-04; dominio y correo, el 2026-11-07. Lo marcado **[confirmar]** no se ha podido verificar en una fuente oficial, o
 depende de lo que muestre tu consola: compruébalo allí antes de actuar. Esto no es asesoramiento legal.
 
 ## Resumen de decisiones
@@ -12,14 +12,16 @@ depende de lo que muestre tu consola: compruébalo allí antes de actuar. Esto n
 | Pregunta | Respuesta | Motivo |
 |---|---|---|
 | ¿Cuenta de Play personal o de organización? | **Personal ahora**, salvo que la empresa ya exista | La de organización exige D-U-N-S y una entidad real. La app se puede transferir después |
-| ¿Hace falta dominio? | **Sí, muy recomendable** (unos 10-20 €/año **[confirmar]**) | Play no lo exige, pero sin él no hay emails fiables a usuarios reales ni marca propia en la pantalla de Google |
-| ¿Hace falta SMTP propio? | **Sí, es obligatorio para usuarios reales** | El SMTP de Supabase solo entrega a miembros de la organización y unos 2 correos/hora |
+| ¿Hace falta dominio? | **Sí**: `kitom.app` (Cloudflare, comprado el 2026-11-07) | Play no lo exige, pero sin él no hay emails fiables a usuarios reales ni marca propia en la pantalla de Google |
+| ¿Hace falta SMTP propio? | **Sí, es obligatorio para usuarios reales**: Resend | El SMTP de Supabase solo entrega a miembros de la organización y unos 2 correos/hora |
+| ¿Zoho y Resend a la vez? | **Sí, son compatibles** | Zoho es el buzón (`soporte@kitom.app`, registros en la raíz) y Resend envía los correos de la app (registros en `send.` y `resend._domainkey`) |
+| ¿Quitar la URI `…supabase.co` de Google? | **Todavía no** | Sin ella, «Continuar con Google» deja de funcionar. Opciones en el [paso 4](#la-uri-de-supabaseco) |
 | ¿Los términos en la app bastan? | No | La app ya los muestra dentro, pero Play pide además una URL pública: `site/` sigue publicada |
 
 ## Orden recomendado
 
-1. [GitHub Pages](#1-github-pages): sin él, los enlaces de email no llevan a ningún sitio.
-2. [Dominio y correo](#2-dominio-y-correo-resend).
+1. [Web en kitom.app](#1-web-en-kitomapp-github-pages): sin ella, los enlaces de email no llevan a ningún sitio.
+2. [Correo](#2-correo-zoho-y-resend).
 3. [Supabase Auth](#3-supabase-auth).
 4. [Google Cloud](#4-google-cloud-continuar-con-google).
 5. [Comprobar con la APK](#5-comprobar-con-la-apk).
@@ -28,27 +30,68 @@ depende de lo que muestre tu consola: compruébalo allí antes de actuar. Esto n
 Los pasos 3 y 4 se repiten en el proyecto de producción de Supabase cuando exista; `kitom-dev` sirve para
 probar, no para usuarios reales.
 
-## 1. GitHub Pages
+## 1. Web en kitom.app (GitHub Pages)
 
-1. Sube `main` (`git push`). El workflow `Pages` se lanza solo porque el cambio toca `site/`.
-2. Si no arranca: **GitHub › Actions › Pages › Run workflow**.
-3. Comprueba que abren:
-   - `https://brotherz11.github.io/Kitom/privacy.html`
-   - `https://brotherz11.github.io/Kitom/terms.html`
-   - `https://brotherz11.github.io/Kitom/delete-account.html`
-   - `https://brotherz11.github.io/Kitom/auth/callback.html?flow=signup`, que debe decir «¡Email confirmado!»
+La carpeta `site/` ya se publica en `https://brotherz11.github.io/Kitom/`. Pasarla a `kitom.app`:
 
-## 2. Dominio y correo (Resend)
+1. **Verifica el dominio en GitHub** (evita que otra cuenta lo use): tu foto › **Settings › Pages › Add a
+   domain**, escribe `kitom.app` y crea en Cloudflare el registro TXT que te indique
+   (`_github-pages-challenge-brotherz11`). Pulsa **Verify**.
+2. **Registros DNS en Cloudflare** (**kitom.app › DNS › Records**), todos con la nube gris, **DNS only**:
 
-**Comprar el dominio.** En cualquier registrador (Cloudflare, Namecheap, DonDominio…). Elige un nombre que
-quieras conservar: acabará en los correos, en Google y en Play.
+   | Tipo | Nombre | Contenido |
+   |---|---|---|
+   | A | `@` | `185.199.108.153` |
+   | A | `@` | `185.199.109.153` |
+   | A | `@` | `185.199.110.153` |
+   | A | `@` | `185.199.111.153` |
+   | AAAA | `@` | `2606:50c0:8000::153` |
+   | AAAA | `@` | `2606:50c0:8001::153` |
+   | AAAA | `@` | `2606:50c0:8002::153` |
+   | AAAA | `@` | `2606:50c0:8003::153` |
+   | CNAME | `www` | `brotherz11.github.io` |
 
-**Crear el correo:**
+   No toques los registros MX y TXT de Zoho y Resend: conviven con estos. Con la nube naranja (proxy),
+   GitHub puede no conseguir el certificado.
+3. **Repositorio Kitom › Settings › Pages › Custom domain:** `kitom.app` › **Save**. Espera a que diga
+   «DNS check successful» y marca **Enforce HTTPS**. El certificado puede tardar desde minutos hasta un día.
+   Los dominios `.app` solo funcionan con HTTPS, así que hasta entonces el navegador no abrirá la web.
+4. Comprueba que abren:
+   - `https://kitom.app/` (inicio)
+   - `https://kitom.app/privacy.html`
+   - `https://kitom.app/terms.html`
+   - `https://kitom.app/delete-account.html`
+   - `https://kitom.app/auth/callback.html?flow=signup`, que debe decir «¡Email confirmado!»
+   - `https://brotherz11.github.io/Kitom/privacy.html`, que debe llevar a `kitom.app`
 
-1. Crea una cuenta en [Resend](https://resend.com). El plan gratuito da 3000 correos al mes y 100 al día.
-2. **Domains › Add domain**: añade tu dominio (o `mail.tudominio.com`) y una región de la UE si la ofrece.
-3. Copia los registros DNS que te da (SPF y DKIM) en tu registrador y espera a que salga **Verified**.
-4. **API Keys › Create**: crea una clave con permiso de envío. Es un secreto: no la pegues en el repositorio.
+La fuente oficial de esas IP es la [guía de dominios de GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).
+
+## 2. Correo (Zoho y Resend)
+
+Cada servicio hace una cosa, y no se pisan:
+
+| Servicio | Para qué | Registros DNS |
+|---|---|---|
+| Zoho Mail | Buzón `soporte@kitom.app`: recibir y responder a usuarios, y el email público de Play y Google | En la raíz: MX (`mx.zoho.eu`…), SPF `v=spf1 include:zohomail.eu ~all` y DKIM `zmail._domainkey` |
+| Resend | Correos automáticos de la app (confirmar el email, recuperar la contraseña) | En `send.kitom.app` (MX y SPF) y DKIM `resend._domainkey` |
+
+Comprobado en el DNS público el 2026-11-07: los dos están bien publicados.
+
+Reglas para no romperlo:
+
+- **Un solo registro SPF por nombre.** Si algún día otro servicio envía como `@kitom.app` desde la raíz, añade
+  su `include:` al SPF de Zoho, nunca un segundo `v=spf1`.
+- **Añade DMARC** (falta): registro TXT con nombre `_dmarc` y valor `v=DMARC1; p=none; rua=mailto:soporte@kitom.app`.
+  Gmail y Yahoo lo tienen en cuenta para no mandar los correos a spam. Cuando lleves unas semanas sin
+  problemas, cambia `p=none` por `p=quarantine`.
+
+**¿Es Zoho buena opción?** Sí, para empezar. Su plan gratuito solo funciona en su web y su app (sin IMAP)
+**[confirmar en tu plan]**. Alternativas: Cloudflare Email Routing (gratis, pero solo reenvía a tu Gmail;
+para responder como `soporte@` hay que configurar más cosas) o Google Workspace (de pago). No hace falta
+cambiar.
+
+**Resend** (ya creado): dominio `kitom.app` en **Verified** y una **API key** con permiso de envío. La clave
+es un secreto: no la pegues en el repositorio.
 
 **Conectarlo a Supabase** (**Project Settings › Authentication › SMTP Settings**, o el apartado de SMTP
 bajo Authentication si tu panel lo muestra allí):
@@ -56,7 +99,7 @@ bajo Authentication si tu panel lo muestra allí):
 | Campo | Valor |
 |---|---|
 | Enable Custom SMTP | activado |
-| Sender email | `no-reply@tudominio.com` |
+| Sender email | `soporte@kitom.app` (si alguien responde, la respuesta llega a Zoho) |
 | Sender name | `Kitom` |
 | Host | `smtp.resend.com` |
 | Port | `465` |
@@ -66,20 +109,20 @@ bajo Authentication si tu panel lo muestra allí):
 Después, en **Authentication › Rate Limits**, sube «emails sent» a 30 por hora o más. Hay una
 [integración directa de Resend](https://supabase.com/partners/integrations/resend) que rellena estos campos.
 
-**Sin dominio todavía (solo para la beta):** una cuenta de Gmail con verificación en dos pasos y una
-«contraseña de aplicación» (`smtp.gmail.com`, puerto 465) funciona con pocos usuarios **[confirmar límites]**.
-Los correos pueden caer en spam y el remitente será esa cuenta, así que no sirve para producción.
+Prueba el envío pidiendo «¿Has olvidado la contraseña?» con un email tuyo y mira **Resend › Emails**.
 
 ## 3. Supabase Auth
 
-Panel: **Authentication** del proyecto.
+Panel: **Authentication** del proyecto. Hazlo cuando `https://kitom.app/auth/callback.html` ya abra (paso 1).
 
 **URL Configuration**
 
-- **Site URL:** `https://brotherz11.github.io/Kitom/auth/callback.html`
+- **Site URL:** `https://kitom.app/auth/callback.html`
 - **Redirect URLs**, añade:
-  - `https://brotherz11.github.io/Kitom/auth/callback.html**` (enlaces de email)
+  - `https://kitom.app/auth/callback.html**` (enlaces de email)
   - `kitom://**` (vuelta de Google a la app)
+  - `https://brotherz11.github.io/Kitom/auth/callback.html**`: déjala mientras uses APK compiladas antes del
+    2026-11-07, que aún piden esa dirección. Quítala cuando ya no quede ninguna.
   - Solo en `kitom-dev`, para desarrollar: `exp://**`
 
 Si una URL no está en la lista, Supabase usa la Site URL sin avisar.
@@ -113,11 +156,26 @@ Usa la cuenta de Google que vaya a ser dueña del proyecto: conviene que sea la 
 **Pantalla de consentimiento** ([console.cloud.google.com](https://console.cloud.google.com) › **Google Auth Platform**):
 
 1. Crea o elige un proyecto llamado `Kitom`.
-2. **Branding:** nombre `Kitom`, email de soporte, logotipo (`frontend/assets/brand/`) y las URL de privacidad y
-   términos del paso 1.
-3. **Audience:** tipo **External**.
-4. **Data Access:** solo `openid`, `email` y `profile`. Al no ser sensibles, no exigen verificación de la app.
-5. **Audience › Publish app** (de *Testing* a *In production*). Mientras siga en *Testing*, solo entran las
+2. **Verifica `kitom.app` en [Search Console](https://search.google.com/search-console)** con la misma cuenta:
+   propiedad de tipo **Dominio**, `kitom.app`. Te dará un TXT para Cloudflare (o lo crea solo si aceptas
+   la conexión con Cloudflare). Google no deja usar un dominio que no hayas verificado.
+3. **Branding:**
+
+   | Campo | Valor |
+   |---|---|
+   | Nombre de la app | `Kitom` |
+   | Correo de asistencia | El desplegable solo ofrece tu cuenta de Google y los grupos que administras **[confirmar]**: elige tu cuenta |
+   | Logotipo | `frontend/assets/brand/store/kitom-logo-google-120.jpg` (120 × 120, JPG; Google admite JPG, PNG o BMP de hasta 1 MB) |
+   | Página principal de la aplicación | `https://kitom.app/` |
+   | Política de privacidad | `https://kitom.app/privacy.html` |
+   | Condiciones del servicio | `https://kitom.app/terms.html` |
+   | Dominios autorizados | `kitom.app` y, mientras exista la URI de Supabase, `pxlqiyspovaevcusyszj.supabase.co` |
+   | Correo del desarrollador | `soporte@kitom.app` |
+
+   Las tres URL ya llevan `https://`. Funcionan cuando termines el paso 1.
+4. **Audience:** tipo **External**.
+5. **Data Access:** solo `openid`, `email` y `profile`. Al no ser sensibles, no exigen verificación de la app.
+6. **Audience › Publish app** (de *Testing* a *In production*). Mientras siga en *Testing*, solo entran las
    cuentas de **Test users**, y las demás ven un error de acceso.
 
 **Credenciales** (**Clients › Create client**):
@@ -127,16 +185,27 @@ Usa la cuenta de Google que vaya a ser dueña del proyecto: conviene que sea la 
 3. Copia el Client ID y el Client secret a **Supabase › Authentication › Sign In / Providers › Google**. Ese
    secreto solo vive en Supabase.
 
-**Nombre que ve el usuario.** Sin verificar la marca, Google enseña `…supabase.co` en vez de «Kitom». Para que
-salga Kitom:
+### La URI de `supabase.co`
 
-1. Publica la web en tu dominio (GitHub › Settings › Pages › Custom domain) y cambia `LEGAL_SITE_URL` en
-   `frontend/src/lib/legal-links.ts`, la Site URL y las Redirect URLs.
-2. Verifica el dominio en [Search Console](https://search.google.com/search-console) con la misma cuenta.
-3. **Branding › Verify branding**. Google [tarda unos 2-3 días](https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification).
+**Por qué está.** Con el acceso por navegador, Google devuelve al usuario a Supabase, y Supabase a la app.
+Google solo acepta las URI de esta lista, así que es una medida de seguridad, no un fallo: si quitas
+`https://pxlqiyspovaevcusyszj.supabase.co/auth/v1/callback`, el acceso da `redirect_uri_mismatch`.
 
-Puede que Google pida verificar también el dominio de la URL de redirección, y eso requeriría un dominio
-personalizado en Supabase, que es de pago **[confirmar]**. No bloquea el acceso: solo cambia lo que se ve.
+**Lo que sí es un problema** es lo que ve el usuario («continuar a `pxlqiyspovaevcusyszj.supabase.co`») y la
+verificación de marca, que es lo que hace aparecer «Kitom» y el logo. Google [exige verificar todos los dominios
+autorizados](https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification),
+también el de las URI de un cliente Web, y `supabase.co` no es tuyo. Hay dos salidas:
+
+| | Acceso nativo en Android (recomendado) | Dominio propio en Supabase |
+|---|---|---|
+| Qué ve el usuario | El selector de cuentas de Android, sin navegador | El navegador con `auth.kitom.app` |
+| URI de redirección | Ninguna: se quita la de `supabase.co` | `https://auth.kitom.app/auth/v1/callback` |
+| Coste | Gratis | Plan Pro (25 USD/mes) más el complemento de 10 USD/mes ([precio](https://supabase.com/docs/guides/platform/manage-your-usage/custom-domains)) |
+| Cambios | Un paquete nuevo en la app y una build nueva; clientes Android en Google Cloud con la huella SHA-1 de cada firma | Ninguno en la app más allá de la URL de Supabase |
+| Web | El acceso con Google en la versión web se quitaría o seguiría con `supabase.co` | Igual que ahora |
+
+Ninguna de las dos está hecha. Hasta decidir: rellena el Branding, sube el logo (no se verá hasta verificar) y
+**no** pidas todavía **Verify branding**.
 
 ## 5. Comprobar con la APK
 
@@ -181,8 +250,8 @@ Fuentes: [tipos de cuenta](https://support.google.com/googleplay/android-develop
 [comunidad, 12 testers](https://support.google.com/googleplay/android-developer/community-guide/255621488/everything-about-the-12-testers-requirement?hl=en).
 
 **Recomendación: personal**, porque hoy no hay empresa y Kitom es gratuita. El coste real son los 12 testers
-durante 14 días y que tu nombre y email queden públicos. Si prefieres no exponerlos, crea un email solo para
-Kitom y cambia `SUPPORT_EMAIL` y las páginas de `site/`.
+durante 14 días y que tu nombre quede público. Como email de desarrollador usa `soporte@kitom.app`, que ya es
+el de la app y las páginas legales.
 
 **Un riesgo que comprobar antes de pagar.** Google [exige cuenta de organización para ciertas categorías](https://support.google.com/googleplay/android-developer/answer/13634885?hl=es),
 entre ellas **salud**, y la [declaración de apps de salud](https://support.google.com/googleplay/android-developer/answer/14738291?hl=en)

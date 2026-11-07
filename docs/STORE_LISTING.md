@@ -82,9 +82,9 @@ Kitom offers general guidance about your pet's wellbeing. It isn't a medical ass
 | Campo | Propuesta |
 |---|---|
 | Categoría | Estilo de vida (mascotas) |
-| Política de privacidad | `https://brotherz11.github.io/Kitom/privacy.html` |
-| Eliminación de cuenta | `https://brotherz11.github.io/Kitom/delete-account.html` |
-| Email de contacto | el de `frontend/src/lib/legal-links.ts` |
+| Política de privacidad | `https://kitom.app/privacy.html` |
+| Eliminación de cuenta | `https://kitom.app/delete-account.html` |
+| Email de contacto | `soporte@kitom.app` (`SUPPORT_EMAIL` en `frontend/src/lib/legal-links.ts`) |
 | Público objetivo | mayores de 16 años (como dicen los términos); no dirigida a menores |
 | Anuncios | no contiene |
 | Precio | gratis, sin compras en la app |

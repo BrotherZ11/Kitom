@@ -43,7 +43,7 @@ URL de retorno generada con `Linking.createURL('auth-callback', { queryParams: {
 
 | Entorno | URL |
 |---|---|
-| Release nativa, emails | `https://brotherz11.github.io/Kitom/auth/callback.html?flow=signup\|recovery` (página puente) |
+| Release nativa, emails | `https://kitom.app/auth/callback.html?flow=signup\|recovery` (página puente) |
 | Release nativa, Google | `kitom://auth-callback?flow=oauth` |
 | Development build | `kitom://auth-callback?flow=signup\|recovery\|oauth` |
 | Expo Go | `exp://<ip>:<puerto>/--/auth-callback?flow=…` |
@@ -68,12 +68,14 @@ configuración remota (`config push` está bloqueado). `supabase/config.toml` so
 **Authentication > URL Configuration**
 
 - **Redirect URLs** (añadir):
-  - `https://brotherz11.github.io/Kitom/auth/callback.html**`: enlaces de email de la app publicada.
+  - `https://kitom.app/auth/callback.html**`: enlaces de email de la app publicada.
   - `kitom://**`: builds de la app.
   - `exp://**`: Expo Go. **Solo en el proyecto de desarrollo, nunca en producción.**
   - `http://localhost:8081/**`: solo si se prueba la versión web en local.
+  - `https://brotherz11.github.io/Kitom/auth/callback.html**`: solo mientras queden instaladas APK anteriores
+    al dominio propio (2026-11-07), que aún piden esa URL. GitHub la redirige a `kitom.app`.
 - **Site URL**: es la URL que se usa si `redirectTo` no está en la lista; por eso los enlaces
-  abrían `localhost`. Se recomienda la página puente: `https://brotherz11.github.io/Kitom/auth/callback.html`.
+  abrían `localhost`. Se recomienda la página puente: `https://kitom.app/auth/callback.html`.
 
 Si `redirectTo` no coincide con ninguna Redirect URL, Supabase usa la Site URL en silencio.
 
@@ -142,6 +144,14 @@ y `avatar_url` del perfil de Google a `profiles`.
 
 No hacen falta client IDs de Android/iOS para este flujo. Solo serían necesarios si en el futuro se
 cambia a Google Sign-In nativo (`signInWithIdToken`), que requiere un development build.
+
+**El dominio `…supabase.co` en Google.** Con este flujo, Google muestra «continuar a
+`<project-ref>.supabase.co`», y para verificar la marca (que salga «Kitom» con su logo) Google exige
+verificar en Search Console todos los dominios autorizados, incluido el de las URI de redirección de un
+cliente Web. `supabase.co` no se puede verificar. Salidas (decisión pendiente, `DECISIONS.md` 2026-11-07):
+Google Sign-In nativo en Android (sin URI de redirección: el selector de cuentas del sistema) o dominio
+personalizado de Supabase (`auth.kitom.app`; de pago). Mientras tanto, **no quitar** la URI de
+`supabase.co`: es la que Supabase envía a Google, y sin ella el login da `redirect_uri_mismatch`.
 
 Si una cuenta con el mismo email ya existe con contraseña, Supabase vincula la identidad de Google
 cuando el email está verificado.

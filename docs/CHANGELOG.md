@@ -3,6 +3,19 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-07
+
+Dominio propio (rama `chore/kitom-app-domain`, sin migraciones):
+
+- **Web y enlaces de email en `https://kitom.app`** (`LEGAL_SITE_URL`): la página puente pasa a
+  `https://kitom.app/auth/callback.html`. Solo afecta a las builds nuevas, y exige configurar antes el dominio en
+  GitHub Pages y las URL de Supabase (`SETUP_GUIDE.md` §1 y §3).
+- **Contacto `soporte@kitom.app`** en la app, las páginas legales y sus copias en la app.
+- **Política de privacidad:** Resend y Zoho Mail como encargados; en vigor desde el 2026-11-07.
+- **Logotipo JPG para Google** en `frontend/assets/brand/store/`.
+- **Guía:** DNS de GitHub Pages en Cloudflare, Zoho y Resend juntos, DMARC, campos del Branding de Google y por
+  qué no se puede quitar todavía la URI de `supabase.co`.
+
 ## 2026-11-06
 
 Agenda sin conexión, fase 14: frontend. Las migraciones `20261105093545` y `20261105122353` ya están en `kitom-dev`, con los
