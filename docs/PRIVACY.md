@@ -41,9 +41,12 @@ Datos de terceros: las fotos pueden incluir personas (la app pide repetirlas si 
 | Google (OAuth) | inicio de sesión con Google | si el usuario lo elige |
 | Sentry | informes de errores sin email, nombre ni contenido | en la política (retención 90 días). Comprobado el 2026-11-04: la IP llega a Sentry, que deducía de ella la ubicación aproximada, y los cierres nativos llevan un identificador de instalación que `beforeSend` no puede quitar. Las reglas del panel los eliminan al llegar y no se guardan (`DEPLOYMENT.md` §8, paso 10), pero salen del dispositivo: revisar si la política y la ficha de Play deben mencionarlo |
 | Expo / EAS | ninguno en runtime hoy (no se usan push remotas ni EAS Update) | revisar la política si se adopta EAS Update o push |
-| GitHub Pages | IP de las visitas a `site/` (registro técnico de GitHub) | sin cookies ni analítica |
+| GitHub Pages | IP de las visitas a `site/` (registro técnico de GitHub) | sin cookies ni analítica; servido en `kitom.app` |
+| Resend | email del usuario y contenido de los correos de Auth (SMTP de Supabase) | en la política desde el 2026-11-07 |
+| Zoho Mail | lo que el usuario escribe a `soporte@kitom.app` | en la política desde el 2026-11-07 (comentario `CONFIRMAR`: entidad y región; los MX son `zoho.eu`) |
+| Cloudflare | nada mientras los registros DNS estén en «DNS only» | si se activa el proxy, ve el tráfico de la web: añadirlo a la política |
 
-Transferencias fuera del EEE (Google, Sentry, Expo, GitHub): la política se apoya en el Marco de
+Transferencias fuera del EEE (Google, Sentry, Expo, GitHub, Resend): la política se apoya en el Marco de
 Privacidad de Datos UE-EE. UU. o en cláusulas contractuales tipo.
 
 ## 3. Retención

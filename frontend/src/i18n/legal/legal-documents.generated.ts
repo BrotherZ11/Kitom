@@ -5,7 +5,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
   "es": {
     "privacy": {
       "title": "Política de privacidad",
-      "effective": "En vigor desde el 30 de octubre de 2026",
+      "effective": "En vigor desde el 7 de noviembre de 2026",
       "blocks": [
         {
           "type": "paragraph",
@@ -67,8 +67,8 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "text": ", persona física residente en España, que desarrolla y gestiona Kitom. Para cualquier asunto sobre privacidad puedes escribir a "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             },
             {
               "text": "."
@@ -534,6 +534,40 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
                   "text": "Datos técnicos de la visita (como la dirección IP) que GitHub registra por seguridad."
                 }
               ]
+            ],
+            [
+              [
+                {
+                  "text": "Resend, Inc."
+                }
+              ],
+              [
+                {
+                  "text": "Enviar los correos de tu cuenta (confirmar el email, cambiar la contraseña o el email)."
+                }
+              ],
+              [
+                {
+                  "text": "Tu email y el contenido de esos correos."
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "Zoho (Zoho Mail)"
+                }
+              ],
+              [
+                {
+                  "text": "Recibir y responder lo que nos escribes a soporte."
+                }
+              ],
+              [
+                {
+                  "text": "Tu email y tus mensajes. Se alojan en servidores de la Unión Europea."
+                }
+              ]
             ]
           ]
         },
@@ -565,11 +599,11 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Algunos proveedores (Google, Sentry, Expo y GitHub) son empresas de Estados Unidos o pueden tratar datos allí. Esas transferencias se amparan en el Marco de Privacidad de Datos UE-EE. UU., en el que están adheridas, o en las cláusulas contractuales tipo aprobadas por la Comisión Europea. Puedes pedirnos más información escribiendo a "
+              "text": "Algunos proveedores (Google, Sentry, Expo, GitHub y Resend) son empresas de Estados Unidos o pueden tratar datos allí. Esas transferencias se amparan en el Marco de Privacidad de Datos UE-EE. UU., en el que están adheridas, o en las cláusulas contractuales tipo aprobadas por la Comisión Europea. Puedes pedirnos más información escribiendo a "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             },
             {
               "text": "."
@@ -810,8 +844,8 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "text": "Para todo lo demás, escribe a "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             },
             {
               "text": " desde el email de tu cuenta. Te responderemos en un máximo de un mes (ampliable en dos meses más en casos complejos, avisándote). Es gratuito."
@@ -951,8 +985,8 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "text": "David Zarzavilla Borrego · "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             }
           ]
         }
@@ -1000,8 +1034,8 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "text": ", persona física residente en España (en adelante, «Kitom», «nosotros»). Contacto: "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             },
             {
               "text": "."
@@ -1354,8 +1388,8 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "text": "David Zarzavilla Borrego · "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             }
           ]
         }
@@ -1365,7 +1399,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
   "en": {
     "privacy": {
       "title": "Privacy policy",
-      "effective": "Effective from 30 October 2026",
+      "effective": "Effective from 7 November 2026",
       "blocks": [
         {
           "type": "paragraph",
@@ -1427,8 +1461,8 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "text": ", a private individual resident in Spain who develops and runs Kitom. For any privacy matter, write to "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             },
             {
               "text": "."
@@ -1894,6 +1928,40 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
                   "text": "Technical visit data (such as IP address) that GitHub logs for security."
                 }
               ]
+            ],
+            [
+              [
+                {
+                  "text": "Resend, Inc."
+                }
+              ],
+              [
+                {
+                  "text": "Send your account emails (confirm your email, change your password or email)."
+                }
+              ],
+              [
+                {
+                  "text": "Your email address and the content of those emails."
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "Zoho (Zoho Mail)"
+                }
+              ],
+              [
+                {
+                  "text": "Receive and answer what you write to support."
+                }
+              ],
+              [
+                {
+                  "text": "Your email address and your messages. They are hosted on servers in the European Union."
+                }
+              ]
             ]
           ]
         },
@@ -1925,11 +1993,11 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Some providers (Google, Sentry, Expo and GitHub) are US companies or may process data there. Those transfers rely on the EU-US Data Privacy Framework, which they have joined, or on the standard contractual clauses approved by the European Commission. You can ask us for more information at "
+              "text": "Some providers (Google, Sentry, Expo, GitHub and Resend) are US companies or may process data there. Those transfers rely on the EU-US Data Privacy Framework, which they have joined, or on the standard contractual clauses approved by the European Commission. You can ask us for more information at "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             },
             {
               "text": "."
@@ -2170,8 +2238,8 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "text": "For anything else, write to "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             },
             {
               "text": " from your account email. We will reply within one month at most (extendable by two more months for complex cases, letting you know). It is free."
@@ -2311,8 +2379,8 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "text": "David Zarzavilla Borrego · "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             }
           ]
         }
@@ -2360,8 +2428,8 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "text": ", a private individual resident in Spain (\"Kitom\", \"we\"). Contact: "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             },
             {
               "text": "."
@@ -2714,8 +2782,8 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "text": "David Zarzavilla Borrego · "
             },
             {
-              "text": "dzarzavillaborrego@gmail.com",
-              "href": "mailto:dzarzavillaborrego@gmail.com"
+              "text": "soporte@kitom.app",
+              "href": "mailto:soporte@kitom.app"
             }
           ]
         }
