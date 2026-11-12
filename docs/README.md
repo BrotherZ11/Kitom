@@ -16,6 +16,9 @@ Nada crítico depende de una sola de estas capas — ver sección 21 para el cas
 
 ## 2. Tablas (24, todas con RLS)
 
+> Desde la migración `20261111120000_species_fields.sql` hay una tabla más, `species_fields` (catálogo de
+> campos por especie, sección 15.1).
+
 `profiles`, `species`, `catalog_translations`, `pets`, `pet_co_owners`, `daily_logs`, `symptoms_catalog`, `symptom_species`, `ai_analysis_requests`, `ai_analysis_symptoms`, `reminders`, `achievements_catalog`, `pet_achievements`, `pet_streaks`, `subscriptions`, `subscription_events`, `push_tokens`, `notification_preferences`, `vet_clinics`, `clinic_referrals`, `pet_shared_reports`, `analytics_events`, `organizations`, `organization_members`.
 
 ## 3. Orden de ejecución
@@ -37,6 +40,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 | `pet_co_owners` | la propia fila; las de los demás, solo aceptadas y a miembros (desde `20261030090318`) | — (solo RPC) | — (solo RPC) | — (solo RPC) |
 | `daily_logs` | miembros | editores, `logged_by=auth.uid()` (columnas concretas; en la práctica vía RPC `save_daily_log`) | editores (solo columnas de datos, nunca pet_id/logged_by/log_date/created_at) | editores |
 | `symptoms_catalog` / `symptom_species` | autenticados | — | — | — |
+| `species_fields` (migración `20261111120000`) | autenticados | — (solo migraciones) | — | — |
 | `ai_analysis_requests` | miembros (columnas concretas) | — (solo RPC `request_ai_analysis`) | — (solo RPC `submit_ai_feedback`, y solo si `requested_by = auth.uid()` — ver sección 9.1) | — |
 | `ai_analysis_symptoms` | miembros | — (solo vía RPC) | — | — |
 | `reminders` | miembros | editores, `created_by=auth.uid()` (columnas concretas) | editores (columnas concretas, nunca pet_id/created_by/created_at) | editores |
@@ -105,7 +109,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 | `request_generate_report(pet_id, start, end)` | solo validación, no escribe nada |
 | `is_org_member(org_id)` | lectura, `organization_members` |
 | `register_push_token(token, platform, device_id, app_version, os_version)` | `push_tokens` — reasigna el token al `auth.uid()` actual, ver sección 17.1 |
-| `save_daily_log(pet_id, log_date, <7 niveles>, unusual_behavior, unusual_behavior_notes, notes, tags [, expected_updated_at, expect_absent])` | `daily_logs` — crea o sustituye el registro del día; **SECURITY INVOKER** (aplica RLS y grants de quien llama). Añadida en la migración `20261008150202`; precondiciones opcionales de concurrencia en la `20261010160332`, ver sección 15 |
+| `save_daily_log(pet_id, log_date, <7 niveles>, unusual_behavior, unusual_behavior_notes, notes, tags [, expected_updated_at, expect_absent, species_data])` | `daily_logs` — crea o sustituye el registro del día; **SECURITY INVOKER** (aplica RLS y grants de quien llama). Añadida en la migración `20261008150202`; precondiciones opcionales de concurrencia en la `20261010160332`; `p_species_data` (`NULL` = conservar) en la `20261111120000`, ver secciones 15 y 15.1 |
 
 **Nota de taxonomía (v2.2.1):** dentro de esta tabla hay dos tipos distintos, aunque ambos tengan `EXECUTE` para `authenticated`:
 - **RPC de producto** (la mayoría): representan una acción real de negocio que el frontend invoca — `request_ai_analysis`, `invite_pet_member`, `transfer_pet_ownership`...
@@ -242,6 +246,30 @@ Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza
 > - La comparación de versión es exacta (microsegundos): el cliente reenvía la cadena de `updated_at` tal como la recibió.
 > - Sin precondiciones se mantiene el comportamiento anterior (sustituye sin comprobar: gana el último guardado), solo por compatibilidad con builds anteriores: el frontend envía siempre una precondición desde la fase 2 del modo offline. No sirve para la sincronización offline.
 > - Una sola función: se borró la firma de 13 parámetros y se creó la de 15 (los dos nuevos con default), para no dejar una sobrecarga sin protección.
+
+## 15.1 Campos por especie (migración `20261111120000_species_fields.sql`)
+
+Diseño y decisiones: `docs/proposals/2026-11-11-species-fields.md` y `DECISIONS.md` (2026-11-11).
+
+- **Especies:** las 9 del catálogo están activas. `species.ai_guidance_enabled` (solo `dog` y `cat`):
+  `request_ai_analysis` rechaza las demás con `hint` `ai_species_unsupported` (después de los permisos y antes
+  del cupo). «Ave (otra)» y «Reptil (otro)» se llaman «Ave» y «Reptil»; los códigos no cambian.
+- **`species_fields`** (lectura para `authenticated`; la escriben solo las migraciones): por especie y ámbito
+  (`profile` = ficha, `daily` = registro diario), `code`, `kind` (`scale3` 2/3/4, `choice`, `multi_choice`,
+  `boolean`, `integer`, `decimal`, `date`, o `core` = una de las 7 escalas comunes), `options`, `min_value`/`max_value`,
+  `unit`, `position`, `is_primary` (escalas comunes obligatorias al crear) e `is_active`. Copia de la app:
+  `frontend/src/features/species/species-fields.ts` (prueba de paridad contra el Supabase local).
+- **`pets.species_data` y `daily_logs.species_data`** (`jsonb NOT NULL DEFAULT '{}'`, objeto plano, ≤ 4096 bytes;
+  GRANT de INSERT/UPDATE para `authenticated`). Las claves son códigos del catálogo de la especie **actual** de la
+  mascota y del ámbito; sin texto libre. Lo valida el trigger `validate_species_data` (SECURITY DEFINER): tipo,
+  opciones, rango y fecha no futura (`private.species_value_is_valid`). **Solo se validan las claves que cambian**:
+  los datos de otra especie (tras cambiarla) o de un campo retirado se conservan y el registro se sigue pudiendo
+  editar. Error: `P0001`, `hint` `species_data_invalid`, `detail` = código del campo (o `species_data`).
+- **Cambiar la especie** de una mascota sin enviar datos nuevos vacía `pets.species_data`; con datos, se validan
+  contra la especie nueva. Los registros diarios conservan los suyos.
+- **`save_daily_log(…, p_species_data jsonb DEFAULT NULL)`:** `NULL` (o sin el parámetro, como las versiones
+  anteriores de la app) **conserva** lo guardado; `'{}'` lo vacía. Firma de 16 parámetros, sin sobrecarga.
+- **`daily_logs_not_empty_check`:** también vale un registro que solo tiene datos de especie.
 
 ## 16. Streaks
 

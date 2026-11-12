@@ -101,10 +101,24 @@
   `set_last_edited_by` y `trg_recompute_pet_streak_fn` reconocen ese estado. Sin cambios de firmas, tablas, GRANT, RLS ni tipos.
   Validada desde cero en un Supabase local desechable, con pgTAP, concurrencia, Auth real y `db diff`; aplicada en
   `kitom-dev` (`db push` del usuario, 2026-11-06). Decisión: `docs/DECISIONS.md`.
+- Migración `20261111120000_species_fields.sql` (rama `feat/species-fields-wellness`, fases 15–16): las 9 especies
+  activas (las inserta si faltan) y `species.ai_guidance_enabled` (perro y gato; `request_ai_analysis` lo exige,
+  `hint` `ai_species_unsupported`), «Ave»/«Reptil», catálogo `species_fields` (escrito por la migración; copia de la app en
+  `frontend/src/features/species/species-fields.ts`), `pets/daily_logs.species_data` (`jsonb`, ≤ 4096 bytes) con el
+  trigger `validate_species_data` (solo valida las claves que cambian; `hint` `species_data_invalid`, `detail` = campo),
+  `daily_logs_not_empty_check` nuevo y `save_daily_log` de 16 parámetros (`p_species_data NULL` = conservar). Validada en
+  local con `migration up --local` y pgTAP (`species_fields`, `daily_logs_read_access`; 681 en total); aplicada en
+  `kitom-dev` (`db push` del usuario, 2026-11-12), `seeds/breeds.sql` reejecutado y tipos regenerados con `--linked`.
+  Contrato: `docs/README.md` §15.1.
+- Lección pgTAP y seeds: `npx supabase test db` solo monta `supabase/tests`, así que un `\ir` a `seeds/` no funciona.
+  Para probar un seed, una copia temporal dentro de `supabase/tests/database/` (y borrarla después).
+- Lección triggers genéricos: una función de trigger usada en dos tablas no puede leer `new.<columna>` de solo una en
+  una expresión con `or`/`and`: PL/pgSQL no garantiza el cortocircuito. Usar `if` anidados.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
   `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `ai_quota`,
   `abuse_limits`, `db_hardening`, `account_deletion_audit`, `reminders`
-  (permisos de la tabla con el esquema base), `reminders_is_active`, `reminders_client_request_id`; pgTAP, en
+  (permisos de la tabla con el esquema base), `reminders_is_active`, `reminders_client_request_id`, `species_fields`,
+  `daily_logs_read_access`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
   -d postgres -f - < <archivo>`. Para actuar como usuario: `request.jwt.claims` + `set role authenticated`.
 - Pruebas de concurrencia: `bash supabase/tests/concurrency/daily_logs_concurrency.sh`,

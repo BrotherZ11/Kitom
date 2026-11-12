@@ -26,12 +26,13 @@ las reglas de trabajo, en [`supabase/CLAUDE.md`](../supabase/CLAUDE.md).
 | `20261030090318_abuse_limits_and_db_hardening` | límites de IA (1/min, 3 fallos/día) e invitaciones (20/24 h), identidad oculta de invitaciones pendientes, CHECK de longitud, `(select auth.uid())` en 22 políticas, `STABLE`, 12 índices de FK, `processing_started_at`, `pg_cron`/`pg_net` y tareas de limpieza | aplicada (2026-11-04) |
 | `20261105093545_reminders_client_request_id` | alta idempotente de recordatorios (agenda sin conexión, fase 14) | aplicada (2026-11-06) |
 | `20261105122353_account_deletion_audit_triggers` | borrar una cuenta con datos en mascotas que sobreviven (D-11): la FK `ON DELETE SET NULL` pasa los triggers de auditoría, conserva `last_edited_by` y no recalcula la racha | aplicada (2026-11-06) |
+| `20261111120000_species_fields` | campos por especie: las 9 especies activas, `species.ai_guidance_enabled`, catálogo `species_fields`, `pets/daily_logs.species_data` con trigger de validación, `save_daily_log` con `p_species_data` (`NULL` = conservar) y `request_ai_analysis` solo para especies validadas (`README.md` §15.1) | aplicada (2026-11-12), con `seeds/breeds.sql` reejecutado |
 
 Procedimiento (resumen; completo en `supabase/CLAUDE.md` y [`DEPLOYMENT.md`](DEPLOYMENT.md) §5):
 migración nueva → `migration up --local` → pgTAP → PR `db/…` → `db push` **del usuario** → tipos con
 `gen types --linked`. Nunca editar una migración aplicada.
 
-## 2. Tablas (23 en `public`, todas con RLS) y relaciones
+## 2. Tablas (24 en `public` desde `species_fields`, todas con RLS) y relaciones
 
 ```mermaid
 erDiagram
@@ -78,7 +79,8 @@ concurrencia en `supabase/tests/concurrency/`):
 
 | Tabla / superficie | Políticas | Probada |
 |---|---|---|
-| `daily_logs` + `save_daily_log` | S/I/U/D | sí (186 casos pgTAP + concurrencia) |
+| `daily_logs` + `save_daily_log` | S/I/U/D | sí (186 casos pgTAP + concurrencia; lectura por estado de la invitación y cambio de rol: `daily_logs_read_access.test.sql`) |
+| `species_fields`, `species_data` (ficha y registro), `validate_species_data`, especies sin orientación con IA | S + trigger | sí (`species_fields.test.sql`; paridad con la app en `species-fields-parity.integration.test.mjs`) |
 | `pets` | S/I/U/D | sí (pgTAP `pets_*`, concurrencia de alta/edición/borrado) |
 | `profiles` | S/I/U | parcial (zona horaria y aislamiento entre usuarios) |
 | `reminders` | S/I/U/D | sí (`reminders.test.sql`, `reminders_is_active.test.sql`, `reminders_client_request_id.test.sql`, concurrencia `reminders_concurrency.sh`) |

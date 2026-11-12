@@ -7,7 +7,7 @@ datos de referencia.
 | Archivo | Contenido | Requiere |
 |---|---|---|
 | `supabase/seed.sql` | Especies, síntomas, compatibilidad síntoma–especie, logros y sus traducciones | Migración base |
-| `supabase/seeds/breeds.sql` | Razas de perro y gato con nombres y alias es/en | Migración `*_breeds.sql` y `seed.sql` |
+| `supabase/seeds/breeds.sql` | Razas y tipos de las 8 especies con catálogo (todas salvo «Otro»), con nombres y alias es/en | Migración `*_breeds.sql` y `seed.sql` |
 
 Orden obligatorio: **`seed.sql` → `seeds/breeds.sql`** (las razas se enlazan a especies por `code`).
 En local lo fija `config.toml` → `[db.seed] sql_paths = ["./seed.sql", "./seeds/breeds.sql"]`.
@@ -18,8 +18,8 @@ En local lo fija `config.toml` → `[db.seed] sql_paths = ["./seed.sql", "./seed
 
 | Tabla | Filas | Para qué |
 |---|---|---|
-| `species` | 9: `dog`, `cat` **activas**; `rabbit`, `guinea_pig`, `hamster`, `horse`, `bird_other`, `reptile_other`, `other` inactivas | Selector de especie al crear mascota (solo activas) |
-| `catalog_translations` (`species`, `name`) | 18 (es/en) | Nombre visible de la especie |
+| `species` | 9, **todas activas** desde la migración `20261111120000_species_fields.sql` (que además las crea si faltan y pone `ai_guidance_enabled` en perro y gato) | Selector de especie al crear mascota (solo activas) |
+| `catalog_translations` (`species`, `name`) | 18 (es/en); «Ave» y «Reptil» desde 2026-11-11 (en `kitom-dev` los renombra la migración) | Nombre visible de la especie |
 | `symptoms_catalog` | 6 (lista del PRD §8.4) | Síntomas seleccionables en el análisis con IA |
 | `catalog_translations` (`symptom`, `label`) | 12 (es/en) | Etiqueta visible del síntoma |
 | `symptom_species` | 12 (6 síntomas × perro y gato) | `request_ai_analysis()` y el trigger `validate_symptom_species_compat` rechazan síntomas sin fila aquí |
@@ -32,17 +32,22 @@ Total: 77 filas.
 
 | Tabla | Filas | Para qué |
 |---|---|---|
-| `breeds` | 198: 155 de perro y 43 de gato | Selector de raza (opcional) al crear/editar mascota |
+| `breeds` | 274: 155 de perro, 43 de gato, 16 de conejo, 10 de cobaya, 5 de hámster, 20 de caballo, 12 de ave y 13 de reptil | Selector de raza (o de «tipo» en hámster, ave y reptil) al crear/editar mascota |
 | `catalog_translations` (`breed`, `name`) | 396 (es/en, todas las razas) | Nombre visible de la raza |
 | `catalog_translations` (`breed`, `aliases`) | 198 (104 es + 94 en, solo cuando aportan) | Búsqueda por sinónimos; valores separados por `\|` |
 
-Total: 792 filas. Ninguna raza para especies inactivas.
+Las razas de perro y gato no cambian. Las de las especies nuevas (2026-11-11) se añadieron al final: reejecutar el
+seed en `kitom-dev` las inserta sin tocar nada de lo anterior. Probado en local dentro de una transacción (cada especie
+con razas, nombres es/en, idempotente). «Otro» no tiene catálogo: la raza se escribe a mano.
 
 ### Criterios
 
-- **Solo perro y gato activos**: el PRD (§16) pide empezar con perro y gato y ampliar gradualmente
-  por la precisión de la IA. Activar otra especie es una decisión de producto y requiere además
-  vincularle síntomas en `symptom_species`; si no, el análisis con IA fallaría para esa especie.
+- **Las 9 especies activas; IA solo para perro y gato** (decisión del 2026-11-11): la orientación con IA de
+  una especie exige vincularle síntomas en `symptom_species`, la validación veterinaria y
+  `species.ai_guidance_enabled = true` (migración). Hasta entonces `request_ai_analysis` la rechaza.
+- **Hámster, ave y reptil**: la «raza» del catálogo es el **tipo** de animal (sirio, periquito, gecko leopardo…).
+  Aves y reptiles: algunas especies están protegidas o reguladas (CITES, especies exóticas invasoras); el catálogo
+  sirve para identificar al animal, no avala tenerlo.
 - **Síntomas**: exactamente los del PRD. Ampliar la lista requiere validación veterinaria (PRD §10).
 - **Logros**: los códigos coinciden con los que usa la BD; `award_pet_achievement()` ignora en
   silencio un código que no exista, así que no se deben renombrar.
