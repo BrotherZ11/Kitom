@@ -32,6 +32,7 @@ import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
 import {
   ageInMonths,
   buildUserPrompt,
+  describeSpeciesData,
   estimateCostUsd,
   finalizeGuidance,
   isStaleProcessing,
@@ -41,7 +42,21 @@ import {
   PROMPT_VERSION,
   SYSTEM_PROMPT,
   type DailyLogContext,
+  type SpeciesFieldMeta,
 } from './guidance.ts';
+
+/** Nombre en español de cada especie del catálogo (`species.code`) para el contexto del modelo. */
+const SPECIES_NAMES_ES: Record<string, string> = {
+  dog: 'perro',
+  cat: 'gato',
+  rabbit: 'conejo',
+  guinea_pig: 'cobaya',
+  hamster: 'hámster',
+  horse: 'caballo',
+  bird_other: 'ave',
+  reptile_other: 'reptil',
+  other: 'otra especie',
+};
 import { ProviderError, providerFromEnv } from './providers.ts';
 
 const PHOTO_BUCKET = 'pet-photos';
@@ -102,7 +117,7 @@ async function markFailed(admin: SupabaseClient, analysisId: string, code: strin
 async function loadContext(admin: SupabaseClient, analysis: AnalysisRow) {
   const { data: pet, error: petError } = await admin
     .from('pets')
-    .select('birth_date, sex, sterilized, weight_kg, breed, breed_id, species_id, known_conditions, allergies')
+    .select('birth_date, sex, sterilized, weight_kg, breed, breed_id, species_id, known_conditions, allergies, species_data')
     .eq('id', analysis.pet_id)
     .single();
   if (petError || !pet) throw new Error('context_pet');
@@ -112,6 +127,21 @@ async function loadContext(admin: SupabaseClient, analysis: AnalysisRow) {
   const { data: breedRow } = pet.breed_id
     ? await admin.from('breeds').select('code').eq('id', pet.breed_id).maybeSingle()
     : { data: null };
+  // Tipo y unidad de los campos de su especie (`species_fields`), para escribir sus datos propios.
+  const { data: fieldRows } = await admin
+    .from('species_fields')
+    .select('code, scope, kind, unit, position')
+    .eq('species_id', pet.species_id)
+    .neq('kind', 'core')
+    .order('position');
+  const metaFor = (scope: 'profile' | 'daily'): SpeciesFieldMeta =>
+    Object.fromEntries(
+      (fieldRows ?? [])
+        .filter((row) => row.scope === scope)
+        .map((row) => [row.code as string, { kind: row.kind as string, unit: (row.unit as string | null) ?? null }])
+    );
+  const profileMeta = metaFor('profile');
+  const dailyMeta = metaFor('daily');
 
   const { data: symptoms, error: symptomsError } = await admin
     .from('ai_analysis_symptoms')
@@ -134,7 +164,7 @@ async function loadContext(admin: SupabaseClient, analysis: AnalysisRow) {
   const days = analysis.used_full_history ? FULL_HISTORY_LOG_DAYS : BASIC_LOG_DAYS;
   const { data: logs, error: logsError } = await admin
     .from('daily_logs')
-    .select('log_date, energy_level, appetite_level, mood_level, activity_level, unusual_behavior, unusual_behavior_notes, tags')
+    .select('log_date, energy_level, appetite_level, mood_level, activity_level, unusual_behavior, unusual_behavior_notes, tags, species_data')
     .eq('pet_id', analysis.pet_id)
     .order('log_date', { ascending: false })
     .limit(days);
@@ -161,6 +191,7 @@ async function loadContext(admin: SupabaseClient, analysis: AnalysisRow) {
     unusualBehavior: Boolean(log.unusual_behavior),
     unusualNotes: (log.unusual_behavior_notes as string | null) ?? null,
     tags: (log.tags as string[] | null) ?? [],
+    speciesDetails: describeSpeciesData(log.species_data, dailyMeta),
   }));
 
   return {
@@ -168,7 +199,7 @@ async function loadContext(admin: SupabaseClient, analysis: AnalysisRow) {
     imageDataUrl,
     user: buildUserPrompt({
       pet: {
-        species: species === 'dog' ? 'perro' : species === 'cat' ? 'gato' : species,
+        species: SPECIES_NAMES_ES[species] ?? species,
         ageMonths: ageInMonths(pet.birth_date as string | null, today),
         sex: (pet.sex as string | null) ?? null,
         sterilized: (pet.sterilized as boolean | null) ?? null,
@@ -176,6 +207,7 @@ async function loadContext(admin: SupabaseClient, analysis: AnalysisRow) {
         breed: breedCode ? breedCode.replace(/_/g, ' ') : ((pet.breed as string | null) ?? null),
         knownConditions: (pet.known_conditions as string[] | null) ?? [],
         allergies: (pet.allergies as string[] | null) ?? [],
+        speciesDetails: describeSpeciesData(pet.species_data, profileMeta),
       },
       symptoms: symptomRows.map((s) => labelById.get(s.id) ?? s.code),
       logs: dailyLogs.reverse(),
