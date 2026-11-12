@@ -1,3 +1,4 @@
+import type { SpeciesData } from '@/features/species/species-fields';
 import type { Enums, Tables, TablesInsert } from '@/types/database.types';
 
 /**
@@ -42,15 +43,24 @@ export type PetEditableColumn =
   | 'sterilized'
   | 'known_conditions'
   | 'allergies'
-  | 'temperament_notes';
+  | 'temperament_notes'
+  | 'species_data';
 
-/** Valores completos de los campos editables (se envían todos en crear y en editar). */
-export type PetFields = Required<Pick<TablesInsert<'pets'>, PetEditableColumn>>;
+/**
+ * Valores completos de los campos editables (se envían todos en crear y en editar). `species_data`
+ * (campos de la especie, `features/species/`) ausente = sin indicar: no se envía y el servidor conserva
+ * lo suyo (operaciones guardadas en el dispositivo por versiones anteriores de la app).
+ */
+export type PetFields = Required<Pick<TablesInsert<'pets'>, Exclude<PetEditableColumn, 'species_data'>>> & {
+  species_data?: SpeciesData;
+};
 
 export type Species = {
   id: string;
   code: string;
   isActive: boolean;
+  /** Orientación con IA disponible (`species.ai_guidance_enabled`; la exige `request_ai_analysis`). */
+  aiGuidance: boolean;
   /** Nombre traducido (`catalog_translations`), o el `code` si no hay traducción. */
   name: string;
 };

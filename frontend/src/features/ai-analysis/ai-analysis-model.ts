@@ -67,6 +67,7 @@ export type RequestErrorCode =
   | 'disclaimer'
   | 'rate_limited'
   | 'failure_limit'
+  | 'species_unsupported'
   | 'network'
   | 'unknown';
 
@@ -81,6 +82,7 @@ const HINT_CODES = new Map<string, RequestErrorCode>([
   ['ai_disclaimer_required', 'disclaimer'],
   ['ai_rate_limited', 'rate_limited'],
   ['ai_failure_limit', 'failure_limit'],
+  ['ai_species_unsupported', 'species_unsupported'],
 ]);
 
 /**

@@ -89,6 +89,25 @@ APK de release en emulador Android, contra el Supabase local, con una ruta tempo
 - Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
 - **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
 
+### Campos por especie y resumen de bienestar (2026-11-11, fases 15 y 16)
+
+Contra el Supabase local con las 18 migraciones (`migration up --local`, sin `db reset`):
+
+| Comando | Resultado |
+|---|---|
+| `npx supabase test db` | 681/681 (nuevas: `species_fields.test.sql`, `daily_logs_read_access.test.sql`; `daily_logs.test.sql` actualizado a la firma de 16 parámetros y a los GRANT de `species_data`) |
+| `npm test` | 999/999 (nuevas: `species-fields`, `species-content`, `wellness-stats`, peso por especie en `pet-plausibility`) |
+| `npm run test:integration` | 81/81 (nueva: `species-fields-parity.integration.test.mjs`: catálogo app = BD, ficha y registro con datos de especie, IA rechazada por especie). Tres ejecuciones seguidas correctas; una primera falló en el alta de usuario por el límite local de Auth (`sign_in_sign_ups = 30` cada 5 min) al encadenar ejecuciones |
+| Unitarias `ai-analysis-process` | 19/19 (nueva: `species-labels.test.mjs`, textos idénticos a los de la app) |
+| Seed `breeds.sql` | aplicado dos veces dentro de una transacción en local: cada especie salvo «Otro» con razas o tipos, nombres es/en, sin duplicados |
+| `tsc`, `expo lint` | correctos |
+| Web contra el Supabase local (Playwright) | alta de un conejo con sus campos, registro del día con «Su especie» sincronizado, detalle del día, resumen 7 días con los repartos correctos, evolución 30 y 90 días, observaciones; validación de un campo fuera de rango en el registro de un perro. Sin errores de consola |
+
+**No probado todavía:** emulador Android (registro y resumen sin conexión, cobertura parcial, rendimiento con muchos
+registros locales), concurrencia de `daily_logs` con la firma nueva (`daily_logs_concurrency.sh`; las llamadas existentes
+resuelven a la misma función). La migración y el seed ya están en `kitom-dev` (2026-11-12): los tipos regenerados con
+`--linked` coinciden con los que se habían añadido a mano (solo cambia el orden de los campos).
+
 ### Agenda sin conexión: frontend (2026-11-06, fase 14)
 
 Contra el Supabase local con las 17 migraciones (`migration up --local`, sin `db reset`):

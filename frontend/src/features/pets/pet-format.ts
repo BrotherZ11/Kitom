@@ -12,8 +12,10 @@ export function formatBirthDate(value: string | null): string | null {
   });
 }
 
-export function formatWeight(value: number | null): string | null {
+/** Peso guardado en kg; en `g` (animales pequeños, `weightInputUnit`) se muestra en gramos. */
+export function formatWeight(value: number | null, unit: 'kg' | 'g' = 'kg'): string | null {
   if (value == null) return null;
+  if (unit === 'g') return `${new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 0 }).format(value * 1000)} g`;
   return `${new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 3 }).format(value)} kg`;
 }
 

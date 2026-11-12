@@ -2,6 +2,7 @@ import type { Pet } from '@/features/pets/types';
 import type { LocalCollection } from '@/lib/local-store/local-store';
 
 import { parseVersion } from '../../daily-logs/offline/daily-log-version.ts';
+import { parseSpeciesData } from '../../species/species-fields.ts';
 
 /**
  * Copias locales de mascotas para verlas sin conexión (`LocalStore`, aisladas por usuario). Módulo
@@ -74,6 +75,7 @@ const PET_FIELDS: Record<keyof CachedPet, (value: unknown) => boolean> = {
   known_conditions: nullable(isStringArray),
   allergies: nullable(isStringArray),
   temperament_notes: nullable(isString),
+  species_data: (value) => parseSpeciesData(value) !== null,
   photo_path: nullable(isStoragePath),
   is_active: (value) => typeof value === 'boolean',
   created_at: isTimestamp,
@@ -86,10 +88,13 @@ const PET_FIELD_NAMES = Object.keys(PET_FIELDS) as (keyof CachedPet)[];
  * Copia solo las columnas conocidas de una fila (del servidor o leída del dispositivo) y la valida.
  * `null` si falta alguna o alguna no tiene el tipo esperado. Las propiedades de más no se copian.
  */
-export function toCachedPet(row: unknown): CachedPet | null {
-  if (!isRecord(row)) return null;
+export function toCachedPet(input: unknown): CachedPet | null {
+  if (!isRecord(input)) return null;
   const pet: Record<string, unknown> = {};
+  const row = input;
   for (const field of PET_FIELD_NAMES) {
+    // Filas y copias anteriores a la columna `species_data`: se deja sin indicar (`speciesDataOf`).
+    if (field === 'species_data' && !(field in row)) continue;
     if (!(field in row) || !PET_FIELDS[field](row[field])) return null;
     const value = row[field];
     pet[field] = Array.isArray(value) ? [...value] : value;

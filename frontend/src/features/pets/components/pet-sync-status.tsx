@@ -15,6 +15,7 @@ import { useSpecies } from '@/features/pets/hooks/use-species';
 import { canDiscardPetOperation, type LocalPetOperation, type PetSyncDisplay } from '@/features/pets/offline/pet-operation';
 import { formatBirthDate, formatBreed, formatList, formatSex, formatSterilized, formatWeight } from '@/features/pets/pet-format';
 import type { PetFields } from '@/features/pets/types';
+import { describeSpeciesData } from '@/features/species/species-labels';
 import { t, type TranslationKey } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 
@@ -58,6 +59,13 @@ export function usePetContentLines() {
       { label: t('pets.fields.knownConditions'), value: value(formatList(content.known_conditions)) },
       { label: t('pets.fields.allergies'), value: value(formatList(content.allergies)) },
       { label: t('pets.fields.temperamentNotes'), value: value(content.temperament_notes) },
+      {
+        label: t('speciesFields.title'),
+        value:
+          content.species_data && Object.keys(content.species_data).length > 0
+            ? describeSpeciesData(content.species_data).join(' · ')
+            : t('speciesFields.empty'),
+      },
     ];
   };
 }

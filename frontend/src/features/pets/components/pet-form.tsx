@@ -1,13 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { Alert } from '@/components/ui/alert';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { FormMessage } from '@/components/ui/form-message';
 import { Icon } from '@/components/ui/icon';
-import { Info, Lock, WifiOff } from '@/components/ui/icons';
+import { Lock, WifiOff } from '@/components/ui/icons';
 import { Screen } from '@/components/ui/screen';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
@@ -29,6 +28,9 @@ import {
   type PetFormValues,
 } from '@/features/pets/pet-form';
 import { PET_SEX_VALUES, type PetFields, type Species } from '@/features/pets/types';
+import { SpeciesFieldsSection } from '@/features/species/components/species-fields-section';
+import { SPECIES_CODES, fieldsFor } from '@/features/species/species-fields';
+import { speciesAboutTitle } from '@/features/species/species-labels';
 import { useLeaveConfirmation } from '@/hooks/use-leave-confirmation';
 import { useTheme } from '@/hooks/use-theme';
 import { t, tf } from '@/i18n';
@@ -62,8 +64,18 @@ type PetFormProps = {
 };
 
 const STERILIZED_VALUES = ['yes', 'no', 'unknown'] as const;
-/** «Otro» del tablero 3.1: no es una especie del catálogo; explica que, por ahora, perros y gatos. */
-const OTHER_SPECIES = '__other__';
+
+/** Orden de las especies: el del catálogo de la app (perro y gato primero, «Otro» al final). */
+function speciesOrder(code: string): number {
+  const index = (SPECIES_CODES as readonly string[]).indexOf(code);
+  return index === -1 ? SPECIES_CODES.length : index;
+}
+
+/** `YYYY-MM-DD` local de hoy (las fechas de los campos de especie no pueden ser futuras). */
+function localToday(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
 
 function fieldError(error: PetFieldError | undefined): string | null {
   return error ? t(`pets.validation.${error}`) : null;
@@ -90,7 +102,6 @@ export function PetForm({
   const theme = useTheme();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<PetFormErrors>({});
-  const [otherSpecies, setOtherSpecies] = useState(false);
   // Edición: la especie se muestra bloqueada; cambiarla (por si se eligió mal) pide confirmación.
   const [speciesUnlocked, setSpeciesUnlocked] = useState(false);
   const [confirmingSpecies, setConfirmingSpecies] = useState(false);
@@ -106,12 +117,19 @@ export function PetForm({
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
-  // La raza depende de la especie: al cambiarla se descarta una raza concreta incompatible.
+  // La raza y los campos propios dependen de la especie: al cambiarla se descartan los incompatibles.
   const setSpecies = (speciesId: string) => {
-    setOtherSpecies(false);
-    setValues((current) => withSpecies(current, speciesId));
+    const code = species.find((item) => item.id === speciesId)?.code;
+    setValues((current) => withSpecies(current, speciesId, code));
     setDirty(true);
-    setErrors((current) => ({ ...current, speciesId: undefined, breedId: undefined, breedText: undefined }));
+    setErrors((current) => ({
+      ...current,
+      speciesId: undefined,
+      breedId: undefined,
+      breedText: undefined,
+      weightKg: undefined,
+      species: undefined,
+    }));
   };
 
   const setBreed = (breed: BreedValues) => {
@@ -121,18 +139,24 @@ export function PetForm({
   };
 
   // Solo especies activas, más la actual si se edita una mascota de una especie ya desactivada.
-  const speciesOptions = species.filter((item) => item.isActive || item.id === initialValues.speciesId);
-  const currentSpeciesName =
-    species.find((item) => item.id === values.speciesId)?.name ?? t('common.notSpecified');
+  const speciesOptions = species
+    .filter((item) => item.isActive || item.id === initialValues.speciesId)
+    .sort((a, b) => speciesOrder(a.code) - speciesOrder(b.code));
+  const currentSpecies = species.find((item) => item.id === values.speciesId) ?? null;
+  const currentSpeciesName = currentSpecies?.name ?? t('common.notSpecified');
+  const speciesCode = currentSpecies?.code;
+  const profileFields = values.speciesId ? fieldsFor(speciesCode, 'profile') : [];
+  const today = localToday();
 
   const handleSubmit = () => {
     const nextErrors = validatePetForm(values, {
       breedSpeciesId: findBreed(breedCatalog.view, values.breedId)?.speciesId,
-      speciesCode: species.find((item) => item.id === values.speciesId)?.code,
+      speciesCode,
+      today,
     });
     setErrors(nextErrors);
     if (hasPetFormErrors(nextErrors)) return;
-    onSubmit(toPetFields(values));
+    onSubmit(toPetFields(values, { speciesCode, today }));
   };
 
   const name = values.name.trim();
@@ -149,7 +173,7 @@ export function PetForm({
           <Button
             label={submitLabel}
             loading={isSubmitting}
-            disabled={speciesOptions.length === 0 || (variant === 'new' && otherSpecies)}
+            disabled={speciesOptions.length === 0}
             onPress={handleSubmit}
           />
         </>
@@ -219,24 +243,13 @@ export function PetForm({
                 <SpeciesOption
                   key={item.id}
                   label={item.name}
-                  selected={!otherSpecies && values.speciesId === item.id}
+                  selected={values.speciesId === item.id}
                   onPress={() => setSpecies(item.id)}
                 />
               ))}
-              {variant === 'new' ? (
-                <SpeciesOption
-                  key={OTHER_SPECIES}
-                  label={t('pets.new.otherSpecies')}
-                  selected={otherSpecies}
-                  onPress={() => setOtherSpecies(true)}
-                />
-              ) : null}
             </View>
           )}
           <FormMessage message={fieldError(errors.speciesId)} />
-          {otherSpecies ? (
-            <Alert tone="info" icon={Info} title={t('pets.new.otherTitle')} message={t('pets.new.otherText')} />
-          ) : null}
         </View>
       ) : null}
 
@@ -253,6 +266,7 @@ export function PetForm({
 
       <PetBreedField
         speciesId={values.speciesId}
+        speciesCode={speciesCode}
         value={{
           breedStatus: values.breedStatus,
           breedSource: values.breedSource,
@@ -274,11 +288,11 @@ export function PetForm({
           </View>
           <View style={styles.flex}>
             <TextField
-              label={t('pets.fields.weightKg')}
+              label={values.weightUnit === 'g' ? t('pets.fields.weightG') : t('pets.fields.weightKg')}
               value={values.weightKg}
               onChangeText={(text) => setField('weightKg', text)}
-              keyboardType="decimal-pad"
-              inputMode="decimal"
+              keyboardType={values.weightUnit === 'g' ? 'number-pad' : 'decimal-pad'}
+              inputMode={values.weightUnit === 'g' ? 'numeric' : 'decimal'}
               style={styles.mono}
               error={fieldError(errors.weightKg)}
             />
@@ -331,6 +345,30 @@ export function PetForm({
         maxLength={PET_TEMPERAMENT_NOTES_MAX_LENGTH}
         multiline
       />
+
+      {profileFields.length > 0 ? (
+        <View style={styles.field}>
+          <View style={styles.sectionHead}>
+            <Text variant="overline" color="inkMuted" accessibilityRole="header">
+              {speciesAboutTitle(speciesCode)}
+            </Text>
+            <Text variant="caption" color="inkMuted">
+              {t('speciesFields.hint')}
+            </Text>
+          </View>
+          <SpeciesFieldsSection
+            fields={profileFields}
+            form={values.species}
+            today={today}
+            showErrors={errors.species !== undefined}
+            onChange={(update) => {
+              setValues((current) => ({ ...current, species: update(current.species), speciesIndicated: true }));
+              setDirty(true);
+            }}
+          />
+          <FormMessage message={fieldError(errors.species)} />
+        </View>
+      ) : null}
 
       {footerExtra ? (
         <>
@@ -412,19 +450,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radius.md,
   },
+  // Varias especies: rejilla de 3 por fila (2 en pantallas estrechas por el ancho mínimo).
   speciesGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing['2'],
   },
   species: {
-    flex: 1,
-    height: 56,
+    flexGrow: 1,
+    flexBasis: '30%',
+    minWidth: 96,
+    minHeight: 56,
+    paddingHorizontal: spacing['2'],
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   speciesText: {
     fontFamily: fontFamily.sans600,
+    textAlign: 'center',
   },
   pressed: {
     opacity: 0.8,

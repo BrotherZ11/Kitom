@@ -68,6 +68,8 @@ export function editableColumns(content: PetFields): PetFields {
     known_conditions: content.known_conditions,
     allergies: content.allergies,
     temperament_notes: content.temperament_notes,
+    // Sin indicar (operación de una versión anterior): no se envía y el servidor conserva lo suyo.
+    ...(content.species_data === undefined ? {} : { species_data: content.species_data }),
   };
 }
 

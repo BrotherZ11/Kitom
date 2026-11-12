@@ -27,6 +27,7 @@ function pickEditableFields(fields: PetFields): PetFields {
     known_conditions: fields.known_conditions,
     allergies: fields.allergies,
     temperament_notes: fields.temperament_notes,
+    ...(fields.species_data === undefined ? {} : { species_data: fields.species_data }),
   };
 }
 

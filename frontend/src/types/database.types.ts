@@ -303,6 +303,7 @@ export type Database = {
           pet_id: string
           sleep_quality: number | null
           social_interaction_level: number | null
+          species_data: Json
           tags: string[] | null
           unusual_behavior: boolean
           unusual_behavior_notes: string | null
@@ -323,6 +324,7 @@ export type Database = {
           pet_id: string
           sleep_quality?: number | null
           social_interaction_level?: number | null
+          species_data?: Json
           tags?: string[] | null
           unusual_behavior?: boolean
           unusual_behavior_notes?: string | null
@@ -343,6 +345,7 @@ export type Database = {
           pet_id?: string
           sleep_quality?: number | null
           social_interaction_level?: number | null
+          species_data?: Json
           tags?: string[] | null
           unusual_behavior?: boolean
           unusual_behavior_notes?: string | null
@@ -592,6 +595,7 @@ export type Database = {
           owner_id: string
           photo_path: string | null
           sex: Database["public"]["Enums"]["pet_sex"] | null
+          species_data: Json
           species_id: string
           sterilized: boolean | null
           temperament_notes: string | null
@@ -613,6 +617,7 @@ export type Database = {
           owner_id: string
           photo_path?: string | null
           sex?: Database["public"]["Enums"]["pet_sex"] | null
+          species_data?: Json
           species_id: string
           sterilized?: boolean | null
           temperament_notes?: string | null
@@ -634,6 +639,7 @@ export type Database = {
           owner_id?: string
           photo_path?: string | null
           sex?: Database["public"]["Enums"]["pet_sex"] | null
+          species_data?: Json
           species_id?: string
           sterilized?: boolean | null
           temperament_notes?: string | null
@@ -833,6 +839,7 @@ export type Database = {
       }
       species: {
         Row: {
+          ai_guidance_enabled: boolean
           category: string | null
           code: string
           created_at: string
@@ -843,6 +850,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_guidance_enabled?: boolean
           category?: string | null
           code: string
           created_at?: string
@@ -853,6 +861,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_guidance_enabled?: boolean
           category?: string | null
           code?: string
           created_at?: string
@@ -866,6 +875,62 @@ export type Database = {
           {
             foreignKeyName: "species_parent_species_id_fkey"
             columns: ["parent_species_id"]
+            isOneToOne: false
+            referencedRelation: "species"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      species_fields: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          kind: string
+          max_value: number | null
+          min_value: number | null
+          options: string[] | null
+          position: number
+          scope: string
+          species_id: string
+          unit: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          kind: string
+          max_value?: number | null
+          min_value?: number | null
+          options?: string[] | null
+          position: number
+          scope: string
+          species_id: string
+          unit?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          kind?: string
+          max_value?: number | null
+          min_value?: number | null
+          options?: string[] | null
+          position?: number
+          scope?: string
+          species_id?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "species_fields_species_id_fkey"
+            columns: ["species_id"]
             isOneToOne: false
             referencedRelation: "species"
             referencedColumns: ["id"]
@@ -1269,6 +1334,7 @@ export type Database = {
           p_pet_id: string
           p_sleep_quality: number
           p_social_interaction_level: number
+          p_species_data?: Json
           p_tags: string[]
           p_unusual_behavior: boolean
           p_unusual_behavior_notes: string
@@ -1288,6 +1354,7 @@ export type Database = {
           pet_id: string
           sleep_quality: number | null
           social_interaction_level: number | null
+          species_data: Json
           tags: string[] | null
           unusual_behavior: boolean
           unusual_behavior_notes: string | null

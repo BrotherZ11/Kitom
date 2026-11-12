@@ -182,7 +182,11 @@ export function resolveDailyLogDetail(input: {
 /** Fila para mostrar un registro local en listas (el contenido pendiente sobre la fila confirmada). */
 export function toDisplayRow(record: LocalDailyLog): DailyLog {
   const content = record.pending?.content;
-  if (record.serverRow) return content ? { ...record.serverRow, ...content } : record.serverRow;
+  // Datos de especie sin indicar en lo pendiente (versión anterior): se ven los del servidor.
+  const speciesData = content?.species_data ?? record.serverRow?.species_data ?? {};
+  if (record.serverRow) {
+    return content ? { ...record.serverRow, ...content, species_data: speciesData } : record.serverRow;
+  }
   return {
     id: `local:${record.petId}:${record.logDate}`,
     pet_id: record.petId,
@@ -193,6 +197,7 @@ export function toDisplayRow(record: LocalDailyLog): DailyLog {
     updated_at: '',
     // Sin fila del servidor siempre hay operación pendiente (`parseLocalDailyLog` lo garantiza).
     ...(content as DailyLogContent),
+    species_data: speciesData,
   };
 }
 
@@ -246,6 +251,47 @@ export function resolveDailyLogHistory(input: {
   }
   return { state: 'ready', items: [...byDate.values()].sort(byDateDesc), offline: false };
 }
+
+/**
+ * Registros de un rango de fechas (resumen de bienestar): las filas del servidor con lo pendiente del
+ * dispositivo encima, sin duplicar días; sin conexión, lo guardado en el dispositivo dentro del rango.
+ * Misma regla que el historial (`resolveDailyLogHistory`): el resumen y la lista nunca se contradicen.
+ */
+export function resolveDailyLogRange(input: {
+  remote: RemoteState<DailyLog[]>;
+  local: LocalState<LocalDailyLog[]>;
+  syncingKey: string | null;
+  range: { start: string; end: string };
+}): DailyLogRangeView {
+  const { remote, local, syncingKey, range } = input;
+  if (local.status === 'error') return { state: 'error', error: local.error };
+  if (local.status === 'loading' || remote.status === 'loading') return { state: 'loading' };
+  if (remote.status === 'error') return { state: 'error', error: remote.error };
+
+  const inRange = (date: string) => date >= range.start && date <= range.end;
+  const itemFor = (record: LocalDailyLog): HistoryItemView => ({
+    log: toDisplayRow(record),
+    syncStatus: displaySyncStatus(record, syncingKey === `${record.petId}/${record.logDate}`) ?? 'synced',
+  });
+
+  if (remote.status === 'unavailable') {
+    const items = local.data.filter((record) => inRange(record.logDate)).map(itemFor).sort(byDateDesc);
+    return { state: 'ready', items, offline: true };
+  }
+
+  const byDate = new Map<string, HistoryItemView>(
+    remote.data.filter((log) => inRange(log.log_date)).map((log) => [log.log_date, { log, syncStatus: 'synced' }])
+  );
+  for (const record of local.data) {
+    if (record.pending && inRange(record.logDate)) byDate.set(record.logDate, itemFor(record));
+  }
+  return { state: 'ready', items: [...byDate.values()].sort(byDateDesc), offline: false };
+}
+
+export type DailyLogRangeView =
+  | { state: 'loading' }
+  | { state: 'error'; error: unknown }
+  | { state: 'ready'; items: HistoryItemView[]; offline: boolean };
 
 export type UnsyncedItemView = {
   record: LocalDailyLog;

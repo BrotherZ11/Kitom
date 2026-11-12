@@ -20,6 +20,7 @@ import { useTodayLogDate } from '@/features/daily-logs/hooks/use-today-log-date'
 import { capitalizeFirst, formatLogDateLabel, formatWeekdayDay } from '@/features/daily-logs/log-date';
 import { useCanEditPet, usePet } from '@/features/pets/hooks/use-pets';
 import { petErrorMessage, toPetError } from '@/features/pets/pet-errors';
+import { usePetSpecies } from '@/features/species/hooks/use-pet-species';
 import { getLocale, t } from '@/i18n';
 import { withServerPetId } from '@/features/pets/components/local-pet-logs-unavailable';
 
@@ -37,6 +38,7 @@ function DailyLogEntryScreen() {
   const logDate = parseLogDateParam(date);
   const today = useTodayLogDate();
   const pet = usePet(id);
+  const petSpecies = usePetSpecies(id);
   const canEdit = useCanEditPet(id);
   const retrySync = useRetryDailyLogSync();
   // Sin conexión y sin copia de la mascota, el registro sigue disponible (`daily-log-pet-context.ts`).
@@ -104,6 +106,7 @@ function DailyLogEntryScreen() {
         petId={id}
         logDate={logDate}
         petName={petContext.name}
+        speciesCode={petSpecies.code}
         title={capitalizeFirst(formatWeekdayDay(logDate, getLocale()), getLocale())}
         historical={logDate !== today}
         initialContent={view.content}
@@ -153,7 +156,12 @@ function DailyLogEntryScreen() {
           }
         />
       ) : null}
-      <DayDetail content={view.content} serverRow={view.baseRow} hasLocalChanges={view.source === 'local' && view.syncStatus !== 'synced'} />
+      <DayDetail
+        content={view.content}
+        serverRow={view.baseRow}
+        speciesCode={petSpecies.code}
+        hasLocalChanges={view.source === 'local' && view.syncStatus !== 'synced'}
+      />
     </Screen>
   );
 }

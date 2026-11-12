@@ -24,6 +24,11 @@ type TrendChartProps = {
   /** Descripción para lectores de pantalla (qué se ve, sin interpretar). */
   accessibilityLabel: string;
   height?: number;
+  /**
+   * Con muchos puntos (30 días) solo se escribe una etiqueta de cada `labelEvery` (y la última); los
+   * puntos sin etiqueta siguen dibujándose. Por defecto, todas.
+   */
+  labelEvery?: number;
 };
 
 const Y_LABELS_WIDTH = 44;
@@ -32,7 +37,7 @@ const Y_LABELS_WIDTH = 44;
  * Gráfica de tendencias (docs/design/componentes/TrendChart): escala 1–5 con «como siempre» en medio,
  * una línea por serie con trazo distinto y huecos donde no hay registro (sin interpolar).
  */
-export function TrendChart({ series, xLabels, yLabels, accessibilityLabel, height = 180 }: TrendChartProps) {
+export function TrendChart({ series, xLabels, yLabels, accessibilityLabel, height = 180, labelEvery = 1 }: TrendChartProps) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
   const box: ChartBox = { width, height, padX: 8, padY: 20, min: 1, max: 5 };
@@ -81,7 +86,10 @@ export function TrendChart({ series, xLabels, yLabels, accessibilityLabel, heigh
       <View style={styles.xLabels}>
         {xLabels.map((label, index) => (
           <Text key={`${label}-${index}`} color="inkMuted" style={styles.xLabel}>
-            {label}
+            {index === xLabels.length - 1 ||
+            (index % labelEvery === 0 && xLabels.length - 1 - index >= Math.ceil(labelEvery / 2))
+              ? label
+              : ''}
           </Text>
         ))}
       </View>

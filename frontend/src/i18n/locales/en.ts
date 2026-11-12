@@ -1,5 +1,8 @@
 import type { Translations } from '@/i18n/locales/es';
 
+import { speciesFieldsEn } from './species-fields-en.ts';
+import { wellnessEn } from './wellness-en.ts';
+
 export const en: Translations = {
   common: {
     loading: 'Loading…',
@@ -693,6 +696,7 @@ export const en: Translations = {
       disclaimer: 'Before asking for guidance, accept the vet notice in Your account › Privacy.',
       rate_limited: 'Wait a minute before asking for more guidance.',
       failure_limit: "We couldn't prepare several guidance requests in a row today. Try again tomorrow.",
+      species_unsupported: 'Guidance is not available for this species yet.',
       network: 'Offline. Guidance needs a connection.',
       photo: "The photo couldn't be uploaded. Try again or continue without a photo.",
       unknown: 'Something went wrong. Try again.',
@@ -701,6 +705,9 @@ export const en: Translations = {
     offlineTitle: 'Guidance needs a connection',
     offlineText: "Try again when you're online.",
     localPet: 'You can ask once {name} has been uploaded to the server.',
+    speciesUnsupportedTitle: 'Coming soon for: {species}',
+    speciesUnsupportedText:
+      'Photo and signs guidance has been reviewed for dogs and cats. While we review it with vets for more species, you can keep logging their days.',
   },
   setup: {
     step: 'Step {step} of {total}',
@@ -1112,9 +1119,6 @@ export const en: Translations = {
       overline: 'Your pet',
       heading: 'Who will you look after?',
       description: 'We only need their name and species. Everything else is optional.',
-      otherSpecies: 'Other',
-      otherTitle: 'For now, dogs and cats',
-      otherText: "Kitom is designed and reviewed for them. We'll let you know when we can support other species.",
       more: 'More about your pet',
       moreHint: 'All optional. You can fill it in now or whenever you like.',
       photoFailed: "The pet has been created, but the photo couldn't be uploaded. You can add it from their profile.",
@@ -1342,12 +1346,19 @@ export const en: Translations = {
       birthDateUnset: 'Not set',
       birthDateClear: 'Clear the date',
       birthDateDone: 'Done',
+      weight: 'Weight',
+      animalType: 'Type',
       weightKg: 'Weight (kg)',
+      weightG: 'Weight (g)',
       sterilized: 'Neutered / spayed',
       knownConditions: 'Known conditions',
       allergies: 'Allergies',
       listHint: 'Separate each item with a comma.',
       temperamentNotes: 'Notes about their temperament',
+    },
+    typeStatus: {
+      known: 'I know which',
+      unknown: "I don't know",
     },
     breedStatus: {
       known: 'Has a breed',
@@ -1416,7 +1427,8 @@ export const en: Translations = {
       invalid_date: 'Enter a valid date in the format YYYY-MM-DD.',
       future_date: 'The date of birth cannot be in the future.',
       invalid_weight: 'Enter a weight greater than 0, with up to 3 decimals.',
-      implausible_weight: "That weight doesn't look possible for this species. Check it: it's in kilograms.",
+      implausible_weight: "That weight doesn't look possible for this species. Check the number and the unit.",
+      species_invalid: 'Check the species details: one value is not valid.',
       implausible_birth_date: 'That date is too long ago for this species. Check it.',
     },
     errors: {
@@ -1514,9 +1526,9 @@ export const en: Translations = {
     notes: 'Notes',
     editor: {
       todayTitle: 'Today, {date}',
-      progress: '{count} of 4 answered',
+      progress: '{count} of {total} answered',
       addDetails: 'Add details',
-      addDetailsHint: 'Sleep, vocalizations, anything odd, tags or a note',
+      addDetailsHint: 'More about the day, anything odd, tags or a note',
       detailsTitle: 'Details',
       optional: 'Optional',
       detailsIntro: 'Compared with what is usual for {name}.',
@@ -1755,7 +1767,8 @@ export const en: Translations = {
       not_allowed: "You don't have permission to save this pet's log.",
       invalid_date: "The log date isn't valid. Open today's log again.",
       empty: 'Add at least one detail before saving.',
-      primary_required: 'Answer energy, appetite, mood and activity to save the day.',
+      primary_required: 'Answer the main questions to save the day.',
+      species_invalid: 'Check the species details: one value is not valid.',
       notes_too_long: 'The notes are too long (2000 characters max).',
       unusual_behavior_notes_too_long: 'The description of what you noticed is too long (1000 characters max).',
       invalid_tag: "One of the tags isn't valid.",
@@ -1766,4 +1779,6 @@ export const en: Translations = {
       unknown: 'Something went wrong. Please try again.',
     },
   },
+  speciesFields: speciesFieldsEn,
+  wellness: wellnessEn,
 };

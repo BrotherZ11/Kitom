@@ -5,14 +5,15 @@ import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/features/auth/auth-context';
 import {
-  DETAIL_SCALE_FIELDS,
-  PRIMARY_SCALE_FIELDS,
+  SCALE_FIELDS,
   toDailyLogFormValues,
   type DailyLogContentSource,
   type ScaleValue,
 } from '@/features/daily-logs/daily-log-form';
 import { scaleValueLabel } from '@/features/daily-logs/scale-labels';
 import type { DailyLog } from '@/features/daily-logs/types';
+import { coreScales, dailyDefinition, speciesDataOf } from '@/features/species/species-fields';
+import { describeSpeciesData } from '@/features/species/species-labels';
 import { useTheme } from '@/hooks/use-theme';
 import { getLocale, t, tf } from '@/i18n';
 import { radius, spacing } from '@/theme/tokens';
@@ -21,6 +22,8 @@ type DayDetailProps = {
   content: DailyLogContentSource;
   /** Fila del servidor (autoría y horas); `null` si solo existe en este dispositivo. */
   serverRow: DailyLog | null;
+  /** Especie de la mascota (qué escalas son principales); `null` si no se conoce. */
+  speciesCode: string | null;
   /** Hay cambios en el dispositivo sin subir: la autoría del servidor no describe lo que se ve. */
   hasLocalChanges: boolean;
 };
@@ -30,10 +33,20 @@ type DayDetailProps = {
  * cinco marcas (y su texto: nunca solo la barra), detalles, lo fuera de lo habitual, la nota y las
  * etiquetas. Abajo, quién lo registró y cuándo (`logged_by`, `last_edited_by`).
  */
-export function DayDetail({ content, serverRow, hasLocalChanges }: DayDetailProps) {
+export function DayDetail({ content, serverRow, speciesCode, hasLocalChanges }: DayDetailProps) {
   const theme = useTheme();
   const { user } = useAuth();
   const values = toDailyLogFormValues(content);
+  const definition = dailyDefinition(speciesCode);
+  const primaries = coreScales(definition, 'primary');
+  // Detalles: los opcionales de la especie y cualquier escala oculta que tenga un valor guardado
+  // (p. ej. tras cambiar la especie): lo guardado nunca se esconde.
+  const details = SCALE_FIELDS.filter(
+    (field) => !primaries.includes(field) && (definition.core[field] === 'optional' || values.scales[field] !== null)
+  );
+  // Datos de especie: lo indicado en el dispositivo o, sin indicar, lo del servidor.
+  const speciesData = content.species_data != null ? speciesDataOf(content) : speciesDataOf(serverRow);
+  const speciesLines = describeSpeciesData(speciesData, definition.daily);
 
   const authorship = (() => {
     if (hasLocalChanges || !serverRow) return t('dailyLogs.entry.notSyncedYet');
@@ -47,7 +60,7 @@ export function DayDetail({ content, serverRow, hasLocalChanges }: DayDetailProp
   return (
     <>
       <Card style={styles.card}>
-        {PRIMARY_SCALE_FIELDS.map((field) => {
+        {primaries.map((field) => {
           const value = values.scales[field];
           const label = t(`dailyLogs.fields.${field}`);
           const valueLabel = value === null ? t('dailyLogs.scale.notAnswered') : scaleValueLabel(field, value);
@@ -65,7 +78,7 @@ export function DayDetail({ content, serverRow, hasLocalChanges }: DayDetailProp
         })}
         <View style={[styles.divider, { backgroundColor: theme.line }]} />
         <View style={styles.details}>
-          {DETAIL_SCALE_FIELDS.map((field) => {
+          {details.map((field) => {
             const value = values.scales[field];
             return (
               <View key={field} style={styles.between}>
@@ -78,6 +91,19 @@ export function DayDetail({ content, serverRow, hasLocalChanges }: DayDetailProp
           })}
         </View>
       </Card>
+
+      {speciesLines.length > 0 ? (
+        <View style={styles.section}>
+          <Text variant="title3" accessibilityRole="header">
+            {t('speciesFields.dailyTitle')}
+          </Text>
+          <Card variant="flat" style={styles.speciesCard}>
+            {speciesLines.map((line) => (
+              <Text key={line}>{line}</Text>
+            ))}
+          </Card>
+        </View>
+      ) : null}
 
       {values.unusualBehavior || values.notes.trim() !== '' || values.tags.length > 0 ? (
         <View style={styles.section}>
@@ -189,6 +215,9 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: 10,
+  },
+  speciesCard: {
+    gap: spacing['1'],
   },
   tags: {
     flexDirection: 'row',

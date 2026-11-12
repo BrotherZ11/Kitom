@@ -8,6 +8,7 @@ import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
 import { useActivePet } from '@/features/pets/active-pet-context';
 import { useCanEditPet } from '@/features/pets/hooks/use-pets';
+import { useSpecies } from '@/features/pets/hooks/use-species';
 import { isLocalPetId } from '@/features/pets/offline/pet-operation';
 import type { Pet } from '@/features/pets/types';
 import { useIsOnline } from '@/hooks/use-is-online';
@@ -32,7 +33,10 @@ export function ConsultGate({
   const online = useIsOnline();
   const { pets } = useActivePet();
   const permission = useCanEditPet(petId);
+  const species = useSpecies();
   const pet = pets.data?.find((item) => item.id === petId) ?? null;
+  // Orientación solo para las especies validadas (`species.ai_guidance_enabled`); el servidor lo exige igual.
+  const petSpecies = pet ? (species.data?.find((item) => item.id === pet.species_id) ?? null) : null;
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   const frame = (content: ReactNode) => (
@@ -61,6 +65,17 @@ export function ConsultGate({
   if (permission.isError) return frame(<ErrorState message={t('consult.errors.unknown')} onRetry={() => void permission.refetch()} />);
   if (requireEdit && !permission.data) {
     return frame(<EmptyState icon={Stethoscope} title={t('consult.errors.not_allowed')} actionLabel={t('common.back')} onAction={back} />);
+  }
+  if (requireEdit && petSpecies && !petSpecies.aiGuidance) {
+    return frame(
+      <EmptyState
+        icon={Stethoscope}
+        title={tf('consult.speciesUnsupportedTitle', { species: petSpecies.name })}
+        description={t('consult.speciesUnsupportedText')}
+        actionLabel={t('common.back')}
+        onAction={back}
+      />
+    );
   }
   return children(pet, permission.data === true);
 }

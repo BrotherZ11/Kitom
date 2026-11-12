@@ -16,7 +16,9 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 function parseSpecies(value: unknown): Species | null {
   if (!isRecord(value) || !isPetId(value.id)) return null;
   if (typeof value.code !== 'string' || typeof value.name !== 'string' || typeof value.isActive !== 'boolean') return null;
-  return { id: value.id, code: value.code, name: value.name, isActive: value.isActive };
+  // Copias anteriores a `aiGuidance`: solo perro y gato la tenían.
+  const aiGuidance = typeof value.aiGuidance === 'boolean' ? value.aiGuidance : value.code === 'dog' || value.code === 'cat';
+  return { id: value.id, code: value.code, name: value.name, isActive: value.isActive, aiGuidance };
 }
 
 export const SPECIES_SNAPSHOT: LocalCollection<SpeciesSnapshot> = {

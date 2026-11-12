@@ -135,6 +135,14 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - Registro (2026-11-04, sin migraciones): aviso legal único, textos legales en la app (`/legal/[doc]`, generados
   desde `site/`), peso y fecha plausibles por especie, y enlaces de email por la página puente
   `site/auth/callback.html`, que exige configurar Redirect URLs y SMTP propio (`docs/SETUP_GUIDE.md`).
+- Fases 15 y 16 (2026-11-11, ramas `db/species-fields` y `feat/species-fields-wellness`, integradas en `main` el 2026-11-12): **campos por especie** (9 especies
+  activas; ficha y registro diario con campos propios; IA solo perro y gato) y **resumen de bienestar** (resumen,
+  evolución y observaciones por mascota, también sin conexión). Migración `20261111120000_species_fields.sql`
+  (`species_fields`, `species_data`, `save_daily_log` con `p_species_data`, `ai_species_unsupported`): probada en local,
+  aplicada en `kitom-dev` y `seeds/breeds.sql` reejecutado (`db push` y seed del usuario, 2026-11-12); tipos regenerados
+  con `--linked`. Falta redesplegar `ai-analysis-process` (lo hace el usuario). La build con esta versión exige la
+  migración en el servidor. Campos y observaciones pendientes de revisión veterinaria. Contrato: `docs/README.md` §15.1, `docs/FRONTEND_ARCHITECTURE.md` «Campos por
+  especie» y «WellnessScreen»; diseño en `docs/proposals/2026-11-1{0,1}-*.md`.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev` (los 4 privados, **sin límite de
   tamaño ni de tipo**, comprobado el 2026-10-28; el remoto no tiene `pg_cron` ni `pg_net`); en local solo `pet-photos`

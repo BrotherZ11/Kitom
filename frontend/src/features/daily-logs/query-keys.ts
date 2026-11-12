@@ -12,6 +12,16 @@ export const dailyLogKeys = {
     [...dailyLogKeys.details(), userId, petId, logDate] as const,
   /** Historial paginado de una mascota leído por `userId` (`useInfiniteQuery`, cursor = `log_date`). */
   history: (userId: string, petId: string) => [...dailyLogKeys.all, 'history', userId, petId] as const,
+  /** Registros de una mascota entre dos fechas (resumen de bienestar), leídos por `userId`. */
+  range: (userId: string, petId: string, start: string, end: string) =>
+    [...dailyLogKeys.all, 'range', userId, petId, start, end] as const,
+  /** Todos los rangos de una mascota (para invalidarlos juntos). */
+  ranges: (userId: string, petId: string) => [...dailyLogKeys.all, 'range', userId, petId] as const,
+  /** Registros del dispositivo de una mascota entre dos fechas. */
+  localRange: (userId: string, petId: string, start: string, end: string) =>
+    [...dailyLogKeys.all, 'local-range', userId, petId, start, end] as const,
+  /** Cobertura de las copias locales de una mascota (`daily-log-coverage.ts`). */
+  coverage: (userId: string, petId: string) => [...dailyLogKeys.all, 'coverage', userId, petId] as const,
   /** Registro guardado en el dispositivo (`LocalDailyLog`) o `null`. */
   local: (userId: string, petId: string, logDate: string) =>
     [...dailyLogKeys.all, 'local', userId, petId, logDate] as const,

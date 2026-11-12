@@ -230,6 +230,34 @@ de UPDATE y la FK compuesta con `breeds` impide una raza de otra especie). La ma
   `23514` → `invalid_breed` (`pets_breed_status_check`), `invalid_weight` (`pets_weight_kg_check`) o
   `invalid_value`, `P0001` de `validate_pet_birth_date` → `birth_date_future`, fallo de red → `network`.
 
+### Campos por especie (implementado, 2026-11-11, fase 16)
+Backend: migración `20261111120000_species_fields.sql` (`README.md` §15.1). Diseño:
+`docs/proposals/2026-11-11-species-fields.md`. Código: `frontend/src/features/species/`.
+- **Catálogo:** `species-fields.ts` (puro) es la copia de la app de `species_fields`: por especie, el papel de las 7
+  escalas comunes (`primary` | `optional` | `hidden`) y los campos propios de la ficha y del registro diario (tipo,
+  opciones, rango, unidad). Un mismo código significa lo mismo en todas las especies. Paridad con la BD:
+  `species-fields-parity.integration.test.mjs`. Textos: `i18n/locales/species-fields-{es,en}.ts` (pruebas de que
+  existen todos). Cambiar un campo = migración + esta copia + textos.
+- **Formulario:** `species-form.ts` (puro): elecciones en `data`; números y fechas como texto hasta guardar
+  (`speciesFormErrors`, `toSpeciesData`); las claves desconocidas (otra versión, otra especie) se conservan.
+  `components/species-fields-section.tsx`: chips (pulsar la elegida la quita), sí/no con dos chips y `TextField` con
+  su unidad. Sin componentes nuevos de marca.
+- **Ficha:** `PetFormValues` lleva `species` y `speciesIndicated`; `withSpecies` vacía los campos de la especie
+  anterior y pasa el peso a la unidad nueva (`weightInputUnit`: gramos en hámster, cobaya y ave; se guarda siempre en
+  kg). Mínimos y máximos de peso por especie en `pet-plausibility.ts`. `PetFields.species_data` ausente = sin indicar
+  (operaciones guardadas por versiones anteriores): no se envía y el servidor conserva lo suyo. En la ficha
+  (`PetDetails`), una fila por campo de la especie, también los no indicados. Hámster, ave y reptil: la raza se llama
+  «Tipo» y no ofrece «mestizo».
+- **Registro diario:** `DailyLogEditor` recibe `speciesCode` (`usePetSpecies`): escalas principales de la especie
+  (progreso `n/total`), opcionales en «Detalles» (una principal que en esa especie es opcional, con 5 niveles) y sus
+  campos propios. Sin especie conocida (sin conexión y sin copia), las escalas de siempre. `DailyLogContent.species_data`
+  ausente/`null` = sin indicar → no se envía `p_species_data`. Fusión por campo en `daily-log-merge.ts` (unidad
+  `species_data`; conflicto solo si los dos lados cambian el mismo campo). Detalle del día: escalas de la especie,
+  cualquier escala oculta con valor guardado y «Su especie».
+- **Orientación con IA:** `Species.aiGuidance` (`species.ai_guidance_enabled`); `ConsultGate` con `requireEdit` muestra
+  «Próximamente para…» en las demás especies; el servidor lo exige igual (`ai_species_unsupported`). La Edge Function
+  añade los datos de especie al contexto (`describeSpeciesData`, textos en `species-labels.ts` de la función).
+
 ### Pets: fotos (implementado)
 En la ficha (`pets/[id]/index`), componente `PetPhotoEditor`, independiente del formulario de datos.
 Código: `features/pets/pet-photo.ts` (límites y path), `pet-photo-picker.ts` (permisos, galería/cámara,
@@ -573,6 +601,29 @@ e `invitations`. Entrada: «Co-tutores» en el perfil de la mascota.
 - **READ:** `pets`, `pet_co_owners` (co-tutores aceptados, candidatos a nuevo propietario)
 - **WRITE:** **NO** update directo de `pets.owner_id` (Postgres lo rechazaría igualmente)
 - **RPC:** `transfer_pet_ownership(pet_id, new_owner_id)`
+
+### WellnessScreen (resumen de bienestar, implementado 2026-11-11, fase 15)
+Diseño y decisiones aprobadas (D-1 a D-13): `docs/proposals/2026-11-10-wellness-reports.md`. Código:
+`frontend/src/features/wellness/`. Sin migraciones propias (usa `daily_logs` y `species_data`).
+- **Rutas:** `(app)/pets/[id]/wellness` (Resumen), `wellness/evolution` y `wellness/patterns`, con `?period=7|30|90`
+  (por defecto 30). Entradas: tarjeta arriba de la pestaña Historial (`PetHistory`) y fila en el perfil de la mascota.
+  Con un id local, `withServerPetId`.
+- **READ:** `fetchDailyLogRange` (`queryRange` en `daily-log-history.ts`): `daily_logs` filtrado por `pet_id` y fechas
+  (los 90 días + los 90 anteriores, ≤ 180 filas, `limit 181`); RLS decide el acceso (sin acceso, vacío). Clave
+  `dailyLogKeys.range`; se invalida al confirmarse un registro (`applyLocalChangeToCache`). Vista combinada con lo
+  pendiente del dispositivo (`resolveDailyLogRange`), como el historial.
+- **Cálculo:** en el cliente, `wellness-stats.ts` (puro): reparto de días en 3 grupos por escala (1–2 / 3 / 4–5) con su
+  `n`; mínimos 4 / 12 / 30 valores para 7 / 30 / 90 días; comparación con el periodo anterior solo si los dos llegan;
+  campos de la especie por tipo (reparto, sí/no, recuentos, mediana con mínimo y máximo). Sin medias de escalas ni
+  índices. Evolución: valores diarios con huecos (7 y 30 días, `TrendChart` con `labelEvery`) y columnas semanales
+  (90 días, `WeekColumns`). Observaciones (`wellness-observations.ts`): tramos de ≥ 3 días seguidos fuera de lo
+  habitual, sí/no varios días seguidos, ≥ 2 días con comportamiento inusual, etiquetas y poca cobertura; siempre
+  `Alert` de tipo `info`.
+- **Estados:** menos de 3 registros en lo leído → vacío con `WeekRing`; periodo sin registros pero con anteriores →
+  aviso con «Ver N días»; mascota no visible → «no disponible», nunca «0 registros»; aviso fijo de que no es una
+  valoración veterinaria. Componentes nuevos de `components/ui/`: `DistributionBar` y `WeekColumns` (tokens de gráficas,
+  «por encima» solo con borde para no depender del color, números siempre en texto).
+- **Compartir:** nada (D-8). El informe PDF para el veterinario sigue siendo una fase aparte.
 
 ### ReportsScreen
 - **READ:** `pet_shared_reports`
@@ -1729,6 +1780,16 @@ propuesta aprobada `docs/proposals/2026-10-28-reminders-offline.md`. Mismo patr�
 - **Pendiente:**
   - Validada a mano en el emulador Android (2026-11-06, `docs/TESTING.md`). Falta web y la red que vuelve en segundo plano.
   - Coordinación entre pestañas en web, como en Daily Logs y Pets.
+
+### Resumen de bienestar sin conexión (fase 15)
+- La lectura por rango (`readRangeThroughRepository`) deja copia local de cada fila y **quita** las copias confirmadas
+  de ese rango que el servidor ya no devuelve (borrado en el servidor o acceso perdido); una copia con cambios
+  pendientes nunca se toca.
+- **Cobertura** (`offline/daily-log-coverage.ts`, colección `daily-log-coverage` por mascota): rangos leídos completos
+  y cuándo (fusionados; el instante es el más antiguo de lo fundido; como mucho 24). Sin conexión, si el periodo y
+  su comparación están cubiertos se dice «actualizados el …»; si no, las cifras son **parciales** y no hay comparación.
+- `repository.list(petId, range)` filtra por la fecha de la clave antes de leer.
+- Pendiente: medir en Android la apertura sin conexión con muchos registros locales (objetivo < 500 ms).
 
 ## 6. Errores — comportamiento esperado
 

@@ -2,6 +2,15 @@ import type { DailyLogErrorCode } from '@/features/daily-logs/daily-log-errors';
 import type { DailyLogContent } from '@/features/daily-logs/offline/daily-log-content';
 import type { DailyLog, SaveDailyLogArgs } from '@/features/daily-logs/types';
 
+import { parseSpeciesData, type SpeciesField } from '../species/species-fields.ts';
+import {
+  emptySpeciesForm,
+  hasSpeciesFormValues,
+  speciesFormErrors,
+  toSpeciesData,
+  toSpeciesFormValues,
+  type SpeciesFormValues,
+} from '../species/species-form.ts';
 import { contentToSaveArgs, sameDailyLogContent } from './offline/daily-log-content.ts';
 
 /**
@@ -52,13 +61,21 @@ export type DailyLogFormValues = {
   unusualBehaviorNotes: string;
   notes: string;
   tags: DailyLogTag[];
+  /** Campos propios de la especie (`features/species/`). */
+  species: SpeciesFormValues;
+  /**
+   * `false` si el contenido de partida no traía `species_data` (cambio guardado por una versión
+   * anterior): mientras no se toque ningún campo de especie, no se envía (el servidor conserva lo suyo).
+   */
+  speciesIndicated: boolean;
 };
 
 export type DailyLogFormError =
   | 'empty'
   | 'primary_required'
   | 'notes_too_long'
-  | 'unusual_behavior_notes_too_long';
+  | 'unusual_behavior_notes_too_long'
+  | 'species_invalid';
 
 const EMPTY_SCALES: Record<ScaleField, null> = {
   energy: null,
@@ -71,7 +88,15 @@ const EMPTY_SCALES: Record<ScaleField, null> = {
 };
 
 export function emptyDailyLogForm(): DailyLogFormValues {
-  return { scales: { ...EMPTY_SCALES }, unusualBehavior: false, unusualBehaviorNotes: '', notes: '', tags: [] };
+  return {
+    scales: { ...EMPTY_SCALES },
+    unusualBehavior: false,
+    unusualBehaviorNotes: '',
+    notes: '',
+    tags: [],
+    species: emptySpeciesForm(),
+    speciesIndicated: true,
+  };
 }
 
 function toScaleValue(value: number | null): ScaleValue | null {
@@ -96,7 +121,10 @@ export type DailyLogContentSource = Pick<
   | 'unusual_behavior_notes'
   | 'notes'
   | 'tags'
->;
+> & {
+  /** Fila del servidor: siempre (objeto). Contenido local: ausente o `null` = sin indicar. */
+  species_data?: unknown;
+};
 
 /** Valores del formulario a partir del registro guardado (o vacío si no hay). */
 export function toDailyLogFormValues(log: DailyLogContentSource | null): DailyLogFormValues {
@@ -115,6 +143,8 @@ export function toDailyLogFormValues(log: DailyLogContentSource | null): DailyLo
     unusualBehaviorNotes: log.unusual_behavior_notes ?? '',
     notes: log.notes ?? '',
     tags: (log.tags ?? []).filter(isDailyLogTag),
+    species: toSpeciesFormValues(parseSpeciesData(log.species_data)),
+    speciesIndicated: log.species_data != null && parseSpeciesData(log.species_data) !== null,
   };
 }
 
@@ -128,18 +158,32 @@ export function setScale(
 }
 
 /**
- * «Todo como siempre»: las 4 escalas principales a 3 (tablero 5.1). Solo cambia el formulario; no
- * guarda ni toca los detalles ni lo opcional.
+ * «Todo como siempre»: las escalas principales (de la especie; por defecto, las 4 de siempre) a 3
+ * (tablero 5.1). Solo cambia el formulario; no guarda ni toca los detalles ni lo opcional.
  */
-export function setAllAsUsual(values: DailyLogFormValues): DailyLogFormValues {
+export function setAllAsUsual(
+  values: DailyLogFormValues,
+  primaries: readonly ScaleField[] = PRIMARY_SCALE_FIELDS
+): DailyLogFormValues {
   const scales = { ...values.scales };
-  for (const field of PRIMARY_SCALE_FIELDS) scales[field] = USUAL_SCALE_VALUE;
+  for (const field of primaries) scales[field] = USUAL_SCALE_VALUE;
   return { ...values, scales };
 }
 
-/** Cuántas de las 4 escalas principales están indicadas (progreso «n/4» del tablero 5.1). */
-export function answeredPrimaryCount(values: DailyLogFormValues): number {
-  return PRIMARY_SCALE_FIELDS.filter((field) => values.scales[field] !== null).length;
+/** Cuántas escalas principales están indicadas (progreso «n/4» del tablero 5.1). */
+export function answeredPrimaryCount(
+  values: DailyLogFormValues,
+  primaries: readonly ScaleField[] = PRIMARY_SCALE_FIELDS
+): number {
+  return primaries.filter((field) => values.scales[field] !== null).length;
+}
+
+/** Cambia los campos de especie (y los marca como indicados). */
+export function editSpecies(
+  values: DailyLogFormValues,
+  update: (species: SpeciesFormValues) => SpeciesFormValues
+): DailyLogFormValues {
+  return { ...values, species: update(values.species), speciesIndicated: true };
 }
 
 /** Añade o quita una etiqueta. Cualquier valor fuera del catálogo cerrado se ignora. */
@@ -168,28 +212,52 @@ function toContent(values: DailyLogFormValues) {
   };
 }
 
+/** Especie del registro: escalas principales, campos propios del día y fecha de hoy (para fechas). */
+export type DailyLogSpeciesContext = {
+  primaries: readonly ScaleField[];
+  speciesFields: readonly SpeciesField[];
+  today: string;
+};
+
+/** Sin especie conocida: las 4 principales de siempre y ningún campo propio. */
+const NO_SPECIES_CONTEXT: DailyLogSpeciesContext = {
+  primaries: PRIMARY_SCALE_FIELDS,
+  speciesFields: [],
+  today: '9999-12-31',
+};
+
 /**
- * Mismas reglas que la BD (CHECKs), para avisar antes de enviar. Al crear un registro
- * (`requirePrimary`), las 4 escalas principales son obligatorias (regla de producto del diseño v2);
- * al editar uno que ya existe se mantiene «no vacío», sin obligar a rellenar lo que antes no lo era.
+ * Mismas reglas que la BD (CHECKs y validación de `species_data`), para avisar antes de enviar. Al
+ * crear un registro (`requirePrimary`), las escalas principales de la especie son obligatorias (regla
+ * de producto del diseño v2); al editar uno que ya existe se mantiene «no vacío», sin obligar a
+ * rellenar lo que antes no lo era.
  */
 export function validateDailyLogForm(
   values: DailyLogFormValues,
-  { requirePrimary = false }: { requirePrimary?: boolean } = {}
+  {
+    requirePrimary = false,
+    species = NO_SPECIES_CONTEXT,
+  }: { requirePrimary?: boolean; species?: DailyLogSpeciesContext } = {}
 ): DailyLogFormError | null {
   const content = toContent(values);
   if ((content.notes?.length ?? 0) > NOTES_MAX_LENGTH) return 'notes_too_long';
   if ((content.unusualBehaviorNotes?.length ?? 0) > UNUSUAL_BEHAVIOR_NOTES_MAX_LENGTH) {
     return 'unusual_behavior_notes_too_long';
   }
-  if (requirePrimary && answeredPrimaryCount(values) < PRIMARY_SCALE_FIELDS.length) return 'primary_required';
+  if (Object.keys(speciesFormErrors(values.species, species.speciesFields, species.today)).length > 0) {
+    return 'species_invalid';
+  }
+  if (requirePrimary && answeredPrimaryCount(values, species.primaries) < species.primaries.length) {
+    return 'primary_required';
+  }
   const hasScale = SCALE_FIELDS.some((field) => values.scales[field] !== null);
   const hasContent =
     hasScale ||
     values.unusualBehavior ||
     content.unusualBehaviorNotes !== null ||
     content.notes !== null ||
-    values.tags.length > 0;
+    values.tags.length > 0 ||
+    (values.speciesIndicated && Object.keys(toSpeciesData(values.species, species.speciesFields, species.today)).length > 0);
   return hasContent ? null : 'empty';
 }
 
@@ -197,7 +265,10 @@ export function validateDailyLogForm(
  * Registro completo del día que resulta del formulario (lo que se guarda en local y se envía).
  * Nunca incluye `id`, `logged_by`, `last_edited_by` ni timestamps: los pone la BD.
  */
-export function toDailyLogContent(values: DailyLogFormValues): DailyLogContent {
+export function toDailyLogContent(
+  values: DailyLogFormValues,
+  species: DailyLogSpeciesContext = NO_SPECIES_CONTEXT
+): DailyLogContent {
   const content = toContent(values);
   return {
     energy_level: values.scales.energy,
@@ -211,6 +282,9 @@ export function toDailyLogContent(values: DailyLogFormValues): DailyLogContent {
     unusual_behavior_notes: content.unusualBehaviorNotes,
     notes: content.notes,
     tags: values.tags.filter(isDailyLogTag),
+    ...(values.speciesIndicated
+      ? { species_data: toSpeciesData(values.species, species.speciesFields, species.today) }
+      : {}),
   };
 }
 
@@ -248,9 +322,14 @@ export function summarizeDailyLog(values: DailyLogFormValues): DailyLogSummary {
 }
 
 /** ¿Hay algún dato de los detalles (tablero 5.2)? Para el resumen de «Añadir detalles». */
-export function hasDetailValues(values: DailyLogFormValues): boolean {
+export function hasDetailValues(
+  values: DailyLogFormValues,
+  details: readonly ScaleField[] = DETAIL_SCALE_FIELDS,
+  speciesFields: readonly SpeciesField[] = []
+): boolean {
   return (
-    DETAIL_SCALE_FIELDS.some((field) => values.scales[field] !== null) ||
+    details.some((field) => values.scales[field] !== null) ||
+    hasSpeciesFormValues(values.species, speciesFields) ||
     values.unusualBehavior ||
     values.notes.trim() !== '' ||
     values.tags.length > 0

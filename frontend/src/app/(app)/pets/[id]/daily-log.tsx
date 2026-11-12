@@ -18,6 +18,7 @@ import { useWeekOverview } from '@/features/daily-logs/hooks/use-week-overview';
 import { formatWeekdayDay } from '@/features/daily-logs/log-date';
 import { useCanEditPet, usePet } from '@/features/pets/hooks/use-pets';
 import { petErrorMessage, toPetError } from '@/features/pets/pet-errors';
+import { usePetSpecies } from '@/features/species/hooks/use-pet-species';
 import { getLocale, t, tf } from '@/i18n';
 import { withServerPetId } from '@/features/pets/components/local-pet-logs-unavailable';
 
@@ -35,6 +36,7 @@ function DailyLogScreen() {
   const router = useRouter();
   const toast = useToast();
   const pet = usePet(id);
+  const petSpecies = usePetSpecies(id);
   const canEdit = useCanEditPet(id);
   // Sin conexión y sin copia de la mascota, el registro sigue disponible (`daily-log-pet-context.ts`).
   const petContext = resolveDailyLogPetContext(pet, canEdit, (error) => toPetError(error).code === 'network');
@@ -98,6 +100,7 @@ function DailyLogScreen() {
       petId={id}
       logDate={logDate}
       petName={petName}
+      speciesCode={petSpecies.code}
       title={tf('dailyLogs.editor.todayTitle', { date: formatWeekdayDay(logDate, getLocale()) })}
       historical={false}
       initialContent={view.content}

@@ -2,6 +2,7 @@ import { toDailyLogError } from '@/features/daily-logs/daily-log-errors';
 import {
   DAILY_LOG_COLUMNS,
   queryHistoryPage,
+  queryRange,
   type DailyLogHistoryPage,
 } from '@/features/daily-logs/daily-log-history';
 import type { DailyLog } from '@/features/daily-logs/types';
@@ -20,6 +21,15 @@ export async function fetchDailyLogHistory(
 ): Promise<DailyLogHistoryPage> {
   try {
     return await queryHistoryPage(supabase, petId, cursor);
+  } catch (error) {
+    throw toDailyLogError(error);
+  }
+}
+
+/** Registros de una mascota entre dos fechas, ambas incluidas (resumen de bienestar). */
+export async function fetchDailyLogRange(petId: string, start: string, end: string): Promise<DailyLog[]> {
+  try {
+    return await queryRange(supabase, petId, start, end);
   } catch (error) {
     throw toDailyLogError(error);
   }

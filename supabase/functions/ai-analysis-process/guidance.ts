@@ -7,7 +7,9 @@
  * urgencia y recomendaciones, y la app muestra siempre el aviso veterinario.
  */
 
-export const PROMPT_VERSION = 'draft-2026-10-23';
+import { SCALE3_LABELS, SPECIES_FIELD_LABELS, UNIT_LABELS } from './species-labels.ts';
+
+export const PROMPT_VERSION = 'draft-2026-11-11';
 
 export const URGENCY_LEVELS = ['observe', 'routine_change', 'consult_soon', 'urgent'] as const;
 export type UrgencyLevel = (typeof URGENCY_LEVELS)[number];
@@ -53,6 +55,38 @@ Reglas obligatorias:
 - En consult_soon y urgent, la primera recomendación debe ser contactar con el veterinario.
 - Responde solo con el JSON pedido.`;
 
+/** Tipo y unidad de cada campo de la especie (`species_fields`), para escribir sus valores. */
+export type SpeciesFieldMeta = Record<string, { kind: string; unit: string | null }>;
+
+/**
+ * Datos propios de la especie (`pets.species_data` / `daily_logs.species_data`) como «Etiqueta: valor»
+ * en español, en el orden de `meta` (el del catálogo). Solo los campos de la especie actual; un dato
+ * de otra especie o un valor que no se entiende se omite (nunca se inventa un texto).
+ */
+export function describeSpeciesData(data: unknown, meta: SpeciesFieldMeta): string[] {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return [];
+  const values = data as Record<string, unknown>;
+  const lines: string[] = [];
+  for (const [code, field] of Object.entries(meta)) {
+    const value = values[code];
+    const labels = SPECIES_FIELD_LABELS[code];
+    if (value === undefined || value === null || !labels) continue;
+    let text: string | null = null;
+    if (typeof value === 'boolean') text = value ? 'sí' : 'no';
+    else if (field.kind === 'scale3' && typeof value === 'number') text = SCALE3_LABELS[String(value)] ?? null;
+    else if (typeof value === 'string') text = labels.options?.[value] ?? (field.kind === 'date' ? value : null);
+    else if (Array.isArray(value)) {
+      const items = value.map((item) => (typeof item === 'string' ? labels.options?.[item] : undefined)).filter(Boolean);
+      text = items.length === value.length && items.length > 0 ? items.join(', ') : null;
+    } else if (typeof value === 'number' && Number.isFinite(value)) {
+      const unit = field.unit ? UNIT_LABELS[field.unit] : '';
+      text = unit ? `${value} ${unit}` : String(value);
+    }
+    if (text) lines.push(`${labels.label}: ${text}`);
+  }
+  return lines;
+}
+
 export type PetContext = {
   species: string;
   ageMonths: number | null;
@@ -62,6 +96,8 @@ export type PetContext = {
   breed: string | null;
   knownConditions: string[];
   allergies: string[];
+  /** Datos propios de la especie ya escritos («Etiqueta: valor»; `describeSpeciesData`). */
+  speciesDetails?: string[];
 };
 
 export type DailyLogContext = {
@@ -73,6 +109,8 @@ export type DailyLogContext = {
   unusualBehavior: boolean;
   unusualNotes: string | null;
   tags: string[];
+  /** Datos propios de la especie de ese día («Etiqueta: valor»). */
+  speciesDetails?: string[];
 };
 
 const SCALE_HELP = 'Escalas 1–5 (1 = mucho menos de lo habitual, 3 = lo habitual, 5 = mucho más).';
@@ -102,6 +140,7 @@ export function buildUserPrompt(input: {
     pet.weightKg !== null ? `Peso: ${pet.weightKg} kg` : null,
     pet.knownConditions.length ? `Enfermedades conocidas: ${pet.knownConditions.map((c) => clip(c, 60)).join(', ')}` : null,
     pet.allergies.length ? `Alergias: ${pet.allergies.map((a) => clip(a, 60)).join(', ')}` : null,
+    ...(pet.speciesDetails ?? []).map((line) => clip(line, 120)),
   ].filter(Boolean);
   const logLines = logs.map((log) => {
     const values = [
@@ -112,6 +151,10 @@ export function buildUserPrompt(input: {
     ];
     if (log.unusualBehavior) values.push(`comportamiento inusual${log.unusualNotes ? `: ${clip(log.unusualNotes, 160)}` : ''}`);
     if (log.tags.length) values.push(`etiquetas: ${log.tags.join(', ')}`);
+    for (const detail of log.speciesDetails ?? []) {
+      const line = clip(detail, 100);
+      if (line) values.push(line.charAt(0).toLowerCase() + line.slice(1));
+    }
     return `- ${log.date}: ${values.join('; ')}`;
   });
   return [

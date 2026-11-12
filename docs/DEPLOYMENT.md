@@ -163,6 +163,16 @@ Las cuentas y los paneles (GitHub Pages, dominio, SMTP, Supabase Auth, Google Cl
 **A. Desarrollo (`kitom-dev`)**
 1. ✅ `db push` de `20261030090318` (2026-11-04).
    - ✅ `db push` de `20261105093545` y `20261105122353` (2026-11-06) y tipos regenerados.
+   - ✅ `db push` de `20261111120000_species_fields` (campos por especie), `supabase/seeds/breeds.sql` reejecutado y
+     tipos regenerados con `--linked` (2026-11-12). **Antes de publicar una build con esta versión:** la app lee
+     `species_data` y llama a `save_daily_log` con `p_species_data`; contra un servidor sin la migración, las
+     lecturas de mascotas y registros fallarían. Orden: migración → seed → build. Las builds anteriores siguen
+     funcionando con la migración aplicada (no envían `p_species_data` y conservan lo guardado).
+   - **Pendiente:** redesplegar `ai-analysis-process` (contexto con los datos de especie):
+     `npx supabase functions deploy ai-analysis-process` (hoy, versión 2 con `verify_jwt: true`, el valor por defecto).
+   - **Pendiente antes de publicar:** revisión veterinaria de los campos por especie y del texto de las observaciones
+     del resumen de bienestar (`proposals/2026-11-11-species-fields.md` D-2, `2026-11-10-wellness-reports.md` D-9), y
+     publicar los términos actualizados de `site/` (todas las especies).
 2. ✅ Tipos regenerados.
 3. ✅ `ai-analysis-process` (v2), `delete-account` (v1) y `pet-storage-cleanup` (v1) desplegadas (comprobado en solo lectura, 2026-11-04).
 4. Revisar la IA: secreto `GEMINI_API_KEY`, logs de la función y una consulta real hasta `completed`.

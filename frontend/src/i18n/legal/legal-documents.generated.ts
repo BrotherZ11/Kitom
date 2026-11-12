@@ -1050,7 +1050,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Kitom es una app para acompañar el bienestar emocional y de conducta de perros y gatos. Te permite:"
+              "text": "Kitom es una app para acompañar el bienestar emocional y de conducta de tus mascotas: perros, gatos, conejos, cobayas, hámsteres, caballos, aves, reptiles y otras especies. Te permite:"
             }
           ]
         },
@@ -1074,7 +1074,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
             ],
             [
               {
-                "text": "pedir una orientación con IA a partir de una foto y de las señales que observas;"
+                "text": "pedir una orientación con IA a partir de una foto y de las señales que observas (por ahora, solo para perros y gatos);"
               }
             ],
             [
@@ -2444,7 +2444,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Kitom is an app that supports the emotional and behavioural wellbeing of dogs and cats. It lets you:"
+              "text": "Kitom is an app that supports the emotional and behavioural wellbeing of your pets: dogs, cats, rabbits, guinea pigs, hamsters, horses, birds, reptiles and other species. It lets you:"
             }
           ]
         },
@@ -2468,7 +2468,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
             ],
             [
               {
-                "text": "ask for AI guidance based on a photo and the signs you notice;"
+                "text": "ask for AI guidance based on a photo and the signs you notice (for now, only for dogs and cats);"
               }
             ],
             [

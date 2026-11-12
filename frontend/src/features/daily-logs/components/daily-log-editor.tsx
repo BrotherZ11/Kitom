@@ -21,11 +21,11 @@ import { TagSelector } from '@/features/daily-logs/components/tag-selector';
 import {
   DETAIL_SCALE_FIELDS,
   NOTES_MAX_LENGTH,
-  PRIMARY_SCALE_FIELDS,
   UNUSUAL_BEHAVIOR_NOTES_MAX_LENGTH,
   answeredPrimaryCount,
   dailyLogEditorReducer,
   decideSourceChange,
+  editSpecies,
   hasDetailValues,
   initialDailyLogEditorState,
   setAllAsUsual,
@@ -36,6 +36,8 @@ import {
   type DailyLogContentSource,
   type DailyLogEditorSource,
   type DailyLogFormValues,
+  type DailyLogSpeciesContext,
+  type ScaleField,
 } from '@/features/daily-logs/daily-log-form';
 import { useLocalDailyLog, useRetryDailyLogSync, useSaveDailyLog } from '@/features/daily-logs/hooks/use-daily-log';
 import {
@@ -49,6 +51,10 @@ import { displaySyncStatus } from '@/features/daily-logs/offline/daily-log-view'
 import { scaleValueLabel } from '@/features/daily-logs/scale-labels';
 import { useSyncingKey } from '@/features/daily-logs/sync/daily-log-sync-provider';
 import type { DailyLog } from '@/features/daily-logs/types';
+import { SpeciesFieldsSection } from '@/features/species/components/species-fields-section';
+import { coreScales, dailyDefinition, type SpeciesField } from '@/features/species/species-fields';
+import { toSpeciesData } from '@/features/species/species-form';
+import { describeSpeciesData } from '@/features/species/species-labels';
 import { useLeaveConfirmation } from '@/hooks/use-leave-confirmation';
 import { useTheme } from '@/hooks/use-theme';
 import { t, tf } from '@/i18n';
@@ -66,6 +72,12 @@ type DailyLogEditorProps = {
   logDate: string;
   /** Nombre de la mascota (bajo el título); `null` si no se conoce (sin conexión). */
   petName: string | null;
+  /**
+   * Especie (`species.code`): qué escalas se preguntan y qué campos propios hay
+   * (`features/species/species-fields.ts`). `null` si no se conoce: las escalas de siempre, sin campos
+   * propios (los datos de especie que ya tuviera el registro se conservan).
+   */
+  speciesCode: string | null;
   /** Título de la cabecera («Hoy, jueves 16», «Miércoles 15»). */
   title: string;
   /** Día anterior a hoy (tablero 5.4): se avisa de que se edita otro día. */
@@ -101,6 +113,7 @@ export function DailyLogEditor({
   petId,
   logDate,
   petName,
+  speciesCode,
   title,
   historical,
   initialContent,
@@ -149,10 +162,16 @@ export function DailyLogEditor({
   const { values } = state;
   const isSaving = state.status === 'saving';
   const isLocked = !canEdit || isSaving;
+  // Escalas y campos de la especie. Las ocultas no se preguntan, pero lo que ya tuvieran se conserva.
+  const definition = dailyDefinition(speciesCode);
+  const primaries = coreScales(definition, 'primary');
+  const optionalScales = coreScales(definition, 'optional');
+  const speciesContext: DailyLogSpeciesContext = { primaries, speciesFields: definition.daily, today: logDate };
   // Nuevo: no hay nada guardado de ese día (ni en el servidor ni en el dispositivo).
   const isNew = opened.content === null && opened.baseRow === null && lastSaved === null;
-  const answered = answeredPrimaryCount(values);
-  const canSave = canEdit && (!isNew || answered === PRIMARY_SCALE_FIELDS.length);
+  const answered = answeredPrimaryCount(values, primaries);
+  const canSave = canEdit && (!isNew || answered === primaries.length);
+  const [showSpeciesErrors, setShowSpeciesErrors] = useState(false);
 
   // «Salir sin guardar» (tablero 5.7): X, «atrás» del sistema o gesto, solo si hay cambios.
   const leave = useLeaveConfirmation(state.dirty && canEdit);
@@ -160,12 +179,13 @@ export function DailyLogEditor({
   const edit = (update: (current: DailyLogFormValues) => DailyLogFormValues) => dispatch({ type: 'edit', update });
 
   const handleSave = () => {
-    const invalid = validateDailyLogForm(values, { requirePrimary: isNew });
+    const invalid = validateDailyLogForm(values, { requirePrimary: isNew, species: speciesContext });
     if (invalid) {
+      if (invalid === 'species_invalid') setShowSpeciesErrors(true);
       dispatch({ type: 'invalid', error: invalid });
       return;
     }
-    const content = normalizeDailyLogContent(toDailyLogContent(values));
+    const content = normalizeDailyLogContent(toDailyLogContent(values, speciesContext));
     const wasNew = isNew;
     const pending = submitGuard.run(() => saveDailyLog.mutateAsync({ petId, logDate, content, baseRow: editBase }));
     if (!pending) return; // ya hay un guardado en curso
@@ -242,15 +262,44 @@ export function DailyLogEditor({
         <Text variant="caption" color="inkMuted" style={styles.detailsIntro}>
           {petName ? tf('dailyLogs.editor.detailsIntro', { name: petName }) : t('dailyLogs.editor.detailsIntroNoName')}
         </Text>
-        {DETAIL_SCALE_FIELDS.map((field) => (
-          <DetailScaleSelector
-            key={field}
-            field={field}
-            value={values.scales[field]}
-            disabled={isLocked}
-            onChange={(value) => edit((current) => setScale(current, field, value))}
-          />
-        ))}
+        {optionalScales.map((field) =>
+          isDetailScale(field) ? (
+            <DetailScaleSelector
+              key={field}
+              field={field}
+              value={values.scales[field]}
+              disabled={isLocked}
+              onChange={(value) => edit((current) => setScale(current, field, value))}
+            />
+          ) : (
+            // Una escala principal que en esta especie es opcional (p. ej. el ánimo de un hámster): 5 niveles.
+            <PrimaryScaleSelector
+              key={field}
+              field={field}
+              value={values.scales[field]}
+              disabled={isLocked}
+              onChange={(value) => edit((current) => setScale(current, field, value))}
+            />
+          )
+        )}
+        {definition.daily.length > 0 ? (
+          <View style={styles.group}>
+            <Text variant="title3" accessibilityRole="header">
+              {t('speciesFields.dailyTitle')}
+            </Text>
+            <Text variant="caption" color="inkMuted">
+              {t('speciesFields.dailyHint')}
+            </Text>
+            <SpeciesFieldsSection
+              fields={definition.daily}
+              form={values.species}
+              today={logDate}
+              disabled={isLocked}
+              showErrors={showSpeciesErrors}
+              onChange={(update) => edit((current) => editSpecies(current, update))}
+            />
+          </View>
+        ) : null}
         <View style={styles.group}>
           <View style={styles.between}>
             <Text variant="title3" style={styles.flex} accessibilityRole="header">
@@ -300,11 +349,15 @@ export function DailyLogEditor({
         subtitle={petName ?? undefined}
         right={
           canEdit ? (
-            <TopBarText mono text={`${answered}/4`} accessibilityLabel={tf('dailyLogs.editor.progress', { count: answered })} />
+            <TopBarText
+              mono
+              text={`${answered}/${primaries.length}`}
+              accessibilityLabel={tf('dailyLogs.editor.progress', { count: answered, total: primaries.length })}
+            />
           ) : null
         }
       />
-      {canEdit ? <ProgressBar value={answered / PRIMARY_SCALE_FIELDS.length} /> : null}
+      {canEdit ? <ProgressBar value={answered / primaries.length} /> : null}
       {historical && canEdit ? (
         <Alert
           tone="info"
@@ -329,11 +382,11 @@ export function DailyLogEditor({
             label={t('dailyLogs.allAsUsual')}
             icon={Check}
             disabled={isSaving}
-            onPress={() => edit(setAllAsUsual)}
+            onPress={() => edit((current) => setAllAsUsual(current, primaries))}
           />
         </View>
       ) : null}
-      {PRIMARY_SCALE_FIELDS.map((field) => (
+      {primaries.map((field) => (
         <PrimaryScaleSelector
           key={field}
           field={field}
@@ -344,7 +397,7 @@ export function DailyLogEditor({
       ))}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${t('dailyLogs.editor.addDetails')}. ${detailsSummary(values) ?? t('dailyLogs.editor.addDetailsHint')}`}
+        accessibilityLabel={`${t('dailyLogs.editor.addDetails')}. ${detailsSummary(values, optionalScales, definition.daily, logDate) ?? t('dailyLogs.editor.addDetailsHint')}`}
         onPress={() => setStep('details')}>
         {({ pressed }) => (
           <View style={styles.detailsRow}>
@@ -355,7 +408,7 @@ export function DailyLogEditor({
             <View style={styles.flex}>
               <Text variant="bodyStrong">{t('dailyLogs.editor.addDetails')}</Text>
               <Text variant="caption" color="inkMuted">
-                {detailsSummary(values) ?? t('dailyLogs.editor.addDetailsHint')}
+                {detailsSummary(values, optionalScales, definition.daily, logDate) ?? t('dailyLogs.editor.addDetailsHint')}
               </Text>
             </View>
             <Icon icon={ChevronRight} size="sm" color="inkSubtle" />
@@ -367,13 +420,26 @@ export function DailyLogEditor({
   );
 }
 
+function isDetailScale(field: ScaleField): boolean {
+  return (DETAIL_SCALE_FIELDS as readonly ScaleField[]).includes(field);
+}
+
 /** Lo ya indicado en los detalles, tal cual («Sueño: Normal · Con nota»); `null` si no hay nada. */
-function detailsSummary(values: DailyLogFormValues): string | null {
-  if (!hasDetailValues(values)) return null;
-  const parts = DETAIL_SCALE_FIELDS.flatMap((field) => {
+function detailsSummary(
+  values: DailyLogFormValues,
+  optionalScales: readonly ScaleField[],
+  speciesFields: readonly SpeciesField[],
+  today: string
+): string | null {
+  if (!hasDetailValues(values, optionalScales, speciesFields)) return null;
+  const parts = optionalScales.flatMap((field) => {
     const value = values.scales[field];
     return value === null ? [] : [`${t(`dailyLogs.fields.${field}`)}: ${scaleValueLabel(field, value)}`];
   });
+  const fieldCodes = new Set(speciesFields.map((field) => field.code));
+  const speciesData = toSpeciesData(values.species, speciesFields, today);
+  const shown = Object.fromEntries(Object.entries(speciesData).filter(([code]) => fieldCodes.has(code)));
+  parts.push(...describeSpeciesData(shown, speciesFields));
   if (values.unusualBehavior) parts.push(t('dailyLogs.history.unusualBehavior'));
   parts.push(...values.tags.map((tag) => t(`dailyLogs.tags.${tag}`)));
   if (values.notes.trim() !== '') parts.push(t('dailyLogs.history.withNotes'));

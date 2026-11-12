@@ -21,7 +21,7 @@ import { SessionUnavailableError } from '../../../lib/user-token-fetch.ts';
  */
 
 export const PET_COLUMNS =
-  'id, owner_id, name, species_id, sex, breed, breed_id, breed_status, birth_date, weight_kg, sterilized, known_conditions, allergies, temperament_notes, photo_path, is_active, created_at, updated_at';
+  'id, owner_id, name, species_id, sex, breed, breed_id, breed_status, birth_date, weight_kg, sterilized, known_conditions, allergies, temperament_notes, species_data, photo_path, is_active, created_at, updated_at';
 
 export type PetReads = {
   /** Mascotas visibles, por `created_at`. */

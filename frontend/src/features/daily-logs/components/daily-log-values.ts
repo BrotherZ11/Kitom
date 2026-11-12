@@ -2,6 +2,7 @@ import { scaleValueLabel } from '@/features/daily-logs/scale-labels';
 import { isDailyLogTag, type ScaleField, type ScaleValue } from '@/features/daily-logs/daily-log-form';
 import type { DailyLogContent, LevelColumn } from '@/features/daily-logs/offline/daily-log-content';
 import type { MergeUnit } from '@/features/daily-logs/offline/daily-log-merge';
+import { describeSpeciesData } from '@/features/species/species-labels';
 import { t, type TranslationKey } from '@/i18n';
 
 /** Nombre visible de cada dato del registro (unidades de fusión y etiquetas). */
@@ -16,6 +17,7 @@ export const FIELD_LABELS: Record<MergeUnit | 'tags', TranslationKey> = {
   unusual_behavior: 'dailyLogs.history.unusualBehavior',
   notes: 'dailyLogs.notes',
   tags: 'dailyLogs.tags.title',
+  species_data: 'speciesFields.dailyTitle',
 };
 
 const SCALE_FIELD: Record<LevelColumn, ScaleField> = {
@@ -39,6 +41,10 @@ export function formatUnitValue(unit: MergeUnit | 'tags', values: Partial<DailyL
     return tags.map((tag) => (isDailyLogTag(tag) ? t(`dailyLogs.tags.${tag}`) : tag)).join(', ');
   }
   if (unit === 'notes') return values.notes ?? t('dailyLogs.resolve.noNotes');
+  if (unit === 'species_data') {
+    const lines = values.species_data ? describeSpeciesData(values.species_data) : [];
+    return lines.length > 0 ? lines.join(' · ') : t('speciesFields.empty');
+  }
   if (unit === 'unusual_behavior') {
     if (!values.unusual_behavior) return t('dailyLogs.resolve.no');
     return values.unusual_behavior_notes

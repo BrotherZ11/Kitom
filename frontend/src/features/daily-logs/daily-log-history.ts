@@ -14,7 +14,7 @@ import type { Database } from '@/types/database.types';
  */
 
 export const DAILY_LOG_COLUMNS =
-  'id, pet_id, logged_by, last_edited_by, log_date, energy_level, appetite_level, mood_level, activity_level, sleep_quality, vocalization_level, social_interaction_level, unusual_behavior, unusual_behavior_notes, notes, tags, created_at, updated_at';
+  'id, pet_id, logged_by, last_edited_by, log_date, energy_level, appetite_level, mood_level, activity_level, sleep_quality, vocalization_level, social_interaction_level, unusual_behavior, unusual_behavior_notes, notes, tags, species_data, created_at, updated_at';
 
 export const HISTORY_PAGE_SIZE = 20;
 
@@ -99,4 +99,32 @@ export function parseLogDateParam(value: unknown): string | null {
   if (typeof value !== 'string' || !LOG_DATE.test(value)) return null;
   const date = new Date(`${value}T00:00:00Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value ? value : null;
+}
+
+/** Máximo de filas de un rango: 90 días + los 90 anteriores (resumen de bienestar). */
+export const MAX_RANGE_DAYS = 180;
+
+/**
+ * Registros de una mascota entre dos fechas (`YYYY-MM-DD`, ambas incluidas), `log_date` descendente.
+ * Una consulta (≤ 180 filas por la unicidad de `pet_id, log_date`): usa `idx_daily_logs_pet_date`.
+ * Solo filtra por `pet_id`: RLS decide el acceso (sin acceso, una lista vacía). Se pide una fila de más
+ * para detectar un rango mal calculado en vez de cortar datos en silencio.
+ */
+export async function queryRange(
+  client: SupabaseClient<Database>,
+  petId: string,
+  start: string,
+  end: string
+): Promise<DailyLog[]> {
+  const { data, error } = await client
+    .from('daily_logs')
+    .select(DAILY_LOG_COLUMNS)
+    .eq('pet_id', petId)
+    .gte('log_date', start)
+    .lte('log_date', end)
+    .order('log_date', { ascending: false })
+    .limit(MAX_RANGE_DAYS + 1);
+  if (error) throw error;
+  if (data.length > MAX_RANGE_DAYS) throw new Error('daily_log_range_too_large');
+  return data;
 }

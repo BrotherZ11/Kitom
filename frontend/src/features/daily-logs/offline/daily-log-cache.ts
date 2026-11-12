@@ -113,6 +113,33 @@ export async function readHistoryPageThroughRepository(
 }
 
 /**
+ * Lectura de un rango completo de fechas a través del almacén local (resumen de bienestar): cada fila
+ * deja su copia (para verla sin conexión) sin hacer retroceder nada, y las copias confirmadas de ese
+ * rango que el servidor ya no devuelve se quitan (se borró en el servidor o ya no hay acceso). Una copia
+ * con cambios pendientes nunca se toca (`refreshSnapshot`). Devuelve las filas a mostrar.
+ */
+export async function readRangeThroughRepository(
+  repository: Pick<DailyLogRepository, 'snapshotMark' | 'refreshSnapshot' | 'list'>,
+  petId: string,
+  range: { start: string; end: string },
+  fetchRange: () => Promise<DailyLog[]>
+): Promise<DailyLog[]> {
+  const mark = repository.snapshotMark();
+  const rows = await fetchRange();
+  const returned = new Set(rows.map((row) => row.log_date));
+  const logs = await Promise.all(
+    rows.map((row) => repository.refreshSnapshot(petId, row.log_date, row, mark).catch((): DailyLog | null => row))
+  );
+  const local = await repository.list(petId, range).catch((): LocalDailyLog[] => []);
+  await Promise.all(
+    local
+      .filter((record) => record.status === 'synced' && !returned.has(record.logDate))
+      .map((record) => repository.refreshSnapshot(petId, record.logDate, null, mark).catch(() => null))
+  );
+  return logs.filter((row): row is DailyLog => row !== null);
+}
+
+/**
  * Tras cada escritura local: el registro local y las listas locales se actualizan; si el registro
  * quedó confirmado por el servidor, su fila pasa al registro del día y al historial (si el día no
  * estaba cargado en el historial, se revalida para que aparezca en su sitio). Nunca se sustituye una
@@ -132,6 +159,8 @@ export function applyLocalChangeToCache(client: CacheClient, userId: string, cha
 
   const row = record?.status === 'synced' ? record.serverRow : null;
   if (!row) return;
+  // Resumen de bienestar: sus rangos se vuelven a pedir para incluir la fila confirmada.
+  void client.invalidateQueries({ queryKey: dailyLogKeys.ranges(userId, petId) });
 
   const detailKey = dailyLogKeys.detail(userId, petId, logDate);
   const cached = client.getQueryData<DailyLog | null>(detailKey);

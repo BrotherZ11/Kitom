@@ -37,6 +37,7 @@ const GROUP_LABEL: Record<PetFieldGroup, TranslationKey> = {
   known_conditions: 'pets.fields.knownConditions',
   allergies: 'pets.fields.allergies',
   temperament_notes: 'pets.fields.temperamentNotes',
+  species_data: 'speciesFields.title',
 };
 
 /** Líneas (etiqueta: valor) que muestran un grupo. */

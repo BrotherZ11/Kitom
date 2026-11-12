@@ -52,7 +52,7 @@ const PROTECTED_KEYS = ['id', 'logged_by', 'last_edited_by', 'created_at', 'upda
 const RPC_PARAMS = [
   'p_pet_id', 'p_log_date', 'p_energy_level', 'p_appetite_level', 'p_mood_level', 'p_activity_level',
   'p_sleep_quality', 'p_vocalization_level', 'p_social_interaction_level', 'p_unusual_behavior',
-  'p_unusual_behavior_notes', 'p_notes', 'p_tags',
+  'p_unusual_behavior_notes', 'p_notes', 'p_tags', 'p_species_data',
 ];
 
 describe('formulario inicial', () => {
