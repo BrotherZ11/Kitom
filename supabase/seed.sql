@@ -27,21 +27,21 @@ begin;
 -- ---------------------------------------------------------------------
 -- 1. Especies
 -- ---------------------------------------------------------------------
--- Activas (seleccionables al crear una mascota): perro y gato, según el
--- PRD (§16: "empezar con perro y gato, ampliar gradualmente"). El resto
--- queda preparado e inactivo; activarlas es una decisión de producto que
--- exige también vincular síntomas en symptom_species (sección 3).
+-- Las 9 activas desde la migración *_species_fields.sql (decisión del
+-- 2026-11-11), que también las crea si faltan. La orientación con IA solo
+-- para perro y gato (species.ai_guidance_enabled): ampliarla exige vincular
+-- síntomas en symptom_species (sección 3) y la validación veterinaria.
 -- Clave de conflicto: species_code_key UNIQUE (code).
 insert into public.species (code, scientific_name, category, is_active) values
   ('dog',           'Canis lupus familiaris', 'mammal',  true),
   ('cat',           'Felis catus',            'mammal',  true),
-  ('rabbit',        'Oryctolagus cuniculus',  'mammal',  false),
-  ('guinea_pig',    'Cavia porcellus',        'mammal',  false),
-  ('hamster',       null,                     'mammal',  false),
-  ('horse',         'Equus ferus caballus',   'mammal',  false),
-  ('bird_other',    null,                     'bird',    false),
-  ('reptile_other', null,                     'reptile', false),
-  ('other',         null,                     'other',   false)
+  ('rabbit',        'Oryctolagus cuniculus',  'mammal',  true),
+  ('guinea_pig',    'Cavia porcellus',        'mammal',  true),
+  ('hamster',       null,                     'mammal',  true),
+  ('horse',         'Equus ferus caballus',   'mammal',  true),
+  ('bird_other',    null,                     'bird',    true),
+  ('reptile_other', null,                     'reptile', true),
+  ('other',         null,                     'other',   true)
 on conflict (code) do nothing;
 
 -- Nombres traducidos (field = 'name', el que lee el frontend).
@@ -55,8 +55,8 @@ from (values
   ('guinea_pig',    'es', 'Cobaya'),           ('guinea_pig',    'en', 'Guinea pig'),
   ('hamster',       'es', 'Hámster'),          ('hamster',       'en', 'Hamster'),
   ('horse',         'es', 'Caballo'),          ('horse',         'en', 'Horse'),
-  ('bird_other',    'es', 'Ave (otra)'),       ('bird_other',    'en', 'Bird (other)'),
-  ('reptile_other', 'es', 'Reptil (otro)'),    ('reptile_other', 'en', 'Reptile (other)'),
+  ('bird_other',    'es', 'Ave'),              ('bird_other',    'en', 'Bird'),
+  ('reptile_other', 'es', 'Reptil'),           ('reptile_other', 'en', 'Reptile'),
   ('other',         'es', 'Otro'),             ('other',         'en', 'Other')
 ) as t(code, locale, value)
 join public.species s on s.code = t.code

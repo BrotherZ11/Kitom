@@ -1,8 +1,10 @@
 -- =====================================================================
--- KITOM · Seed de razas (perro y gato)
+-- KITOM · Seed de razas y tipos (las 9 especies)
 -- =====================================================================
 -- Documentación: docs/SEED.md · Requiere: migración *_breeds.sql y seed.sql
--- (las especies 'dog' y 'cat' deben existir; si no, sus razas se omiten).
+-- (las especies deben existir; las razas de una especie que falte se omiten).
+-- Hámster, ave y reptil: la «raza» es el tipo de animal (sirio, periquito,
+-- gecko leopardo…); la app lo llama «Tipo» (2026-11-11, campos por especie).
 --
 -- Criterio del catálogo:
 --   Perros: razas reconocidas por la FCI/RSCE con presencia real en Europa y
@@ -278,7 +280,112 @@ with data (species_code, code, name_es, name_en, aliases_es, aliases_en) as (
   ('cat', 'devon_rex',                  'Devon rex',                         'Devon Rex',                      null,                                          null),
   ('cat', 'cornish_rex',                'Cornish rex',                       'Cornish Rex',                    null,                                          null),
   ('cat', 'selkirk_rex',                'Selkirk rex',                       'Selkirk Rex',                    null,                                          null),
-  ('cat', 'laperm',                     'LaPerm',                            'LaPerm',                         null,                                          null)
+  ('cat', 'laperm',                     'LaPerm',                            'LaPerm',                         null,                                          null),
+
+  -- -------------------------------------------------------------------
+  -- CONEJOS · Razas reconocidas por la ARBA y el British Rabbit Council
+  -- con presencia habitual como animal de compañía en España.
+  -- -------------------------------------------------------------------
+  ('rabbit', 'netherland_dwarf',        'Enano holandés',                    'Netherland Dwarf',               'Conejo enano',                                'Dwarf rabbit'),
+  ('rabbit', 'holland_lop',             'Belier holandés',                   'Holland Lop',                    'Mini lop|Belier enano',                       'Mini Lop'),
+  ('rabbit', 'mini_lop',                'Mini belier',                       'Mini Lop',                       null,                                          null),
+  ('rabbit', 'french_lop',              'Belier francés',                    'French Lop',                     null,                                          null),
+  ('rabbit', 'english_lop',             'Belier inglés',                     'English Lop',                    null,                                          null),
+  ('rabbit', 'lionhead',                'Cabeza de león',                    'Lionhead',                       'Lionhead',                                    null),
+  ('rabbit', 'mini_rex',                'Mini rex',                          'Mini Rex',                       null,                                          null),
+  ('rabbit', 'rex',                     'Rex',                               'Rex',                            null,                                          null),
+  ('rabbit', 'dutch',                   'Holandés',                          'Dutch',                          null,                                          null),
+  ('rabbit', 'english_angora',          'Angora inglés',                     'English Angora',                 'Angora',                                      'Angora'),
+  ('rabbit', 'flemish_giant',           'Gigante de Flandes',                'Flemish Giant',                  null,                                          null),
+  ('rabbit', 'spanish_giant',           'Gigante de España',                 'Spanish Giant',                  null,                                          null),
+  ('rabbit', 'new_zealand',             'Neozelandés',                       'New Zealand',                    null,                                          null),
+  ('rabbit', 'californian',             'Californiano',                      'Californian',                    null,                                          null),
+  ('rabbit', 'polish',                  'Polaco',                            'Polish',                         null,                                          null),
+  ('rabbit', 'hotot',                   'Hotot',                             'Blanc de Hotot',                 null,                                          'Dwarf Hotot'),
+
+  -- -------------------------------------------------------------------
+  -- COBAYAS · Variedades de pelo reconocidas (ACBA, BCSC)
+  -- -------------------------------------------------------------------
+  ('guinea_pig', 'american',            'Americana (pelo corto)',            'American',                       'Pelo corto|English',                          'Shorthair|English'),
+  ('guinea_pig', 'abyssinian',          'Abisinia',                          'Abyssinian',                     null,                                          null),
+  ('guinea_pig', 'peruvian',            'Peruana',                           'Peruvian',                       null,                                          null),
+  ('guinea_pig', 'silkie',              'Sheltie',                           'Silkie',                         'Silkie',                                      'Sheltie'),
+  ('guinea_pig', 'coronet',             'Coronet',                           'Coronet',                        null,                                          null),
+  ('guinea_pig', 'crested',             'Crestada',                          'Crested',                        null,                                          null),
+  ('guinea_pig', 'teddy',               'Teddy',                             'Teddy',                          null,                                          null),
+  ('guinea_pig', 'texel',               'Texel',                             'Texel',                          null,                                          null),
+  ('guinea_pig', 'rex',                 'Rex',                               'Rex',                            null,                                          null),
+  ('guinea_pig', 'skinny',              'Skinny (sin pelo)',                 'Skinny Pig',                     'Sin pelo',                                    'Hairless'),
+
+  -- -------------------------------------------------------------------
+  -- HÁMSTERES · Especies que se tienen como animal de compañía (el «tipo»)
+  -- -------------------------------------------------------------------
+  ('hamster', 'syrian',                 'Sirio',                             'Syrian',                         'Dorado',                                      'Golden'),
+  ('hamster', 'campbell',               'Enano de Campbell',                 'Campbell''s Dwarf',              'Campbell',                                    null),
+  ('hamster', 'winter_white',           'Enano ruso (siberiano)',            'Winter White Dwarf',             'Ruso|Siberiano',                              'Djungarian|Siberian'),
+  ('hamster', 'roborovski',             'Roborovski',                        'Roborovski',                     null,                                          null),
+  ('hamster', 'chinese',                'Chino',                             'Chinese',                        null,                                          null),
+
+  -- -------------------------------------------------------------------
+  -- CABALLOS · Razas con presencia en España (libros genealógicos del
+  -- MAPA) y las internacionales más habituales.
+  -- -------------------------------------------------------------------
+  ('horse', 'pura_raza_espanola',       'Pura raza española (PRE)',          'Pura Raza Española (PRE)',       'Andaluz|PRE',                                 'Andalusian|PRE'),
+  ('horse', 'lusitano',                 'Lusitano',                          'Lusitano',                       null,                                          null),
+  ('horse', 'arabian',                  'Árabe',                             'Arabian',                        'Pura raza árabe',                             null),
+  ('horse', 'hispano_arabe',            'Hispano-árabe',                     'Hispano-Arabe',                  'Tres sangres',                                null),
+  ('horse', 'thoroughbred',             'Pura sangre inglés',                'Thoroughbred',                   'PSI',                                         null),
+  ('horse', 'anglo_arab',               'Anglo-árabe',                       'Anglo-Arab',                     null,                                          null),
+  ('horse', 'quarter_horse',            'Cuarto de milla',                   'American Quarter Horse',         'Quarter horse',                               'Quarter Horse'),
+  ('horse', 'appaloosa',                'Appaloosa',                         'Appaloosa',                      null,                                          null),
+  ('horse', 'paint_horse',              'Paint horse',                       'American Paint Horse',           null,                                          'Paint'),
+  ('horse', 'friesian',                 'Frisón',                            'Friesian',                       null,                                          null),
+  ('horse', 'hanoverian',               'Hannoveriano',                      'Hanoverian',                     null,                                          null),
+  ('horse', 'kwpn',                     'Caballo de deporte holandés (KWPN)', 'Dutch Warmblood (KWPN)',        'KWPN',                                        'KWPN'),
+  ('horse', 'selle_francais',           'Silla francés',                     'Selle Français',                 null,                                          null),
+  ('horse', 'menorquin',                'Menorquín',                         'Menorquín',                      null,                                          'Menorca horse'),
+  ('horse', 'mallorquin',               'Mallorquín',                        'Mallorquín',                     null,                                          null),
+  ('horse', 'asturcon',                 'Asturcón',                          'Asturcón',                       null,                                          null),
+  ('horse', 'haflinger',                'Haflinger',                         'Haflinger',                      null,                                          null),
+  ('horse', 'percheron',                'Percherón',                         'Percheron',                      null,                                          null),
+  ('horse', 'shetland_pony',            'Poni Shetland',                     'Shetland Pony',                  null,                                          null),
+  ('horse', 'welsh_pony',               'Poni galés',                        'Welsh Pony',                     null,                                          'Welsh Cob'),
+
+  -- -------------------------------------------------------------------
+  -- AVES · El «tipo» de ave de compañía más habitual. Su tenencia puede
+  -- estar regulada (CITES, catálogo de especies exóticas invasoras): el
+  -- catálogo sirve para identificar al animal, no avala tenerlo.
+  -- -------------------------------------------------------------------
+  ('bird_other', 'budgerigar',          'Periquito',                         'Budgerigar',                     'Periquito australiano',                       'Budgie|Parakeet'),
+  ('bird_other', 'cockatiel',           'Ninfa',                             'Cockatiel',                      'Carolina|Cacatúa ninfa',                      null),
+  ('bird_other', 'canary',              'Canario',                           'Canary',                         null,                                          null),
+  ('bird_other', 'lovebird',            'Agapornis',                         'Lovebird',                       'Inseparable',                                 'Agapornis'),
+  ('bird_other', 'zebra_finch',         'Diamante mandarín',                 'Zebra Finch',                    'Mandarín',                                    null),
+  ('bird_other', 'african_grey',        'Loro gris africano',                'African Grey Parrot',            'Yaco',                                        null),
+  ('bird_other', 'amazon_parrot',       'Amazona',                           'Amazon Parrot',                  'Loro amazona',                                null),
+  ('bird_other', 'conure',              'Cotorrita (aratinga o pyrrhura)',   'Conure',                         'Aratinga|Pyrrhura',                           null),
+  ('bird_other', 'cockatoo',            'Cacatúa',                           'Cockatoo',                       null,                                          null),
+  ('bird_other', 'macaw',               'Guacamayo',                         'Macaw',                          null,                                          null),
+  ('bird_other', 'eclectus',            'Ecléctus',                          'Eclectus Parrot',                null,                                          null),
+  ('bird_other', 'pigeon',              'Paloma',                            'Pigeon',                         null,                                          'Dove'),
+
+  -- -------------------------------------------------------------------
+  -- REPTILES · El «tipo» de reptil de compañía más habitual. Mismo aviso:
+  -- algunas especies están protegidas o reguladas.
+  -- -------------------------------------------------------------------
+  ('reptile_other', 'leopard_gecko',    'Gecko leopardo',                    'Leopard Gecko',                  'Eublepharis',                                 null),
+  ('reptile_other', 'crested_gecko',    'Gecko crestado',                    'Crested Gecko',                  null,                                          null),
+  ('reptile_other', 'bearded_dragon',   'Dragón barbudo',                    'Bearded Dragon',                 'Pogona',                                      'Pogona'),
+  ('reptile_other', 'blue_tongued_skink', 'Eslizón de lengua azul',          'Blue-tongued Skink',             'Tiliqua',                                     null),
+  ('reptile_other', 'green_iguana',     'Iguana verde',                      'Green Iguana',                   'Iguana',                                      'Iguana'),
+  ('reptile_other', 'veiled_chameleon', 'Camaleón velado',                   'Veiled Chameleon',               'Camaleón del Yemen|Camaleón',                 'Chameleon'),
+  ('reptile_other', 'ball_python',      'Pitón real',                        'Ball Python',                    'Pitón regia',                                 'Royal Python'),
+  ('reptile_other', 'corn_snake',       'Serpiente del maíz',                'Corn Snake',                     null,                                          null),
+  ('reptile_other', 'boa_constrictor',  'Boa constrictor',                   'Boa Constrictor',                'Boa',                                         'Boa'),
+  ('reptile_other', 'hermann_tortoise', 'Tortuga mediterránea',              'Hermann''s Tortoise',            'Tortuga de tierra',                           null),
+  ('reptile_other', 'russian_tortoise', 'Tortuga rusa',                      'Russian Tortoise',               'Tortuga de Horsfield',                        'Horsfield''s Tortoise'),
+  ('reptile_other', 'sulcata_tortoise', 'Tortuga sulcata',                   'Sulcata Tortoise',               'Tortuga de espolones',                        'African Spurred Tortoise'),
+  ('reptile_other', 'water_turtle',     'Tortuga de agua',                   'Pond Turtle',                    'Galápago',                                    'Slider|Terrapin')
 ),
 resolved as (
   -- Solo especies existentes; el join descarta filas de especies no sembradas.
