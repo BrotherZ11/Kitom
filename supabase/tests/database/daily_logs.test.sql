@@ -167,21 +167,21 @@ select is(
   (select array_agg(column_name::text order by column_name) from information_schema.column_privileges
    where table_schema = 'public' and table_name = 'daily_logs' and grantee = 'authenticated' and privilege_type = 'UPDATE'),
   array['activity_level', 'appetite_level', 'energy_level', 'mood_level', 'notes', 'sleep_quality',
-        'social_interaction_level', 'tags', 'unusual_behavior', 'unusual_behavior_notes', 'vocalization_level'],
+        'social_interaction_level', 'species_data', 'tags', 'unusual_behavior', 'unusual_behavior_notes', 'vocalization_level'],
   'grants: UPDATE solo de columnas de datos (sin id, pet_id, logged_by, log_date, timestamps, last_edited_by)');
 select is(
   (select array_agg(column_name::text order by column_name) from information_schema.column_privileges
    where table_schema = 'public' and table_name = 'daily_logs' and grantee = 'authenticated' and privilege_type = 'INSERT'),
   array['activity_level', 'appetite_level', 'energy_level', 'log_date', 'logged_by', 'mood_level', 'notes', 'pet_id',
-        'sleep_quality', 'social_interaction_level', 'tags', 'unusual_behavior', 'unusual_behavior_notes', 'vocalization_level'],
+        'sleep_quality', 'social_interaction_level', 'species_data', 'tags', 'unusual_behavior', 'unusual_behavior_notes', 'vocalization_level'],
   'grants: INSERT sin id, created_at, updated_at ni last_edited_by');
 select ok(not has_function_privilege('anon',
-  'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[], timestamptz, boolean)', 'EXECUTE'),
+  'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[], timestamptz, boolean, jsonb)', 'EXECUTE'),
   'rpc: anon (ni PUBLIC) no puede ejecutar save_daily_log');
 select ok(has_function_privilege('authenticated',
-  'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[], timestamptz, boolean)', 'EXECUTE'),
+  'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[], timestamptz, boolean, jsonb)', 'EXECUTE'),
   'rpc: authenticated puede ejecutar save_daily_log');
-select ok(not (select prosecdef from pg_proc where oid = 'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[], timestamptz, boolean)'::regprocedure),
+select ok(not (select prosecdef from pg_proc where oid = 'public.save_daily_log(uuid, date, smallint, smallint, smallint, smallint, smallint, smallint, smallint, boolean, text, text, text[], timestamptz, boolean, jsonb)'::regprocedure),
   'rpc: save_daily_log es SECURITY INVOKER');
 select is(
   (select array_agg(policyname::text order by policyname) from pg_policies where schemaname = 'public' and tablename = 'daily_logs'),
@@ -809,7 +809,7 @@ select ok(
   'firma: la versión de 13 parámetros ya no existe');
 select is(
   (select row(pronargs, pronargdefaults)::text from pg_proc where pronamespace = 'public'::regnamespace and proname = 'save_daily_log'),
-  row(15::smallint, 2::smallint)::text, 'firma: 15 parámetros, los 2 últimos con valor por defecto');
+  row(16::smallint, 3::smallint)::text, 'firma: 16 parámetros (p_species_data, migración *_species_fields), los 3 últimos con valor por defecto');
 select is(
   (select array_agg(acl.grantee::regrole::text order by acl.grantee::regrole::text)
    from pg_proc p, aclexplode(p.proacl) as acl
