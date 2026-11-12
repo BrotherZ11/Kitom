@@ -182,7 +182,11 @@ export function resolveDailyLogDetail(input: {
 /** Fila para mostrar un registro local en listas (el contenido pendiente sobre la fila confirmada). */
 export function toDisplayRow(record: LocalDailyLog): DailyLog {
   const content = record.pending?.content;
-  if (record.serverRow) return content ? { ...record.serverRow, ...content } : record.serverRow;
+  // Datos de especie sin indicar en lo pendiente (versión anterior): se ven los del servidor.
+  const speciesData = content?.species_data ?? record.serverRow?.species_data ?? {};
+  if (record.serverRow) {
+    return content ? { ...record.serverRow, ...content, species_data: speciesData } : record.serverRow;
+  }
   return {
     id: `local:${record.petId}:${record.logDate}`,
     pet_id: record.petId,
@@ -193,6 +197,7 @@ export function toDisplayRow(record: LocalDailyLog): DailyLog {
     updated_at: '',
     // Sin fila del servidor siempre hay operación pendiente (`parseLocalDailyLog` lo garantiza).
     ...(content as DailyLogContent),
+    species_data: speciesData,
   };
 }
 

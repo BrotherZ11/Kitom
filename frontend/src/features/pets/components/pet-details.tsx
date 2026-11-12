@@ -13,7 +13,10 @@ import {
   formatSterilized,
   formatWeight,
 } from '@/features/pets/pet-format';
+import { useSpecies } from '@/features/pets/hooks/use-species';
 import type { Pet } from '@/features/pets/types';
+import { fieldsFor, speciesDataOf, weightInputUnit } from '@/features/species/species-fields';
+import { formatSpeciesValue, speciesAboutTitle, speciesFieldLabel } from '@/features/species/species-labels';
 import { t } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 
@@ -35,12 +38,20 @@ type PetDetailsProps = {
  * para quien solo puede consultarla (co-tutor de solo lectura).
  */
 export function PetDetails({ pet, speciesName, breedLabel, isShared, photo }: PetDetailsProps) {
+  const species = useSpecies();
+  const speciesCode = species.data?.find((item) => item.id === pet.species_id)?.code ?? null;
+  const speciesData = speciesDataOf(pet);
+  // Campos propios de la especie: todos, también los no indicados (como el resto de la ficha).
+  const speciesRows = fieldsFor(speciesCode, 'profile').map((field) => ({
+    label: speciesFieldLabel(field.code),
+    value: speciesData[field.code] === undefined ? null : formatSpeciesValue(field.code, speciesData[field.code]),
+  }));
   const rows: { label: string; value: string | null }[] = [
     { label: t('pets.fields.species'), value: speciesName },
     { label: t('pets.fields.sex'), value: formatSex(pet) },
     { label: t('pets.fields.breed'), value: breedLabel },
     { label: t('pets.fields.birthDate'), value: formatBirthDate(pet.birth_date) },
-    { label: t('pets.fields.weightKg'), value: formatWeight(pet.weight_kg) },
+    { label: t('pets.fields.weight'), value: formatWeight(pet.weight_kg, weightInputUnit(speciesCode)) },
     { label: t('pets.fields.sterilized'), value: formatSterilized(pet.sterilized) },
     { label: t('pets.fields.knownConditions'), value: formatList(pet.known_conditions) },
     { label: t('pets.fields.allergies'), value: formatList(pet.allergies) },
@@ -69,6 +80,24 @@ export function PetDetails({ pet, speciesName, breedLabel, isShared, photo }: Pe
           />
         ))}
       </Card>
+      {speciesRows.length > 0 ? (
+        <>
+          <Text variant="overline" color="inkMuted" accessibilityRole="header">
+            {speciesAboutTitle(speciesCode)}
+          </Text>
+          <Card flush>
+            {speciesRows.map((row, index) => (
+              <ListItem
+                key={row.label}
+                plain
+                title={row.label}
+                subtitle={row.value ?? t('common.notSpecified')}
+                divider={index < speciesRows.length - 1}
+              />
+            ))}
+          </Card>
+        </>
+      ) : null}
     </View>
   );
 }

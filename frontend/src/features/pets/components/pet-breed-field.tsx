@@ -14,6 +14,8 @@ export type BreedValues = Pick<PetFormValues, 'breedStatus' | 'breedSource' | 'b
 
 type PetBreedFieldProps = {
   speciesId: string;
+  /** Especie elegida: en hámsteres, aves y reptiles la «raza» es el tipo de animal (`usesAnimalType`). */
+  speciesCode?: string;
   value: BreedValues;
   onChange: (value: BreedValues) => void;
   errors: { breedId: string | null; breedText: string | null };
@@ -31,10 +33,14 @@ const UNANSWERED: BreedValues = {
  * solo con raza, el buscador del catálogo o el texto libre «otra / no aparece». Sin elegir nada, la
  * respuesta queda «sin contestar» (`breed_status = null`).
  */
-export function PetBreedField({ speciesId, value, onChange, errors }: PetBreedFieldProps) {
-  const statusOptions: Option<BreedStatus>[] = BREED_STATUS_VALUES.map((status) => ({
+export function PetBreedField({ speciesId, speciesCode, value, onChange, errors }: PetBreedFieldProps) {
+  const animalType = usesAnimalType(speciesCode);
+  // Un tipo de animal no es «mestizo»: solo se sabe cuál es o no. Un valor guardado se sigue viendo.
+  const statusOptions: Option<BreedStatus>[] = BREED_STATUS_VALUES.filter(
+    (status) => !animalType || status !== 'mixed' || value.breedStatus === 'mixed'
+  ).map((status) => ({
     value: status,
-    label: t(`pets.breedStatus.${status}`),
+    label: animalType && status !== 'mixed' ? t(`pets.typeStatus.${status}`) : t(`pets.breedStatus.${status}`),
   }));
 
   const setStatus = (status: BreedStatus) => {
@@ -47,7 +53,7 @@ export function PetBreedField({ speciesId, value, onChange, errors }: PetBreedFi
   return (
     <View style={styles.container}>
       <OptionGroup
-        label={t('pets.fields.breed')}
+        label={animalType ? t('pets.fields.animalType') : t('pets.fields.breed')}
         options={statusOptions}
         value={value.breedStatus}
         onChange={setStatus}
@@ -111,3 +117,8 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
   },
 });
+
+/** Especies en las que la «raza» del catálogo es el tipo de animal (sirio, periquito, gecko leopardo…). */
+export function usesAnimalType(speciesCode: string | undefined): boolean {
+  return speciesCode === 'hamster' || speciesCode === 'bird_other' || speciesCode === 'reptile_other';
+}

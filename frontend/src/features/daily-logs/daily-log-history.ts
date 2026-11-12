@@ -14,7 +14,7 @@ import type { Database } from '@/types/database.types';
  */
 
 export const DAILY_LOG_COLUMNS =
-  'id, pet_id, logged_by, last_edited_by, log_date, energy_level, appetite_level, mood_level, activity_level, sleep_quality, vocalization_level, social_interaction_level, unusual_behavior, unusual_behavior_notes, notes, tags, created_at, updated_at';
+  'id, pet_id, logged_by, last_edited_by, log_date, energy_level, appetite_level, mood_level, activity_level, sleep_quality, vocalization_level, social_interaction_level, unusual_behavior, unusual_behavior_notes, notes, tags, species_data, created_at, updated_at';
 
 export const HISTORY_PAGE_SIZE = 20;
 

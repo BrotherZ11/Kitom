@@ -1,3 +1,4 @@
+import { mergeSpeciesData, type SpeciesData } from '../../species/species-fields.ts';
 import { NOTES_MAX_LENGTH, UNUSUAL_BEHAVIOR_NOTES_MAX_LENGTH } from '../daily-log-form.ts';
 import {
   LEVEL_COLUMNS,
@@ -5,6 +6,7 @@ import {
   normalizeDailyLogContent,
   normalizeTags,
   sameDailyLogContent,
+  sameSpeciesContent,
   type DailyLogContent,
   type LevelColumn,
 } from './daily-log-content.ts';
@@ -25,6 +27,11 @@ import {
  *   Combinarlas es una resolución explícita (`combineNotes`).
  * - `tags`: conjunto. Se fusiona etiqueta a etiqueta (añadida o quitada por cada lado), así que
  *   nunca hay conflicto; el resultado va sin duplicados y ordenado, como en la RPC.
+ * - `species_data` (campos de la especie): una unidad, fusionada campo a campo
+ *   (`mergeSpeciesData`). Solo hay conflicto si los dos lados cambiaron el mismo campo a valores
+ *   distintos; entonces «tu versión» y «la del servidor» son la fusión con los campos en conflicto de
+ *   cada lado (lo que no chocaba se conserva igual en las dos). `null` en local = sin indicar (copia de
+ *   una versión anterior): no cambia nada respecto a la base.
  *
  * Sin `base` (registro creado sin conexión que ya existía en el servidor) se compara con un
  * registro vacío. Casos sin estrategia definida, que quedan pendientes de decisión del usuario:
@@ -32,7 +39,7 @@ import {
  * el registro vacío (`empty_result`; el servidor lo rechazaría).
  */
 
-export type MergeUnit = LevelColumn | 'unusual_behavior' | 'notes';
+export type MergeUnit = LevelColumn | 'unusual_behavior' | 'notes' | 'species_data';
 
 type ContentColumn = keyof DailyLogContent;
 
@@ -46,9 +53,10 @@ const UNIT_COLUMNS: Record<MergeUnit, readonly ContentColumn[]> = {
   social_interaction_level: ['social_interaction_level'],
   unusual_behavior: ['unusual_behavior', 'unusual_behavior_notes'],
   notes: ['notes'],
+  species_data: ['species_data'],
 };
 
-export const MERGE_UNITS: readonly MergeUnit[] = [...LEVEL_COLUMNS, 'unusual_behavior', 'notes'];
+export const MERGE_UNITS: readonly MergeUnit[] = [...LEVEL_COLUMNS, 'species_data', 'unusual_behavior', 'notes'];
 
 /** Unidades (y `tags`) en las que dos versiones del registro son distintas, en el orden de pantalla. */
 export function differingUnits(a: DailyLogContent, b: DailyLogContent): (MergeUnit | 'tags')[] {
@@ -99,7 +107,30 @@ function pick(content: DailyLogContent, unit: MergeUnit): Partial<DailyLogConten
 }
 
 function sameUnit(a: DailyLogContent, b: DailyLogContent, unit: MergeUnit): boolean {
+  if (unit === 'species_data') return sameSpeciesContent(a.species_data, b.species_data);
   return UNIT_COLUMNS[unit].every((column) => a[column] === b[column]);
+}
+
+/**
+ * Fusión de los campos de especie. Devuelve el resultado sin conflicto o, si lo hay, las dos
+ * propuestas completas (con los campos en conflicto de cada lado).
+ */
+function mergeSpeciesUnit(
+  base: SpeciesData | null | undefined,
+  local: SpeciesData | null | undefined,
+  remote: SpeciesData | null | undefined
+): { merged: SpeciesData | null } | { conflict: { base: SpeciesData; local: SpeciesData; remote: SpeciesData } } {
+  if (local == null) return { merged: remote ?? null };
+  const baseData = base ?? {};
+  const remoteData = remote ?? baseData;
+  const { merged, conflicts } = mergeSpeciesData(baseData, local, remoteData);
+  if (conflicts.length === 0) return { merged };
+  const localWins: SpeciesData = { ...merged };
+  for (const key of conflicts) {
+    if (local[key] === undefined) delete localWins[key];
+    else localWins[key] = local[key];
+  }
+  return { conflict: { base: baseData, local: localWins, remote: merged } };
 }
 
 /** Cada lado añade o quita etiquetas respecto a `base`; lo que no tocó, queda como en el otro. */
@@ -129,6 +160,20 @@ export function mergeDailyLogContent(versions: {
   const conflicts: DailyLogMergeConflict[] = [];
 
   for (const unit of MERGE_UNITS) {
+    if (unit === 'species_data') {
+      const species = mergeSpeciesUnit(base.species_data, local.species_data, remote.species_data);
+      if ('merged' in species) {
+        if (species.merged != null) merged.species_data = species.merged;
+      } else {
+        conflicts.push({
+          unit,
+          base: { species_data: species.conflict.base },
+          local: { species_data: species.conflict.local },
+          remote: { species_data: species.conflict.remote },
+        });
+      }
+      continue;
+    }
     if (sameUnit(local, base, unit) || sameUnit(local, remote, unit)) {
       Object.assign(merged, pick(remote, unit));
     } else if (sameUnit(remote, base, unit)) {

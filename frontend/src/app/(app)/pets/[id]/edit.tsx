@@ -204,7 +204,7 @@ export default function EditPetScreen() {
         variant="edit"
         // Los valores iniciales se leen una vez: el formulario no se resetea si la caché se refresca.
         // Con cambios pendientes, son los del dispositivo (se consolidan con esta edición).
-        initialValues={toPetFormValues(current)}
+        initialValues={toPetFormValues(current, species.data.find((item) => item.id === current.species_id)?.code)}
         species={species.data}
         header={
           <TopBar

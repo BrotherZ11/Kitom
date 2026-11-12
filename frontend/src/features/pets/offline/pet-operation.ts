@@ -4,6 +4,7 @@ import type { LocalCollection } from '@/lib/local-store/local-store';
 import { compareVersions } from '../../daily-logs/offline/daily-log-version.ts';
 import { MAX_SYNC_ATTEMPTS, nextAttemptAt, type BackoffOptions } from '../../daily-logs/offline/sync-backoff.ts';
 import type { SyncErrorInfo } from '../../daily-logs/offline/sync-errors.ts';
+import { parseSpeciesData, sameSpeciesData } from '../../species/species-fields.ts';
 import { isPetId, toCachedPet } from './pet-snapshot.ts';
 
 /**
@@ -102,6 +103,8 @@ export const PET_FIELD_GROUPS = [
   { key: 'known_conditions', fields: ['known_conditions'] },
   { key: 'allergies', fields: ['allergies'] },
   { key: 'temperament_notes', fields: ['temperament_notes'] },
+  // Campos de la especie: un grupo (se decide entero). Ausente = sin indicar (versión anterior).
+  { key: 'species_data', fields: ['species_data'] },
 ] as const satisfies readonly { key: string; fields: readonly (keyof PetFields)[] }[];
 
 export type PetFieldGroup = (typeof PET_FIELD_GROUPS)[number]['key'];
@@ -109,6 +112,13 @@ export type PetFieldGroup = (typeof PET_FIELD_GROUPS)[number]['key'];
 const EDITABLE_FIELDS = PET_FIELD_GROUPS.flatMap((group) => group.fields) as (keyof PetFields)[];
 
 function sameValue(a: unknown, b: unknown): boolean {
+  // `species_data`: ausente (sin indicar) no cambia nada; un objeto se compara campo a campo.
+  if (a === undefined || b === undefined) return true;
+  if (isRecord(a) && isRecord(b)) {
+    const left = parseSpeciesData(a);
+    const right = parseSpeciesData(b);
+    return left !== null && right !== null && sameSpeciesData(left, right);
+  }
   if (Array.isArray(a) || Array.isArray(b)) {
     // `NULL` y `{}` en una lista son «sin datos» para el formulario: no es un cambio.
     const left = (a as unknown[] | null) ?? [];
@@ -120,7 +130,11 @@ function sameValue(a: unknown, b: unknown): boolean {
 
 /** Las columnas editables de una fila del servidor. */
 export function contentOf(row: Pick<Pet, keyof PetFields>): PetFields {
-  return Object.fromEntries(EDITABLE_FIELDS.map((field) => [field, row[field]])) as PetFields;
+  const content = Object.fromEntries(
+    EDITABLE_FIELDS.filter((field) => field !== 'species_data').map((field) => [field, row[field]])
+  ) as unknown as PetFields;
+  const speciesData = parseSpeciesData(row.species_data);
+  return speciesData === null ? content : { ...content, species_data: speciesData };
 }
 
 export function sameGroup(a: PetFields, b: PetFields, group: PetFieldGroup): boolean {
@@ -211,13 +225,24 @@ const CONTENT_FIELDS: Record<keyof PetFields, (value: unknown) => boolean> = {
   known_conditions: nullable(isStringList),
   allergies: nullable(isStringList),
   temperament_notes: nullable(isString),
+  species_data: (value) => parseSpeciesData(value) !== null,
 };
 
-/** Solo las columnas editables, validadas (`null` si falta alguna o no tiene el tipo esperado). */
+/**
+ * Solo las columnas editables, validadas (`null` si falta alguna o no tiene el tipo esperado).
+ * `species_data` puede faltar: operaciones guardadas por versiones anteriores (= sin indicar).
+ */
 export function parsePetFields(value: unknown): PetFields | null {
   if (!isRecord(value)) return null;
   const content: Record<string, unknown> = {};
   for (const field of EDITABLE_FIELDS) {
+    if (field === 'species_data' && (!(field in value) || value[field] === undefined)) continue;
+    if (field === 'species_data') {
+      const speciesData = parseSpeciesData(value[field]);
+      if (speciesData === null) return null;
+      content[field] = speciesData;
+      continue;
+    }
     if (!(field in value) || !CONTENT_FIELDS[field](value[field])) return null;
     const item = value[field];
     content[field] = Array.isArray(item) ? [...item] : item;
@@ -772,6 +797,7 @@ export function petWithLocalContent(op: LocalPetOperation, server: Pet | null): 
       known_conditions: null,
       allergies: null,
       temperament_notes: null,
+      species_data: {},
       photo_path: null,
       is_active: true,
       created_at: new Date(op.createdAt).toISOString(),

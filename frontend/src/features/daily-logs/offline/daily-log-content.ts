@@ -1,5 +1,12 @@
 import type { DailyLog, SaveDailyLogArgs } from '@/features/daily-logs/types';
 
+import {
+  hasSpeciesValues,
+  normalizeSpeciesData,
+  parseSpeciesData,
+  sameSpeciesData,
+  type SpeciesData,
+} from '../../species/species-fields.ts';
 import { parseLogDateParam } from '../daily-log-history.ts';
 
 /**
@@ -19,12 +26,21 @@ export const LEVEL_COLUMNS = [
 ] as const;
 export type LevelColumn = (typeof LEVEL_COLUMNS)[number];
 
-/** Las columnas de datos que sustituye `save_daily_log` (el registro completo del día). */
+/**
+ * Las columnas de datos que sustituye `save_daily_log` (el registro completo del día).
+ *
+ * `species_data` (campos propios de la especie, `features/species/species-fields.ts`): ausente o
+ * `null` = sin indicar, **conservar lo que tenga el servidor** (`p_species_data` no se envía). Es lo
+ * que tienen los cambios guardados en el dispositivo por versiones anteriores de la app, que no lo
+ * conocían, y las filas de un servidor sin la columna: así nunca se borra lo que otra versión escribió.
+ * `{}` = sin datos de especie (vacía lo que hubiera). La forma canónica omite la clave si no se indica.
+ */
 export type DailyLogContent = Record<LevelColumn, number | null> & {
   unusual_behavior: boolean;
   unusual_behavior_notes: string | null;
   notes: string | null;
   tags: string[];
+  species_data?: SpeciesData | null;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -83,6 +99,7 @@ export function normalizeDailyLogContent(content: DailyLogContent): DailyLogCont
     unusual_behavior_notes: normalizeText(content.unusual_behavior_notes),
     notes: normalizeText(content.notes),
     tags: normalizeTags(content.tags),
+    ...(content.species_data == null ? {} : { species_data: normalizeSpeciesData(content.species_data) }),
   };
 }
 
@@ -99,6 +116,8 @@ export function contentFromRow(row: DailyLog): DailyLogContent {
     unusual_behavior_notes: row.unusual_behavior_notes,
     notes: row.notes,
     tags: row.tags ?? [],
+    // Fila sin la columna (servidor anterior a la migración): sin indicar.
+    species_data: row.species_data === undefined ? null : (parseSpeciesData(row.species_data) ?? {}),
   });
 }
 
@@ -122,7 +141,17 @@ export function contentToSaveArgs(petId: string, logDate: string, content: Daily
     p_unusual_behavior_notes: normalized.unusual_behavior_notes,
     p_notes: normalized.notes,
     p_tags: normalized.tags,
+    // Sin indicar: no se envía (la RPC conserva lo guardado).
+    ...(normalized.species_data == null ? {} : { p_species_data: normalized.species_data }),
   };
+}
+
+/**
+ * ¿Mismos datos de especie? `null` (sin indicar, conservar los del servidor) no cambia nada, así que
+ * coincide con cualquier valor.
+ */
+export function sameSpeciesContent(a: SpeciesData | null | undefined, b: SpeciesData | null | undefined): boolean {
+  return a == null || b == null || sameSpeciesData(a, b);
 }
 
 /** Mismo contenido una vez normalizado. */
@@ -135,7 +164,8 @@ export function sameDailyLogContent(a: DailyLogContent, b: DailyLogContent): boo
     left.unusual_behavior_notes === right.unusual_behavior_notes &&
     left.notes === right.notes &&
     left.tags.length === right.tags.length &&
-    left.tags.every((tag, index) => tag === right.tags[index])
+    left.tags.every((tag, index) => tag === right.tags[index]) &&
+    sameSpeciesContent(left.species_data, right.species_data)
   );
 }
 
@@ -147,7 +177,8 @@ export function isEmptyDailyLogContent(content: DailyLogContent): boolean {
     !content.unusual_behavior &&
     !hasText(content.unusual_behavior_notes) &&
     !hasText(content.notes) &&
-    content.tags.length === 0
+    content.tags.length === 0 &&
+    !hasSpeciesValues(content.species_data)
   );
 }
 
@@ -162,7 +193,13 @@ export function parseDailyLogContent(data: unknown): DailyLogContent | null {
   if (typeof data.unusual_behavior !== 'boolean') return null;
   if (!isNullableString(data.unusual_behavior_notes) || !isNullableString(data.notes)) return null;
   if (!isStringArray(data.tags)) return null;
-  return normalizeDailyLogContent(data as DailyLogContent);
+  // Ausente (guardado por una versión anterior) o `null`: sin indicar.
+  let speciesData: SpeciesData | null = null;
+  if (data.species_data !== undefined && data.species_data !== null) {
+    speciesData = parseSpeciesData(data.species_data);
+    if (speciesData === null) return null;
+  }
+  return normalizeDailyLogContent({ ...(data as DailyLogContent), species_data: speciesData });
 }
 
 /**
@@ -180,7 +217,10 @@ export function parseDailyLogRow(data: unknown): DailyLog | null {
   if (typeof data.created_at !== 'string' || data.created_at === '') return null;
   if (typeof data.updated_at !== 'string' || data.updated_at === '') return null;
   if (data.tags !== null && !isStringArray(data.tags)) return null;
-  return {
+  // Una copia guardada antes de existir la columna no la tiene: se deja sin indicar.
+  const speciesData = data.species_data === undefined ? undefined : parseSpeciesData(data.species_data);
+  if (speciesData === null) return null;
+  const row = {
     id: data.id,
     pet_id: data.pet_id,
     logged_by: data.logged_by,
@@ -197,7 +237,10 @@ export function parseDailyLogRow(data: unknown): DailyLog | null {
     unusual_behavior_notes: data.unusual_behavior_notes as string | null,
     notes: data.notes as string | null,
     tags: data.tags as string[] | null,
+    ...(speciesData === undefined ? {} : { species_data: speciesData }),
     created_at: data.created_at,
     updated_at: data.updated_at,
   };
+  // `species_data` falta solo en copias anteriores a la columna (el tipo generado la exige).
+  return row as DailyLog;
 }

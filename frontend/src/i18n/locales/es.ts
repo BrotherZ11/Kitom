@@ -1,3 +1,5 @@
+import { speciesFieldsEs } from './species-fields-es.ts';
+
 export const es = {
   common: {
     loading: 'Cargando…',
@@ -703,6 +705,7 @@ export const es = {
       disclaimer: 'Antes de pedir una orientación, acepta el aviso veterinario en Tu cuenta › Privacidad.',
       rate_limited: 'Espera un minuto antes de pedir otra orientación.',
       failure_limit: 'Hoy no hemos podido preparar varias orientaciones seguidas. Vuelve a intentarlo mañana.',
+      species_unsupported: 'La orientación todavía no está disponible para esta especie.',
       network: 'Sin conexión. La orientación necesita conexión.',
       photo: 'No se ha podido subir la foto. Inténtalo de nuevo o sigue sin foto.',
       unknown: 'Algo ha salido mal. Inténtalo de nuevo.',
@@ -711,6 +714,9 @@ export const es = {
     offlineTitle: 'La orientación necesita conexión',
     offlineText: 'Vuelve a intentarlo cuando tengas red.',
     localPet: 'Podrás consultar cuando {name} se haya subido al servidor.',
+    speciesUnsupportedTitle: 'Próximamente para: {species}',
+    speciesUnsupportedText:
+      'La orientación con foto y señales está revisada para perros y gatos. Mientras la revisamos con veterinarios para más especies, puedes seguir registrando su día a día.',
   },
   /** Configuración inicial (tableros 2.1–2.4, 3.4 y 3.5). */
   setup: {
@@ -1137,9 +1143,6 @@ export const es = {
       overline: 'Tu mascota',
       heading: '¿A quién vas a cuidar?',
       description: 'Solo necesitamos su nombre y su especie. El resto es opcional.',
-      otherSpecies: 'Otro',
-      otherTitle: 'Por ahora, perros y gatos',
-      otherText: 'Kitom está pensada y revisada para ellos. Te avisaremos cuando podamos acompañar a otras especies.',
       more: 'Más sobre tu mascota',
       moreHint: 'Todo opcional. Puedes completarlo ahora o cuando quieras.',
       photoFailed: 'La mascota se ha creado, pero la foto no se ha podido subir. Puedes añadirla desde su perfil.',
@@ -1372,12 +1375,19 @@ export const es = {
       birthDateUnset: 'Sin indicar',
       birthDateClear: 'Quitar la fecha',
       birthDateDone: 'Listo',
+      weight: 'Peso',
+      animalType: 'Tipo',
       weightKg: 'Peso (kg)',
+      weightG: 'Peso (g)',
       sterilized: 'Esterilizada',
       knownConditions: 'Enfermedades conocidas',
       allergies: 'Alergias',
       listHint: 'Separa cada elemento con una coma.',
       temperamentNotes: 'Notas sobre su carácter',
+    },
+    typeStatus: {
+      known: 'Sé cuál es',
+      unknown: 'No lo sé',
     },
     breedStatus: {
       known: 'Con raza',
@@ -1447,7 +1457,8 @@ export const es = {
       invalid_date: 'Introduce una fecha válida con el formato AAAA-MM-DD.',
       future_date: 'La fecha de nacimiento no puede ser futura.',
       invalid_weight: 'Introduce un peso mayor que 0, con hasta 3 decimales.',
-      implausible_weight: 'Ese peso no parece posible para esta especie. Revísalo: va en kilos.',
+      implausible_weight: 'Ese peso no parece posible para esta especie. Revisa la cifra y la unidad.',
+      species_invalid: 'Revisa los datos de su especie: hay un valor que no es válido.',
       implausible_birth_date: 'Esa fecha es demasiado antigua para esta especie. Revísala.',
     },
     errors: {
@@ -1547,9 +1558,9 @@ export const es = {
     /** Editor del registro (tableros 5.1, 5.2 y 5.4–5.7). */
     editor: {
       todayTitle: 'Hoy, {date}',
-      progress: '{count} de 4 respondidas',
+      progress: '{count} de {total} respondidas',
       addDetails: 'Añadir detalles',
-      addDetailsHint: 'Sueño, vocalizaciones, algo raro, etiquetas o una nota',
+      addDetailsHint: 'Más datos del día, algo raro, etiquetas o una nota',
       detailsTitle: 'Detalles',
       optional: 'Opcional',
       detailsIntro: 'Comparado con lo habitual en {name}.',
@@ -1793,7 +1804,8 @@ export const es = {
       not_allowed: 'No tienes permiso para guardar el registro de esta mascota.',
       invalid_date: 'La fecha del registro no es válida. Vuelve a abrir el registro de hoy.',
       empty: 'Indica al menos un dato antes de guardar.',
-      primary_required: 'Indica energía, apetito, ánimo y actividad para guardar el día.',
+      primary_required: 'Responde las preguntas principales para guardar el día.',
+      species_invalid: 'Revisa los datos de su especie: hay un valor que no es válido.',
       notes_too_long: 'Las notas son demasiado largas (máximo 2000 caracteres).',
       unusual_behavior_notes_too_long:
         'La descripción de lo que has notado es demasiado larga (máximo 1000 caracteres).',
@@ -1805,6 +1817,7 @@ export const es = {
       unknown: 'Algo ha salido mal. Inténtalo de nuevo.',
     },
   },
+  speciesFields: speciesFieldsEs,
 };
 
 /** Forma que debe cumplir cualquier idioma nuevo (p. ej. `en`). */

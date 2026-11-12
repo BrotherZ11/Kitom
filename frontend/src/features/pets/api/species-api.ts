@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
  */
 export async function fetchSpecies(locale: Locale): Promise<Species[]> {
   const [speciesResult, translationsResult] = await Promise.all([
-    supabase.from('species').select('id, code, is_active'),
+    supabase.from('species').select('id, code, is_active, ai_guidance_enabled'),
     supabase
       .from('catalog_translations')
       .select('entity_id, value')
@@ -29,6 +29,7 @@ export async function fetchSpecies(locale: Locale): Promise<Species[]> {
       id: row.id,
       code: row.code,
       isActive: row.is_active,
+      aiGuidance: row.ai_guidance_enabled,
       name: names.get(row.id) ?? row.code,
     }))
     .sort((a, b) => a.name.localeCompare(b.name, locale));

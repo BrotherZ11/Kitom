@@ -1,5 +1,13 @@
 import type { BreedStatus, Pet, PetFields, PetSex } from '@/features/pets/types';
 
+import { fieldsFor, parseSpeciesData, weightInputUnit } from '../species/species-fields.ts';
+import {
+  emptySpeciesForm,
+  speciesFormErrors,
+  toSpeciesData,
+  toSpeciesFormValues,
+  type SpeciesFormValues,
+} from '../species/species-form.ts';
 import { isPlausibleBirthDate, isPlausibleWeight } from './pet-plausibility.ts';
 
 /** Valores del formulario como texto editable; se convierten a `PetFields` al enviar. */
@@ -15,12 +23,21 @@ export type PetFormValues = {
   breedText: string;
   /** AAAA-MM-DD */
   birthDate: string;
+  /** Peso en `weightUnit` (kg, o g en los animales pequeños: `weightInputUnit`). Se guarda en kg. */
   weightKg: string;
+  weightUnit: 'kg' | 'g';
   sterilized: 'yes' | 'no' | 'unknown';
   /** Lista separada por comas. */
   knownConditions: string;
   allergies: string;
   temperamentNotes: string;
+  /** Campos propios de la especie (`features/species/`). */
+  species: SpeciesFormValues;
+  /**
+   * `false` si la mascota de partida no traía `species_data` (copia anterior a la columna): mientras no
+   * se toque ningún campo de especie, no se envía (el servidor conserva lo suyo).
+   */
+  speciesIndicated: boolean;
 };
 
 export type PetFormField = keyof PetFormValues;
@@ -32,7 +49,8 @@ export type PetFieldError =
   | 'future_date'
   | 'implausible_birth_date'
   | 'invalid_weight'
-  | 'implausible_weight';
+  | 'implausible_weight'
+  | 'species_invalid';
 export type PetFormErrors = Partial<Record<PetFormField, PetFieldError>>;
 
 /**
@@ -49,7 +67,16 @@ const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const WEIGHT_PATTERN = /^\d+(\.\d{1,3})?$/; // numeric(9,3)
 const MAX_WEIGHT_KG = 1_000_000; // numeric(9,3): hasta 999999.999
 
-export function toPetFormValues(pet?: Pet): PetFormValues {
+/** Texto del peso en la unidad de entrada (kg o g) a partir de los kg guardados. */
+function weightText(weightKg: number | null | undefined, unit: 'kg' | 'g'): string {
+  if (weightKg == null) return '';
+  return unit === 'g' ? String(Math.round(weightKg * 1000)) : String(weightKg);
+}
+
+/** `speciesCode`: especie de la mascota (unidad del peso); sin ella, kg. */
+export function toPetFormValues(pet?: Pet, speciesCode?: string): PetFormValues {
+  const weightUnit = weightInputUnit(speciesCode);
+  const speciesData = parseSpeciesData(pet?.species_data);
   return {
     name: pet?.name ?? '',
     speciesId: pet?.species_id ?? '',
@@ -61,21 +88,39 @@ export function toPetFormValues(pet?: Pet): PetFormValues {
     breedId: pet?.breed_id ?? '',
     breedText: pet?.breed ?? '',
     birthDate: pet?.birth_date ?? '',
-    weightKg: pet?.weight_kg != null ? String(pet.weight_kg) : '',
+    weightKg: weightText(pet?.weight_kg, weightUnit),
+    weightUnit,
     sterilized: pet?.sterilized == null ? 'unknown' : pet.sterilized ? 'yes' : 'no',
     knownConditions: (pet?.known_conditions ?? []).join(', '),
     allergies: (pet?.allergies ?? []).join(', '),
     temperamentNotes: pet?.temperament_notes ?? '',
+    species: toSpeciesFormValues(speciesData),
+    // Alta: siempre se indica (vacío). Edición sin la columna en la copia: sin indicar.
+    speciesIndicated: pet === undefined || speciesData !== null,
   };
+}
+
+/** Peso del formulario en kg, o `null` si está vacío o no es un número válido en su unidad. */
+export function weightToKg(values: Pick<PetFormValues, 'weightKg' | 'weightUnit'>): number | null {
+  const text = normalizeDecimal(values.weightKg);
+  if (text === '') return null;
+  if (values.weightUnit === 'g') return /^\d+$/.test(text) ? Number(text) / 1000 : null;
+  return WEIGHT_PATTERN.test(text) ? Number(text) : null;
 }
 
 /**
  * Cambia la especie. Una raza concreta (del catálogo o escrita) pertenece a la especie anterior, así
  * que se descarta y la pregunta vuelve a «sin contestar»; mestizo y desconocida siguen siendo válidos.
+ * Los campos propios de la especie anterior se vacían (el servidor tampoco los aceptaría) y el peso
+ * pasa a la unidad de la nueva (si ya era un número válido, convertido).
  */
-export function withSpecies(values: PetFormValues, speciesId: string): PetFormValues {
+export function withSpecies(values: PetFormValues, speciesId: string, speciesCode?: string): PetFormValues {
   if (speciesId === values.speciesId) return values;
   const keepsBreed = values.breedStatus === 'mixed' || values.breedStatus === 'unknown';
+  const weightUnit = weightInputUnit(speciesCode);
+  const kg = weightToKg(values);
+  const weightKg =
+    weightUnit === values.weightUnit ? values.weightKg : kg === null ? values.weightKg : weightText(kg, weightUnit);
   return {
     ...values,
     speciesId,
@@ -83,6 +128,10 @@ export function withSpecies(values: PetFormValues, speciesId: string): PetFormVa
     breedSource: 'catalog',
     breedId: '',
     breedText: '',
+    weightKg,
+    weightUnit,
+    species: emptySpeciesForm(),
+    speciesIndicated: true,
   };
 }
 
@@ -129,7 +178,7 @@ function toNullableText(value: string): string | null {
  */
 export function validatePetForm(
   values: PetFormValues,
-  { breedSpeciesId, speciesCode }: { breedSpeciesId?: string; speciesCode?: string } = {}
+  { breedSpeciesId, speciesCode, today = todayIsoDate() }: { breedSpeciesId?: string; speciesCode?: string; today?: string } = {}
 ): PetFormErrors {
   const errors: PetFormErrors = {};
 
@@ -158,14 +207,17 @@ export function validatePetForm(
     else if (!isPlausibleBirthDate(birthDate, todayIsoDate(), speciesCode)) errors.birthDate = 'implausible_birth_date';
   }
 
-  const weight = normalizeDecimal(values.weightKg);
-  if (weight !== '') {
-    const parsed = Number(weight);
-    if (!WEIGHT_PATTERN.test(weight) || parsed <= 0 || parsed >= MAX_WEIGHT_KG) {
+  if (normalizeDecimal(values.weightKg) !== '') {
+    const parsed = weightToKg(values);
+    if (parsed === null || parsed <= 0 || parsed >= MAX_WEIGHT_KG) {
       errors.weightKg = 'invalid_weight';
     } else if (!isPlausibleWeight(parsed, speciesCode)) {
       errors.weightKg = 'implausible_weight';
     }
+  }
+
+  if (Object.keys(speciesFormErrors(values.species, fieldsFor(speciesCode, 'profile'), today)).length > 0) {
+    errors.species = 'species_invalid';
   }
 
   return errors;
@@ -190,19 +242,29 @@ function toBreedFields(
     : { breed_status: 'known', breed_id: null, breed: values.breedText.trim() };
 }
 
-/** Convierte valores ya validados a las columnas editables de `pets`. */
-export function toPetFields(values: PetFormValues): PetFields {
-  const weight = normalizeDecimal(values.weightKg);
+/**
+ * Convierte valores ya validados a las columnas editables de `pets`. `speciesCode`: especie elegida
+ * (qué campos propios hay); sin ella solo se conservan los datos de especie que ya hubiera.
+ */
+export function toPetFields(
+  values: PetFormValues,
+  { speciesCode, today = todayIsoDate() }: { speciesCode?: string; today?: string } = {}
+): PetFields {
+  const weight = weightToKg(values);
   return {
     name: values.name.trim(),
     species_id: values.speciesId,
     sex: values.sex,
     ...toBreedFields(values),
     birth_date: toNullableText(values.birthDate),
-    weight_kg: weight === '' ? null : Number(weight),
+    // Gramos → kg con 3 decimales como mucho (numeric(9,3)).
+    weight_kg: weight === null ? null : Math.round(weight * 1000) / 1000,
     sterilized: values.sterilized === 'unknown' ? null : values.sterilized === 'yes',
     known_conditions: toList(values.knownConditions),
     allergies: toList(values.allergies),
     temperament_notes: toNullableText(values.temperamentNotes),
+    ...(values.speciesIndicated
+      ? { species_data: toSpeciesData(values.species, fieldsFor(speciesCode, 'profile'), today) }
+      : {}),
   };
 }
