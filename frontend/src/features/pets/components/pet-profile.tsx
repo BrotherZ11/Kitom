@@ -9,7 +9,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { IconButton } from '@/components/ui/icon-button';
-import { ArrowLeftRight, Calendar, Camera, ChartLine, ChevronLeft, FileText, Medal, Pencil, Plus, Settings, Users } from '@/components/ui/icons';
+import { ArrowLeftRight, Calendar, Camera, ChartColumn, ChartLine, ChevronLeft, FileText, Medal, Pencil, Plus, Settings, Users } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Tag } from '@/components/ui/tag';
@@ -140,6 +140,7 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
       ? buildBadges(catalog.data, earned.data, { currentStreak: current, loggedAny: streak.data?.last_log_date != null })
       : null;
   const openAchievements = () => router.push({ pathname: '/pets/[id]/achievements', params: { id: pet.id } });
+  const openWellness = () => router.push({ pathname: '/pets/[id]/wellness', params: { id: pet.id } });
   const openConsults = () => router.push({ pathname: '/pets/[id]/consult', params: { id: pet.id } });
   const openCoOwners = () => router.push({ pathname: '/pets/[id]/co-owners', params: { id: pet.id } });
   const openAgenda = () => {
@@ -309,6 +310,15 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
               onPress={onOpenHistory}
               divider
             />
+            {serverPet ? (
+              <ListItem
+                icon={ChartColumn}
+                title={t('wellness.entryTitle')}
+                subtitle={t('wellness.entryTextNone')}
+                onPress={openWellness}
+                divider
+              />
+            ) : null}
             {serverPet ? (
               <ListItem
                 icon={Calendar}

@@ -1,4 +1,5 @@
 import { speciesFieldsEs } from './species-fields-es.ts';
+import { wellnessEs } from './wellness-es.ts';
 
 export const es = {
   common: {
@@ -1818,6 +1819,7 @@ export const es = {
     },
   },
   speciesFields: speciesFieldsEs,
+  wellness: wellnessEs,
 };
 
 /** Forma que debe cumplir cualquier idioma nuevo (p. ej. `en`). */

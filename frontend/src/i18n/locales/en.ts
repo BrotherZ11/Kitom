@@ -1,6 +1,7 @@
 import type { Translations } from '@/i18n/locales/es';
 
 import { speciesFieldsEn } from './species-fields-en.ts';
+import { wellnessEn } from './wellness-en.ts';
 
 export const en: Translations = {
   common: {
@@ -1779,4 +1780,5 @@ export const en: Translations = {
     },
   },
   speciesFields: speciesFieldsEn,
+  wellness: wellnessEn,
 };

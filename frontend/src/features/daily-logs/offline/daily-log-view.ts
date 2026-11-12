@@ -252,6 +252,47 @@ export function resolveDailyLogHistory(input: {
   return { state: 'ready', items: [...byDate.values()].sort(byDateDesc), offline: false };
 }
 
+/**
+ * Registros de un rango de fechas (resumen de bienestar): las filas del servidor con lo pendiente del
+ * dispositivo encima, sin duplicar días; sin conexión, lo guardado en el dispositivo dentro del rango.
+ * Misma regla que el historial (`resolveDailyLogHistory`): el resumen y la lista nunca se contradicen.
+ */
+export function resolveDailyLogRange(input: {
+  remote: RemoteState<DailyLog[]>;
+  local: LocalState<LocalDailyLog[]>;
+  syncingKey: string | null;
+  range: { start: string; end: string };
+}): DailyLogRangeView {
+  const { remote, local, syncingKey, range } = input;
+  if (local.status === 'error') return { state: 'error', error: local.error };
+  if (local.status === 'loading' || remote.status === 'loading') return { state: 'loading' };
+  if (remote.status === 'error') return { state: 'error', error: remote.error };
+
+  const inRange = (date: string) => date >= range.start && date <= range.end;
+  const itemFor = (record: LocalDailyLog): HistoryItemView => ({
+    log: toDisplayRow(record),
+    syncStatus: displaySyncStatus(record, syncingKey === `${record.petId}/${record.logDate}`) ?? 'synced',
+  });
+
+  if (remote.status === 'unavailable') {
+    const items = local.data.filter((record) => inRange(record.logDate)).map(itemFor).sort(byDateDesc);
+    return { state: 'ready', items, offline: true };
+  }
+
+  const byDate = new Map<string, HistoryItemView>(
+    remote.data.filter((log) => inRange(log.log_date)).map((log) => [log.log_date, { log, syncStatus: 'synced' }])
+  );
+  for (const record of local.data) {
+    if (record.pending && inRange(record.logDate)) byDate.set(record.logDate, itemFor(record));
+  }
+  return { state: 'ready', items: [...byDate.values()].sort(byDateDesc), offline: false };
+}
+
+export type DailyLogRangeView =
+  | { state: 'loading' }
+  | { state: 'error'; error: unknown }
+  | { state: 'ready'; items: HistoryItemView[]; offline: boolean };
+
 export type UnsyncedItemView = {
   record: LocalDailyLog;
   /** Nombre de la mascota si se conoce (puede que ya no se tenga acceso a ella); `null` si no. */

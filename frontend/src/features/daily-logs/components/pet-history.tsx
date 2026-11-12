@@ -3,12 +3,13 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
+import { ListItem } from '@/components/ui/list-item';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
 import { FormMessage } from '@/components/ui/form-message';
 import { IconButton } from '@/components/ui/icon-button';
-import { ChevronLeft, ChevronRight, WifiOff } from '@/components/ui/icons';
+import { ChartColumn, ChevronLeft, ChevronRight, WifiOff } from '@/components/ui/icons';
 import { MonthCalendar } from '@/components/ui/month-calendar';
 import { ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
@@ -127,6 +128,17 @@ export function PetHistory({ pet, mode, canEdit, onPressAvatar }: PetHistoryProp
   const items = view.items;
   const todayLogged = overview.today !== null;
   const offlineBanner = view.offline ? <Banner icon={WifiOff} message={t('dailyLogs.sync.offline')} /> : null;
+  // Resumen de bienestar (fase 15): reparto de los días, evolución y observaciones de esta mascota.
+  const wellnessEntry = (
+    <Card flush>
+      <ListItem
+        icon={ChartColumn}
+        title={t('wellness.entryTitle')}
+        subtitle={t('wellness.entryTextNone')}
+        onPress={() => router.push({ pathname: '/pets/[id]/wellness', params: { id: pet.id } })}
+      />
+    </Card>
+  );
 
   // Menos de 3 registros: todavía no hay evolución que mostrar (tablero 6.5).
   if (overview.loggedCount < TREND_THRESHOLD && !history.hasNextPage) {
@@ -178,6 +190,7 @@ export function PetHistory({ pet, mode, canEdit, onPressAvatar }: PetHistoryProp
     <Screen align="top" edges={mode === 'tab' ? ['top', 'left', 'right'] : undefined}>
       {header}
       {offlineBanner}
+      {wellnessEntry}
       <SegmentedControl
         accessibilityLabel={t('dailyLogs.history.period')}
         options={[

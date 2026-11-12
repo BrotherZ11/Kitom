@@ -53,8 +53,11 @@ export class DailyLogRepositoryError extends Error {
 export type DailyLogRepository = {
   readonly userId: string;
   read(petId: string, logDate: string): Promise<LocalDailyLog | null>;
-  /** Registros del usuario (opcionalmente de una mascota). Omite los ilegibles. */
-  list(petId?: string): Promise<LocalDailyLog[]>;
+  /**
+   * Registros del usuario (opcionalmente de una mascota y, con `range`, solo de esas fechas, ambas
+   * incluidas: se filtra por la clave antes de leer). Omite los ilegibles.
+   */
+  list(petId?: string, range?: { start: string; end: string }): Promise<LocalDailyLog[]>;
   /**
    * Cambia un registro de forma atómica respecto a las demás escrituras de esta instalación.
    * `change` recibe el registro actual y devuelve el nuevo (`null` = borrar; el mismo = no escribir).
@@ -115,11 +118,12 @@ export function createDailyLogRepository(store: LocalStore): DailyLogRepository 
       return (await readEntry(petId, logDate)).record;
     },
 
-    async list(petId) {
+    async list(petId, range) {
       const ids = await store.list(localDailyLogs, petId ? [petId] : []);
       const records: LocalDailyLog[] = [];
       for (const [itemPetId, logDate] of ids) {
         if (itemPetId === undefined || logDate === undefined) continue;
+        if (range && (logDate < range.start || logDate > range.end)) continue;
         const record = await repository.read(itemPetId, logDate);
         if (record) records.push(record);
       }
