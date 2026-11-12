@@ -157,6 +157,16 @@ error y «sin mascotas».
   local del usuario (`clearLocalUserData` de `lib/local-store/local-store.ts`, solo para cuentas que ya no
   existen) y sus avisos, y cierra sesión: única excepción a `useSignOutFlow`. Contrato:
   `docs/FRONTEND_ARCHITECTURE.md` «DeleteAccountScreen».
+- Campos por especie (2026-11-11): `src/features/species/` (`species-fields.ts`: copia del catálogo `species_fields`,
+  pura; `species-form.ts`: estado de formulario, puro; `species-labels.ts`; `components/species-fields-section.tsx`;
+  `hooks/use-pet-species.ts`). Un campo nuevo = migración + copia + textos (`i18n/locales/species-fields-{es,en}.ts`) +
+  textos de la Edge Function (`supabase/functions/ai-analysis-process/species-labels.ts`, generados de los de la app y
+  comprobados por prueba). `species_data` ausente/`null` en contenido local = sin indicar (nunca enviar `{}` en su
+  lugar: borraría lo del servidor). Contrato: `docs/FRONTEND_ARCHITECTURE.md` «Campos por especie».
+- Resumen de bienestar (2026-11-11): `src/features/wellness/` (`wellness-stats.ts` y `wellness-observations.ts` puros;
+  `hooks/use-wellness.ts`: rango de 180 días + copia local + cobertura `offline/daily-log-coverage.ts`) y rutas
+  `(app)/pets/[id]/wellness/*`. Sin medias ni índices de las escalas (reparto de días con su `n`). Componentes
+  `DistributionBar` y `WeekColumns`. Contrato: «WellnessScreen».
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
   `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`

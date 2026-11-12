@@ -116,6 +116,9 @@ Ruta: «existe» = está en `frontend/src/app/`; «prop.» = nombre sugerido den
 | 6.4 | Historial de alertas (`Alertas`) | prop. `pets/[id]/alerts` | señales + `ai_analysis_requests` | Filtros por nivel. |
 | 6.5 | Sin datos suficientes (`HistorialVacio`) | ídem 6.1 | — | Vacío sin culpa. |
 | 6.6 | Límite del plan (`HistorialLimite`) | ídem | plan desde servidor | Lo anterior a `[LÍMITE]` difuminado. |
+| 6.7 | Resumen de bienestar (sin tablero; 2026-11-11) | `(app)/pets/[id]/wellness` existe | `daily_logs` por rango (180 días) | Periodo 7 · 30 · 90; reparto de días por escala con `n`; sin medias. `docs/proposals/2026-11-10-wellness-reports.md`. |
+| 6.8 | Evolución (sin tablero) | `wellness/evolution` existe | ídem | Líneas con huecos (7 y 30 días) o columnas semanales (90). |
+| 6.9 | Observaciones (sin tablero) | `wellness/patterns` existe | ídem | Reglas descriptivas, siempre `info`; texto pendiente de revisión veterinaria. |
 
 ### 7 · Orientación con foto y síntomas
 

@@ -3,6 +3,28 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-11
+
+Campos por especie y resumen de bienestar (ramas `db/species-fields` y `feat/species-fields-wellness`; migración
+`20261111120000_species_fields.sql`, aplicada en `kitom-dev` el 2026-11-12 con el seed de razas reejecutado y los tipos
+regenerados; falta redesplegar `ai-analysis-process`):
+
+- **9 especies** al crear una mascota (perro, gato, conejo, cobaya, hámster, caballo, ave, reptil y otro), con
+  **campos propios** en la ficha («Sobre tu conejo»: alojamiento, heno, horas fuera de la jaula…) y en el registro
+  diario («Su especie»: arenero en gatos, paseos y deposiciones en perros, heno y cacas en conejos, muda en reptiles…).
+  Cada especie pregunta solo las escalas que le aplican; perro y gato, igual que antes.
+- **Peso en gramos** para hámster, cobaya y ave; «Tipo» en vez de «Raza» en hámster, ave y reptil; razas y tipos de
+  las especies nuevas en `seeds/breeds.sql` (ya en `kitom-dev`).
+- **Orientación con IA solo para perro y gato** («Próximamente» en el resto, comprobado también en el servidor). La
+  Edge Function usa los datos de especie como contexto.
+- **Resumen de bienestar** de cada mascota (7 · 30 · 90 días): cómo se reparten sus días en cada escala, lo propio de
+  su especie, fuera de lo habitual, etiquetas y comparación con el periodo anterior; **evolución** día a día o semana
+  a semana; **observaciones** descriptivas. Funciona sin conexión con lo guardado en el dispositivo (y dice si está
+  completo). Entradas en Historial y en el perfil de la mascota.
+- **Términos de uso** actualizados (todas las especies; IA solo perro y gato). Pendiente de publicar.
+- **Pruebas:** pgTAP `species_fields` y `daily_logs_read_access` (681 en total), integración de paridad del catálogo
+  (81), unitarias del catálogo, formularios, fusión, cobertura y resumen (999).
+
 ## 2026-11-07
 
 Dominio propio (rama `chore/kitom-app-domain`, sin migraciones):

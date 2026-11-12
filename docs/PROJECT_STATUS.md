@@ -87,8 +87,10 @@ avance: no hay un método reproducible que los respalde.
 | 41 | Analítica de producto | PENDIENTE | `analytics_events` sin cliente | decidir herramienta y consentimiento | P3 |
 | 42 | Organizaciones (B2B) | PENDIENTE (fuera del MVP) | archivo 27 no desplegado | — | — |
 | 43 | Señales de cambio respecto a lo normal | COMPLETA Y VERIFICADA | `change-signals.ts` (pruebas unitarias), tarjeta en Hoy comprobada en emulador con historial sembrado | umbrales sin validar por un veterinario | P2 |
+| 44 | Campos por especie (9 especies) en la ficha y el registro diario | IMPLEMENTADA, NO VERIFICADA (Android) | migración `20261111120000_species_fields` (pgTAP; aplicada en `kitom-dev` el 2026-11-12), `features/species/`, paridad app/BD en integración; recorrido en web contra el Supabase local | revisión veterinaria de los campos; redesplegar `ai-analysis-process`; validación en Android | P1 |
+| 45 | Resumen de bienestar (resumen, evolución, observaciones) | IMPLEMENTADA, NO VERIFICADA (Android) | `features/wellness/` (pruebas unitarias), lectura por rango con cobertura local; recorrido en web | revisión veterinaria del texto de las observaciones; prueba sin conexión en Android | P1 |
 
-Totales: 17 COMPLETA Y VERIFICADA · 12 IMPLEMENTADA, NO VERIFICADA · 1 PARCIAL · 0 INCOMPLETA · 11 PENDIENTE · 2 BLOQUEADA · 0 CON ERRORES (43 funcionalidades; «verificada» con la matización de cada fila, nada en iOS ni en un móvil físico).
+Totales: 17 COMPLETA Y VERIFICADA · 14 IMPLEMENTADA, NO VERIFICADA · 1 PARCIAL · 0 INCOMPLETA · 11 PENDIENTE · 2 BLOQUEADA · 0 CON ERRORES (45 funcionalidades; «verificada» con la matización de cada fila, nada en iOS ni en un móvil físico).
 
 ## 4. Bugs y limitaciones conocidas
 

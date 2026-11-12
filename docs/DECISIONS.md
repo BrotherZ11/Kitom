@@ -3,6 +3,40 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-11 — Campos por especie (9 especies) y resumen de bienestar
+
+**Contexto.** El responsable aprobó la propuesta del resumen de bienestar
+(`proposals/2026-11-10-wellness-reports.md`, D-1 a D-13) y pidió que cada especie tenga los campos que le
+corresponden, en la ficha y en el registro diario, para las 9 especies del catálogo y antes del resumen
+(`proposals/2026-11-11-species-fields.md`, D-1 a D-10, aceptadas con «implementalo todo»).
+
+**Decisiones.**
+
+- **Modelo de datos:** catálogo `species_fields` mantenido por migraciones y una columna `species_data jsonb` en `pets` y
+  en `daily_logs`, validada por trigger contra la especie actual. Se descartaron decenas de columnas (tablas anchas,
+  RPC con decenas de parámetros) y tablas EAV (varias filas por registro rompen el guardado atómico, la precondición
+  `updated_at` y el motor offline).
+- **Compatibilidad:** solo se validan las claves que cambian; en `save_daily_log`, `p_species_data NULL` conserva lo
+  guardado. Así las versiones de la app ya instaladas (y sus operaciones pendientes) nunca borran datos de especie.
+  En la app, `species_data` ausente = sin indicar.
+- **Escalas comunes por especie** (matriz del §4.1 de la propuesta): perro y gato sin cambios; el reptil solo energía,
+  apetito y actividad; el hámster sin sueño, vocalizaciones ni interacción social, etc.
+- **Las 9 especies activas; orientación con IA solo para perro y gato** (`species.ai_guidance_enabled`, exigido en
+  `request_ai_analysis`) hasta la validación veterinaria de cada especie.
+- **Hámster, ave y reptil:** la raza del catálogo es el «tipo» de animal; sin «mestizo». «Ave (otra)» y «Reptil
+  (otro)» pasan a «Ave» y «Reptil».
+- **Peso:** en gramos en hámster, cobaya y ave; siempre guardado en kg. Mínimos por especie para detectar erratas de unidad.
+- **Resumen de bienestar en el cliente**, sin migraciones propias: una consulta de 180 días, reparto de días en tres
+  grupos con su `n`, mínimos 4 / 12 / 30, sin medias ni índice global, comparación solo con datos suficientes en los
+  dos periodos, observaciones descriptivas con umbral, y cobertura local para saber sin conexión si los datos están
+  completos. Sin compartir (D-8).
+
+**Consecuencias.** Las listas de campos y el texto de las observaciones son un borrador: hay que validarlos con el
+veterinario asesor antes de publicar (D-2 de especies, D-9 del resumen). Para activar la IA en otra especie:
+síntomas en `symptom_species`, revisión del texto de la Edge Function y `ai_guidance_enabled` (migración). La app
+nueva necesita la migración en el servidor: `db push` antes de publicar la build (`DEPLOYMENT.md`). Los textos
+legales (`site/terms.html`) ya hablan de todas las especies; los publica el responsable.
+
 ## 2026-11-07 — Dominio propio `kitom.app` y correo de soporte
 
 **Contexto.** El responsable compró `kitom.app` (Cloudflare), creó `soporte@kitom.app` en Zoho Mail y configuró
