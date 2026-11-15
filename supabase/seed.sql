@@ -28,9 +28,9 @@ begin;
 -- 1. Especies
 -- ---------------------------------------------------------------------
 -- Las 9 activas desde la migración *_species_fields.sql (decisión del
--- 2026-11-11), que también las crea si faltan. La orientación con IA solo
--- para perro y gato (species.ai_guidance_enabled): ampliarla exige vincular
--- síntomas en symptom_species (sección 3) y la validación veterinaria.
+-- 2026-11-11), que también las crea si faltan. Orientación con IA en las 9
+-- desde *_ai_guidance_v2.sql (species.ai_guidance_enabled, 2026-11-13), con
+-- sus señales en la sección 2–3; borrador hasta la validación veterinaria.
 -- Clave de conflicto: species_code_key UNIQUE (code).
 insert into public.species (code, scientific_name, category, is_active) values
   ('dog',           'Canis lupus familiaris', 'mammal',  true),
@@ -63,48 +63,141 @@ join public.species s on s.code = t.code
 on conflict (entity_type, entity_id, locale, field) do nothing;
 
 -- ---------------------------------------------------------------------
--- 2. Síntomas visibles (análisis con IA, PRD §8.4)
+-- 2–3. Señales de la orientación con IA, sus nombres y sus especies
 -- ---------------------------------------------------------------------
--- Lista del PRD. Ampliarla requiere validación del veterinario colaborador.
--- Clave de conflicto: symptoms_catalog_code_key UNIQUE (code).
-insert into public.symptoms_catalog (code, category) values
-  ('watery_eyes',     'ocular'),
-  ('limping',         'motor'),
-  ('lethargy',        'general'),
-  ('wound',           'skin'),
-  ('appetite_loss',   'digestive'),
-  ('excessive_vocal', 'behavior')
-on conflict (code) do nothing;
-
--- Etiquetas traducidas (field = 'label').
-insert into public.catalog_translations (entity_type, entity_id, locale, field, value)
-select 'symptom', sc.id, t.locale, 'label', t.value
-from (values
-  ('watery_eyes',     'es', 'Ojos llorosos'),          ('watery_eyes',     'en', 'Watery eyes'),
-  ('limping',         'es', 'Cojera'),                 ('limping',         'en', 'Limping'),
-  ('lethargy',        'es', 'Decaimiento'),            ('lethargy',        'en', 'Lethargy'),
-  ('wound',           'es', 'Heridas visibles'),       ('wound',           'en', 'Visible wound'),
-  ('appetite_loss',   'es', 'Falta de apetito'),       ('appetite_loss',   'en', 'Loss of appetite'),
-  ('excessive_vocal', 'es', 'Vocalización excesiva'),  ('excessive_vocal', 'en', 'Excessive vocalization')
-) as t(code, locale, value)
-join public.symptoms_catalog sc on sc.code = t.code
-on conflict (entity_type, entity_id, locale, field) do nothing;
-
--- ---------------------------------------------------------------------
--- 3. Compatibilidad síntoma–especie
--- ---------------------------------------------------------------------
--- request_ai_analysis() y el trigger validate_symptom_species_compat
--- rechazan cualquier síntoma sin fila aquí para la especie de la mascota.
--- Solo especies activas (perro y gato).
--- Clave de conflicto: symptom_species_pkey PRIMARY KEY (symptom_id, species_id).
+-- Una sola sentencia (como seeds/breeds.sql): cada señal con su categoría
+-- (agrupa la pantalla de señales), su nombre es/en y las especies en las que
+-- tiene sentido. request_ai_analysis() y el trigger
+-- validate_symptom_species_compat rechazan una señal sin fila en
+-- symptom_species para la especie de la mascota.
+--
+-- Las 6 primeras son las del PRD §8.4 (perro y gato desde el 2026-10); el
+-- resto y las demás especies, del 2026-11-13 (orientación para las 9
+-- especies, migración *_ai_guidance_v2.sql). BORRADOR: la lista, sus
+-- especies y las reglas de urgencia de la Edge Function
+-- (supabase/functions/ai-analysis-process/urgency.ts) deben validarse con el
+-- veterinario asesor antes de publicar. Ejemplos de criterio: conejo, cobaya,
+-- hámster y caballo no pueden vomitar (sin «vómitos»); «regurgita» solo en
+-- ave y reptil; el pico, la muda o la cola al respirar, en su especie.
+--
+-- Categorías (textos en la app: consult.signs.categories): general,
+-- digestive, oral, urinary, respiratory, skin, ocular (ojos y oídos), motor,
+-- neuro, behavior.
+-- Por DO NOTHING, reejecutarlo añade señales y especies nuevas sin cambiar
+-- los nombres ni las categorías ya sembrados.
+-- Claves de conflicto: symptoms_catalog_code_key UNIQUE (code), UNIQUE
+-- (entity_type, entity_id, locale, field) y symptom_species_pkey.
+with src (code, category, label_es, label_en, species) as (values
+  -- General
+  ('lethargy',              'general',     'Decaimiento',                                    'Lethargy',                                        array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('weight_loss',           'general',     'Pérdida de peso',                                'Weight loss',                                     array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('excessive_thirst',      'general',     'Bebe mucho más de lo normal',                    'Drinking much more than usual',                   array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','other']),
+  ('pain_signs',            'general',     'Parece dolorido al tocarlo o al moverse',        'Seems to be in pain when touched or moving',      array['dog','cat','rabbit','guinea_pig','hamster','horse','other']),
+  ('toxin_ingestion',       'general',     'Puede haber comido algo tóxico',                 'May have eaten something toxic',                  array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('pale_gums',             'general',     'Encías pálidas, blancas o azuladas',             'Pale, white or bluish gums',                      array['dog','cat','horse','other']),
+  ('sweating',              'general',     'Suda sin haber hecho ejercicio',                 'Sweating without having exercised',               array['horse']),
+  -- Digestivo
+  ('appetite_loss',         'digestive',   'Falta de apetito',                               'Loss of appetite',                                array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('not_eating',            'digestive',   'No come nada',                                   'Not eating at all',                               array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('vomiting',              'digestive',   'Vómitos',                                        'Vomiting',                                        array['dog','cat','other']),
+  ('unproductive_retching', 'digestive',   'Arcadas sin conseguir vomitar',                  'Retching without bringing anything up',           array['dog']),
+  ('regurgitation',         'digestive',   'Regurgita la comida',                            'Regurgitating food',                              array['bird_other','reptile_other']),
+  ('diarrhea',              'digestive',   'Diarrea o heces muy blandas',                    'Diarrhoea or very soft stools',                   array['dog','cat','rabbit','guinea_pig','hamster','horse','reptile_other','other']),
+  ('constipation',          'digestive',   'Le cuesta defecar',                              'Straining to pass stools',                        array['dog','cat','reptile_other','other']),
+  ('no_droppings',          'digestive',   'No hace heces',                                  'Not passing droppings',                           array['rabbit','guinea_pig','hamster','horse','other']),
+  ('small_droppings',       'digestive',   'Heces más pequeñas o escasas',                   'Smaller or fewer droppings',                      array['rabbit','guinea_pig']),
+  ('droppings_change',      'digestive',   'Excrementos de color o aspecto distinto',        'Droppings changed in colour or look',             array['bird_other','reptile_other']),
+  ('bloated_abdomen',       'digestive',   'Abdomen hinchado o duro',                        'Swollen or hard belly',                           array['dog','cat','rabbit','guinea_pig','horse','other']),
+  ('colic_signs',           'digestive',   'Escarba, se mira el flanco o intenta revolcarse','Pawing, looking at its flank or trying to roll',  array['horse']),
+  ('soiled_rear',           'digestive',   'Trasero sucio o mojado',                         'Dirty or wet rear end',                           array['rabbit','guinea_pig','hamster']),
+  -- Boca
+  ('drooling',              'oral',        'Babea mucho',                                    'Drooling a lot',                                  array['dog','cat','rabbit','guinea_pig','horse','other']),
+  ('dental_problems',       'oral',        'Le cuesta masticar o se le cae la comida',       'Trouble chewing or dropping food',                array['dog','cat','rabbit','guinea_pig','hamster','horse','other']),
+  ('teeth_grinding',        'oral',        'Rechina los dientes',                            'Grinding its teeth',                              array['rabbit','guinea_pig']),
+  ('mouth_changes',         'oral',        'Boca con mucosidad, hinchazón o manchas',        'Mucus, swelling or spots in the mouth',           array['reptile_other']),
+  ('beak_changes',          'oral',        'Pico dañado, deformado o demasiado largo',       'Damaged, misshapen or overgrown beak',            array['bird_other']),
+  -- Orina
+  ('urination_changes',     'urinary',     'Orina más o menos de lo normal',                 'Urinating more or less than usual',               array['dog','cat','rabbit','guinea_pig','hamster','horse','other']),
+  ('straining_to_urinate',  'urinary',     'Hace fuerza para orinar y sale poco o nada',     'Straining to urinate with little or nothing out', array['dog','cat','rabbit','guinea_pig','other']),
+  ('blood_in_urine',        'urinary',     'Sangre en la orina',                             'Blood in the urine',                              array['dog','cat','rabbit','guinea_pig','hamster','horse','other']),
+  ('urinating_outside_box', 'urinary',     'Orina fuera del arenero',                        'Urinating outside the litter box',                array['cat','rabbit']),
+  -- Respiración
+  ('breathing_difficulty',  'respiratory', 'Le cuesta respirar',                             'Difficulty breathing',                            array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('open_mouth_breathing',  'respiratory', 'Respira con la boca abierta',                    'Breathing with its mouth open',                   array['cat','rabbit','guinea_pig','hamster','bird_other','reptile_other']),
+  ('breathing_noises',      'respiratory', 'Ruidos o pitidos al respirar',                   'Noisy or wheezy breathing',                       array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('coughing',              'respiratory', 'Tos',                                            'Coughing',                                        array['dog','cat','horse','other']),
+  ('sneezing',              'respiratory', 'Estornudos',                                     'Sneezing',                                        array['dog','cat','rabbit','guinea_pig','hamster','bird_other','other']),
+  ('nasal_discharge',       'respiratory', 'Mucosidad o secreción por la nariz',             'Nasal discharge',                                 array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('tail_bobbing',          'respiratory', 'Mueve la cola al respirar',                      'Tail bobbing with each breath',                   array['bird_other']),
+  -- Piel, pelo, plumas y escamas
+  ('wound',                 'skin',        'Heridas visibles',                               'Visible wound',                                   array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('bleeding',              'skin',        'Sangrado',                                       'Bleeding',                                        array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('swelling',              'skin',        'Bulto o hinchazón',                              'Lump or swelling',                                array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('itching',               'skin',        'Se rasca o se lame mucho',                       'Scratching or licking a lot',                     array['dog','cat','rabbit','guinea_pig','hamster','horse','other']),
+  ('hair_loss',             'skin',        'Pérdida de pelo o calvas',                       'Hair loss or bald patches',                       array['dog','cat','rabbit','guinea_pig','hamster','horse','other']),
+  ('skin_redness',          'skin',        'Piel enrojecida, con costras o caspa',           'Red, crusty or flaky skin',                       array['dog','cat','rabbit','guinea_pig','hamster','horse','other']),
+  ('parasites_seen',        'skin',        'Pulgas, garrapatas, ácaros u otros parásitos',   'Fleas, ticks, mites or other parasites',          array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('fly_larvae',            'skin',        'Gusanos o larvas en la piel o el pelo',          'Maggots on the skin or fur',                      array['dog','cat','rabbit','guinea_pig','horse','other']),
+  ('overgrown_nails',       'skin',        'Uñas demasiado largas',                          'Overgrown nails',                                 array['rabbit','guinea_pig','hamster','bird_other','reptile_other']),
+  ('feather_plucking',      'skin',        'Se arranca las plumas',                          'Plucking its feathers',                           array['bird_other']),
+  ('fluffed_feathers',      'skin',        'Plumas ahuecadas durante mucho rato',            'Fluffed-up feathers for long periods',            array['bird_other']),
+  ('retained_shed',         'skin',        'Muda incompleta o restos de piel pegados',       'Incomplete shed or stuck skin',                   array['reptile_other']),
+  ('scale_changes',         'skin',        'Escamas o caparazón con manchas, blandos o dañados', 'Scales or shell discoloured, soft or damaged', array['reptile_other']),
+  -- Ojos y oídos
+  ('watery_eyes',           'ocular',      'Ojos llorosos',                                  'Watery eyes',                                     array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('eye_redness',           'ocular',      'Ojos rojos, hinchados o con legañas',            'Red, swollen or crusty eyes',                     array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('squinting',             'ocular',      'Guiña o mantiene un ojo cerrado',                'Squinting or keeping an eye closed',              array['dog','cat','rabbit','guinea_pig','hamster','horse','other']),
+  ('sunken_eyes',           'ocular',      'Ojos hundidos',                                  'Sunken eyes',                                     array['rabbit','guinea_pig','bird_other','reptile_other','other']),
+  ('ear_problems',          'ocular',      'Se rasca las orejas, mal olor o secreción',      'Ear scratching, odour or discharge',              array['dog','cat','rabbit','guinea_pig','horse','other']),
+  ('head_shaking',          'ocular',      'Sacude la cabeza a menudo',                      'Shaking its head often',                          array['dog','cat','rabbit','horse']),
+  -- Movimiento
+  ('limping',               'motor',       'Cojera',                                         'Limping',                                         array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('stiffness',             'motor',       'Rigidez o le cuesta levantarse',                 'Stiffness or trouble getting up',                 array['dog','cat','rabbit','guinea_pig','horse','other']),
+  ('hind_limb_weakness',    'motor',       'Debilidad o arrastra las patas traseras',        'Weak or dragging hind legs',                      array['dog','cat','rabbit','guinea_pig','hamster','reptile_other','other']),
+  ('cant_stand',            'motor',       'No se tiene en pie o se ha desplomado',          'Can''t stand or has collapsed',                   array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('swollen_limbs',         'motor',       'Patas o mandíbula hinchadas o blandas',          'Swollen or soft legs or jaw',                     array['reptile_other']),
+  ('sitting_on_floor',      'motor',       'Se queda en el suelo de la jaula',               'Staying on the cage floor',                       array['bird_other']),
+  ('hoof_heat',             'motor',       'Casco caliente o pulso fuerte en la pata',       'Hot hoof or strong pulse in the leg',             array['horse']),
+  -- Sistema nervioso
+  ('seizures',              'neuro',       'Convulsiones',                                   'Seizures',                                        array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('trembling',             'neuro',       'Temblores',                                      'Trembling or shivering',                          array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','other']),
+  ('balance_loss',          'neuro',       'Pierde el equilibrio o camina en círculos',      'Losing balance or walking in circles',            array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('head_tilt',             'neuro',       'Cabeza ladeada',                                 'Head tilt',                                       array['dog','cat','rabbit','guinea_pig','hamster','bird_other','reptile_other','other']),
+  ('disorientation',        'neuro',       'Desorientado o no responde como siempre',        'Disoriented or less responsive than usual',       array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  -- Comportamiento
+  ('excessive_vocal',       'behavior',    'Vocalización excesiva',                          'Excessive vocalization',                          array['dog','cat','guinea_pig','horse','bird_other','other']),
+  ('hiding',                'behavior',    'Se esconde más de lo normal',                    'Hiding more than usual',                          array['dog','cat','rabbit','guinea_pig','hamster','bird_other','reptile_other','other']),
+  ('aggression_change',     'behavior',    'Más irritable o agresivo',                       'More irritable or aggressive',                    array['dog','cat','rabbit','guinea_pig','hamster','horse','bird_other','reptile_other','other']),
+  ('restlessness',          'behavior',    'Inquieto, no encuentra postura',                 'Restless, can''t settle',                         array['dog','cat','horse','other']),
+  ('not_basking',           'behavior',    'No se coloca bajo el foco de calor',             'Not basking',                                     array['reptile_other'])
+),
+inserted as (
+  insert into public.symptoms_catalog (code, category)
+  select code, category from src
+  on conflict (code) do nothing
+  returning id, code
+),
+-- Las filas insertadas en esta sentencia solo se ven por RETURNING.
+symptom_ids as (
+  select id, code from inserted
+  union all
+  select sc.id, sc.code from public.symptoms_catalog sc join src on src.code = sc.code
+),
+labels as (
+  insert into public.catalog_translations (entity_type, entity_id, locale, field, value)
+  select 'symptom', si.id, l.locale, 'label', l.value
+  from symptom_ids si
+  join src on src.code = si.code
+  cross join lateral (values ('es', src.label_es), ('en', src.label_en)) as l (locale, value)
+  on conflict (entity_type, entity_id, locale, field) do nothing
+  returning 1
+)
 insert into public.symptom_species (symptom_id, species_id)
-select sc.id, s.id
-from public.symptoms_catalog sc
-join (values
-  ('watery_eyes'), ('limping'), ('lethargy'), ('wound'), ('appetite_loss'), ('excessive_vocal')
-) as symptom(code) on symptom.code = sc.code
-cross join public.species s
-where s.code in ('dog', 'cat')
+select si.id, s.id
+from symptom_ids si
+join src on src.code = si.code
+cross join lateral unnest(src.species) as sp (code)
+join public.species s on s.code = sp.code
 on conflict (symptom_id, species_id) do nothing;
 
 -- ---------------------------------------------------------------------
