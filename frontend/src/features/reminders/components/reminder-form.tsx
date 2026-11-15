@@ -159,7 +159,7 @@ export function ReminderForm({
         />
 
         <View style={styles.row}>
-          <View style={styles.flex}>
+          <View style={styles.day}>
             <PickerField
               label={t('agenda.form.day')}
               icon={CalendarDays}
@@ -243,15 +243,20 @@ const styles = StyleSheet.create({
   heading: {
     gap: spacing['2'],
   },
+  // Día y hora en una fila si caben; en un móvil estrecho (320 dp) cada uno en la suya: con la hora de
+  // ancho fijo, el día se quedaba en «Mañ…».
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing['3'],
     alignItems: 'flex-start',
   },
-  flex: {
-    flex: 1,
+  day: {
+    flexGrow: 2,
+    flexBasis: 168,
   },
   time: {
-    width: 128,
+    flexGrow: 1,
+    flexBasis: 120,
   },
 });

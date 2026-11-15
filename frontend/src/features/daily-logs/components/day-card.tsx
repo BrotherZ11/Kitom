@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,7 +10,20 @@ import { scaleValueLabel } from '@/features/daily-logs/scale-labels';
 import { dayCardMessage, type WeekOverview } from '@/features/daily-logs/week-overview';
 import { useTheme } from '@/hooks/use-theme';
 import { t, tf } from '@/i18n';
-import { radius, spacing } from '@/theme/tokens';
+import { layout, radius, spacing } from '@/theme/tokens';
+
+/**
+ * Ancho mínimo (dp, con letra al 100 %) de cada casilla del resumen para que «Apetito» o «Actividad» no se
+ * corten. Si cuatro no caben con el tamaño de letra del sistema, van en dos filas de dos.
+ */
+const MIN_CELL_WIDTH = 76;
+/** Márgenes de la pantalla y de la tarjeta alrededor de las casillas. */
+const CELLS_INSET = layout.screenGutter * 2 + layout.cardPadding * 2;
+
+export function summaryColumns(windowWidth: number, fontScale: number): 2 | 4 {
+  const cell = (Math.min(windowWidth, layout.maxContentWidth) - CELLS_INSET - spacing['2'] * 3) / 4;
+  return cell >= MIN_CELL_WIDTH * fontScale ? 4 : 2;
+}
 
 type DayCardProps = {
   petName: string;
@@ -35,6 +48,8 @@ const PRIMARY_COLUMNS = {
  */
 export function DayCard({ petName, overview, canEdit, onOpenLog }: DayCardProps) {
   const theme = useTheme();
+  const { width, fontScale } = useWindowDimensions();
+  const columns = summaryColumns(width, fontScale);
   const message = dayCardMessage(overview);
   const done = message.kind === 'done';
   const ringText = `${overview.weekCount}/7`;
@@ -81,11 +96,11 @@ export function DayCard({ petName, overview, canEdit, onOpenLog }: DayCardProps)
       </View>
 
       {done && overview.today ? (
-        <View style={styles.kv}>
+        <View style={[styles.kv, columns === 2 && styles.kvTwo]}>
           {PRIMARY_SCALE_FIELDS.map((field) => {
             const value = overview.today?.log[PRIMARY_COLUMNS[field]] ?? null;
             return (
-              <View key={field} style={[styles.kvCell, { backgroundColor: theme.surfaceSunken }]}>
+              <View key={field} style={[styles.kvCell, columns === 2 && styles.kvCellTwo, { backgroundColor: theme.surfaceSunken }]}>
                 <Text variant="caption" color="inkMuted" numberOfLines={1}>
                   {t(`dailyLogs.fields.${field}`)}
                 </Text>
@@ -137,6 +152,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing['2'],
   },
+  kvTwo: {
+    flexWrap: 'wrap',
+  },
   kvCell: {
     flex: 1,
     minWidth: 0,
@@ -144,5 +162,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['2'],
     paddingHorizontal: 10,
     borderRadius: radius.sm,
+  },
+  // Dos por fila: la mitad menos el hueco entre ellas.
+  kvCellTwo: {
+    flexBasis: '45%',
   },
 });
