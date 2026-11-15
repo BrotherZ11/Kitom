@@ -5,13 +5,13 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
   "es": {
     "privacy": {
       "title": "Política de privacidad",
-      "effective": "En vigor desde el 7 de noviembre de 2026",
+      "effective": "En vigor desde el 15 de noviembre de 2026",
       "blocks": [
         {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Kitom es una app para acompañar el bienestar de tu perro o tu gato. Aquí te contamos, sin letra pequeña, qué datos tratamos, para qué, con quién los compartimos, cuánto tiempo los guardamos y cómo puedes decidir sobre ellos."
+              "text": "Kitom es una app para acompañar el bienestar de tu mascota. Aquí te contamos, sin letra pequeña, qué datos tratamos, para qué, con quién los compartimos, cuánto tiempo los guardamos y cómo puedes decidir sobre ellos."
             }
           ]
         },
@@ -214,7 +214,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
                   "bold": true
                 },
                 {
-                  "text": " foto (si la añades), señales elegidas, contexto de la mascota y de sus últimos registros, la orientación obtenida y tu valoración."
+                  "text": " foto (si la añades), señales elegidas, lo que cuentas (desde cuándo, cómo evoluciona y tu texto), contexto de la mascota, de sus últimos registros, recordatorios de salud y consultas anteriores, la orientación obtenida y tu valoración."
                 }
               ],
               [
@@ -363,17 +363,22 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
             ],
             [
               {
-                "text": "las señales que eliges;"
+                "text": "las señales que eliges y lo que nos cuentas en la consulta (desde cuándo pasa, cómo evoluciona y tu texto);"
               }
             ],
             [
               {
-                "text": "datos de la mascota: especie, raza, edad, peso, sexo, si está esterilizada, condiciones de salud conocidas y alergias;"
+                "text": "datos de la mascota: especie, raza, edad, peso, sexo, si está esterilizada, condiciones de salud conocidas, alergias, su carácter y los datos propios de su especie;"
               }
             ],
             [
               {
-                "text": "sus últimos registros diarios, incluidas las notas."
+                "text": "sus últimos registros diarios, incluidas las notas;"
+              }
+            ],
+            [
+              {
+                "text": "sus recordatorios de salud recientes o próximos (vacunas, medicación, desparasitación y citas: tipo, título y fecha) y el resumen de sus consultas anteriores."
               }
             ]
           ]
@@ -386,7 +391,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "bold": true
             },
             {
-              "text": " tu nombre, tu email ni el nombre de la mascota. Recuerda no escribir datos personales en las notas."
+              "text": " tu nombre, tu email ni el nombre de la mascota. Recuerda no escribir datos personales en las notas, los títulos ni el texto de la consulta."
             }
           ]
         },
@@ -394,14 +399,14 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Usamos el servicio de pago de la Gemini API. En ese servicio Google actúa como encargado del tratamiento: procesa el contenido solo para devolvernos la respuesta, "
+              "text": "Usamos la Gemini API de Google. Como Kitom se presta desde la Unión Europea, Google aplica a este contenido las condiciones de datos de su servicio de pago: actúa como encargado del tratamiento, procesa el contenido solo para devolvernos la respuesta, "
             },
             {
-              "text": "no lo usa para entrenar ni mejorar sus modelos",
+              "text": "no lo usa para entrenar ni mejorar sus productos",
               "bold": true
             },
             {
-              "text": " y solo lo conserva durante un tiempo limitado para detectar abusos, según sus condiciones. Kitom tampoco usa tus fotos ni tus consultas para entrenar modelos ni para ningún otro fin."
+              "text": " y solo lo conserva durante un tiempo limitado para detectar abusos y cumplir obligaciones legales, según sus condiciones. Kitom tampoco usa tus fotos ni tus consultas para entrenar modelos ni para ningún otro fin."
             }
           ]
         },
@@ -994,7 +999,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
     },
     "terms": {
       "title": "Términos de uso",
-      "effective": "En vigor desde el 30 de octubre de 2026",
+      "effective": "En vigor desde el 15 de noviembre de 2026",
       "blocks": [
         {
           "type": "paragraph",
@@ -1074,7 +1079,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
             ],
             [
               {
-                "text": "pedir una orientación con IA a partir de una foto y de las señales que observas (por ahora, solo para perros y gatos);"
+                "text": "pedir una orientación con IA a partir de una foto, de las señales que observas y de lo que nos cuentas;"
               }
             ],
             [
@@ -1399,13 +1404,13 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
   "en": {
     "privacy": {
       "title": "Privacy policy",
-      "effective": "Effective from 7 November 2026",
+      "effective": "Effective from 15 November 2026",
       "blocks": [
         {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Kitom is an app that keeps you company in your dog's or cat's wellbeing. Here we explain, with no small print, what data we process, why, who we share it with, how long we keep it and how you stay in control. The Spanish version is the reference version."
+              "text": "Kitom is an app that keeps you company in your pet's wellbeing. Here we explain, with no small print, what data we process, why, who we share it with, how long we keep it and how you stay in control. The Spanish version is the reference version."
             }
           ]
         },
@@ -1608,7 +1613,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
                   "bold": true
                 },
                 {
-                  "text": " photo (if you add one), chosen signs, context about the pet and its latest logs, the guidance obtained and your rating."
+                  "text": " photo (if you add one), chosen signs, what you tell us (since when, how it is going and your text), context about the pet, its latest logs, health reminders and previous checks, the guidance obtained and your rating."
                 }
               ],
               [
@@ -1757,17 +1762,22 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
             ],
             [
               {
-                "text": "the signs you choose;"
+                "text": "the signs you choose and what you tell us in the check (since when, how it is going and your text);"
               }
             ],
             [
               {
-                "text": "pet data: species, breed, age, weight, sex, whether neutered, known health conditions and allergies;"
+                "text": "pet data: species, breed, age, weight, sex, whether neutered, known health conditions, allergies, their temperament and the data specific to their species;"
               }
             ],
             [
               {
-                "text": "their latest daily logs, including notes."
+                "text": "their latest daily logs, including notes;"
+              }
+            ],
+            [
+              {
+                "text": "their recent or upcoming health reminders (vaccines, medication, deworming and appointments: type, title and date) and the summary of their previous checks."
               }
             ]
           ]
@@ -1780,7 +1790,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "bold": true
             },
             {
-              "text": " your name, your email or your pet's name. Please don't write personal data in the notes."
+              "text": " your name, your email or your pet's name. Please don't write personal data in the notes, the titles or the text of the check."
             }
           ]
         },
@@ -1788,14 +1798,14 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
           "type": "paragraph",
           "runs": [
             {
-              "text": "We use the paid Gemini API service. In that service Google acts as a processor: it processes the content only to return the response to us, "
+              "text": "We use Google's Gemini API. Because Kitom is provided from the European Union, Google applies the data terms of its paid service to this content: it acts as a processor, processes the content only to return the response to us, "
             },
             {
-              "text": "does not use it to train or improve its models",
+              "text": "does not use it to train or improve its products",
               "bold": true
             },
             {
-              "text": " and only keeps it for a limited time to detect abuse, under its terms. Kitom doesn't use your photos or checks to train models or for any other purpose either."
+              "text": " and only keeps it for a limited time to detect abuse and meet legal obligations, under its terms. Kitom doesn't use your photos or checks to train models or for any other purpose either."
             }
           ]
         },
@@ -2388,7 +2398,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
     },
     "terms": {
       "title": "Terms of use",
-      "effective": "Effective from 30 October 2026",
+      "effective": "Effective from 15 November 2026",
       "blocks": [
         {
           "type": "paragraph",
@@ -2468,7 +2478,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
             ],
             [
               {
-                "text": "ask for AI guidance based on a photo and the signs you notice (for now, only for dogs and cats);"
+                "text": "ask for AI guidance based on a photo, the signs you notice and what you tell us;"
               }
             ],
             [
