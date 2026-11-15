@@ -110,13 +110,20 @@
   local con `migration up --local` y pgTAP (`species_fields`, `daily_logs_read_access`; 681 en total); aplicada en
   `kitom-dev` (`db push` del usuario, 2026-11-12), `seeds/breeds.sql` reejecutado y tipos regenerados con `--linked`.
   Contrato: `docs/README.md` §15.1.
+- Migración `20261113134252_ai_guidance_v2.sql` (rama `db/ai-guidance-v2`, 2026-11-13): `ai_analysis_requests` con contexto del
+  tutor (`user_context` 1–1000, `symptom_onset`, `symptom_trend`) y resultado ampliado (`summary`, `warning_signs`,
+  `vet_questions`, `photo_observations`), CHECK de longitud y SELECT por columna; `request_ai_analysis` de 6 parámetros (los 3
+  nuevos con `DEFAULT NULL`; firma de 3 borrada; hints `ai_context_too_long`, `ai_invalid_context`); `ai_guidance_enabled` en las 9
+  especies. Señales por especie en `seed.sql` (72, con categoría). Validada en local con `migration up --local`, pgTAP
+  (`ai_guidance_v2`, 731 en total), `abuse_limits_concurrency.sh` y `db diff --local`. Aplicada en `kitom-dev` con el seed reejecutado
+  y `ai-analysis-process` desplegada (el usuario, 2026-11-15); tipos regenerados con `--linked`. Contrato: `docs/README.md` §11.
 - Lección pgTAP y seeds: `npx supabase test db` solo monta `supabase/tests`, así que un `\ir` a `seeds/` no funciona.
   Para probar un seed, una copia temporal dentro de `supabase/tests/database/` (y borrarla después).
 - Lección triggers genéricos: una función de trigger usada en dos tablas no puede leer `new.<columna>` de solo una en
   una expresión con `or`/`and`: PL/pgSQL no garantiza el cortocircuito. Usar `if` anidados.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
   `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `ai_quota`,
-  `abuse_limits`, `db_hardening`, `account_deletion_audit`, `reminders`
+  `abuse_limits`, `db_hardening`, `account_deletion_audit`, `ai_guidance_v2`, `reminders`
   (permisos de la tabla con el esquema base), `reminders_is_active`, `reminders_client_request_id`, `species_fields`,
   `daily_logs_read_access`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres

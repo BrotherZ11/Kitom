@@ -42,10 +42,11 @@ describe('campos por especie: app ↔ base de datos', { skip }, () => {
     for (const petId of cleanup) await supabase.from('pets').delete().eq('id', petId);
   });
 
-  it('las 9 especies están activas y la orientación con IA solo en perro y gato', () => {
-    for (const code of SPECIES_CODES) assert.equal(species[code]?.is_active, true, code);
-    const withGuidance = SPECIES_CODES.filter((code) => species[code].ai_guidance_enabled).sort();
-    assert.deepEqual(withGuidance, ['cat', 'dog']);
+  it('las 9 especies están activas y con orientación con IA (migración *_ai_guidance_v2)', () => {
+    for (const code of SPECIES_CODES) {
+      assert.equal(species[code]?.is_active, true, code);
+      assert.equal(species[code]?.ai_guidance_enabled, true, code);
+    }
   });
 
   it('el catálogo de la base de datos es exactamente el de la app', async () => {
@@ -142,7 +143,7 @@ describe('campos por especie: app ↔ base de datos', { skip }, () => {
     assert.deepEqual(kept.data.species_data, { hiding: false, urination: 'usual', water: 3 });
   });
 
-  it('la orientación con IA se rechaza en el servidor para una especie sin validar', async () => {
+  it('un reptil pide orientación con sus señales y contexto; una señal de otra especie se rechaza', async () => {
     const { data: pet, error } = await supabase
       .from('pets')
       .insert({ owner_id: (await supabase.auth.getUser()).data.user.id, name: 'IT gecko', species_id: species.reptile_other.id })
@@ -154,7 +155,31 @@ describe('campos por especie: app ↔ base de datos', { skip }, () => {
     const userId = (await supabase.auth.getUser()).data.user.id;
     const accepted = await supabase.from('profiles').update({ disclaimer_accepted_at: new Date().toISOString(), disclaimer_version: 'it' }).eq('id', userId);
     if (accepted.error) throw accepted.error;
-    const request = await supabase.rpc('request_ai_analysis', { target_pet_id: pet.id, p_photo_path: null, symptom_ids: [] });
-    assert.equal(request.error?.hint, 'ai_species_unsupported');
+    const { data: signs, error: signsError } = await supabase
+      .from('symptoms_catalog')
+      .select('id, code')
+      .in('code', ['retained_shed', 'vomiting']);
+    if (signsError) throw signsError;
+    const sign = (code) => signs.find((row) => row.code === code).id;
+
+    const rejected = await supabase.rpc('request_ai_analysis', { target_pet_id: pet.id, p_photo_path: null, symptom_ids: [sign('vomiting')] });
+    assert.equal(rejected.error?.hint, 'ai_invalid_symptoms');
+
+    const request = await supabase.rpc('request_ai_analysis', {
+      target_pet_id: pet.id,
+      p_photo_path: null,
+      symptom_ids: [sign('retained_shed')],
+      p_user_context: '  Le quedan restos de piel en los dedos.  ',
+      p_symptom_onset: 'days_4_7',
+      p_symptom_trend: 'same',
+    });
+    if (request.error) throw request.error;
+    const { data: row, error: rowError } = await supabase
+      .from('ai_analysis_requests')
+      .select('user_context, symptom_onset, symptom_trend')
+      .eq('id', request.data)
+      .single();
+    if (rowError) throw rowError;
+    assert.deepEqual(row, { user_context: 'Le quedan restos de piel en los dedos.', symptom_onset: 'days_4_7', symptom_trend: 'same' });
   });
 });

@@ -85,10 +85,9 @@ insert into public.pet_co_owners (pet_id, user_id, invited_by, role, status, acc
 -- 1. Catálogo
 -- ---------------------------------------------------------------------
 select is((select count(*)::int from public.species where is_active), 9, 'las 9 especies están activas');
-select results_eq(
-  $$ select code::text collate "default" from public.species where ai_guidance_enabled order by code $$,
-  $$ values ('cat'::text), ('dog'::text) $$,
-  'orientación con IA solo para perro y gato');
+-- Desde *_ai_guidance_v2.sql (2026-11-13), orientación con IA en las 9 especies.
+select is((select count(*)::int from public.species where ai_guidance_enabled), 9,
+  'orientación con IA en las 9 especies');
 select is((select count(*)::int from public.species_fields), 144, '144 filas en el catálogo (paridad con la app)');
 select is(
   (select count(*)::int from public.species_fields f join public.species s on s.id = f.species_id
@@ -301,9 +300,11 @@ reset role;
 -- ---------------------------------------------------------------------
 -- 4. Orientación con IA por especie
 -- ---------------------------------------------------------------------
+-- Todas la tienen desde *_ai_guidance_v2.sql: se desactiva una para probar el rechazo.
+update public.species set ai_guidance_enabled = false where code = 'reptile_other';
 select test_helpers.act_as('a1000000-0000-4000-8000-000000000001');
 select is(test_helpers.try($$ select public.request_ai_analysis('b1000000-0000-4000-8000-000000000004', null, '{}') $$),
-  'P0001|ai_species_unsupported', 'reptil: sin orientación con IA');
+  'P0001|ai_species_unsupported', 'especie sin orientación: se rechaza con ai_species_unsupported');
 select is(test_helpers.try($$ select public.request_ai_analysis('b1000000-0000-4000-8000-000000000002', null, '{}') $$),
   'ok', 'gato: orientación disponible');
 reset role;

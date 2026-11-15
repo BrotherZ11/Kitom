@@ -103,7 +103,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 | `get_my_pet_invitations()` / `get_pet_members(pet_id)` (migración `20261023082848`) | — (lectura) |
 | `transfer_pet_ownership(pet_id, new_owner_id)` | `pets`, `pet_co_owners` |
 | `get_ai_analysis_entitlement()` | lectura, `subscriptions` + `ai_analysis_requests` (siempre sobre `auth.uid()`) |
-| `request_ai_analysis(pet_id, photo_path, symptom_ids[])` | `ai_analysis_requests`, `ai_analysis_symptoms`, `pet_achievements` |
+| `request_ai_analysis(pet_id, photo_path, symptom_ids[] [, user_context, symptom_onset, symptom_trend])` | `ai_analysis_requests`, `ai_analysis_symptoms`, `pet_achievements`. Los tres últimos, opcionales (migración `20261113134252_ai_guidance_v2`, ver §9) |
 | `submit_ai_feedback(analysis_id, feedback, comment)` | `ai_analysis_requests` (solo columnas de feedback) |
 | `create_clinic_referral(code, source, campaign)` | `clinic_referrals` |
 | `request_generate_report(pet_id, start, end)` | solo validación, no escribe nada |
@@ -146,7 +146,10 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 (los define el usuario con `supabase secrets set`): `GEMINI_API_KEY` obligatoria; opcionales
 `GEMINI_MODEL` (por defecto `gemini-3.5-flash-lite`), `AI_PROVIDER` (`gemini` por defecto, `openai` con
 `OPENAI_API_KEY` y `OPENAI_MODEL`, o `mock`, que solo vale contra un Supabase local) y
-`AI_INPUT_USD_PER_MTOK`/`AI_OUTPUT_USD_PER_MTOK` (sin ellos `cost_usd` queda `NULL`). Respuestas: `401 not_authenticated`,
+`AI_INPUT_USD_PER_MTOK`/`AI_OUTPUT_USD_PER_MTOK` (sin ellos `cost_usd` queda `NULL`) y, desde el 2026-11-13,
+`GEMINI_FALLBACK_MODEL` (modelo de respaldo: ante un `429`/`5xx` se repite una vez con la espera que pida Google y, si
+sigue fallando o la espera supera 10 s, se prueba el respaldo; todo en 100 s). Cuerpo: `{ analysis_id, locale? }`
+(`locale` `es` | `en`, idioma de la respuesta; cualquier otro valor, español). Respuestas: `401 not_authenticated`,
 `400 invalid_request`, `404 not_found`, `403 not_authorized`, `200 { status: 'completed' | 'failed' |
 'already_processing_or_done' }`. Una fila `processing` de más de 3 min se marca `failed` (`timeout`).
 Desde la migración `20261030090318` (SEC-16; la función actualizada se despliega **después** de aplicarla,
@@ -166,13 +169,18 @@ Mobile: sube foto a Storage (pet-photos/{pet_id}/{uuid})
       — used_full_history lo decide el backend, nunca el parámetro del cliente
       — crea la fila con status='pending'
       — devuelve analysis_id
-  ↓ invoke('ai-analysis-process', { analysis_id })
+  ↓ invoke('ai-analysis-process', { analysis_id, locale })
       — se autoautoriza (JWT + requested_by = auth.uid(), ver sección 8)
       — reclama el análisis de forma atómica: pending -> processing
       — llama al proveedor de IA, actualiza status/urgency_level/
         recommendations/cost_usd/... con service_role -> completed | failed
-      — valida la salida (nunca «diagnóstico») y aplica el suelo de urgencia
-        por combinaciones de señales (borrador pendiente de validación veterinaria)
+      — contexto: perfil sin nombres, señales, texto del tutor, inicio y evolución,
+        registros (todas las escalas y notas), recordatorios de salud de los últimos
+        30 días y próximos 14, consultas completadas de los últimos 90 días, foto
+      — pautas de la especie en el prompt; salida: resumen, nivel, causas, qué hacer,
+        señales de alerta, preguntas para el veterinario y lo que se ve en la foto
+      — valida la salida (nunca «diagnóstico»/«diagnosis» ni dosis) y aplica el suelo
+        de urgencia por especie (urgency.ts; borrador pendiente de validación veterinaria)
   ↓ Mobile hace poll o se suscribe (Realtime) a esa fila hasta ver
     status != 'pending' y status != 'processing'
   ↓ opcional: rpc('submit_ai_feedback', { analysis_id, feedback })
@@ -191,6 +199,19 @@ Mobile: sube foto a Storage (pet-photos/{pet_id}/{uuid})
 Por **usuario y periodo** (mes natural), no por mascota — de lo contrario, crear más mascotas permitiría saltarse el límite. Free = 3 análisis/mes por usuario, contando todas sus mascotas. Las solicitudes con `status='failed'` no consumen cupo. **Desde la migración `20261029151011_ai_quota_and_invitation_hardening.sql`** el cupo se cuenta en `private.ai_analysis_usage` (una fila por solicitud, sin FK a `pets`; `counts` sigue al estado mediante el trigger `trg_sync_ai_analysis_usage`), porque las filas de `ai_analysis_requests` desaparecen en cascada al borrar la mascota y borrarla devolvía el cupo. `request_ai_analysis` exige además el aviso veterinario aceptado (`profiles.disclaimer_accepted_at`) y sus errores llevan `hint` estable (mismos mensajes que antes): `ai_disclaimer_required`, `ai_not_allowed`, `ai_pet_unavailable`, `ai_invalid_photo`, `ai_invalid_symptoms`, `ai_quota_exceeded`. Concurrencia: `request_ai_analysis()` toma un advisory lock transaccional por usuario (`pg_advisory_xact_lock`) antes de comprobar y gastar cupo, así que dos dispositivos del mismo usuario pidiendo IA casi a la vez no pueden gastar el mismo crédito — la segunda petición espera a que la primera confirme (o falle) antes de volver a contar.
 
 **Límites de abuso (migración `20261030090318_abuse_limits_and_db_hardening.sql`, SEC-06/SEC-21)**, para todos los planes y bajo el mismo bloqueo, después del cupo mensual: (1) con **3 análisis fallidos en el día UTC** (`private.ai_analysis_usage.failed_at`, que anota el trigger al pasar a `failed`, con `failure_code` = `error_message`), ninguno más ese día: `hint` `ai_failure_limit`. No cuenta `ai_misconfigured` (clave o proveedor mal configurados: no hay coste ni culpa del usuario). (2) **Una solicitud por minuto** por usuario (cualquier fila del registro de los últimos 60 s): `hint` `ai_rate_limited`. Un fallo sigue sin gastar cupo mensual, y los fallos, como el cupo, sobreviven al borrado de la mascota. La firma no cambia; los mensajes anteriores tampoco. Probado en `abuse_limits.test.sql` y, con sesiones simultáneas, en `supabase/tests/concurrency/abuse_limits_concurrency.sh`.
+
+**Orientación v2 (migración `20261113134252_ai_guidance_v2.sql`, 2026-11-13).** `request_ai_analysis` admite tres
+parámetros opcionales al final: `p_user_context` (texto del tutor; se recortan los espacios de los extremos, en blanco =
+`NULL`, más de 1000 caracteres: `hint` `ai_context_too_long`), `p_symptom_onset` (`today` | `days_1_3` |
+`days_4_7` | `over_week`) y `p_symptom_trend` (`better` | `same` | `worse`); un valor fuera de lista:
+`ai_invalid_context`. Se comprueban tras la foto y antes de las señales y del cupo (un contexto inválido no gasta cupo
+ni cuenta para la frecuencia). La firma de 3 parámetros se borró (sin sobrecarga): una app anterior que llama con
+`target_pet_id`, `p_photo_path` y `symptom_ids` usa la nueva. Columnas nuevas de `ai_analysis_requests`, con SELECT
+por columna para `authenticated` y sin escritura desde el cliente: entrada `user_context`, `symptom_onset`,
+`symptom_trend`; resultado (las escribe la Edge Function) `summary` (≤ 600), `warning_signs` (≤ 6 × 240),
+`vet_questions` (≤ 5 × 240) y `photo_observations` (≤ 600, `NULL` sin foto). Los co-tutores ven el contexto como ven
+la foto y las señales. La misma migración pone `species.ai_guidance_enabled = true` en las 9 especies; las señales de
+cada una están en `supabase/seed.sql` (`docs/SEED.md`). Pruebas: `ai_guidance_v2.test.sql`.
 
 ## 12. Ownership
 

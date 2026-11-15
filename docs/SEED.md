@@ -20,13 +20,13 @@ En local lo fija `config.toml` → `[db.seed] sql_paths = ["./seed.sql", "./seed
 |---|---|---|
 | `species` | 9, **todas activas** desde la migración `20261111120000_species_fields.sql` (que además las crea si faltan y pone `ai_guidance_enabled` en perro y gato) | Selector de especie al crear mascota (solo activas) |
 | `catalog_translations` (`species`, `name`) | 18 (es/en); «Ave» y «Reptil» desde 2026-11-11 (en `kitom-dev` los renombra la migración) | Nombre visible de la especie |
-| `symptoms_catalog` | 6 (lista del PRD §8.4) | Síntomas seleccionables en el análisis con IA |
-| `catalog_translations` (`symptom`, `label`) | 12 (es/en) | Etiqueta visible del síntoma |
-| `symptom_species` | 12 (6 síntomas × perro y gato) | `request_ai_analysis()` y el trigger `validate_symptom_species_compat` rechazan síntomas sin fila aquí |
+| `symptoms_catalog` | 72 con categoría (las 6 del PRD §8.4 y 66 del 2026-11-13) | Señales seleccionables en la orientación con IA, agrupadas en la pantalla por `category` |
+| `catalog_translations` (`symptom`, `label`) | 144 (es/en) | Etiqueta visible de la señal |
+| `symptom_species` | 390 (entre 35 y 50 por especie, las 9) | `request_ai_analysis()` y el trigger `validate_symptom_species_compat` rechazan señales sin fila aquí |
 | `achievements_catalog` | 4: `first_log`, `streak_7`, `first_photo_scan`, `streak_30` | Códigos que otorgan `recompute_pet_streak()` y `request_ai_analysis()` |
 | `catalog_translations` (`achievement`, `title`/`description`) | 16 (es/en) | Textos de los logros |
 
-Total: 77 filas.
+Total: 635 filas.
 
 ### `seeds/breeds.sql`
 
@@ -42,13 +42,20 @@ con razas, nombres es/en, idempotente). «Otro» no tiene catálogo: la raza se 
 
 ### Criterios
 
-- **Las 9 especies activas; IA solo para perro y gato** (decisión del 2026-11-11): la orientación con IA de
-  una especie exige vincularle síntomas en `symptom_species`, la validación veterinaria y
-  `species.ai_guidance_enabled = true` (migración). Hasta entonces `request_ai_analysis` la rechaza.
+- **Las 9 especies activas y con orientación con IA** (decisión del 2026-11-13, migración
+  `20261113134252_ai_guidance_v2.sql`, que pone `species.ai_guidance_enabled = true`; antes, solo perro y gato).
+  Cada especie tiene sus señales en `symptom_species`; la lista, sus especies y las reglas de urgencia
+  (`supabase/functions/ai-analysis-process/urgency.ts`) son un **borrador pendiente de validación veterinaria**.
 - **Hámster, ave y reptil**: la «raza» del catálogo es el **tipo** de animal (sirio, periquito, gecko leopardo…).
   Aves y reptiles: algunas especies están protegidas o reguladas (CITES, especies exóticas invasoras); el catálogo
   sirve para identificar al animal, no avala tenerlo.
-- **Síntomas**: exactamente los del PRD. Ampliar la lista requiere validación veterinaria (PRD §10).
+- **Señales** (2026-11-13): las 6 del PRD y 66 más, cada una solo en las especies donde tiene sentido (sin
+  «vómitos» en conejo, cobaya, hámster ni caballo, que no pueden vomitar; «regurgita» solo en ave y reptil; pico,
+  plumas, muda, escamas, cólico o casco solo en su especie). Categorías fijas (`general`, `digestive`, `oral`,
+  `urinary`, `respiratory`, `skin`, `ocular`, `motor`, `neuro`, `behavior`), que la app traduce
+  (`consult.signs.categories`). Una sola sentencia con CTEs, como `breeds.sql`. `urgency.test.mjs` comprueba que
+  toda señal de una regla de urgencia existe en el seed para sus especies. Reejecutado en `kitom-dev` por el usuario
+  (2026-11-15). Antes de publicar, validarlo con el veterinario (PRD §10).
 - **Logros**: los códigos coinciden con los que usa la BD; `award_pet_achievement()` ignora en
   silencio un código que no exista, así que no se deben renombrar.
 - **Razas de perro**: reconocidas por FCI/RSCE con presencia real en Europa y España, completadas con
