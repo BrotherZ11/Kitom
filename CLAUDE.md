@@ -36,7 +36,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   **no desplegados** en el remoto. Fuera del MVP; no crear migración salvo petición expresa.
 - Edge Functions: `ai-analysis-process` implementada en `supabase/functions/` (rama `feat/ai-guidance`,
   Gemini de Google AI Studio por defecto; prompt y reglas en borrador hasta que los valide un
-  veterinario). En `kitom-dev` están **desplegadas** `ai-analysis-process` (v2), `delete-account` (v1) y
+  veterinario). En `kitom-dev` están **desplegadas** `ai-analysis-process` (prompt v2, 2026-11-15), `delete-account` (v1) y
   `pet-storage-cleanup` (v1; comprobado en solo lectura el 2026-11-04). El secreto de IA no es consultable:
   pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `delete-account`: `docs/README.md` §12, con su
   pantalla en Ajustes.
@@ -134,15 +134,24 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   en APK locales; falta el DSN y el token en EAS, aún sin proyecto (`docs/DEPLOYMENT.md` §8, paso 10).
 - Registro (2026-11-04, sin migraciones): aviso legal único, textos legales en la app (`/legal/[doc]`, generados
   desde `site/`), peso y fecha plausibles por especie, y enlaces de email por la página puente
-  `site/auth/callback.html`, que exige configurar Redirect URLs y SMTP propio (`docs/SETUP_GUIDE.md`).
+  `site/auth/callback.html`, que exige configurar Redirect URLs y SMTP propio (`docs/SETUP_GUIDE.md`; Resend configurado en `kitom-dev` el 2026-11-15).
 - Fases 15 y 16 (2026-11-11, ramas `db/species-fields` y `feat/species-fields-wellness`, integradas en `main` el 2026-11-12): **campos por especie** (9 especies
   activas; ficha y registro diario con campos propios; IA solo perro y gato) y **resumen de bienestar** (resumen,
   evolución y observaciones por mascota, también sin conexión). Migración `20261111120000_species_fields.sql`
   (`species_fields`, `species_data`, `save_daily_log` con `p_species_data`, `ai_species_unsupported`): probada en local,
   aplicada en `kitom-dev` y `seeds/breeds.sql` reejecutado (`db push` y seed del usuario, 2026-11-12); tipos regenerados
-  con `--linked`. Falta redesplegar `ai-analysis-process` (lo hace el usuario). La build con esta versión exige la
+  con `--linked`. `ai-analysis-process` redesplegada con la v2 (abajo). La build con esta versión exige la
   migración en el servidor. Campos y observaciones pendientes de revisión veterinaria. Contrato: `docs/README.md` §15.1, `docs/FRONTEND_ARCHITECTURE.md` «Campos por
   especie» y «WellnessScreen»; diseño en `docs/proposals/2026-11-1{0,1}-*.md`.
+- Orientación con IA v2 (2026-11-13; ramas `db/ai-guidance-v2` y `feat/ai-guidance-v2`, integradas en `main` el 2026-11-15): migración `20261113134252_ai_guidance_v2.sql`
+  (contexto del tutor `user_context`/`symptom_onset`/`symptom_trend`, resultado `summary`/`warning_signs`/`vet_questions`/
+  `photo_observations`, `request_ai_analysis` con 3 parámetros opcionales, IA en las **9 especies**) probada en local
+  (pgTAP 731, concurrencia, `db diff`); en `kitom-dev`, migración aplicada, `supabase/seed.sql` reejecutado (72 señales por
+  especie) y `ai-analysis-process` desplegada (prompt v2, `urgency.ts`, `GEMINI_FALLBACK_MODEL` opcional), todo por el usuario
+  el 2026-11-15; tipos regenerados con `--linked`. Falta una consulta real hasta `completed`. Señales, reglas y pautas por
+  especie: borrador a validar por el veterinario. La IA usa la **cuota gratuita** de Gemini (decisión 2026-11-15): la política
+  es cierta con ella porque el responsable está en el EEE, pero los términos de Google exigen el plan de pago para ofrecer la
+  app a usuarios del EEE: activarlo antes de testers o de publicar (`docs/DEPLOYMENT.md` §8, paso 8; `docs/DECISIONS.md`).
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev` (los 4 privados, **sin límite de
   tamaño ni de tipo**, comprobado el 2026-10-28; el remoto no tiene `pg_cron` ni `pg_net`); en local solo `pet-photos`

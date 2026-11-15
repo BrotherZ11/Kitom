@@ -148,7 +148,16 @@ error y «sin mascotas».
 - Orientación con IA (2026-10-23): `src/features/ai-analysis/` (modelo puro `ai-analysis-model.ts`,
   `api/`, `hooks/`, `components/` con `ConsultGate` y las piezas del resultado) y rutas
   `(app)/pets/[id]/consult/*`. La app nunca llama al proveedor: solo `request_ai_analysis` y
-  `functions.invoke('ai-analysis-process')`. Aviso informativo en cada resultado (`ConsultDisclaimer`).
+  `functions.invoke('ai-analysis-process', { analysis_id, locale })`. Aviso informativo en cada resultado (`ConsultDisclaimer`).
+  v2 (2026-11-13): paso «Cuéntanos más» (contexto, `contextProblem`), señales agrupadas (`groupSigns`), aviso inmediato de
+  señales urgentes por especie (`urgent-signs.ts`, copia comprobada contra `supabase/functions/ai-analysis-process/urgency.ts`;
+  va en el **pie** para no mover los chips) y resultado con resumen, señales de alerta, «Para tu veterinario» y compartir
+  (`buildShareText`). Cada paso del asistente lleva `key`: si no, el `ScrollView` heredaba el desplazamiento del anterior.
+- Pantallas pequeñas (2026-11-13): probar a 320 × 568 dp y con letra al 130 % (`adb shell wm size/density`, `settings put
+  system font_scale`). Reglas aprendidas: en el contenido de `Screen`, `flexGrow` y nunca `flex: 1` (encoge en vez de desplazar);
+  avisos que aparecen al interactuar, en el pie; controles de ancho fijo junto a otros, con `flexWrap`; filas de casillas
+  según `useWindowDimensions().fontScale`; `Screen` recorta su contenido (`overflow: hidden`) para no pintar bajo la barra de
+  estado; un chip seleccionable mide lo mismo marcado y sin marcar.
 - Co-tutores (2026-10-23): `src/features/co-owners/` (modelo puro `co-owners-model.ts`, `api/` solo con RPC,
   `hooks/`, `CoOwnersGate` e `InvitationsEntry`) y rutas `(app)/pets/[id]/co-owners/*` e `(app)/invitations`.
 - Eliminar cuenta (2026-10-29): `src/features/account/` (`account-deletion.ts` puro y probado: respuestas

@@ -3,6 +3,38 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-15
+
+- **Cuota gratuita de Gemini de momento** (`DECISIONS.md` 2026-11-15): la política de privacidad describe lo que Google
+  hace con el contenido sin decir que es el plan de pago (en el EEE se aplican sus condiciones de datos también a la cuota
+  gratuita). Política y términos en vigor desde el 15-11-2026; la portada de `site/` habla de «tu mascota». El plan de
+  pago sigue haciendo falta antes de testers o usuarios del EEE (lo exigen los términos de Google).
+- En `kitom-dev` (el usuario): migración `20261113134252_ai_guidance_v2.sql` aplicada, `supabase/seed.sql` reejecutado y
+  `ai-analysis-process` desplegada con el prompt v2; SMTP con Resend configurado. Tipos regenerados con `--linked`.
+
+## 2026-11-13
+
+Orientación con IA v2, señales por especie, auditoría de producción y pantallas pequeñas (ramas `db/ai-guidance-v2` y
+`feat/ai-guidance-v2`, integradas en `main` el 2026-11-15; migración `20261113134252_ai_guidance_v2.sql`):
+
+- **Orientación para las 9 especies**, con **72 señales** agrupadas por categoría y vinculadas solo a las especies
+  donde tienen sentido (35–50 por especie). Al marcar una que es urgente en esa especie (un gato que no consigue
+  orinar, un conejo que no come o no hace heces, arcadas sin vómito en un perro, un ave en el suelo de la jaula…), aviso
+  inmediato con «Urgencias veterinarias cercanas».
+- **Paso nuevo «Cuéntanos más»**: desde cuándo, cómo evoluciona y un cuadro de texto (≤ 1000). Se puede pedir sin
+  señales si se escribe qué pasa.
+- **Resultado más completo**: resumen, lo que se ve en la foto, posibles causas, qué hacer, «Acude al veterinario ya
+  si…», «Para tu veterinario» y **compartir el resumen**. En el idioma de la app (español o inglés).
+- **Edge Function**: más contexto (todas las escalas y notas del registro, carácter, recordatorios de salud recientes,
+  consultas anteriores), pautas por especie en el prompt, reglas de urgencia por especie (`urgency.ts`), filtro de
+  dosis y de «diagnosis», y reintento con modelo de respaldo opcional (`GEMINI_FALLBACK_MODEL`) ante los `429`/`503`
+  del plan gratuito.
+- **Pantallas pequeñas y letra grande** (emulador a 320 y 360 dp, letra al 130 %): bienvenida, aviso veterinario,
+  resumen de Hoy, barra de estado, pasos de la consulta, chips, barra de pestañas y agenda (`TESTING.md`).
+- **Textos**: «tu mascota» en vez de «tu perro o gato»; la privacidad del registro incluye a los co-tutores; política y
+  términos (`site/`) con los datos nuevos que se envían a la IA (pendiente de publicar).
+- **Pruebas:** pgTAP 731, unitarias 1006, integración 81, Edge Functions 83.
+
 ## 2026-11-11
 
 Campos por especie y resumen de bienestar (ramas `db/species-fields` y `feat/species-fields-wellness`; migración

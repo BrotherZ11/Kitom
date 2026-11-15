@@ -9,12 +9,12 @@ producto: nunca «diagnóstico» ni «diagnostica»; se habla de «orientación�
 
 **Nombre** (máx. 30): `Kitom: bienestar de tu mascota`
 
-**Descripción breve** (máx. 80): `Registra cómo está tu perro o gato cada día y entiende sus cambios.`
+**Descripción breve** (máx. 80): `Registra cómo está tu mascota cada día y entiende sus cambios.`
 
 **Descripción completa** (máx. 4000):
 
 ```text
-El buen cuidado es una suma de días. Kitom te ayuda a registrar en menos de un minuto cómo está tu perro o tu gato, a entender sus cambios y a saber cuándo conviene ir al veterinario.
+El buen cuidado es una suma de días. Kitom te ayuda a registrar en menos de un minuto cómo está tu mascota (perro, gato, conejo, cobaya, hámster, caballo, ave o reptil), a entender sus cambios y a saber cuándo conviene ir al veterinario.
 
 REGISTRA SU DÍA
 Energía, apetito, ánimo y actividad en unos segundos. Funciona también sin conexión: lo guardamos en tu móvil y lo subimos cuando vuelvas a tener red.
@@ -45,12 +45,12 @@ Kitom ofrece orientación general sobre el bienestar de tu mascota. No es una va
 
 **Name** (max 30): `Kitom: pet wellbeing tracker`
 
-**Short description** (max 80): `Log how your dog or cat is doing each day and understand their changes.`
+**Short description** (max 80): `Log how your pet is doing each day and understand their changes.`
 
 **Full description** (max 4000):
 
 ```text
-Good care is a sum of days. Kitom helps you log how your dog or cat is doing in under a minute, understand their changes and know when it's worth seeing a vet.
+Good care is a sum of days. Kitom helps you log how your pet (dog, cat, rabbit, guinea pig, hamster, horse, bird or reptile) is doing in under a minute, understand their changes and know when it's worth seeing a vet.
 
 LOG THEIR DAY
 Energy, appetite, mood and activity in seconds. It also works offline: we keep it on your phone and upload it when you're back online.
@@ -105,6 +105,9 @@ Recogidos, cifrados en tránsito y con eliminación a petición del usuario. Nin
 - **Compartidos:** Supabase, Google (Gemini) y Sentry actúan como proveedores de servicio por cuenta de Kitom; según la
   definición de Play eso no suele contar como «compartir». **A validar:** la foto y los datos de la mascota salen hacia Google
   para preparar la orientación, y debe quedar reflejado como corresponda.
+- **IA y plan de Gemini** (2026-11-15): la ficha no nombra el plan. Con la cuota gratuita, Google trata el contenido como
+  encargado porque el responsable está en el EEE (`DECISIONS.md`), así que Data Safety no cambia; pero sus términos exigen el
+  plan de pago para ofrecer la app a usuarios del EEE: activarlo antes de la prueba cerrada.
 - **Datos de salud:** son de la mascota, no del usuario. Comprobar si el formulario pide declararlos igualmente.
 - **Sin** ubicación, contactos, identificadores publicitarios ni seguimiento entre apps. **A validar:** los informes de Sentry
   salen del dispositivo con la IP y, en los cierres nativos, con un identificador de instalación; las reglas del panel los

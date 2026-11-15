@@ -214,7 +214,7 @@ prueba de verificación · estado.
 |---|---|
 | SEC-01, SEC-05, SEC-07 (`pet-photos`), SEC-10, SEC-11, SEC-12 (`search_path`) | corregidos y **aplicados en `kitom-dev`** (migración `20261029151011`) |
 | SEC-02 | corregido en el código (`delete-account`, descarga de datos); **falta desplegar** la función |
-| SEC-03 | textos publicables y consentimiento exacto; faltan activar GitHub Pages, la revisión legal y el **plan de pago de Gemini** (los textos ya lo presuponen) |
+| SEC-03 | textos publicables y consentimiento exacto, ciertos también con la cuota gratuita en el EEE (2026-11-15); faltan publicar `site/` y la revisión legal. El **plan de pago de Gemini** sigue haciendo falta antes de usuarios del EEE por los términos de Google |
 | SEC-04 | mitigado (20 invitaciones/24 h, identidad oculta de pendientes): migración `20261030090318`, **sin aplicar**; riesgo residual documentado (una fila pendiente sigue revelando que el email tiene cuenta) |
 | SEC-06, SEC-18, SEC-21 | corregidos en la migración `20261030090318`, **sin aplicar** |
 | SEC-08 | mitigado: copia de Android desactivada (`allowBackup: false`), borrado local al eliminar la cuenta y al cerrar sesión con todo subido. Queda sin cifrar mientras la sesión está abierta o si el usuario conserva cambios pendientes (riesgo aceptado para la v1) |

@@ -530,8 +530,8 @@ el Supabase local en `api/reminders.integration.test.mjs`; hooks en `hooks/use-r
 ### AIAnalysisScreen
 - **READ:** `pets`, `ai_analysis_requests` (columnas públicas solamente — `select('*')` fallará a propósito), `symptoms_catalog` + `symptom_species` (filtrado por especie), `ai_analysis_symptoms`
 - **WRITE:** ninguna escritura directa sobre campos internos de IA
-- **RPC:** `get_ai_analysis_entitlement()` (antes de mostrar el botón), `request_ai_analysis(pet_id, photo_path, symptom_ids)`, `submit_ai_feedback(analysis_id, feedback, comment)` — **solo puede modificar el feedback de sus propias solicitudes** (`requested_by = auth.uid()`); un co-tutor puede ver el análisis de otro pero no valorarlo por él
-- **Edge Function:** `ai-analysis-process(analysis_id)`, invocada justo después de que el RPC devuelva el `analysis_id`. **Importante para frontend:** esta llamada NO es un mero "disparo y olvido" confiando en que `request_ai_analysis()` ya autorizó todo — la Edge Function vuelve a validar el JWT y `requested_by` por su cuenta en cada invocación; si el frontend la reintenta o la llama para un `analysis_id` ajeno, recibirá `403 not_authorized`
+- **RPC:** `get_ai_analysis_entitlement()` (antes de mostrar el botón), `request_ai_analysis(pet_id, photo_path, symptom_ids [, user_context, symptom_onset, symptom_trend])`, `submit_ai_feedback(analysis_id, feedback, comment)` — **solo puede modificar el feedback de sus propias solicitudes** (`requested_by = auth.uid()`); un co-tutor puede ver el análisis de otro pero no valorarlo por él
+- **Edge Function:** `ai-analysis-process(analysis_id, locale)`, invocada justo después de que el RPC devuelva el `analysis_id`. **Importante para frontend:** esta llamada NO es un mero "disparo y olvido" confiando en que `request_ai_analysis()` ya autorizó todo — la Edge Function vuelve a validar el JWT y `requested_by` por su cuenta en cada invocación; si el frontend la reintenta o la llama para un `analysis_id` ajeno, recibirá `403 not_authorized`
 - **Storage:** `pet-photos` (insert, antes de llamar al RPC)
 
 **Implementado (2026-10-23)** en `features/ai-analysis/` y `(app)/pets/[id]/consult/*`. Entradas: botón
@@ -559,6 +559,25 @@ del estetoscopio en Hoy (si puede editar la mascota) y «Consultar con una foto�
   solicitud pudo crearse con ella). Un `completed` sin nivel de urgencia se muestra como fallido
   (`resultScreen`), y un reintento manual que falla muestra el error. El nombre del objeto usa
   `createOperationId` (`buildPetPhotoPath(petId, objectId)`).
+- **Orientación v2 (2026-11-13, migración `20261113134252_ai_guidance_v2.sql`; necesita los tipos regenerados).**
+  - Disponible en las 9 especies. Señales de la especie agrupadas por `symptoms_catalog.category`
+    (`groupSigns`, orden fijo `SIGN_CATEGORIES`; textos `consult.signs.categories`). Al marcar una que es urgente
+    en esa especie (`urgent-signs.ts`, copia de las reglas `urgent` de una sola señal de la Edge Function,
+    comprobada por `urgency.test.mjs`), aviso en el **pie** con «Urgencias veterinarias cercanas»: en el pie no
+    desplaza los chips mientras se eligen. Se puede seguir sin señales.
+  - Paso nuevo **«Cuéntanos más»** (3/4): desde cuándo (`SYMPTOM_ONSETS`), cómo va (`SYMPTOM_TRENDS`) y texto libre
+    (`MAX_CONTEXT_LENGTH` = 1000, `maxLength` en el campo). Sin señales, el texto es obligatorio (≥
+    `MIN_CONTEXT_WITHOUT_SIGNS` = 10; `contextProblem`). Se envía con `request_ai_analysis(…, p_user_context,
+    p_symptom_onset, p_symptom_trend)` (solo los que hay; en blanco = sin contexto). Errores nuevos por `hint`:
+    `ai_context_too_long`, `ai_invalid_context`. La revisión muestra el contexto; un reintento de un `failed`
+    reenvía el mismo contexto.
+  - La app manda su idioma a la Edge Function (`{ analysis_id, locale }`): la orientación llega en español o inglés.
+  - **Resultado:** «En resumen» (`summary`), la foto con «En la foto» (`photo_observations`), posibles causas, qué
+    hacer, «Acude al veterinario ya si…» (`warning_signs`, sobre fondo de peligro), «Para tu veterinario»
+    (`vet_questions`), «Compartir el resumen» (menú de compartir del sistema con `buildShareText`: texto plano con
+    las secciones que tienen contenido y el aviso informativo) y «Lo que contaste». Una consulta anterior a v2 (sin
+    esas columnas rellenas) se ve como antes. La lista muestra el resumen o, sin él, la primera causa.
+  - `ANALYSIS_COLUMNS` incluye las columnas nuevas, así que la exportación de datos también las lleva.
 
 ### AchievementsScreen
 **Implementado (2026-10-21)**: `pets/[id]/achievements` (entrada desde el perfil y la tarjeta de racha).

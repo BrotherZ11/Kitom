@@ -3,6 +3,61 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-15 — Cuota gratuita de Gemini de momento; textos legales sin depender del plan
+
+**Contexto.** El responsable decidió seguir con la cuota gratuita de la Gemini API de momento y pidió cambiar la política,
+el texto de la consulta y la ficha de Play, que daban por hecho el plan de pago. Los
+[términos adicionales de la Gemini API](https://ai.google.dev/gemini-api/terms) (en vigor desde el 23-3-2026) dicen:
+
+- Con servicios gratuitos, Google usa el contenido para mejorar sus productos y puede revisarlo una persona; pide no
+  enviar datos personales ni sensibles.
+- **Excepción:** a quien está en el EEE, Suiza o Reino Unido se le aplican las condiciones de datos del servicio de pago a
+  **todos** los servicios, también a la cuota gratuita: Google no usa el contenido para mejorar sus productos, lo trata
+  como encargado y lo guarda un tiempo limitado para detectar abusos.
+- Para ofrecer una app a usuarios del EEE, Suiza o Reino Unido **solo** se pueden usar servicios de pago.
+
+**Decisiones.**
+
+- El responsable está en España: la política describe lo que Google hace con el contenido (encargado, sin uso para
+  mejorar sus productos, conservación limitada) **sin decir que es el plan de pago**, porque es cierto con los dos. La
+  consulta y la ficha de Play no nombraban el plan y siguen siendo exactas: no se cambian.
+- Se mantiene **activar la facturación antes de la prueba cerrada con testers del EEE o de publicar**: lo exigen los
+  términos de Google, no la política. Con la cuota gratuita, solo pruebas propias.
+- Política y términos en vigor desde el 15-11-2026 (también recogen los datos nuevos de la v2 y todas las especies).
+
+**Consecuencias.** `DEPLOYMENT.md` §8, paso 8, y `PROJECT_STATUS.md` §8 cambian el motivo del bloqueo. Si el responsable
+deja de estar en el EEE, la política deja de ser cierta con la cuota gratuita.
+
+## 2026-11-13 — Orientación con IA v2: contexto del tutor, todas las especies y resultado ampliado
+
+**Contexto.** El responsable pidió completar la orientación con IA («muy básica»), añadir un cuadro de texto para dar
+contexto y ajustar las señales a cada especie. Aprobó la migración propuesta y activar la orientación en las 9
+especies (sustituye a «solo perro y gato» del 2026-11-11).
+
+**Decisiones.**
+
+- **Contexto del tutor en la solicitud**, no solo en el cliente: `request_ai_analysis` recibe `p_user_context` (≤ 1000,
+  en blanco = `NULL`), `p_symptom_onset` y `p_symptom_trend` (listas cerradas), y los guarda en la fila. Así la Edge
+  Function lo lee de la base de datos tras autorizarse, el reintento de un `failed` lo reutiliza y los co-tutores lo
+  ven. Se borró la firma de 3 parámetros (dos sobrecargas confunden a PostgREST); las apps anteriores siguen
+  funcionando porque los nuevos tienen valor por defecto. El texto se trata como **dato, no instrucciones** (el prompt
+  lo dice y va entre comillas).
+- **Resultado en columnas tipadas** (`summary`, `warning_signs`, `vet_questions`, `photo_observations`) con CHECK de
+  longitud, en vez de un `jsonb`: se leen con SELECT por columna como el resto y una consulta antigua sigue
+  mostrándose igual (columnas vacías).
+- **Señales por especie en el seed** (catálogo), con categoría para agruparlas; ninguna regla depende de una señal que
+  no exista en su especie (`urgency.test.mjs`). **Reglas de urgencia por especie** en la Edge Function
+  (`urgency.ts`); la app tiene la copia de las `urgent` de una sola señal para avisar antes de enviar.
+- **Idioma de la respuesta** en el cuerpo de la invocación (`locale`), sin columna: la app lo sabe y el prompt fija las
+  reglas en cualquier idioma.
+- **Plan gratuito de Gemini**: reintento corto ante `429`/`5xx` y modelo de respaldo opcional (`GEMINI_FALLBACK_MODEL`).
+  No cambia que el plan gratuito **no** vale para usuarios reales (motivo corregido el 2026-11-15, arriba).
+- **Filtros de salida**: además de «diagnóstico» (también «diagnosis»), se descarta toda frase con una dosis.
+
+**Consecuencias.** Orden de despliegue: `db push` → reejecutar `supabase/seed.sql` → regenerar tipos → desplegar
+`ai-analysis-process` (lee las columnas nuevas) → build. Señales, reglas y pautas por especie son un **borrador** que
+debe validar el veterinario asesor antes de publicar, igual que el prompt (`PROMPT_VERSION = 'draft-2026-11-13'`).
+
 ## 2026-11-11 — Campos por especie (9 especies) y resumen de bienestar
 
 **Contexto.** El responsable aprobó la propuesta del resumen de bienestar
