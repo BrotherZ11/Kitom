@@ -70,7 +70,7 @@ describe('Gemini', () => {
   });
 
   it('sin saldo o con la clave mal: mal configurado; límite o caída: no disponible (sin repetir el cuerpo)', async () => {
-    const provider = providerFromEnv(env({ GEMINI_API_KEY: 'k' }));
+    const provider = providerFromEnv(env({ GEMINI_API_KEY: 'k' }), { sleep: async () => undefined });
     stubFetch(402, { error: { code: 402, status: 'RESOURCE_EXHAUSTED', message: 'Your prepayment credits are depleted' } });
     await assert.rejects(provider(request), (error) => {
       assert.equal(error.code, 'ai_misconfigured');
@@ -81,6 +81,61 @@ describe('Gemini', () => {
     await assert.rejects(provider(request), (error) => error.code === 'ai_unavailable');
     stubFetch(503, {});
     await assert.rejects(provider(request), (error) => error.code === 'ai_unavailable' && error.message === 'gemini_http_503');
+  });
+
+  it('un 429 o 503 pasajero se repite una vez con la espera que pide Google', async () => {
+    const waits = [];
+    const responses = [
+      [429, { error: { status: 'RESOURCE_EXHAUSTED', details: [{ '@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay: '3s' }] } }],
+      [200, { candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"urgency_level":"observe"}' }] } }] }],
+    ];
+    const calls = [];
+    globalThis.fetch = async (url) => {
+      calls.push(url);
+      const [status, body] = responses.shift();
+      return new Response(JSON.stringify(body), { status });
+    };
+    const provider = providerFromEnv(env({ GEMINI_API_KEY: 'k' }), { sleep: async (ms) => void waits.push(ms) });
+    const result = await provider(request);
+    assert.deepEqual(result.output, { urgency_level: 'observe' });
+    assert.equal(calls.length, 2);
+    assert.deepEqual(waits, [3000]);
+  });
+
+  it('con una espera larga o tras dos fallos prueba el modelo de respaldo', async () => {
+    const urls = [];
+    globalThis.fetch = async (url) => {
+      urls.push(url);
+      if (url.includes('principal')) {
+        return new Response(
+          JSON.stringify({ error: { status: 'RESOURCE_EXHAUSTED', details: [{ '@type': 'x.RetryInfo', retryDelay: '40s' }] } }),
+          { status: 429 }
+        );
+      }
+      return new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"ok":1}' }] } }] }), { status: 200 });
+    };
+    const provider = providerFromEnv(env({ GEMINI_API_KEY: 'k', GEMINI_MODEL: 'principal', GEMINI_FALLBACK_MODEL: 'respaldo' }), {
+      sleep: async () => assert.fail('no debe esperar 40 s'),
+    });
+    const result = await provider(request);
+    assert.deepEqual(result.output, { ok: 1 });
+    assert.equal(urls.length, 2);
+    assert.match(urls[1], /models\/respaldo:generateContent$/);
+  });
+
+  it('sin saldo (402) no se repite ni pasa al respaldo', async () => {
+    const calls = stubFetch(402, { error: { status: 'RESOURCE_EXHAUSTED' } });
+    const provider = providerFromEnv(env({ GEMINI_API_KEY: 'k', GEMINI_FALLBACK_MODEL: 'respaldo' }), { sleep: async () => undefined });
+    await assert.rejects(provider(request), (error) => error.code === 'ai_misconfigured');
+    assert.equal(calls.length, 1);
+  });
+
+  it('una respuesta que no es JSON se repite una vez', async () => {
+    const bodies = ['no es json', '{"urgency_level":"observe"}'];
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: bodies.shift() }] } }] }), { status: 200 });
+    const result = await providerFromEnv(env({ GEMINI_API_KEY: 'k' }), { sleep: async () => undefined })(request);
+    assert.deepEqual(result.output, { urgency_level: 'observe' });
   });
 
   it('respuesta bloqueada o cortada: no disponible', async () => {

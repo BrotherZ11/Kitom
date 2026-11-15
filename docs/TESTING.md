@@ -89,6 +89,34 @@ APK de release en emulador Android, contra el Supabase local, con una ruta tempo
 - Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
 - **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
 
+### Orientación con IA v2 y pantallas pequeñas (2026-11-13)
+
+Contra el Supabase local con las 19 migraciones (`migration up --local`, sin `db reset`) y el seed reejecutado:
+
+| Comando | Resultado |
+|---|---|
+| `npx supabase test db` | 731/731 (nueva: `ai_guidance_v2.test.sql`, 50 casos; `species_fields.test.sql` actualizado: IA en las 9 especies y el rechazo `ai_species_unsupported` probado desactivando una) |
+| `abuse_limits_concurrency.sh` | correcto con la firma nueva de `request_ai_analysis` |
+| `npx supabase db diff --local` | sin diferencias en los objetos de `20261113134252` (solo el ruido conocido de `pg-delta`) |
+| `npm test` | 1006/1006 (nuevas: contexto, señales agrupadas, señales urgentes por especie, texto para compartir) |
+| `npm run test:integration` | 81/81 (`species-fields-parity` reescrita: un reptil pide orientación con sus señales y contexto; «vómitos» se rechaza en reptil) |
+| Unitarias de Edge Functions | 83/83 (`ai-analysis-process`: prompt v2, filtros de dosis y «diagnosis», reintentos y modelo de respaldo de Gemini, `urgency.test.mjs` con paridad app/servidor/seed) |
+| `expo lint` | correcto |
+| `tsc` | correcto tras regenerar `database.types.ts` con `--linked` (2026-11-15, migración aplicada en `kitom-dev`) |
+
+A mano, con `ai-analysis-process` servida en local con `AI_PROVIDER=mock`:
+
+- **Web (Playwright, 360 × 740):** consulta de un conejo de principio a fin: señales agrupadas, aviso urgente al marcar
+  «No hace heces» (en el pie, sin mover los chips; posiciones medidas antes y después), contexto, revisión y resultado
+  `urgent` por la regla de especie, con resumen, señales de alerta, «Para tu veterinario», compartir y «Lo que contaste».
+  Barrido de 21 rutas a 320 × 568 sin desbordes horizontales.
+- **Emulador Android (Expo Go, 360 × 640 dp y 320 × 568 dp, letra al 100 % y al 130 %):** alta de cuenta, configuración
+  inicial, gata con registro del día y consulta urgente («Hace fuerza para orinar»). Corregido en esta sesión: texto de la
+  bienvenida bajo los botones, casilla del aviso veterinario fuera de la vista, casillas del resumen de Hoy cortadas,
+  contenido dibujado bajo la barra de estado, pasos de la consulta que heredaban el desplazamiento, chips que cambiaban
+  de ancho al marcarlos, etiquetas de la barra de pestañas sin límite de escala y día/hora de la agenda cortados a 320 dp.
+- **Sin probar:** Gemini real con el prompt v2 (lo despliega el usuario), foto en la consulta, build nativa y móvil físico.
+
 ### Campos por especie y resumen de bienestar (2026-11-11, fases 15 y 16)
 
 Contra el Supabase local con las 18 migraciones (`migration up --local`, sin `db reset`):

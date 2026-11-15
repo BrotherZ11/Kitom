@@ -54,6 +54,9 @@ export default function SetupDisclaimerScreen() {
       <Button label={t('common.back')} variant="secondary" onPress={back} />
     ) : (
       <>
+        {/* La casilla va en el pie, junto al botón: en un móvil bajo quedaba fuera de la vista y el botón
+            desactivado pedía marcar algo que no se veía. */}
+        <Checkbox checked={accepted} onChange={setAccepted} label={t('setup.disclaimer.accept')} />
         {error ? <Alert tone="error" message={error} /> : null}
         <Button
           label={t('setup.disclaimer.submit')}
@@ -88,9 +91,7 @@ export default function SetupDisclaimerScreen() {
             version: DISCLAIMER_VERSION,
           })}
         </Text>
-      ) : (
-        <Checkbox checked={accepted} onChange={setAccepted} label={t('setup.disclaimer.accept')} />
-      )}
+      ) : null}
     </SetupFrame>
   );
 }

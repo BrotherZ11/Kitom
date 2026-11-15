@@ -2,7 +2,14 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  buildShareText,
   canDiscardUploadedPhoto,
+  contextProblem,
+  groupSigns,
+  isSymptomOnset,
+  isSymptomTrend,
+  MAX_CONTEXT_LENGTH,
+  normalizeContext,
   isTerminal,
   nextMonthStart,
   pollState,
@@ -12,6 +19,7 @@ import {
   toggleSymptom,
   toRequestErrorCode,
 } from './ai-analysis-model.ts';
+import { hasUrgentSign, urgentSignsFor } from './urgent-signs.ts';
 
 describe('estado del análisis', () => {
   it('completed y failed son finales', () => {
@@ -94,5 +102,113 @@ describe('toggleSymptom', () => {
     assert.deepEqual(toggleSymptom([], 'c', order), ['c']);
     assert.deepEqual(toggleSymptom(['c'], 'a', order), ['a', 'c']);
     assert.deepEqual(toggleSymptom(['a', 'c'], 'a', order), ['c']);
+  });
+});
+
+describe('contexto del tutor', () => {
+  it('se guarda sin espacios en los extremos y en blanco es null', () => {
+    assert.equal(normalizeContext('  cojea  '), 'cojea');
+    assert.equal(normalizeContext(' \n '), null);
+  });
+
+  it('hace falta una señal o un texto suficiente, y nunca más del máximo', () => {
+    assert.equal(contextProblem('', 1), null);
+    assert.equal(contextProblem('corto', 0), 'required');
+    assert.equal(contextProblem('   Cojea desde ayer   ', 0), null);
+    assert.equal(contextProblem('a'.repeat(MAX_CONTEXT_LENGTH), 0), null);
+    assert.equal(contextProblem('a'.repeat(MAX_CONTEXT_LENGTH + 1), 3), 'too_long');
+  });
+
+  it('inicio y evolución de una lista cerrada (la misma que el CHECK)', () => {
+    assert.equal(isSymptomOnset('days_4_7'), true);
+    assert.equal(isSymptomOnset('yesterday'), false);
+    assert.equal(isSymptomTrend('same'), true);
+    assert.equal(isSymptomTrend(null), false);
+  });
+
+  it('los nuevos hint del servidor tienen su código', () => {
+    assert.equal(toRequestErrorCode({ hint: 'ai_context_too_long' }), 'context_too_long');
+    assert.equal(toRequestErrorCode({ hint: 'ai_invalid_context' }), 'invalid_context');
+  });
+});
+
+describe('señales', () => {
+  it('se agrupan por categoría en el orden fijo, con las desconocidas al final', () => {
+    const groups = groupSigns([
+      { id: 'a', category: 'skin' },
+      { id: 'b', category: 'general' },
+      { id: 'c', category: null },
+      { id: 'd', category: 'skin' },
+      { id: 'e', category: 'rara' },
+    ]);
+    assert.deepEqual(
+      groups.map((group) => [group.category, group.signs.map((sign) => sign.id)]),
+      [
+        ['general', ['b']],
+        ['skin', ['a', 'd']],
+        ['other', ['c', 'e']],
+      ]
+    );
+  });
+
+  it('las urgentes dependen de la especie', () => {
+    assert.equal(hasUrgentSign('cat', ['straining_to_urinate']), true);
+    assert.equal(hasUrgentSign('dog', ['straining_to_urinate']), false);
+    assert.equal(hasUrgentSign('rabbit', ['not_eating', 'limping']), true);
+    assert.equal(hasUrgentSign(null, ['seizures']), true);
+    assert.ok(urgentSignsFor('dog').includes('unproductive_retching'));
+  });
+});
+
+describe('compartir el resumen', () => {
+  const labels = {
+    title: 'Orientación para Luna',
+    date: 'Fecha: 13 nov',
+    level: 'Nivel: Observar',
+    signs: 'Señales: Cojera',
+    summary: 'En resumen',
+    causes: 'Posibles causas',
+    todo: 'Qué hacer',
+    warning: 'Acude ya si…',
+    vet: 'Para tu veterinario',
+    yourContext: 'Lo que contaste',
+    footer: 'Informativo.',
+  };
+
+  it('incluye solo las secciones con contenido', () => {
+    const text = buildShareText(
+      {
+        summary: 'Una molestia leve.',
+        possible_causes: ['Un golpe.'],
+        recommendations: ['Reposo.'],
+        warning_signs: [],
+        vet_questions: null,
+        user_context: 'Cojea desde ayer.',
+      },
+      labels
+    );
+    assert.equal(
+      text,
+      [
+        'Orientación para Luna',
+        'Fecha: 13 nov',
+        'Nivel: Observar',
+        'Señales: Cojera',
+        '',
+        'Lo que contaste',
+        'Cojea desde ayer.',
+        '',
+        'En resumen',
+        'Una molestia leve.',
+        '',
+        'Posibles causas',
+        '• Un golpe.',
+        '',
+        'Qué hacer',
+        '• Reposo.',
+        '',
+        'Informativo.',
+      ].join('\n')
+    );
   });
 });

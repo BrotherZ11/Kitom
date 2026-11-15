@@ -40,6 +40,11 @@ export function Chip({
   const feedback = usePressFeedback();
   const isSelectable = selected !== undefined;
   const leadingIcon = selected ? Check : icon;
+  // Un chip seleccionable sin icono propio mide lo mismo marcado y sin marcar: sin marcar reparte a los
+  // dos lados el hueco del ✓, y el padding descuenta el borde (más grueso al marcarlo). Si no, al tocar
+  // uno se ensancha y los siguientes pueden saltar de línea.
+  const border = selected ? borderWidth.control : borderWidth.hairline;
+  const sidePadding = isSelectable && !icon && !selected ? CHIP_PADDING + CHECK_SLOT / 2 : CHIP_PADDING;
 
   return (
     <Pressable
@@ -62,8 +67,9 @@ export function Chip({
           style={[
             styles.base,
             selected
-              ? { backgroundColor: theme.surfaceBrand, borderWidth: borderWidth.control, borderColor: theme.primary }
-              : { backgroundColor: theme.surface, borderWidth: borderWidth.hairline, borderColor: theme.line },
+              ? { backgroundColor: theme.surfaceBrand, borderWidth: border, borderColor: theme.primary }
+              : { backgroundColor: theme.surface, borderWidth: border, borderColor: theme.line },
+            { paddingHorizontal: sidePadding - border },
             disabled && styles.disabled,
             feedback.animatedStyle,
           ]}>
@@ -85,13 +91,17 @@ export function Chip({
   );
 }
 
+/** Margen lateral del diseño (14) y hueco del ✓ (icono de 16 + separación de 6). */
+const CHIP_PADDING = 14;
+const ICON_GAP = 6;
+const CHECK_SLOT = 16 + ICON_GAP;
+
 const styles = StyleSheet.create({
   base: {
     minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
+    gap: ICON_GAP,
     paddingVertical: spacing['1'],
     borderRadius: radius.full,
     overflow: 'hidden',

@@ -1,18 +1,21 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Share, StyleSheet, View } from 'react-native';
 
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { CalendarDays, CircleAlert, RefreshCw, X } from '@/components/ui/icons';
+import { CalendarDays, CircleAlert, RefreshCw, Share2, TriangleAlert, X } from '@/components/ui/icons';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TopBar } from '@/components/ui/top-bar';
 import { useAuth } from '@/features/auth/auth-context';
 import {
+  buildShareText,
+  isSymptomOnset,
+  isSymptomTrend,
   pollState,
   REINVOKE_AFTER_MS,
   resultScreen,
@@ -143,6 +146,7 @@ function PreparingView({ analysis, onClose }: { analysis: Analysis; onClose: () 
 
 function ResultView({ pet, analysis, onClose }: { pet: Pet; analysis: Analysis; onClose: () => void }) {
   const router = useRouter();
+  const theme = useTheme();
   const { user } = useAuth();
   const level = analysis.urgency_level ?? 'observe';
   const urgent = level === 'urgent';
@@ -152,6 +156,34 @@ function ResultView({ pet, analysis, onClose }: { pet: Pet; analysis: Analysis; 
   const photoUrl = usePetPhotoUrl(analysis.photo_path);
   const signs = useSignLabels(pet, analysis.id);
   const value = pending ?? analysis.feedback ?? null;
+  const [shareError, setShareError] = useState(false);
+  const date = formatFullDate(new Date(analysis.created_at), getLocale());
+  const onset = isSymptomOnset(analysis.symptom_onset) ? analysis.symptom_onset : null;
+  const trend = isSymptomTrend(analysis.symptom_trend) ? analysis.symptom_trend : null;
+  const warningSigns = analysis.warning_signs ?? [];
+  const vetQuestions = analysis.vet_questions ?? [];
+
+  const share = async () => {
+    setShareError(false);
+    const message = buildShareText(analysis, {
+      title: tf('consult.result.shareTitle', { name: pet.name }),
+      date: tf('consult.result.shareDate', { date }),
+      level: tf('consult.result.shareLevel', { level: t(`consult.result.urgency.${level}`) }),
+      signs: signs ? tf('consult.result.shareSigns', { list: signs }) : null,
+      summary: t('consult.result.summary'),
+      causes: t('consult.result.causes'),
+      todo: t('consult.result.todo'),
+      warning: t('consult.result.warning'),
+      vet: t('consult.result.vet'),
+      yourContext: t('consult.result.yourContext'),
+      footer: t('consult.result.shareFooter'),
+    });
+    try {
+      await Share.share({ message, title: tf('consult.result.shareTitle', { name: pet.name }) });
+    } catch {
+      setShareError(true);
+    }
+  };
 
   return (
     <Screen
@@ -173,8 +205,24 @@ function ResultView({ pet, analysis, onClose }: { pet: Pet; analysis: Analysis; 
       <UrgencyPanel level={level} petName={pet.name} />
       {/* Urgente: primero cómo actuar; la valoración, al final (tablero 7.11). */}
       {urgent ? <EmergencyHint prominent /> : null}
+      {analysis.summary ? (
+        <View style={styles.section}>
+          <Text variant="title3" accessibilityRole="header">
+            {t('consult.result.summary')}
+          </Text>
+          <Text variant="bodyLg">{analysis.summary}</Text>
+        </View>
+      ) : null}
       {photoUrl.data ? (
-        <Image source={{ uri: photoUrl.data }} style={styles.photo} contentFit="cover" accessibilityLabel={t('consult.result.photoA11y')} />
+        <View style={styles.photoBlock}>
+          <Image source={{ uri: photoUrl.data }} style={styles.photo} contentFit="cover" accessibilityLabel={t('consult.result.photoA11y')} />
+          {analysis.photo_observations ? (
+            <Text color="inkMuted">
+              <Text variant="bodyStrong" color="inkMuted">{`${t('consult.result.photo')}: `}</Text>
+              {analysis.photo_observations}
+            </Text>
+          ) : null}
+        </View>
       ) : null}
       <View style={styles.section}>
         <Text variant="title3" accessibilityRole="header">
@@ -188,13 +236,57 @@ function ResultView({ pet, analysis, onClose }: { pet: Pet; analysis: Analysis; 
         </Text>
         <BulletList items={analysis.recommendations ?? []} />
       </View>
+      {warningSigns.length ? (
+        <View style={[styles.warning, { backgroundColor: theme.dangerBg }]} accessible accessibilityRole="summary">
+          <View style={styles.warningTitle}>
+            <Icon icon={TriangleAlert} size={20} color="dangerInk" />
+            <Text variant="title3" color="dangerInk" accessibilityRole="header" style={styles.flex}>
+              {t('consult.result.warning')}
+            </Text>
+          </View>
+          <BulletList items={warningSigns} />
+        </View>
+      ) : null}
+      {vetQuestions.length ? (
+        <View style={styles.section}>
+          <Text variant="title3" accessibilityRole="header">
+            {t('consult.result.vet')}
+          </Text>
+          <Text color="inkMuted">{t('consult.result.vetText')}</Text>
+          <BulletList items={vetQuestions} />
+        </View>
+      ) : null}
+      <Button label={t('consult.result.share')} icon={Share2} variant="secondary" size="md" onPress={() => void share()} />
+      {shareError ? <Alert tone="error" message={t('consult.result.shareError')} /> : null}
+      {analysis.user_context || onset || trend ? (
+        <View style={styles.context}>
+          <Text variant="label" color="inkMuted">
+            {t('consult.result.yourContext')}
+          </Text>
+          {onset ? (
+            <Text variant="caption" color="inkMuted">
+              {tf('consult.result.onset', { value: t(`consult.context.onset.${onset}`) })}
+            </Text>
+          ) : null}
+          {trend ? (
+            <Text variant="caption" color="inkMuted">
+              {tf('consult.result.trend', { value: t(`consult.context.trend.${trend}`) })}
+            </Text>
+          ) : null}
+          {analysis.user_context ? (
+            <Text variant="caption" color="inkMuted">
+              {`«${analysis.user_context}»`}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
       {signs ? (
         <Text variant="caption" color="inkMuted">
           {tf('consult.result.signs', { list: signs })}
         </Text>
       ) : null}
       <Text variant="caption" color="inkMuted">
-        {tf('consult.result.date', { date: formatFullDate(new Date(analysis.created_at), getLocale()) })}
+        {tf('consult.result.date', { date })}
       </Text>
       <ConsultDisclaimer />
       {mine ? (
@@ -224,7 +316,16 @@ function FailedView({ pet, canEdit, analysis, onClose }: { pet: Pet; canEdit: bo
   const retry = async () => {
     setError(null);
     try {
-      const next = await request.mutateAsync({ photo: null, photoPath: analysis.photo_path, symptomIds: symptomIds.data ?? [] });
+      const next = await request.mutateAsync({
+        photo: null,
+        photoPath: analysis.photo_path,
+        symptomIds: symptomIds.data ?? [],
+        context: {
+          text: analysis.user_context,
+          onset: isSymptomOnset(analysis.symptom_onset) ? analysis.symptom_onset : null,
+          trend: isSymptomTrend(analysis.symptom_trend) ? analysis.symptom_trend : null,
+        },
+      });
       router.replace({ pathname: '/pets/[id]/consult/[analysisId]', params: { id: pet.id, analysisId: next } });
     } catch (cause) {
       setError(t(`consult.errors.${toRequestErrorCode(cause)}`));
@@ -290,6 +391,25 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 4 / 3,
     borderRadius: radius.lg,
+  },
+  photoBlock: {
+    gap: spacing['2'],
+  },
+  warning: {
+    gap: spacing['3'],
+    padding: spacing['4'],
+    borderRadius: radius.lg,
+  },
+  warningTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['2'],
+  },
+  context: {
+    gap: spacing['1'],
+  },
+  flex: {
+    flex: 1,
   },
   failed: {
     alignItems: 'center',

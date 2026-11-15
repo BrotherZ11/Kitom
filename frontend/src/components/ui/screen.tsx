@@ -45,7 +45,7 @@ export function Screen({
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]} edges={edges}>
       {/* `padding` también en Android: con edge-to-edge (siempre activo en RN 0.86) la ventana ya no se
           redimensiona con el teclado y, sin esto, el botón del pie quedaba tapado. */}
-      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+      <KeyboardAvoidingView style={[styles.flex, styles.clip]} behavior="padding">
         <ScrollView
           contentContainerStyle={[
             styles.content,
@@ -68,6 +68,11 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  // En Android el contenido desplazado se dibujaba fuera del ScrollView, sobre el margen del área segura
+  // (bajo la hora y los iconos de la barra de estado). Se recorta aquí, dentro del área segura.
+  clip: {
+    overflow: 'hidden',
   },
   content: {
     flexGrow: 1,

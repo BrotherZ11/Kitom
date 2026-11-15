@@ -1,7 +1,7 @@
 # Kitom — Estado del proyecto
 
-Revisión: **2026-11-05** · app `1.1.0` · 17 migraciones en el repo (todas aplicadas en
-`kitom-dev`). Auditoría inicial del 2026-10-29 y estado tras las correcciones. Detalle por área:
+Revisión: **2026-11-15** · app `1.1.0` · 19 migraciones en el repo, todas aplicadas en `kitom-dev` (la última,
+`20261113134252_ai_guidance_v2`, por el usuario el 2026-11-15; ver §8). Auditoría inicial del 2026-10-29 y estado tras las correcciones. Detalle por área:
 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md), [`DATABASE.md`](DATABASE.md), [`TESTING.md`](TESTING.md),
 [`DEPLOYMENT.md`](DEPLOYMENT.md), [`PRIVACY.md`](PRIVACY.md); plan: [`ROADMAP.md`](ROADMAP.md).
 
@@ -13,9 +13,9 @@ descargar los datos, textos legales y selector de idioma automático. Todo el ba
 cliente nunca decide plan, propietario ni estado de IA.
 
 **Todavía no se puede publicar.** Lo que falta ya no es código, sino acciones con cuentas y terceros
-(`DEPLOYMENT.md` §8): proyecto de producción, aplicar la última migración, desplegar las Edge Functions,
-verificar la IA en el remoto con plan de pago, activar las páginas legales, revisión legal y veterinaria,
-cuenta de Google Play, build firmada con EAS y pruebas en móviles reales.
+(`DEPLOYMENT.md` §8): proyecto de producción, verificar la IA en el remoto (y su plan de pago antes de usuarios
+del EEE), publicar las páginas legales, revisión legal y veterinaria, cuenta de Google Play, build firmada con EAS y
+pruebas en móviles reales.
 
 Decisión: **NO PUBLICAR todavía**; **CANDIDATA A BETA** cerrada en cuanto se completen esos pasos (§7).
 
@@ -73,7 +73,7 @@ avance: no hay un método reproducible que los respalde.
 | 27 | Adjuntos de recordatorios | PENDIENTE | bucket `reminder-attachments` sin cliente | — | P3 |
 | 28 | Co-tutores: invitar por email, aceptar, rol, revocar | IMPLEMENTADA, NO VERIFICADA | `features/co-owners/`, 7 RPC, pgTAP; solo a cuentas confirmadas; límite de 20/24 h e identidad oculta de pendientes en `20261030090318` | `db push`; prueba manual con dos cuentas; riesgo residual SEC-04 | P1 |
 | 29 | Co-tutor: abandonar mascota / transferir propiedad | PENDIENTE | `transfer_pet_ownership` existe sin cliente; no hay RPC para abandonar | RPC + UI | P2 |
-| 30 | Consulta con IA (foto + síntomas) | BLOQUEADA | cliente → `request_ai_analysis` → `ai-analysis-process`; cupo a prueba de borrados, foto rechazada ya no queda huérfana, sin indicadores infinitos, límites de abuso en `20261030090318` | **verificar el pipeline en `kitom-dev`** (2 análisis `pending`, ninguno completado: secreto y logs), plan de pago de Gemini, validación del prompt por un veterinario | P0 |
+| 30 | Consulta con IA (foto + señales + contexto del tutor; v2 del 2026-11-13: 9 especies, 72 señales, resumen, señales de alerta, preguntas para el veterinario, compartir) | BLOQUEADA | cliente → `request_ai_analysis` → `ai-analysis-process`; cupo a prueba de borrados, foto rechazada ya no queda huérfana, sin indicadores infinitos, límites de abuso en `20261030090318` | verificar una consulta real hasta `completed` en `kitom-dev` (v2 desplegada el 2026-11-15); **plan de pago de Gemini** antes de usuarios del EEE (hoy, gratuito: §8); validación del prompt, señales y reglas por un veterinario. Recorrido completo probado en local con el simulador (web y emulador) | P0 |
 | 31 | Valoración de la orientación (útil / no útil) | IMPLEMENTADA, NO VERIFICADA | RPC `submit_ai_feedback` | pgTAP | P2 |
 | 32 | Ajustes: nombre, zona horaria, tema, notificaciones, seguridad, privacidad, ayuda, legal | COMPLETA Y VERIFICADA | `(app)/settings/*` recorridos en emulador; pgTAP `profile_timezone` | preferencias de alertas/marketing no editables | P3 |
 | 33 | Cambiar contraseña | IMPLEMENTADA, NO VERIFICADA | pide la actual con un cliente de Auth aparte (integración local), código de reautenticación, «Crear contraseña» para cuentas de Google | prueba manual; reautenticación con el Dashboard configurado | P1 |
@@ -82,12 +82,12 @@ avance: no hay un método reproducible que los respalde.
 | 36 | Premium / suscripción | PENDIENTE (fuera de la v1, decisión 2026-10-29) | retirado de la interfaz; `process_revenuecat_event` en BD sin webhook | decisión de precio y límites; webhook; productos en tiendas | P3 |
 | 37 | Informes PDF para el veterinario | PENDIENTE | `request_generate_report` es un esbozo; sin Edge Function | — | P3 |
 | 38 | Idiomas | COMPLETA Y VERIFICADA | idioma del dispositivo (`i18n/locale.ts`): inglés en emulador, español en web | textos de permisos de iOS (al publicar en iOS) | P3 |
-| 39 | Política de privacidad y términos | PARCIAL | `site/` (es/en), copia dentro de la app (`/legal/[doc]`), aviso único en el registro, consentimiento de IA exacto | publicar `site/` con un `push` (Pages ya activado); revisión legal; plan de pago de Gemini | P0 |
+| 39 | Política de privacidad y términos | PARCIAL | `site/` (es/en), copia dentro de la app (`/legal/[doc]`), aviso único en el registro, consentimiento de IA exacto | publicar `site/` con un `push` (Pages ya activado); revisión legal | P0 |
 | 40 | Clínicas y referidos | PENDIENTE | tablas y RPC sin cliente | SEC-13 antes de activarlo | P3 |
 | 41 | Analítica de producto | PENDIENTE | `analytics_events` sin cliente | decidir herramienta y consentimiento | P3 |
 | 42 | Organizaciones (B2B) | PENDIENTE (fuera del MVP) | archivo 27 no desplegado | — | — |
 | 43 | Señales de cambio respecto a lo normal | COMPLETA Y VERIFICADA | `change-signals.ts` (pruebas unitarias), tarjeta en Hoy comprobada en emulador con historial sembrado | umbrales sin validar por un veterinario | P2 |
-| 44 | Campos por especie (9 especies) en la ficha y el registro diario | IMPLEMENTADA, NO VERIFICADA (Android) | migración `20261111120000_species_fields` (pgTAP; aplicada en `kitom-dev` el 2026-11-12), `features/species/`, paridad app/BD en integración; recorrido en web contra el Supabase local | revisión veterinaria de los campos; redesplegar `ai-analysis-process`; validación en Android | P1 |
+| 44 | Campos por especie (9 especies) en la ficha y el registro diario | IMPLEMENTADA, NO VERIFICADA (Android; ficha y registro de una gata recorridos en el emulador el 2026-11-13) | migración `20261111120000_species_fields` (pgTAP; aplicada en `kitom-dev` el 2026-11-12), `features/species/`, paridad app/BD en integración; recorrido en web contra el Supabase local | revisión veterinaria de los campos; redesplegar `ai-analysis-process`; validación en Android | P1 |
 | 45 | Resumen de bienestar (resumen, evolución, observaciones) | IMPLEMENTADA, NO VERIFICADA (Android) | `features/wellness/` (pruebas unitarias), lectura por rango con cobertura local; recorrido en web | revisión veterinaria del texto de las observaciones; prueba sin conexión en Android | P1 |
 
 Totales: 17 COMPLETA Y VERIFICADA · 14 IMPLEMENTADA, NO VERIFICADA · 1 PARCIAL · 0 INCOMPLETA · 11 PENDIENTE · 2 BLOQUEADA · 0 CON ERRORES (45 funcionalidades; «verificada» con la matización de cada fila, nada en iOS ni en un móvil físico).
@@ -131,15 +131,14 @@ hasta aplicar la migración.
 
 | Dependencia | Estado |
 |---|---|
-| Supabase `kitom-dev` (desarrollo) | operativo; 13 migraciones; `ai-analysis-process` desplegada (v1, `verify_jwt`) |
+| Supabase `kitom-dev` (desarrollo) | operativo; 19 migraciones; `ai-analysis-process` (prompt v2, 2026-11-15), `delete-account` y `pet-storage-cleanup` desplegadas |
 | Supabase de producción | **no existe** |
-| Google AI Studio (Gemini) | función desplegada; secreto no verificable desde aquí; plan gratuito no apto para usuarios reales (los textos legales describen el plan de pago) |
+| Google AI Studio (Gemini) | función desplegada; secreto no verificable desde aquí; **cuota gratuita** (decisión 2026-11-15): vale para pruebas, pero sus términos solo permiten servicios de pago en apps para usuarios del EEE (§8) |
 | Google Cloud OAuth (login con Google) | responde en `kitom-dev`; falta probarlo en un móvil. Pasos: `SETUP_GUIDE.md` §4 |
-| Correo (SMTP propio) | **no configurado**: sin él, los usuarios reales no reciben la confirmación. Pasos: `SETUP_GUIDE.md` §2 |
+| Correo (SMTP propio) | Resend configurado en `kitom-dev` (el usuario, 2026-11-15); falta en producción y comprobar cada plantilla. Pasos: `SETUP_GUIDE.md` §2 |
 | Google Play Console / Expo (EAS) | `eas.json` preparado; faltan las cuentas. Apple, tras la v1 (Android primero) |
 | RevenueCat | no integrado |
 | Asesoría legal y veterinario asesor | necesarios: textos legales y validación del prompt |
-| SMTP propio para emails de Auth | no configurado (el SMTP por defecto de Supabase tiene límites muy bajos) |
 
 ## 6. Riesgos pendientes
 
@@ -158,3 +157,42 @@ hasta aplicar la migración.
 `DEPLOYMENT.md` §8. Con ellos hechos, el objetivo es **CANDIDATA A BETA** cerrada en la prueba cerrada de
 Google Play, y producción tras esa beta en móviles reales. Esta decisión se basa en pruebas automáticas y
 en un emulador Android: no hay validación en dispositivos físicos ni del pipeline de IA en el remoto.
+
+## 8. Revisión del 2026-11-13 (actualizada el 2026-11-15): camino a Google Play
+
+Revisado: documentación, código de `frontend/src`, migraciones, Edge Functions y seed; pruebas automáticas (`TESTING.md`) y
+recorrido en web (320 y 360 px) y en el emulador Android (320 y 360 dp) con letra al 100 % y al 130 %. Sin acceso a `kitom-dev` en
+esta revisión (ni lectura).
+
+**Hecho en esta revisión (integrado en `main` el 2026-11-15, ramas `db/ai-guidance-v2` y `feat/ai-guidance-v2`):**
+orientación con IA v2 (`DECISIONS.md` 2026-11-13), señales por especie, ocho correcciones de pantallas pequeñas y letra
+grande, textos de «perro o gato» generalizados, política y términos con los datos nuevos que se envían a la IA y sin
+depender del plan de Gemini (`DECISIONS.md` 2026-11-15). En `kitom-dev`, el usuario aplicó la migración, reejecutó el
+seed y desplegó la función (2026-11-15); SMTP con Resend configurado.
+
+**Bloqueantes para cualquier usuario externo (incluida la prueba cerrada):**
+
+1. **Plan de pago de Gemini antes de testers o usuarios del EEE.** Decisión 2026-11-15: cuota gratuita de momento. Como el
+   responsable está en España, Google aplica también a la cuota gratuita las condiciones de datos del servicio de pago (no
+   usa el contenido para mejorar sus productos), y la política lo dice así. Pero los términos de la Gemini API solo
+   permiten **servicios de pago** en apps ofrecidas a usuarios del EEE, Suiza o Reino Unido, y la cuota gratuita no aguanta
+   tráfico real. Al activarlo, fijar `AI_INPUT_USD_PER_MTOK`/`AI_OUTPUT_USD_PER_MTOK` para medir el coste por consulta.
+2. **Verificar la v2 en `kitom-dev`** (desplegada el 2026-11-15): una consulta real con foto y otra sin foto hasta
+   `completed` (nunca se ha completado una allí) y los logs de la función.
+3. **Proyecto Supabase de producción** (UE) con migraciones, seeds, buckets con límites, Auth endurecido, **SMTP propio**
+   (Resend, como en `kitom-dev`; sin él no llegan los emails de confirmación), Redirect URLs y Google OAuth de producción
+   (`SETUP_GUIDE.md`).
+4. **Revisión veterinaria** del prompt, las 72 señales por especie, las reglas de urgencia (`urgency.ts`), los campos por
+   especie y las observaciones del resumen de bienestar. **Revisión legal** de `site/` y publicarlo (`push` a `main`).
+5. **Cuentas y build**: Expo (`eas init`, variables por entorno, DSN y token de Sentry), Google Play Console (cuenta de
+   desarrollador; las cuentas personales nuevas exigen una prueba cerrada con testers antes de producción), build
+   `production` (AAB) con Play App Signing y copia del keystore.
+6. **Ficha y declaraciones de Play** (`STORE_LISTING.md`): capturas, Data Safety (incluye ahora el texto libre de la
+   consulta), justificación de `SCHEDULE_EXACT_ALARM`, clasificación de contenido, declaración de IA generativa, URL de
+   eliminación de cuenta.
+7. **Prueba en móviles físicos** con la build `preview`: emails reales, Google, fotos contra el bucket real (nunca
+   probadas), avisos, IA, co-tutores con dos cuentas, sin conexión.
+
+**Recomendado antes de producción (no bloquea la beta):** CI con `tsc`/lint/unitarias (P2-13), listas virtualizadas
+(P2-05), coordinación del arranque en frío (al abrir con el token caducado salen 3 peticiones `401` antes de renovarlo;
+se repiten bien, pero ensucian Sentry), retirar `dev-components` del bundle (P2-14), borrar registros diarios (P2-10).

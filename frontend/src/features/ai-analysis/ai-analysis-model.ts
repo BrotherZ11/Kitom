@@ -9,7 +9,7 @@ import type { Enums, Tables } from '@/types/database.types';
 
 /** Columnas con SELECT para `authenticated` (`select('*')` falla a propósito). */
 export const ANALYSIS_COLUMNS =
-  'id, pet_id, requested_by, photo_path, used_full_history, status, urgency_level, possible_causes, recommendations, feedback, created_at';
+  'id, pet_id, requested_by, photo_path, used_full_history, status, urgency_level, summary, possible_causes, recommendations, warning_signs, vet_questions, photo_observations, user_context, symptom_onset, symptom_trend, feedback, created_at';
 
 export type Analysis = Pick<
   Tables<'ai_analysis_requests'>,
@@ -20,8 +20,15 @@ export type Analysis = Pick<
   | 'used_full_history'
   | 'status'
   | 'urgency_level'
+  | 'summary'
   | 'possible_causes'
   | 'recommendations'
+  | 'warning_signs'
+  | 'vet_questions'
+  | 'photo_observations'
+  | 'user_context'
+  | 'symptom_onset'
+  | 'symptom_trend'
   | 'feedback'
   | 'created_at'
 >;
@@ -68,12 +75,14 @@ export type RequestErrorCode =
   | 'rate_limited'
   | 'failure_limit'
   | 'species_unsupported'
+  | 'context_too_long'
+  | 'invalid_context'
   | 'network'
   | 'unknown';
 
 const NETWORK = /network request failed|failed to fetch|fetch failed|session_unavailable/i;
 
-/** `hint` de `request_ai_analysis` (migraciones `20261029151011` y `20261030090318`). */
+/** `hint` de `request_ai_analysis` (migraciones `20261029151011`, `20261030090318` y `*_ai_guidance_v2`). */
 const HINT_CODES = new Map<string, RequestErrorCode>([
   ['ai_quota_exceeded', 'limit'],
   ['ai_invalid_symptoms', 'invalid_symptoms'],
@@ -83,6 +92,8 @@ const HINT_CODES = new Map<string, RequestErrorCode>([
   ['ai_rate_limited', 'rate_limited'],
   ['ai_failure_limit', 'failure_limit'],
   ['ai_species_unsupported', 'species_unsupported'],
+  ['ai_context_too_long', 'context_too_long'],
+  ['ai_invalid_context', 'invalid_context'],
 ]);
 
 /**
@@ -140,4 +151,122 @@ export function toEntitlement(
 export function toggleSymptom(selected: readonly string[], id: string, catalogOrder: readonly string[]): string[] {
   const next = selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id];
   return catalogOrder.filter((item) => next.includes(item));
+}
+
+// ---------------------------------------------------------------------------------------------
+// Contexto del tutor (migración `*_ai_guidance_v2.sql`)
+// ---------------------------------------------------------------------------------------------
+
+/** Mismo límite que el CHECK y `request_ai_analysis` (`ai_context_too_long`). */
+export const MAX_CONTEXT_LENGTH = 1000;
+/** Sin ninguna señal marcada, el texto es lo único que orienta: al menos esto. */
+export const MIN_CONTEXT_WITHOUT_SIGNS = 10;
+
+export const SYMPTOM_ONSETS = ['today', 'days_1_3', 'days_4_7', 'over_week'] as const;
+export type SymptomOnset = (typeof SYMPTOM_ONSETS)[number];
+export const SYMPTOM_TRENDS = ['better', 'same', 'worse'] as const;
+export type SymptomTrend = (typeof SYMPTOM_TRENDS)[number];
+
+export function isSymptomOnset(value: unknown): value is SymptomOnset {
+  return (SYMPTOM_ONSETS as readonly unknown[]).includes(value);
+}
+export function isSymptomTrend(value: unknown): value is SymptomTrend {
+  return (SYMPTOM_TRENDS as readonly unknown[]).includes(value);
+}
+
+/** El texto tal como lo guardará el servidor: sin espacios en los extremos; vacío = `null`. */
+export function normalizeContext(text: string): string | null {
+  const trimmed = text.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
+export type ContextProblem = 'required' | 'too_long' | null;
+
+/**
+ * ¿Se puede enviar? Hace falta alguna señal o, sin ninguna, un texto de al menos
+ * `MIN_CONTEXT_WITHOUT_SIGNS` caracteres; nunca más de `MAX_CONTEXT_LENGTH`.
+ */
+export function contextProblem(text: string, signCount: number): ContextProblem {
+  const value = normalizeContext(text) ?? '';
+  if (value.length > MAX_CONTEXT_LENGTH) return 'too_long';
+  if (signCount === 0 && value.length < MIN_CONTEXT_WITHOUT_SIGNS) return 'required';
+  return null;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Señales agrupadas
+// ---------------------------------------------------------------------------------------------
+
+/** Orden de las categorías de `symptoms_catalog.category` (`supabase/seed.sql`). */
+export const SIGN_CATEGORIES = [
+  'general',
+  'digestive',
+  'oral',
+  'urinary',
+  'respiratory',
+  'skin',
+  'ocular',
+  'motor',
+  'neuro',
+  'behavior',
+] as const;
+export type SignCategory = (typeof SIGN_CATEGORIES)[number] | 'other';
+
+/**
+ * Señales por categoría, en el orden de `SIGN_CATEGORIES` (una desconocida, al final como `other`) y,
+ * dentro de cada una, en el orden recibido. Sin grupos vacíos.
+ */
+export function groupSigns<T extends { category: string | null }>(signs: readonly T[]): { category: SignCategory; signs: T[] }[] {
+  const known = SIGN_CATEGORIES as readonly string[];
+  const order: SignCategory[] = [...SIGN_CATEGORIES, 'other'];
+  return order
+    .map((category) => ({
+      category,
+      signs: signs.filter((sign) => (known.includes(sign.category ?? '') ? sign.category === category : category === 'other')),
+    }))
+    .filter((group) => group.signs.length > 0);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Compartir el resumen
+// ---------------------------------------------------------------------------------------------
+
+export type ShareLabels = {
+  title: string;
+  date: string;
+  level: string;
+  signs: string | null;
+  summary: string;
+  causes: string;
+  todo: string;
+  warning: string;
+  vet: string;
+  yourContext: string;
+  footer: string;
+};
+
+/**
+ * Texto plano del resultado para mandárselo al veterinario (menú de compartir del sistema). Solo lo que
+ * hay: secciones vacías fuera. Los textos traducidos los pone la pantalla.
+ */
+export function buildShareText(
+  analysis: Pick<Analysis, 'summary' | 'possible_causes' | 'recommendations' | 'warning_signs' | 'vet_questions' | 'user_context'>,
+  labels: ShareLabels
+): string {
+  const list = (items: readonly string[] | null | undefined) => (items ?? []).map((item) => `• ${item}`);
+  const section = (title: string, lines: string[]) => (lines.length ? ['', title, ...lines] : []);
+  return [
+    labels.title,
+    labels.date,
+    labels.level,
+    ...(labels.signs ? [labels.signs] : []),
+    ...section(labels.yourContext, analysis.user_context ? [analysis.user_context] : []),
+    ...section(labels.summary, analysis.summary ? [analysis.summary] : []),
+    ...section(labels.causes, list(analysis.possible_causes)),
+    ...section(labels.todo, list(analysis.recommendations)),
+    ...section(labels.warning, list(analysis.warning_signs)),
+    ...section(labels.vet, list(analysis.vet_questions)),
+    '',
+    labels.footer,
+  ].join('\n');
 }

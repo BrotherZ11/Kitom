@@ -36,6 +36,11 @@ type TabBarProps = {
 
 /** Altura útil de la barra (tablero: 90 = 6 + 50 + 34 de área segura del iPhone). */
 const CONTENT_HEIGHT = 50;
+/**
+ * Escalado máximo de las etiquetas con el tamaño de letra del sistema: cinco etiquetas en una fila no
+ * caben a más (con 1,6 se cortaban y la barra crecía); la pestaña tiene altura mínima, no fija.
+ */
+const TAB_LABEL_MAX_SCALE = 1.3;
 /** Sin área segura (web, Android con botones): un margen mínimo bajo las etiquetas. */
 const MIN_BOTTOM_PADDING = spacing['2'];
 
@@ -85,7 +90,11 @@ function TabButton({ item }: { item: TabBarItem }) {
       <View style={[styles.pill, item.selected && { backgroundColor: theme.surfaceBrand }]}>
         <Icon icon={item.icon} size={22} color={color} />
       </View>
-      <Text color={color} style={[styles.label, item.selected && styles.labelSelected]} numberOfLines={1}>
+      <Text
+        color={color}
+        style={[styles.label, item.selected && styles.labelSelected]}
+        numberOfLines={1}
+        maxFontSizeMultiplier={TAB_LABEL_MAX_SCALE}>
         {item.label}
       </Text>
     </Pressable>
@@ -111,7 +120,11 @@ function ActionButton({ action }: { action: TabBarAction }) {
           <View style={[styles.sun, { backgroundColor: theme.accent, borderColor: theme.surface }]} />
         ) : null}
       </View>
-      <Text color={done ? 'primary' : 'ink'} style={[styles.label, styles.labelSelected]} numberOfLines={1}>
+      <Text
+        color={done ? 'primary' : 'ink'}
+        style={[styles.label, styles.labelSelected]}
+        numberOfLines={1}
+        maxFontSizeMultiplier={TAB_LABEL_MAX_SCALE}>
         {action.label}
       </Text>
     </Pressable>
@@ -128,7 +141,7 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     minWidth: 0,
-    height: CONTENT_HEIGHT,
+    minHeight: CONTENT_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,

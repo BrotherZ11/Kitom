@@ -21,7 +21,7 @@ del lanzamiento.
 | Mascota | nombre, especie, raza, fecha de nacimiento, sexo, peso, esterilización, condiciones conocidas, alergias, notas de temperamento, foto | `pets`, Storage `pet-photos` | usuario | funcionamiento | contrato |
 | Registro diario | ánimo, energía, apetito, actividad, sueño, vocalización, interacción social, conducta inusual (y su nota), etiquetas, notas libres, autor y último editor | `daily_logs` | usuario y co-tutores | seguimiento | contrato |
 | Agenda | tipo, título, descripción (puede incluir medicación), fechas, repetición, estado | `reminders` (y copia en el dispositivo) | usuario | recordatorios y avisos locales | contrato |
-| Consultas con IA | foto, síntomas, contexto de la mascota y de los últimos registros, resultado, `response_raw`, valoración, coste estimado | `ai_analysis_requests`, `ai_analysis_symptoms`, `pet-photos` | usuario + proveedor de IA | orientación (no diagnóstico) | contrato; casilla de confirmación antes de enviar la foto |
+| Consultas con IA | foto, síntomas, texto libre del tutor (`user_context`, ≤ 1000), desde cuándo y evolución, contexto de la mascota, de los últimos registros, recordatorios de salud y consultas anteriores, resultado (resumen, causas, recomendaciones, señales de alerta, preguntas para el veterinario, observaciones de la foto), `response_raw`, valoración, coste estimado. Lo ven los co-tutores de la mascota | `ai_analysis_requests`, `ai_analysis_symptoms`, `pet-photos` | usuario + proveedor de IA | orientación (no diagnóstico) | contrato; casilla de confirmación antes de enviar la foto |
 | Uso de la IA | `analysis_id`, `user_id`, fecha, si cuenta (sin contenido) | `private.ai_analysis_usage` | servidor | cupo mensual (sobrevive al borrado de la mascota) | contrato |
 | Co-tutores | email del invitado (no se guarda; se busca su cuenta), relación y rol | `pet_co_owners` | dueño | compartir la mascota | contrato |
 | Plan | plan y estado (siempre `free` hoy; no se muestra en la app) | `subscriptions` | servidor | cupo de IA | contrato |
@@ -36,7 +36,7 @@ Datos de terceros: las fotos pueden incluir personas (la app pide repetirlas si 
 | Proveedor | Qué recibe | Notas |
 |---|---|---|
 | Supabase | todo lo anterior (base de datos, Auth, Storage, Edge Functions) | región de `kitom-dev` no verificada; **la política dice «Unión Europea»**: crear producción en una región UE o corregir `site/privacy.html` (comentario `CONFIRMAR`) |
-| Google (Gemini API, AI Studio) | foto, síntomas, datos de la mascota (especie, raza, edad, peso, sexo, esterilizado, condiciones, alergias) y registros recientes con notas; sin nombres ni email | la política describe el **plan de pago** (Google no usa el contenido para mejorar sus productos). En el plan gratuito sí lo usa (`DECISIONS.md`): **no abrir a usuarios reales hasta activar el de pago** |
+| Google (Gemini API, AI Studio) | foto, síntomas, texto del tutor con inicio y evolución, datos de la mascota (especie, raza, edad, peso, sexo, esterilizado, condiciones, alergias, carácter, datos de su especie), registros recientes con notas, recordatorios de salud de los últimos 30 días y próximos 14 (tipo, título, fecha) y resumen de las consultas de los últimos 90 días; sin nombres ni email (desde la migración `20261113134252`) | la política describe el **plan de pago** (Google no usa el contenido para mejorar sus productos). En el plan gratuito sí lo usa (`DECISIONS.md`): **no abrir a usuarios reales hasta activar el de pago** |
 | OpenAI (alternativo, desactivado por defecto) | lo mismo que Gemini | solo si `AI_PROVIDER=openai`; **no figura en la política**: añadirlo antes de activarlo |
 | Google (OAuth) | inicio de sesión con Google | si el usuario lo elige |
 | Sentry | informes de errores sin email, nombre ni contenido | en la política (retención 90 días). Comprobado el 2026-11-04: la IP llega a Sentry, que deducía de ella la ubicación aproximada, y los cierres nativos llevan un identificador de instalación que `beforeSend` no puede quitar. Las reglas del panel los eliminan al llegar y no se guardan (`DEPLOYMENT.md` §8, paso 10), pero salen del dispositivo: revisar si la política y la ficha de Play deben mencionarlo |
@@ -58,9 +58,9 @@ Plazos publicados en la política (`site/privacy.html` §6) y estado real:
 | Cuenta y perfil | hasta eliminar la cuenta; borrado ≤ 30 días | eliminación desde la app en construcción (P0-02); por email, manual |
 | Mascotas, registros y agenda | hasta borrarlos o eliminar la mascota o la cuenta | borrado en cascada con la mascota |
 | Fotos de mascota | hasta cambiarlas o eliminar la mascota o la cuenta; Storage ≤ 30 días | encoladas para limpieza; **Edge Function `pet-storage-cleanup` sin desplegar** (P1-04): desplegarla antes del lanzamiento |
-| Consultas con IA (foto, señales, resultado, `response_raw`) | con la consulta, hasta eliminar la mascota o la cuenta | igual que las mascotas; no hay borrado de una consulta suelta |
+| Consultas con IA (foto, señales, texto del tutor, resultado, `response_raw`) | con la consulta, hasta eliminar la mascota o la cuenta | igual que las mascotas; no hay borrado de una consulta suelta |
 | Registro de uso de la IA | mientras exista la cuenta | `ON DELETE CASCADE` con el perfil |
-| Contenido enviado a Google | lo que fije Google para detectar abusos (plan de pago) | depende del plan de Google |
+| Contenido enviado a Google | lo que fije Google para detectar abusos | en el EEE, las condiciones de datos del servicio de pago se aplican también a la cuota gratuita (`DECISIONS.md` 2026-11-15) |
 | Informes de errores | 90 días | comprobar que la retención del plan de Sentry lo cumple |
 | Logs del servidor | máximo 90 días | según el plan de Supabase |
 | Copias de seguridad | se sobrescriben en ≤ 30 días | según el plan de Supabase |

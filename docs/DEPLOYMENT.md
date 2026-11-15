@@ -20,7 +20,7 @@ Auth no está versionada y es donde se aplican primero las migraciones.
 | Dónde | Nombre | Notas |
 |---|---|---|
 | `frontend/.env` (ignorado por git; plantilla `frontend/.env.example`) | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` | públicas: acaban en el bundle. Nunca otra clave aquí |
-| Secretos de Edge Functions (`supabase secrets set`, los pone el usuario) | `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_INPUT_USD_PER_MTOK`, `AI_OUTPUT_USD_PER_MTOK`, `PET_STORAGE_CLEANUP_SECRET`, `PET_STORAGE_CLEANUP_MODE` | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` los da la plataforma |
+| Secretos de Edge Functions (`supabase secrets set`, los pone el usuario) | `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL` (opcional, respaldo ante `429`/`503`), `AI_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_INPUT_USD_PER_MTOK`, `AI_OUTPUT_USD_PER_MTOK`, `PET_STORAGE_CLEANUP_SECRET`, `PET_STORAGE_CLEANUP_MODE` | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` los da la plataforma |
 | `supabase/config.toml` (solo local) | `env(...)` | sin valores literales |
 | Raíz `.env` (opcional) | `OPENAI_API_KEY` | solo para Studio local |
 
@@ -168,14 +168,19 @@ Las cuentas y los paneles (GitHub Pages, dominio, SMTP, Supabase Auth, Google Cl
      `species_data` y llama a `save_daily_log` con `p_species_data`; contra un servidor sin la migración, las
      lecturas de mascotas y registros fallarían. Orden: migración → seed → build. Las builds anteriores siguen
      funcionando con la migración aplicada (no envían `p_species_data` y conservan lo guardado).
-   - **Pendiente:** redesplegar `ai-analysis-process` (contexto con los datos de especie):
-     `npx supabase functions deploy ai-analysis-process` (hoy, versión 2 con `verify_jwt: true`, el valor por defecto).
+   - ✅ Orientación v2 (2026-11-13; hecho por el usuario el 2026-11-15): `db push` de `20261113134252_ai_guidance_v2.sql`,
+     `supabase/seed.sql` reejecutado (72 señales por especie), tipos regenerados con `--linked` y
+     `ai-analysis-process` desplegada con el prompt v2. En producción, el mismo orden: migración → seed → función → build
+     (la función lee las columnas nuevas; una build anterior sigue funcionando con la migración aplicada).
+     Opcional: `supabase secrets set GEMINI_FALLBACK_MODEL=<modelo>` (reintento con otro modelo ante `429`/`5xx`).
    - **Pendiente antes de publicar:** revisión veterinaria de los campos por especie y del texto de las observaciones
      del resumen de bienestar (`proposals/2026-11-11-species-fields.md` D-2, `2026-11-10-wellness-reports.md` D-9), y
      publicar los términos actualizados de `site/` (todas las especies).
 2. ✅ Tipos regenerados.
-3. ✅ `ai-analysis-process` (v2), `delete-account` (v1) y `pet-storage-cleanup` (v1) desplegadas (comprobado en solo lectura, 2026-11-04).
-4. Revisar la IA: secreto `GEMINI_API_KEY`, logs de la función y una consulta real hasta `completed`.
+3. ✅ `delete-account` (v1) y `pet-storage-cleanup` (v1) desplegadas (comprobado en solo lectura, 2026-11-04);
+   `ai-analysis-process` con el prompt v2, desplegada por el usuario (2026-11-15).
+4. Revisar la IA: una consulta real (con y sin foto) hasta `completed` y los logs de la función. Hasta hoy ninguna
+   consulta de `kitom-dev` ha llegado a `completed`, así que el secreto `GEMINI_API_KEY` sigue sin comprobarse.
 5. Limpieza: secreto `PET_STORAGE_CLEANUP_SECRET` (≥ 32 caracteres) y, en el editor SQL,
    `select vault.create_secret('https://<ref>.supabase.co', 'kitom_project_url');` y
    `select vault.create_secret('<el mismo secreto>', 'pet_storage_cleanup_secret');`. Primero en modo informe; `PET_STORAGE_CLEANUP_MODE=delete`
@@ -186,8 +191,16 @@ Las cuentas y los paneles (GitHub Pages, dominio, SMTP, Supabase Auth, Google Cl
 7. Confirmar los supuestos de los textos (España, región UE de Supabase, edad mínima 16) y pedir revisión legal.
 
 **C. Proveedores**
-8. Plan de pago de Gemini: los textos legales y el consentimiento lo presuponen.
-9. Validación del prompt y de las reglas de IA por un veterinario (`guidance.ts`, `draft-2026-10-23`).
+8. **Plan de Gemini (decisión 2026-11-15: gratuito de momento).** Según los
+   [términos adicionales de la Gemini API](https://ai.google.dev/gemini-api/terms) (en vigor desde el 23-3-2026), a quien
+   está en el EEE, Suiza o Reino Unido se le aplican las condiciones de datos del servicio de pago también en la cuota
+   gratuita (Google no usa el contenido para mejorar sus productos), y la política de privacidad lo describe así, sin
+   depender del plan. **Pero** los mismos términos dicen que para ofrecer la app a usuarios del EEE, Suiza o Reino
+   Unido solo se pueden usar servicios de pago. Con la cuota gratuita valen las pruebas propias; **antes de la prueba
+   cerrada con testers del EEE o de publicar**, activar la facturación del proyecto de Google AI Studio (o pasar a
+   Vertex AI). Los límites de la cuota gratuita (peticiones por minuto y por día) tampoco aguantan a usuarios reales.
+9. Validación del prompt, las señales por especie y las reglas de urgencia por un veterinario (`guidance.ts` y
+   `urgency.ts`, `draft-2026-11-13`; `supabase/seed.sql`).
 10. Sentry: ✅ proyecto `kitom-app` (organización `kitom`, región UE), errores reales y source maps comprobados y reglas de privacidad
     activas (`[Remove] [Anything] from [$user.geo.**]`, `[$user.id]` y `[contexts.device.id]`, motivo en `PRIVACY.md`; 2026-11-04). Falta:
     - Al crear el proyecto EAS, `EXPO_PUBLIC_SENTRY_DSN` y `SENTRY_AUTH_TOKEN` en sus variables (§4).
@@ -195,7 +208,9 @@ Las cuentas y los paneles (GitHub Pages, dominio, SMTP, Supabase Auth, Google Cl
 
 **D. Producción**
 11. Proyecto Supabase en la UE y pasos de §5, con `SETUP_GUIDE.md` §2-§4 (SMTP propio, plantillas, página puente, `kitom://**`, Google) y la
-    lista de `AUTH.md` §3. **Sin SMTP propio, los usuarios reales no reciben los correos de confirmación.**
+    lista de `AUTH.md` §3. SMTP con Resend: ✅ configurado en `kitom-dev` (el usuario, 2026-11-15); repetirlo en el proyecto
+    de producción (**sin SMTP propio, los usuarios reales no reciben los correos de confirmación**) y comprobar una entrega
+    real de cada plantilla.
 
 **E. Google Play**
 12. Cuentas de Expo y Play; `eas init` y variables por entorno (§4); build `preview` en móviles reales.

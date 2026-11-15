@@ -79,6 +79,10 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  // Con la cabecera fuera de la vista, una franja del color de fondo bajo la barra de estado: sin ella el
+  // contenido pasaba por debajo de la hora y los iconos del sistema.
+  const [scrolledPastHeader, setScrolledPastHeader] = useState(false);
+  const headerHeight = HEADER_HEIGHT - BOARD_STATUS_BAR + insets.top;
   const { user, canUseServer } = useAuth();
   const online = useIsOnline();
   const permission = useCanEditPet(pet.id);
@@ -151,9 +155,14 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
 
   return (
     <View style={[styles.flex, { backgroundColor: theme.bg }]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View
-          style={[styles.header, { height: HEADER_HEIGHT - BOARD_STATUS_BAR + insets.top, backgroundColor: theme.surfaceWarm }]}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        scrollEventThrottle={32}
+        onScroll={(event) => {
+          const past = event.nativeEvent.contentOffset.y > headerHeight - insets.top;
+          if (past !== scrolledPastHeader) setScrolledPastHeader(past);
+        }}>
+        <View style={[styles.header, { height: headerHeight, backgroundColor: theme.surfaceWarm }]}>
           {photo.state === 'ready' ? (
             <Image
               source={{ uri: photo.url, cacheKey: photo.cacheKey }}
@@ -376,6 +385,9 @@ export function PetProfile({ pet, mode, onOpenHistory, notice, freshness, syncNo
           </Section>
         </View>
       </ScrollView>
+      {scrolledPastHeader ? (
+        <View pointerEvents="none" style={[styles.statusScrim, { height: insets.top, backgroundColor: theme.bg }]} />
+      ) : null}
       {mode === 'tab' ? <PetSelectorSheet visible={selectorOpen} onClose={() => setSelectorOpen(false)} /> : null}
     </View>
   );
@@ -405,6 +417,12 @@ function SoonMark() {
 }
 
 const styles = StyleSheet.create({
+  statusScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
   flex: {
     flex: 1,
   },

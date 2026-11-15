@@ -8,18 +8,36 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Chip } from '@/components/ui/chip';
-import { Camera, ChartLine, ImageIcon, ListChecks } from '@/components/ui/icons';
+import { Camera, ChartLine, ImageIcon, ListChecks, MessageSquareText } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
+import { OptionGroup } from '@/components/ui/option-group';
 import { ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
 import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
 import { TextLink } from '@/components/ui/text-link';
+import { TextField } from '@/components/ui/text-field';
 import { TopBar, TopBarText } from '@/components/ui/top-bar';
-import { nextMonthStart, toggleSymptom, toRequestErrorCode, type Entitlement } from '@/features/ai-analysis/ai-analysis-model';
+import {
+  contextProblem,
+  groupSigns,
+  MAX_CONTEXT_LENGTH,
+  MIN_CONTEXT_WITHOUT_SIGNS,
+  nextMonthStart,
+  normalizeContext,
+  SYMPTOM_ONSETS,
+  SYMPTOM_TRENDS,
+  toggleSymptom,
+  toRequestErrorCode,
+  type Entitlement,
+  type SymptomOnset,
+  type SymptomTrend,
+} from '@/features/ai-analysis/ai-analysis-model';
 import { ConsultGate } from '@/features/ai-analysis/components/consult-gate';
-import { EmergencyHint } from '@/features/ai-analysis/components/consult-parts';
+import { EmergencyHint, UrgentSignNotice } from '@/features/ai-analysis/components/consult-parts';
 import { useEntitlement, useRequestAnalysis, useSymptoms } from '@/features/ai-analysis/hooks/use-ai-analysis';
+import { hasUrgentSign } from '@/features/ai-analysis/urgent-signs';
+import { useSpecies } from '@/features/pets/hooks/use-species';
 import { pickPetPhoto, type PetPhotoSource } from '@/features/pets/pet-photo-picker';
 import { petErrorMessage } from '@/features/pets/pet-errors';
 import type { PreparedPetPhoto } from '@/features/pets/pet-photo';
@@ -27,13 +45,16 @@ import type { Pet } from '@/features/pets/types';
 import { formatFullDate } from '@/features/reminders/reminder-format';
 import { getLocale, t, tf } from '@/i18n';
 import { createSubmitGuard } from '@/lib/submit-guard';
-import { radius, spacing } from '@/theme/tokens';
+import { useTheme } from '@/hooks/use-theme';
+import { borderWidth, radius, spacing } from '@/theme/tokens';
 
-type Step = 'intro' | 'photo' | 'signs' | 'review';
+type Step = 'intro' | 'photo' | 'signs' | 'context' | 'review';
 
 /**
- * Nueva consulta (tableros 7.1–7.6 y 7.13): introducción, foto opcional con su consentimiento, señales,
- * revisión y envío. El cupo y la compatibilidad de las señales los decide el servidor.
+ * Nueva consulta (tableros 7.1–7.6 y 7.13): introducción, foto opcional con su consentimiento, señales
+ * de la especie agrupadas (con aviso inmediato si alguna es urgente), contexto del tutor (desde cuándo,
+ * cómo va y su texto), revisión y envío. El cupo, la compatibilidad de las señales y los límites del
+ * texto los decide el servidor.
  */
 export default function NewConsultScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,13 +67,19 @@ export default function NewConsultScreen() {
 
 function NewConsult({ pet }: { pet: Pet }) {
   const router = useRouter();
+  const theme = useTheme();
   const entitlement = useEntitlement();
   const symptoms = useSymptoms(pet.species_id);
+  const species = useSpecies();
+  const speciesCode = species.data?.find((item) => item.id === pet.species_id)?.code ?? null;
   const request = useRequestAnalysis(pet.id);
   const [step, setStep] = useState<Step>('intro');
   const [photo, setPhoto] = useState<PreparedPetPhoto | null>(null);
   const [consent, setConsent] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [contextText, setContextText] = useState('');
+  const [onset, setOnset] = useState<SymptomOnset | null>(null);
+  const [trend, setTrend] = useState<SymptomTrend | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [guard] = useState(createSubmitGuard);
@@ -96,7 +123,12 @@ function NewConsult({ pet }: { pet: Pet }) {
     void guard.run(async () => {
       setSubmitError(null);
       try {
-        const analysisId = await request.mutateAsync({ photo, photoPath: null, symptomIds: selected });
+        const analysisId = await request.mutateAsync({
+          photo,
+          photoPath: null,
+          symptomIds: selected,
+          context: { text: normalizeContext(contextText), onset, trend },
+        });
         router.replace({ pathname: '/pets/[id]/consult/[analysisId]', params: { id: pet.id, analysisId } });
       } catch (error) {
         const code = toRequestErrorCode(error);
@@ -109,6 +141,7 @@ function NewConsult({ pet }: { pet: Pet }) {
   if (step === 'intro') {
     return (
       <Screen
+        key={step}
         align="top"
         footer={
           <>
@@ -137,6 +170,7 @@ function NewConsult({ pet }: { pet: Pet }) {
         <Card flush>
           <ListItem icon={Camera} title={t('consult.intro.photoTitle')} subtitle={t('consult.intro.photoText')} divider />
           <ListItem icon={ListChecks} title={t('consult.intro.signsTitle')} subtitle={t('consult.intro.signsText')} divider />
+          <ListItem icon={MessageSquareText} title={t('consult.intro.contextTitle')} subtitle={t('consult.intro.contextText')} divider />
           <ListItem
             icon={ChartLine}
             title={t('consult.intro.historyTitle')}
@@ -158,6 +192,7 @@ function NewConsult({ pet }: { pet: Pet }) {
   if (step === 'photo') {
     return (
       <Screen
+        key={step}
         align="top"
         footer={
           photo ? (
@@ -212,17 +247,25 @@ function NewConsult({ pet }: { pet: Pet }) {
     );
   }
 
+  const catalog = symptoms.data ?? [];
+  const selectedCodes = catalog.filter((symptom) => selected.includes(symptom.id)).map((symptom) => symptom.code);
+  const urgent = hasUrgentSign(speciesCode, selectedCodes);
+
   if (step === 'signs') {
-    const catalog = symptoms.data ?? [];
     return (
       <Screen
+        key={step}
         align="top"
         footer={
-          <Button
-            label={selected.length ? t('consult.signs.continue') : t('consult.signs.none')}
-            disabled={selected.length === 0}
-            onPress={() => setStep('review')}
-          />
+          <>
+            {/* En el pie y no en el contenido: así no empuja los chips mientras se eligen. */}
+            {urgent ? <UrgentSignNotice /> : null}
+            {selected.length ? (
+              <Button label={tf('consult.signs.continue', { count: selected.length })} onPress={() => setStep('context')} />
+            ) : (
+              <Button label={t('consult.signs.none')} variant="secondary" disabled={symptoms.isPending} onPress={() => setStep('context')} />
+            )}
+          </>
         }>
         <TopBar onBack={() => setStep('photo')} title={t('consult.signs.title')} right={<TopBarText text={tf('consult.step', { step: 2 })} mono />} />
         <Text color="inkMuted">{t('consult.signs.text')}</Text>
@@ -231,24 +274,77 @@ function NewConsult({ pet }: { pet: Pet }) {
         ) : symptoms.isError ? (
           <ErrorState message={t('consult.signs.loadError')} onRetry={() => void symptoms.refetch()} />
         ) : (
-          <View style={styles.chips}>
-            {catalog.map((symptom) => (
-              <Chip
-                key={symptom.id}
-                label={symptom.label}
-                selected={selected.includes(symptom.id)}
-                onPress={() => setSelected((current) => toggleSymptom(current, symptom.id, catalog.map((item) => item.id)))}
-              />
-            ))}
-          </View>
+          groupSigns(catalog).map((group) => (
+            <View key={group.category} style={styles.group}>
+              <Text variant="overline" color="inkMuted" accessibilityRole="header">
+                {t(`consult.signs.categories.${group.category}`)}
+              </Text>
+              <View style={styles.chips}>
+                {group.signs.map((symptom) => (
+                  <Chip
+                    key={symptom.id}
+                    label={symptom.label}
+                    selected={selected.includes(symptom.id)}
+                    onPress={() => setSelected((current) => toggleSymptom(current, symptom.id, catalog.map((item) => item.id)))}
+                  />
+                ))}
+              </View>
+            </View>
+          ))
         )}
       </Screen>
     );
   }
 
-  const labels = (symptoms.data ?? []).filter((symptom) => selected.includes(symptom.id)).map((symptom) => symptom.label);
+  const problem = contextProblem(contextText, selected.length);
+
+  if (step === 'context') {
+    const length = normalizeContext(contextText)?.length ?? 0;
+    const hint =
+      problem === 'required'
+        ? tf('consult.context.required', { min: MIN_CONTEXT_WITHOUT_SIGNS })
+        : tf('consult.context.hint', { count: length, max: MAX_CONTEXT_LENGTH });
+    return (
+      <Screen
+        key={step}
+        align="top"
+        footer={<Button label={t('consult.context.continue')} disabled={problem !== null} onPress={() => setStep('review')} />}>
+        <TopBar onBack={() => setStep('signs')} title={t('consult.context.title')} right={<TopBarText text={tf('consult.step', { step: 3 })} mono />} />
+        <Text color="inkMuted">{t('consult.context.text')}</Text>
+        <OptionGroup
+          label={t('consult.context.onsetLabel')}
+          options={SYMPTOM_ONSETS.map((value) => ({ value, label: t(`consult.context.onset.${value}`) }))}
+          value={onset}
+          onChange={(value) => setOnset((current) => (current === value ? null : value))}
+        />
+        <OptionGroup
+          label={t('consult.context.trendLabel')}
+          options={SYMPTOM_TRENDS.map((value) => ({ value, label: t(`consult.context.trend.${value}`) }))}
+          value={trend}
+          onChange={(value) => setTrend((current) => (current === value ? null : value))}
+        />
+        <TextField
+          label={t('consult.context.label')}
+          optional={selected.length > 0}
+          multiline
+          value={contextText}
+          onChangeText={setContextText}
+          maxLength={MAX_CONTEXT_LENGTH}
+          placeholder={t('consult.context.placeholder')}
+          hint={hint}
+          error={problem === 'too_long' ? tf('consult.context.tooLong', { max: MAX_CONTEXT_LENGTH }) : null}
+          autoCapitalize="sentences"
+          textAlignVertical="top"
+        />
+      </Screen>
+    );
+  }
+
+  const labels = catalog.filter((symptom) => selected.includes(symptom.id)).map((symptom) => symptom.label);
+  const contextValue = normalizeContext(contextText);
   return (
     <Screen
+      key={step}
       align="top"
       footer={
         <>
@@ -256,7 +352,8 @@ function NewConsult({ pet }: { pet: Pet }) {
           <Button label={t('consult.review.send')} loading={request.isPending} loadingLabel={t('consult.review.sending')} onPress={send} />
         </>
       }>
-      <TopBar onBack={() => setStep('signs')} title={t('consult.review.title')} right={<TopBarText text={tf('consult.step', { step: 3 })} mono />} />
+      <TopBar onBack={() => setStep('context')} title={t('consult.review.title')} right={<TopBarText text={tf('consult.step', { step: 4 })} mono />} />
+      {urgent ? <EmergencyHint title={t('consult.signs.urgentTitle')} message={t('consult.signs.urgentText')} /> : null}
       <Card flush>
         <ListItem
           icon={photo ? Camera : ImageIcon}
@@ -269,11 +366,30 @@ function NewConsult({ pet }: { pet: Pet }) {
             <Text variant="bodyStrong">{t('consult.review.signs')}</Text>
             <Button label={t('consult.review.change')} variant="ghost" size="sm" onPress={() => setStep('signs')} />
           </View>
-          <View style={styles.chips}>
-            {labels.map((label) => (
-              <Tag key={label} label={label} tone="brand" />
-            ))}
+          {labels.length ? (
+            <View style={styles.chips}>
+              {labels.map((label) => (
+                <Tag key={label} label={label} tone="brand" />
+              ))}
+            </View>
+          ) : (
+            <Text color="inkMuted">{t('consult.review.noSigns')}</Text>
+          )}
+        </View>
+        <View style={[styles.signs, styles.topDivider, { borderTopColor: theme.line }]}>
+          <View style={styles.between}>
+            <Text variant="bodyStrong">{t('consult.review.context')}</Text>
+            <Button label={t('consult.review.change')} variant="ghost" size="sm" onPress={() => setStep('context')} />
           </View>
+          {onset || trend ? (
+            <View style={styles.chips}>
+              {onset ? <Tag label={t(`consult.context.onset.${onset}`)} /> : null}
+              {trend ? <Tag label={t(`consult.context.trend.${trend}`)} tone={trend === 'worse' ? 'danger' : 'neutral'} /> : null}
+            </View>
+          ) : null}
+          <Text color={contextValue ? 'ink' : 'inkMuted'} numberOfLines={6}>
+            {contextValue ?? t('consult.review.noContext')}
+          </Text>
         </View>
       </Card>
       {quota.monthlyLimit !== null ? (
@@ -352,6 +468,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing['2'],
+  },
+  group: {
+    gap: spacing['2'],
+  },
+  topDivider: {
+    borderTopWidth: borderWidth.hairline,
   },
   signs: {
     gap: spacing['2'],

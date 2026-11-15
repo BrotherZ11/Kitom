@@ -15,6 +15,7 @@ import {
 } from '@/features/ai-analysis/api/ai-analysis-api';
 import { useAuth } from '@/features/auth/auth-context';
 import { achievementKeys } from '@/features/achievements/hooks/use-achievements';
+import type { AnalysisContext } from '@/features/ai-analysis/api/ai-analysis-api';
 import type { PreparedPetPhoto } from '@/features/pets/pet-photo';
 import { getLocale } from '@/i18n';
 
@@ -90,7 +91,12 @@ export function useAnalysisSymptomIds(analysisId: string) {
   });
 }
 
-export type NewAnalysis = { photo: PreparedPetPhoto | null; photoPath: string | null; symptomIds: string[] };
+export type NewAnalysis = {
+  photo: PreparedPetPhoto | null;
+  photoPath: string | null;
+  symptomIds: string[];
+  context: AnalysisContext;
+};
 
 /**
  * Pedir una orientación: sube la foto (si hay y aún no está subida), crea la solicitud y la manda a
@@ -102,12 +108,12 @@ export function useRequestAnalysis(petId: string) {
   const queryClient = useQueryClient();
   const { auth, userId } = useAiSession();
   return useMutation({
-    mutationFn: async ({ photo, photoPath, symptomIds }: NewAnalysis) => {
+    mutationFn: async ({ photo, photoPath, symptomIds, context }: NewAnalysis) => {
       const uploaded = photoPath === null && photo ? await auth.serverCall(() => uploadConsultPhoto(petId, photo)) : null;
       const path = photoPath ?? uploaded;
       let analysisId: string;
       try {
-        analysisId = await auth.serverCall(() => requestAnalysis(petId, path, symptomIds));
+        analysisId = await auth.serverCall(() => requestAnalysis(petId, path, symptomIds, context));
       } catch (error) {
         if (uploaded && canDiscardUploadedPhoto(error)) {
           await auth.serverCall(() => deleteConsultPhoto(uploaded)).catch(() => undefined);
@@ -115,7 +121,7 @@ export function useRequestAnalysis(petId: string) {
         throw error;
       }
       // Se espera a que la función termine (unos segundos); un fallo aquí no es definitivo.
-      await auth.serverCall(() => processAnalysis(analysisId)).catch(() => undefined);
+      await auth.serverCall(() => processAnalysis(analysisId, getLocale())).catch(() => undefined);
       return analysisId;
     },
     onSettled: () => {
@@ -131,7 +137,7 @@ export function useRequestAnalysis(petId: string) {
 export function useProcessAnalysis() {
   const { auth } = useAiSession();
   return useMutation({
-    mutationFn: (analysisId: string) => auth.serverCall(() => processAnalysis(analysisId)),
+    mutationFn: (analysisId: string) => auth.serverCall(() => processAnalysis(analysisId, getLocale())),
   });
 }
 
