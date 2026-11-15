@@ -83,9 +83,9 @@ function AnalysisRow({ analysis, divider, onPress }: { analysis: Analysis; divid
             ) : (
               <Tag label={status} tone={analysis.status === 'failed' ? 'danger' : 'neutral'} />
             )}
-            {analysis.possible_causes?.[0] ? (
+            {(analysis.summary ?? analysis.possible_causes?.[0]) ? (
               <Text color="inkMuted" numberOfLines={2}>
-                {analysis.possible_causes[0]}
+                {analysis.summary ?? analysis.possible_causes?.[0]}
               </Text>
             ) : null}
           </View>

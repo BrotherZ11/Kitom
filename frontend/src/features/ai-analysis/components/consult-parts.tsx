@@ -70,20 +70,43 @@ export function ConsultDisclaimer() {
 
 const EMERGENCY_SEARCH_URL = 'https://www.google.com/maps/search/?api=1&query=';
 
-/** Señales de urgencia y acceso a urgencias veterinarias cercanas (sin clínica propia guardada). */
-export function EmergencyHint({ prominent = false }: { prominent?: boolean }) {
-  const open = () => void Linking.openURL(EMERGENCY_SEARCH_URL + encodeURIComponent(t('consult.emergencySearch')));
+/**
+ * Señales de urgencia y acceso a urgencias veterinarias cercanas (sin clínica propia guardada). Con
+ * `title`/`message`, otro texto (p. ej. al marcar una señal urgente).
+ */
+export function EmergencyHint({ prominent = false, title, message }: { prominent?: boolean; title?: string; message?: string }) {
   return (
     <View style={styles.emergency}>
-      <Alert tone="error" icon={TriangleAlert} message={t('consult.urgentHint')} />
+      <Alert tone="error" icon={TriangleAlert} title={title} message={message ?? t('consult.urgentHint')} />
       <Button
         label={t('consult.emergencySearch')}
         icon={MapPin}
         variant={prominent ? 'danger' : 'secondary'}
         size={prominent ? 'lg' : 'md'}
-        onPress={open}
+        onPress={openEmergencySearch}
       />
     </View>
+  );
+}
+
+/** Abre la búsqueda de urgencias veterinarias cercanas en mapas. */
+export function openEmergencySearch() {
+  void Linking.openURL(EMERGENCY_SEARCH_URL + encodeURIComponent(t('consult.emergencySearch')));
+}
+
+/**
+ * Aviso compacto de que una señal marcada puede ser urgente, para el pie de la pantalla de señales: ahí
+ * no desplaza los chips mientras se eligen (un aviso en el contenido los empujaría hacia abajo).
+ */
+export function UrgentSignNotice() {
+  return (
+    <Alert
+      tone="error"
+      icon={TriangleAlert}
+      title={t('consult.signs.urgentTitle')}
+      message={t('consult.signs.urgentText')}
+      action={{ label: t('consult.emergencySearch'), onPress: openEmergencySearch }}
+    />
   );
 }
 
