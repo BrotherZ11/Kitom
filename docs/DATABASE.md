@@ -1,7 +1,7 @@
 # Kitom — Base de datos (estado desplegado)
 
-Revisión: **2026-11-05**. Fotografía del esquema **realmente desplegado** (`supabase/migrations/`,
-17 migraciones, todas aplicadas en `kitom-dev`), de su cobertura de pruebas y de sus problemas conocidos.
+Revisión: **2026-11-13**. Fotografía del esquema **realmente desplegado** (`supabase/migrations/`,
+19 migraciones; todas aplicadas en `kitom-dev` salvo `20261113134252`, pendiente del `db push` del usuario), de su cobertura de pruebas y de sus problemas conocidos.
 El **contrato** (matriz de permisos, RPC, códigos de error, Edge Functions) está en
 [`docs/README.md`](README.md) y no se repite aquí; las decisiones, en [`DECISIONS.md`](DECISIONS.md);
 las reglas de trabajo, en [`supabase/CLAUDE.md`](../supabase/CLAUDE.md).
@@ -27,6 +27,7 @@ las reglas de trabajo, en [`supabase/CLAUDE.md`](../supabase/CLAUDE.md).
 | `20261105093545_reminders_client_request_id` | alta idempotente de recordatorios (agenda sin conexión, fase 14) | aplicada (2026-11-06) |
 | `20261105122353_account_deletion_audit_triggers` | borrar una cuenta con datos en mascotas que sobreviven (D-11): la FK `ON DELETE SET NULL` pasa los triggers de auditoría, conserva `last_edited_by` y no recalcula la racha | aplicada (2026-11-06) |
 | `20261111120000_species_fields` | campos por especie: las 9 especies activas, `species.ai_guidance_enabled`, catálogo `species_fields`, `pets/daily_logs.species_data` con trigger de validación, `save_daily_log` con `p_species_data` (`NULL` = conservar) y `request_ai_analysis` solo para especies validadas (`README.md` §15.1) | aplicada (2026-11-12), con `seeds/breeds.sql` reejecutado |
+| `20261113134252_ai_guidance_v2` | orientación v2: `ai_analysis_requests` con contexto del tutor (`user_context` ≤ 1000, `symptom_onset`, `symptom_trend`) y resultado ampliado (`summary`, `warning_signs`, `vet_questions`, `photo_observations`), SELECT por columna; `request_ai_analysis` con 3 parámetros opcionales (firma de 3 borrada; `ai_context_too_long`, `ai_invalid_context`); `ai_guidance_enabled` en las 9 especies (`README.md` §11). Requiere reejecutar `supabase/seed.sql` (señales por especie) | aplicada (`db push` y seed del usuario, 2026-11-15) |
 
 Procedimiento (resumen; completo en `supabase/CLAUDE.md` y [`DEPLOYMENT.md`](DEPLOYMENT.md) §5):
 migración nueva → `migration up --local` → pgTAP → PR `db/…` → `db push` **del usuario** → tipos con
@@ -86,6 +87,7 @@ concurrencia en `supabase/tests/concurrency/`):
 | `reminders` | S/I/U/D | sí (`reminders.test.sql`, `reminders_is_active.test.sql`, `reminders_client_request_id.test.sql`, concurrencia `reminders_concurrency.sh`) |
 | `pet_co_owners` + RPC de invitación por email | S + RPC | parcial (por email, su límite, la identidad oculta de las pendientes y `revoke` de una pendiente sí: `pet_invitations`, `abuse_limits`; `change_pet_member_role`, `decline`, `invite_pet_member` por id, no) |
 | Límites de IA (`request_ai_analysis`: cupo, 1/min, 3 fallos/día, aviso) | RPC | sí (`ai_quota`, `abuse_limits`, concurrencia `abuse_limits_concurrency.sh`) |
+| Contexto del tutor y resultado v2 (`request_ai_analysis` de 6 parámetros, CHECK, privilegios por columna, señales por especie) | RPC + tabla + seed | sí (`ai_guidance_v2`, integración `species-fields-parity`) |
 | CHECK de longitud, políticas con `(select auth.uid())`, índices de FK, tareas de `pg_cron` | — | sí (`db_hardening.test.sql`) |
 | `private.pet_storage_cleanup_jobs` + RPC | ninguna (servicio) | sí (pgTAP + concurrencia + integración) |
 | Storage `pet-photos` | S/I/D | parcial (subida durante el borrado; SELECT/DELETE entre usuarios, no) |
