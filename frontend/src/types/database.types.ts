@@ -50,6 +50,7 @@ export type Database = {
           id: string
           latency_ms: number | null
           pet_id: string
+          photo_observations: string | null
           photo_path: string | null
           possible_causes: string[] | null
           processing_started_at: string | null
@@ -58,8 +59,14 @@ export type Database = {
           requested_by: string | null
           response_raw: Json | null
           status: Database["public"]["Enums"]["ai_request_status"]
+          summary: string | null
+          symptom_onset: string | null
+          symptom_trend: string | null
           urgency_level: Database["public"]["Enums"]["urgency_level"] | null
           used_full_history: boolean
+          user_context: string | null
+          vet_questions: string[] | null
+          warning_signs: string[] | null
         }
         Insert: {
           ai_model?: string | null
@@ -72,6 +79,7 @@ export type Database = {
           id?: string
           latency_ms?: number | null
           pet_id: string
+          photo_observations?: string | null
           photo_path?: string | null
           possible_causes?: string[] | null
           processing_started_at?: string | null
@@ -80,8 +88,14 @@ export type Database = {
           requested_by?: string | null
           response_raw?: Json | null
           status?: Database["public"]["Enums"]["ai_request_status"]
+          summary?: string | null
+          symptom_onset?: string | null
+          symptom_trend?: string | null
           urgency_level?: Database["public"]["Enums"]["urgency_level"] | null
           used_full_history?: boolean
+          user_context?: string | null
+          vet_questions?: string[] | null
+          warning_signs?: string[] | null
         }
         Update: {
           ai_model?: string | null
@@ -94,6 +108,7 @@ export type Database = {
           id?: string
           latency_ms?: number | null
           pet_id?: string
+          photo_observations?: string | null
           photo_path?: string | null
           possible_causes?: string[] | null
           processing_started_at?: string | null
@@ -102,8 +117,14 @@ export type Database = {
           requested_by?: string | null
           response_raw?: Json | null
           status?: Database["public"]["Enums"]["ai_request_status"]
+          summary?: string | null
+          symptom_onset?: string | null
+          symptom_trend?: string | null
           urgency_level?: Database["public"]["Enums"]["urgency_level"] | null
           used_full_history?: boolean
+          user_context?: string | null
+          vet_questions?: string[] | null
+          warning_signs?: string[] | null
         }
         Relationships: [
           {
@@ -1307,6 +1328,9 @@ export type Database = {
       request_ai_analysis: {
         Args: {
           p_photo_path: string
+          p_symptom_onset?: string
+          p_symptom_trend?: string
+          p_user_context?: string
           symptom_ids?: string[]
           target_pet_id: string
         }
