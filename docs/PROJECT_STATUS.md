@@ -45,7 +45,7 @@ avance: no hay un método reproducible que los respalde.
 | # | Funcionalidad | Estado | Evidencia | Qué falta | Prioridad |
 |---|---|---|---|---|---|
 | 1 | Registro e inicio de sesión con email | COMPLETA Y VERIFICADA | `features/auth/`, integración local y emulador Android (registro, aviso legal único, regla de 8 caracteres, redirección); plantillas y página puente de email probadas en local | SMTP propio y Redirect URLs (`SETUP_GUIDE.md`); confirmar el email real en producción | P0 |
-| 2 | Inicio de sesión con Google | IMPLEMENTADA, NO VERIFICADA | `auth-context.tsx:141-166`, PKCE (`auth-redirect.ts`); guía `docs/AUTH.md` | el proveedor responde en `kitom-dev` (solo lectura, 2026-11-04); falta publicar la pantalla de consentimiento, comprobar `kitom://**` y probarlo en un móvil (`SETUP_GUIDE.md` §4) | P1 |
+| 2 | Inicio de sesión con Google | IMPLEMENTADA, NO VERIFICADA | Android: selector nativo (`google-native-sign-in.ts`, `signInWithIdToken`, 2026-11-16); web, Expo Go y builds sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`: navegador con PKCE (`auth-redirect.ts`); guía `docs/AUTH.md` §4 | falta el cliente Android en Google Cloud, el ID web en Supabase y en la build y probarlo en un móvil; después, quitar la URI de supabase.co y pedir la verificación de marca (`SETUP_GUIDE.md`) | P1 |
 | 3 | Inicio de sesión con teléfono | PENDIENTE (retirada del alcance, decisión 2026-10-29) | fila y textos eliminados de la app | nada: no se va a implementar | — |
 | 4 | Recuperación de contraseña | IMPLEMENTADA, NO VERIFICADA | marca persistente por usuario (`password-recovery.ts`), enlace válido con la sesión iniciada, pruebas unitarias | probar con un email real y matando la app | P1 |
 | 5 | Confirmación de email por deep link | IMPLEMENTADA, NO VERIFICADA | `app/auth-callback.tsx`, «Reenviar email» con espera de 60 s, salida a los 15 s; reenvío comprobado contra el Auth local | probar con email real en un móvil | P1 |
@@ -134,7 +134,7 @@ hasta aplicar la migración.
 | Supabase `kitom-dev` (desarrollo) | operativo; 19 migraciones; `ai-analysis-process` (prompt v2, 2026-11-15), `delete-account` y `pet-storage-cleanup` desplegadas |
 | Supabase de producción | **no existe** |
 | Google AI Studio (Gemini) | función desplegada; secreto no verificable desde aquí; **cuota gratuita** (decisión 2026-11-15): vale para pruebas, pero sus términos solo permiten servicios de pago en apps para usuarios del EEE (§8) |
-| Google Cloud OAuth (login con Google) | responde en `kitom-dev`; falta probarlo en un móvil. Pasos: `SETUP_GUIDE.md` §4 |
+| Google Cloud OAuth (login con Google) | cliente web creado; faltan los clientes Android (SHA-1 de depuración, de EAS y de Play), el ID web en Supabase y la prueba en un móvil; la URI de supabase.co se retira tras esa prueba. Pasos: `SETUP_GUIDE.md` |
 | Correo (SMTP propio) | Resend configurado en `kitom-dev` (el usuario, 2026-11-15); falta en producción y comprobar cada plantilla. Pasos: `SETUP_GUIDE.md` §2 |
 | Google Play Console / Expo (EAS) | `eas.json` preparado; faltan las cuentas. Apple, tras la v1 (Android primero) |
 | RevenueCat | no integrado |

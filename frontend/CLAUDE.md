@@ -78,6 +78,10 @@ error y «sin mascotas».
   siempre con `changePassword` de `useAuth()` (comprueba la actual con un cliente aparte,
   `change-password.ts`), nunca `updateUser` directo. Mapeo de errores puro en `auth-error-code.ts`.
   Guía: `docs/AUTH.md` §5.
+- Google (2026-11-16): en Android, acceso nativo (`google-native-sign-in.ts`: `@react-native-google-signin/google-signin`
+  con `require` protegido, nunca `import` directo, y `signInWithIdToken`); en web, iOS, Expo Go o sin
+  `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, por el navegador. Camino y errores en `google-sign-in-plan.ts` (puro y probado). El
+  plugin de Expo de la librería no va en `app.json` (sin opciones exige Firebase). Guía: `docs/AUTH.md` §4.
 - `src/app/_layout.tsx` — único punto de protección de rutas (`Stack.Protected`); nunca comprobar la
   sesión pantalla a pantalla.
 - `src/i18n/` — `t(key)` tipado; `es` y `en` con las mismas claves (`Translations`). Idioma del

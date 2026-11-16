@@ -13,7 +13,7 @@ los enlaces de email y el login con Google funcionen. Código: `frontend/src/fea
 | Recuperación de contraseña por enlace | ✅ (requiere configuración, sección 3; sobrevive a cerrar la app) |
 | Cambiar la contraseña en ajustes (pide la actual) | ✅ (sección 5) |
 | Crear contraseña en una cuenta solo de Google | ✅ en `/settings/password`; falta la entrada en Seguridad (sección 5) |
-| Google (OAuth en navegador del sistema) | ✅ (requiere configuración, sección 4) |
+| Google: nativo en Android, navegador en el resto | ✅ (requiere configuración, sección 4; nativo sin probar con una cuenta real) |
 | Teléfono (OTP) | Retirado del alcance (decisión 2026-10-29; PRD §8.1 es histórico) |
 
 ## 2. Cómo funcionan los enlaces (deep links)
@@ -44,7 +44,7 @@ URL de retorno generada con `Linking.createURL('auth-callback', { queryParams: {
 | Entorno | URL |
 |---|---|
 | Release nativa, emails | `https://kitom.app/auth/callback.html?flow=signup\|recovery` (página puente) |
-| Release nativa, Google | `kitom://auth-callback?flow=oauth` |
+| Release nativa, Google | ninguna en Android con el Client ID Web (camino nativo, sección 4); si no, `kitom://auth-callback?flow=oauth` |
 | Development build | `kitom://auth-callback?flow=signup\|recovery\|oauth` |
 | Expo Go | `exp://<ip>:<puerto>/--/auth-callback?flow=…` |
 | Web (dev) | `http://localhost:8081/auth-callback?flow=…` |
@@ -69,7 +69,7 @@ configuración remota (`config push` está bloqueado). `supabase/config.toml` so
 
 - **Redirect URLs** (añadir):
   - `https://kitom.app/auth/callback.html**`: enlaces de email de la app publicada.
-  - `kitom://**`: builds de la app.
+  - `kitom://**`: builds de la app (Google por el navegador: iOS y builds sin el Client ID Web).
   - `exp://**`: Expo Go. **Solo en el proyecto de desarrollo, nunca en producción.**
   - `http://localhost:8081/**`: solo si se prueba la versión web en local.
   - `https://brotherz11.github.io/Kitom/auth/callback.html**`: solo mientras queden instaladas APK anteriores
@@ -121,37 +121,53 @@ ya está preparada para cada punto (SEC-09 / SEC-17 de `SECURITY_AUDIT.md`).
 
 ## 4. Login con Google
 
-La app abre el login de Google en el navegador del sistema (`expo-web-browser`,
-`openAuthSessionAsync`) y vuelve por `/auth-callback`. Funciona en Expo Go y en builds sin módulos
-nativos adicionales. La primera vez crea la cuenta; el trigger `handle_new_user` copia `full_name`
-y `avatar_url` del perfil de Google a `profiles`.
+Dos caminos, según el dispositivo (`features/auth/google-sign-in-plan.ts`, puro y probado):
 
-**Google Cloud Console** (proyecto de Kitom):
+| Dónde | Cómo | Depende de |
+|---|---|---|
+| **Android** (build nativa con `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) | **Nativo** (2026-11-16): selector de cuentas del sistema con `@react-native-google-signin/google-signin` (API «original», Google Play services), que da un ID token; `supabase.auth.signInWithIdToken({ provider: 'google', token })` lo canjea. Sin navegador ni URI de redirección | Cliente Android en Google Cloud con la SHA-1 de la firma de la APK; Client ID Web en la app y en **Client IDs** de Supabase |
+| Web, iOS, Expo Go o build sin el Client ID | **Navegador** (`expo-web-browser`, `openAuthSessionAsync`) con PKCE, vuelta por `/auth-callback` | URI `https://<project-ref>.supabase.co/auth/v1/callback` en el cliente Web, y `kitom://**` en Redirect URLs |
 
-1. *APIs & Services > OAuth consent screen*: configurar la pantalla de consentimiento (nombre de la
-   app, email de soporte, dominios). Scopes: `openid`, `email` y `profile`. En modo *Testing*, añadir
-   como *test users* las cuentas que van a probar.
-2. *Credentials > Create credentials > OAuth client ID* de tipo **Web application**:
-   - *Authorized redirect URIs*: `https://<project-ref>.supabase.co/auth/v1/callback`
-     (aparece como *Callback URL* en la configuración del proveedor Google de Supabase).
-3. Copiar el **Client ID** y el **Client secret**.
+La primera vez crea la cuenta; el trigger `handle_new_user` copia `full_name` y `avatar_url` del perfil de Google
+a `profiles` (Supabase los saca de las *claims* del ID token igual que del flujo por navegador).
 
-**Supabase Dashboard > Authentication > Sign In / Providers > Google**:
+**Detalles del camino nativo** (`google-native-sign-in.ts`):
 
-1. Activar Google.
-2. Pegar el Client ID y el Client secret del cliente *Web application*.
-3. Guardar. El Client secret solo vive en Supabase: nunca en el frontend ni en el repo.
+- El módulo se carga con `require` protegido y solo en Android: en Expo Go no existe y un `import` rompería el
+  arranque (como `expo-notifications`). Sin él, el botón usa el navegador.
+- Antes de cada acceso se cierra la sesión de Google **del módulo** (no la de Kitom): si no, Android reutilizaría la
+  última cuenta sin enseñar el selector.
+- Sin nonce: la API original no lo admite y Supabase solo lo comprueba si el token lo trae. **Skip nonce checks**
+  queda desactivado.
+- Errores (`interpretNativeSignInError`): cancelar o un acceso ya en curso no muestran nada;
+  `PLAY_SERVICES_NOT_AVAILABLE` → `google_play_services`; `7` (sin red) → `network`; `10` (`DEVELOPER_ERROR`: falta el
+  cliente Android con la SHA-1 de esa firma) y el resto → `oauth_failed`. Un error de Supabase sin mensaje propio al
+  canjear el token (p. ej. audiencia no aceptada) también → `oauth_failed`.
+- El plugin de Expo de la librería **no** está en `app.json`: sin opciones configura Firebase (pediría
+  `google-services.json`) y en Android no hace falta nada más. Para iOS habrá que añadirlo con `iosUrlScheme` (cliente
+  iOS de Google Cloud) y usar `iosClientId`; hasta entonces iOS va por el navegador.
+- Cambiar la librería exige una build nativa nueva (no llega por Expo Go ni por una actualización OTA).
 
-No hacen falta client IDs de Android/iOS para este flujo. Solo serían necesarios si en el futuro se
-cambia a Google Sign-In nativo (`signInWithIdToken`), que requiere un development build.
+**Google Cloud Console** (proyecto de Kitom; paso a paso en `SETUP_GUIDE.md` §4):
 
-**El dominio `…supabase.co` en Google.** Con este flujo, Google muestra «continuar a
-`<project-ref>.supabase.co`», y para verificar la marca (que salga «Kitom» con su logo) Google exige
-verificar en Search Console todos los dominios autorizados, incluido el de las URI de redirección de un
-cliente Web. `supabase.co` no se puede verificar. Salidas (decisión pendiente, `DECISIONS.md` 2026-11-07):
-Google Sign-In nativo en Android (sin URI de redirección: el selector de cuentas del sistema) o dominio
-personalizado de Supabase (`auth.kitom.app`; de pago). Mientras tanto, **no quitar** la URI de
-`supabase.co`: es la que Supabase envía a Google, y sin ella el login da `redirect_uri_mismatch`.
+1. *Google Auth Platform*: Branding (nombre, logo, dominio `kitom.app`, URL de privacidad y términos), Audience
+   *External* y publicada, scopes `openid`, `email` y `profile`.
+2. Cliente **Web application**: su Client ID y su Client secret van a Supabase; el Client ID, también a la app
+   (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, público). *Authorized redirect URIs* solo hace falta para el camino del
+   navegador.
+3. Un cliente **Android** por firma (paquete `com.kitom.app` + SHA-1): depuración local, subida de EAS y firma de
+   Google Play. El de depuración usa la clave pública de la plantilla de React Native: solo para probar, borrarlo
+   antes de publicar.
+
+**Supabase Dashboard > Authentication > Sign In / Providers > Google**: activado, Client ID y Client secret del
+cliente Web, y en **Client IDs** el Client ID Web (los tokens del camino nativo llevan esa audiencia). El Client
+secret solo vive en Supabase: nunca en el frontend ni en el repo.
+
+**El dominio `…supabase.co` en Google.** Con el camino del navegador, Google muestra «continuar a
+`<project-ref>.supabase.co`», y la verificación de marca exige verificar todos los dominios autorizados, también
+los de las URI de un cliente Web; `supabase.co` no se puede verificar. Por eso Android pasó al camino nativo
+(`DECISIONS.md` 2026-11-16). Quitar esa URI, cuando el nativo esté comprobado en un móvil, deja sin Google a la web,
+Expo Go e iOS (dan `redirect_uri_mismatch`).
 
 Si una cuenta con el mismo email ya existe con contraseña, Supabase vincula la identidad de Google
 cuando el email está verificado.

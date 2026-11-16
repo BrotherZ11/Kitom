@@ -60,6 +60,8 @@ exportar `SENTRY_DISABLE_AUTO_UPLOAD=true` antes de Gradle. Para subir los sourc
 la terminal o en `frontend/.env.sentry-build-plugin` (ignorado por git) y repetir `prebuild`, que escribe la
 organización y el proyecto de `app.json` en `android/sentry.properties` (y cambia los `scripts` de `package.json`: revertirlos).
 La APK solo envía errores si se compila con `EXPO_PUBLIC_SENTRY_DSN`, en `frontend/.env` o en la terminal.
+Igual con `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`: sin él, «Continuar con Google» abre el navegador en vez del selector de cuentas
+(`AUTH.md` §4). En el bundle debe aparecer `.apps.googleusercontent.com`.
 
 Antes de instalar una APK local, comprobar a qué servidor apunta: compilar sin `EXPO_PUBLIC_*` en la terminal (se usan las de
 `frontend/.env`; las variables del proceso tienen prioridad) y buscar en `android/app/build/generated/assets/` el bundle, que debe contener
@@ -82,11 +84,13 @@ Antes de instalar una APK local, comprobar a qué servidor apunta: compilar sin 
    `extra.eas.projectId` a `app.json`: commitearlo).
 2. Variables por entorno en EAS (Project › Environment variables), nunca en el repo:
    `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` (del proyecto de ese entorno) y
-   `EXPO_PUBLIC_SENTRY_DSN` (Sentry › proyecto `kitom-app` › Client Keys). En `preview` y `production`, además, el
+   `EXPO_PUBLIC_SENTRY_DSN` (Sentry › proyecto `kitom-app` › Client Keys) y `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (Client ID del
+   cliente Web de Google Cloud; público). En `preview` y `production`, además, el
    secreto `SENTRY_AUTH_TOKEN` (token de organización, visibilidad *sensitive*): la organización y el proyecto ya están en `app.json`.
 3. `npx eas-cli@latest build -p android --profile preview` → instalar en móviles reales.
 4. Firma: EAS genera y custodia el keystore (`eas credentials`); descargar una copia de seguridad.
-   Activar Play App Signing al crear la app en Play Console.
+   Activar Play App Signing al crear la app en Play Console. Las SHA-1 de la clave de subida y de la de firma de Play
+   necesitan su cliente Android en Google Cloud (`SETUP_GUIDE.md` §4); sin ellos, el acceso con Google falla.
 5. `npx eas-cli@latest build -p android --profile production` y
    `npx eas-cli@latest submit -p android --profile production` (requiere la clave de la cuenta de
    servicio de Play, configurada en EAS).

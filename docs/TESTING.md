@@ -89,6 +89,23 @@ APK de release en emulador Android, contra el Supabase local, con una ruta tempo
 - Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
 - **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
 
+### Acceso nativo con Google en Android (2026-11-16)
+
+| Comando | Resultado |
+|---|---|
+| `npm test` | 1017/1017 (nuevas: `google-sign-in-plan.test.mjs`, 13 casos: elección nativo/navegador, cancelación, `DEVELOPER_ERROR`, Play Services, red) |
+| `expo lint` / `tsc` | correctos |
+| `gradlew assembleRelease` (x86_64) | correcta con `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` de prueba; el bundle contiene `supabase.co` y el ID, y no `127.0.0.1` |
+
+A mano, APK release en el emulador Android (API 36.1, imagen con Play Store y sin cuenta de Google):
+
+- «Continuar con Google» abre el flujo de cuentas de los servicios de Google Play (`com.google.android.gms`), **sin
+  navegador**: el camino nativo se elige y el módulo carga en la build.
+- Volver atrás desde ese flujo devuelve al inicio de sesión («Hola de nuevo») sin mensaje de error ni cierre de la app (cancelación).
+- **Sin probar:** el canje real del ID token con Supabase (hace falta el ID del cliente web en la build y en Supabase, y un
+  cliente Android con el SHA-1 de la clave de depuración en Google Cloud), `DEVELOPER_ERROR` con una cuenta en el
+  emulador y un móvil físico. Expo Go y web siguen con el navegador (cubierto por las pruebas unitarias).
+
 ### Orientación con IA v2 y pantallas pequeñas (2026-11-13)
 
 Contra el Supabase local con las 19 migraciones (`migration up --local`, sin `db reset`) y el seed reejecutado:
