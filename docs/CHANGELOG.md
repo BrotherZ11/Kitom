@@ -3,6 +3,18 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-16
+
+Acceso con Google nativo en Android (rama `feat/native-google-sign-in`, sin migraciones):
+
+- **«Continuar con Google» en Android** abre el selector de cuentas del sistema, sin navegador ni `…supabase.co`. Exige
+  una build nativa nueva con `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` y los clientes Android con la SHA-1 de cada firma en
+  Google Cloud (`SETUP_GUIDE.md` §4).
+- **Web, iOS y Expo Go** siguen por el navegador.
+- **Paquete nuevo:** `@react-native-google-signin/google-signin` 17.0.0 (aprobado por el responsable).
+- **Error nuevo** `google_play_services`, para móviles sin Google Play services.
+- **Pruebas:** 15 unitarias nuevas (camino y errores).
+
 ## 2026-11-15
 
 - **Cuota gratuita de Gemini de momento** (`DECISIONS.md` 2026-11-15): la política de privacidad describe lo que Google

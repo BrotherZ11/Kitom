@@ -3,6 +3,30 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-16 — Acceso con Google nativo en Android
+
+**Contexto.** El acceso por navegador obliga a tener `https://<project-ref>.supabase.co/auth/v1/callback` como URI del
+cliente Web de Google: el usuario ve «continuar a `…supabase.co`» y la marca no se puede verificar, porque Google exige
+verificar todos los dominios autorizados (pendiente del 2026-11-07). El responsable eligió el acceso nativo frente al
+dominio propio de Supabase (de pago).
+
+**Decisiones.**
+
+- Android usa `@react-native-google-signin/google-signin` 17 (API «original», gratuita, Google Play services) y
+  `signInWithIdToken`. Sin nonce (la API no lo admite; Supabase no lo exige si el token no lo trae).
+- El resto (web, iOS, Expo Go, builds sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) sigue por el navegador. Al quitar la URI de
+  `supabase.co`, Google deja de funcionar ahí; la web solo es de pruebas e iOS va después.
+- El Client ID Web va en `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (público, como el DSN de Sentry) y no en el código, para que
+  cada entorno use el suyo.
+- Sin el plugin de Expo de la librería: sin opciones configura Firebase y en Android no aporta nada. iOS lo necesitará
+  con `iosUrlScheme`.
+- Antes de cada acceso se cierra la sesión de Google del módulo, para que siempre salga el selector de cuentas.
+- Error nuevo `google_play_services` (móvil sin Google Play services); lo demás se explica como `oauth_failed`.
+
+**Consecuencias.** Cada firma (depuración, subida de EAS, Google Play) necesita un cliente Android con su SHA-1. El de
+depuración usa la clave pública de la plantilla de React Native: solo para probar. Guía: `SETUP_GUIDE.md` §4; detalle:
+`AUTH.md` §4.
+
 ## 2026-11-15 — Cuota gratuita de Gemini de momento; textos legales sin depender del plan
 
 **Contexto.** El responsable decidió seguir con la cuota gratuita de la Gemini API de momento y pidió cambiar la política,
@@ -108,7 +132,7 @@ su Gmail personal.
   a la política de privacidad como encargados (en vigor desde el 2026-11-07).
 - Logotipo para Google: `frontend/assets/brand/store/kitom-logo-google-120.jpg`, del icono de la app.
 
-**Pendiente de decidir: la URI de redirección `…supabase.co` en Google.** No se puede quitar sin romper el acceso
+**Pendiente de decidir (decidido el 2026-11-16: acceso nativo en Android): la URI de redirección `…supabase.co` en Google.** No se puede quitar sin romper el acceso
 con Google, y su dominio impide la verificación de marca. Opciones: Google Sign-In nativo en Android
 (`@react-native-google-signin/google-signin` + `signInWithIdToken`; gratis, requiere instalar el paquete y una
 build nueva) o dominio personalizado de Supabase (de pago). Detalle: `SETUP_GUIDE.md` §4.

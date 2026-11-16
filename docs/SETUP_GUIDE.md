@@ -4,7 +4,7 @@ Pasos, en orden, de lo que solo puede hacer el responsable en los paneles de Sup
 proveedor de correo. Por qué funciona así: [`AUTH.md`](AUTH.md). Publicación y builds:
 [`DEPLOYMENT.md`](DEPLOYMENT.md) §8.
 
-Comprobado el 2026-11-04; dominio y correo, el 2026-11-07. Lo marcado **[confirmar]** no se ha podido verificar en una fuente oficial, o
+Comprobado el 2026-11-04; dominio y correo, el 2026-11-07; acceso nativo con Google, el 2026-11-16. Lo marcado **[confirmar]** no se ha podido verificar en una fuente oficial, o
 depende de lo que muestre tu consola: compruébalo allí antes de actuar. Esto no es asesoramiento legal.
 
 ## Resumen de decisiones
@@ -15,7 +15,7 @@ depende de lo que muestre tu consola: compruébalo allí antes de actuar. Esto n
 | ¿Hace falta dominio? | **Sí**: `kitom.app` (Cloudflare, comprado el 2026-11-07) | Play no lo exige, pero sin él no hay emails fiables a usuarios reales ni marca propia en la pantalla de Google |
 | ¿Hace falta SMTP propio? | **Sí, es obligatorio para usuarios reales**: Resend | El SMTP de Supabase solo entrega a miembros de la organización y unos 2 correos/hora |
 | ¿Zoho y Resend a la vez? | **Sí, son compatibles** | Zoho es el buzón (`soporte@kitom.app`, registros en la raíz) y Resend envía los correos de la app (registros en `send.` y `resend._domainkey`) |
-| ¿Quitar la URI `…supabase.co` de Google? | **Todavía no** | Sin ella, «Continuar con Google» deja de funcionar. Opciones en el [paso 4](#la-uri-de-supabaseco) |
+| ¿Quitar la URI `…supabase.co` de Google? | **Sí, después de probar el acceso nativo** | La app Android ya no la usa (2026-11-16). Pasos en el [paso 4](#la-uri-de-supabaseco) |
 | ¿Los términos en la app bastan? | No | La app ya los muestra dentro, pero Play pide además una URL pública: `site/` sigue publicada |
 
 ## Orden recomendado
@@ -120,7 +120,7 @@ Panel: **Authentication** del proyecto. Hazlo cuando `https://kitom.app/auth/cal
 - **Site URL:** `https://kitom.app/auth/callback.html`
 - **Redirect URLs**, añade:
   - `https://kitom.app/auth/callback.html**` (enlaces de email)
-  - `kitom://**` (vuelta de Google a la app)
+  - `kitom://**` (vuelta de Google por el navegador: iOS y builds sin el Client ID Web)
   - `https://brotherz11.github.io/Kitom/auth/callback.html**`: déjala mientras uses APK compiladas antes del
     2026-11-07, que aún piden esa dirección. Quítala cuando ya no quede ninguna.
   - Solo en `kitom-dev`, para desarrollar: `exp://**`
@@ -178,34 +178,47 @@ Usa la cuenta de Google que vaya a ser dueña del proyecto: conviene que sea la 
 6. **Audience › Publish app** (de *Testing* a *In production*). Mientras siga en *Testing*, solo entran las
    cuentas de **Test users**, y las demás ven un error de acceso.
 
-**Credenciales** (**Clients › Create client**):
+**Credenciales** (**Clients › Create client**). La app Android entra con el selector de cuentas del sistema
+(acceso nativo, 2026-11-16): no abre el navegador ni pasa por `supabase.co`. Necesita dos tipos de cliente:
 
-1. Tipo: **Web application**. No hace falta un cliente Android: el acceso va por el navegador.
-2. **Authorized redirect URIs:** `https://pxlqiyspovaevcusyszj.supabase.co/auth/v1/callback`
-3. Copia el Client ID y el Client secret a **Supabase › Authentication › Sign In / Providers › Google**. Ese
+1. **Web application** (ya creado). Es el que Supabase usa para comprobar los tokens, y su Client ID va también en
+   la app. Copia el Client ID y el Client secret a **Supabase › Authentication › Sign In / Providers › Google**. El
    secreto solo vive en Supabase.
+2. **Android**, uno por cada firma de la app. Paquete `com.kitom.app` y la huella **SHA-1** de esa firma:
+
+   | Firma | SHA-1 | Cuándo |
+   |---|---|---|
+   | Clave de depuración (APK que compila Claude en local) | `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` | Ahora, para probar. Es la clave pública de la plantilla de React Native: **borra este cliente antes de publicar** |
+   | Clave de subida de EAS | `eas credentials` › Android › `production` | Al crear el proyecto EAS |
+   | Clave de firma de Google Play | Play Console › **Test and release › App integrity** › App signing key certificate | Al subir la primera build a Play. Es la de las apps que se instalan desde Play |
+
+   Los clientes Android no tienen secreto ni URI de redirección. Google tarda unos minutos en aceptarlos.
+3. **Supabase › Sign In / Providers › Google › Client IDs** (lista separada por comas): el Client ID del cliente Web.
+   Puedes añadir también los de Android, aunque los tokens que pide la app van a nombre del Web. Deja **Skip nonce
+   checks** desactivado: la app no envía nonce y Supabase no lo exige entonces.
+4. **El Client ID Web, en la app:** `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=<Client ID Web>` en `frontend/.env` para las APK
+   locales, y como variable de los entornos `preview` y `production` en EAS. No es un secreto. Sin ella, el botón
+   vuelve a usar el navegador.
 
 ### La URI de `supabase.co`
 
-**Por qué está.** Con el acceso por navegador, Google devuelve al usuario a Supabase, y Supabase a la app.
-Google solo acepta las URI de esta lista, así que es una medida de seguridad, no un fallo: si quitas
-`https://pxlqiyspovaevcusyszj.supabase.co/auth/v1/callback`, el acceso da `redirect_uri_mismatch`.
+**Por qué estaba.** Con el acceso por navegador, Google devuelve al usuario a Supabase, y Supabase a la app. Google
+solo acepta las URI de esta lista: es una medida de seguridad, no un fallo. Pero muestra «continuar a
+`pxlqiyspovaevcusyszj.supabase.co`» e impide la verificación de marca (lo que hace aparecer «Kitom» y el logo):
+Google [exige verificar todos los dominios autorizados](https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification),
+también los de las URI de un cliente Web, y `supabase.co` no es tuyo.
 
-**Lo que sí es un problema** es lo que ve el usuario («continuar a `pxlqiyspovaevcusyszj.supabase.co`») y la
-verificación de marca, que es lo que hace aparecer «Kitom» y el logo. Google [exige verificar todos los dominios
-autorizados](https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification),
-también el de las URI de un cliente Web, y `supabase.co` no es tuyo. Hay dos salidas:
+**Con el acceso nativo ya no la usa la app Android.** Quítala solo cuando hayas comprobado, con una APK que lleve
+`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, que «Continuar con Google» entra con el selector de cuentas:
 
-| | Acceso nativo en Android (recomendado) | Dominio propio en Supabase |
-|---|---|---|
-| Qué ve el usuario | El selector de cuentas de Android, sin navegador | El navegador con `auth.kitom.app` |
-| URI de redirección | Ninguna: se quita la de `supabase.co` | `https://auth.kitom.app/auth/v1/callback` |
-| Coste | Gratis | Plan Pro (25 USD/mes) más el complemento de 10 USD/mes ([precio](https://supabase.com/docs/guides/platform/manage-your-usage/custom-domains)) |
-| Cambios | Un paquete nuevo en la app y una build nueva; clientes Android en Google Cloud con la huella SHA-1 de cada firma | Ninguno en la app más allá de la URL de Supabase |
-| Web | El acceso con Google en la versión web se quitaría o seguiría con `supabase.co` | Igual que ahora |
+1. Cliente Web › **Authorized redirect URIs**: borra `https://pxlqiyspovaevcusyszj.supabase.co/auth/v1/callback`.
+2. Branding › **Dominios autorizados**: deja solo `kitom.app`.
+3. **Branding › Verify branding**. Google [tarda unos 2-3 días](https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification).
 
-Ninguna de las dos está hecha. Hasta decidir: rellena el Branding, sube el logo (no se verá hasta verificar) y
-**no** pidas todavía **Verify branding**.
+Lo que deja de funcionar al quitarla: Google en la versión **web** de la app (solo se usa para pruebas), en Expo Go y en
+iOS, que siguen yendo por el navegador. Para iOS hará falta un cliente iOS y el plugin de la librería
+(`docs/AUTH.md` §4). La alternativa de pago, un dominio propio en Supabase (`auth.kitom.app`; plan Pro de 25 USD/mes más
+[10 USD/mes](https://supabase.com/docs/guides/platform/manage-your-usage/custom-domains)), ya no hace falta.
 
 ## 5. Comprobar con la APK
 
@@ -217,7 +230,7 @@ Con la APK instalada en un móvil real:
 | Abrir ese enlace en el móvil | Se abre la app con la sesión iniciada |
 | Otro registro, abriendo el enlace en el PC | «¡Email confirmado!»; luego entras en la app con la contraseña |
 | «¿Has olvidado la contraseña?» y abrir el enlace en el móvil | Pantalla para elegir contraseña nueva |
-| Continuar con Google | Vuelve a la app con la sesión iniciada |
+| Continuar con Google | Sale el selector de cuentas de Android, sin navegador, y entras |
 
 **Si algo falla:**
 
@@ -227,9 +240,11 @@ Con la APK instalada en un móvil real:
 | No llega el correo | Sin SMTP propio, o dominio sin verificar | Paso 2; mira **Authentication › Logs** y **Resend › Emails** |
 | El enlace del correo abre otra página | Falta en Redirect URLs | Paso 3 |
 | «Este enlace ya no vale» sin haberlo pulsado antes | Caducado, o un antivirus de correo lo abrió antes que tú | Pide otro; si el email ya consta confirmado, inicia sesión |
-| Google: `redirect_uri_mismatch` | URI mal copiada | Paso 4, credenciales |
+| Google: «No se ha podido iniciar sesión con Google» nada más elegir la cuenta | Falta el cliente Android con la SHA-1 de la firma de esa APK (`DEVELOPER_ERROR`) | Paso 4, credenciales, punto 2 |
+| Google abre el navegador en vez del selector | La APK se compiló sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Paso 4, credenciales, punto 4 |
+| Google: el selector va bien, pero luego falla | El Client ID Web no está en **Client IDs** de Supabase, o el de la app es otro | Paso 4, credenciales, puntos 3 y 4 |
+| Google en web: `redirect_uri_mismatch` | Se quitó la URI de `supabase.co` | Esperado: en web, Google necesita esa URI |
 | Google: acceso bloqueado o `access_denied` | App en *Testing* | Publícala o añade la cuenta a Test users |
-| Google acaba bien, pero no vuelve a la app | Falta `kitom://**` | Paso 3 |
 
 ## 6. Cuenta de Google Play
 

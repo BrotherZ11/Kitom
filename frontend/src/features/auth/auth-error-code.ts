@@ -31,6 +31,8 @@ export type AuthErrorCode =
   | 'email_not_confirmed'
   | 'link_invalid'
   | 'oauth_failed'
+  /** Acceso nativo con Google en Android sin Google Play services (o desactualizados). */
+  | 'google_play_services'
   | 'rate_limited'
   | 'signup_disabled'
   | 'network'

@@ -7,6 +7,8 @@ import { AppState, Platform } from 'react-native';
 import { toAuthErrorCode, type AuthErrorCode } from '@/features/auth/auth-errors';
 import { completeAuthRedirect, getAuthRedirectUrl } from '@/features/auth/auth-redirect';
 import { createAuthSessionController } from '@/features/auth/auth-session-controller';
+import { googleSignInMethod, requestGoogleIdToken } from '@/features/auth/google-native-sign-in';
+import { googleTokenErrorCode } from '@/features/auth/google-sign-in-plan';
 import { authUserId, type AuthState } from '@/features/auth/auth-state';
 import { changePassword as runChangePassword, requestCode, type ChangePasswordResult } from '@/features/auth/change-password';
 import { createPasswordCheckClient } from '@/features/auth/password-check-client';
@@ -50,7 +52,10 @@ type AuthContextValue = {
    */
   isRecoveringPassword: boolean;
   signIn: (email: string, password: string) => Promise<AuthResult>;
-  /** Cancelar el navegador no es un error: devuelve `{ error: null }` sin sesión. */
+  /**
+   * Nativo en Android (selector de cuentas) o por navegador (`google-sign-in-plan.ts`). Cancelar no es un error:
+   * devuelve `{ error: null }` sin sesión.
+   */
   signInWithGoogle: () => Promise<AuthResult>;
   signUp: (email: string, password: string) => Promise<SignUpResult>;
   /**
@@ -165,7 +170,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const signIn = (email: string, password: string) =>
     runAuthAction(() => supabase.auth.signInWithPassword({ email: email.trim(), password }));
 
+  // Android con el módulo nativo: selector de cuentas del sistema y canje del ID token, sin navegador ni URI de
+  // redirección. Resto (web, iOS, Expo Go): navegador con PKCE. Ver `google-sign-in-plan.ts` y `docs/AUTH.md` §4.
+  const signInWithGoogleNative = async (): Promise<AuthResult> => {
+    const outcome = await requestGoogleIdToken();
+    if (outcome.type === 'cancelled') return { error: null };
+    if (outcome.type === 'error') return { error: outcome.error };
+    try {
+      const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: outcome.idToken });
+      if (!error) return { error: null };
+      if (__DEV__) console.warn('[auth]', error);
+      return { error: googleTokenErrorCode(toAuthErrorCode(error)) };
+    } catch (error) {
+      if (__DEV__) console.warn('[auth]', error);
+      return { error: googleTokenErrorCode(toAuthErrorCode(error)) };
+    }
+  };
+
   const signInWithGoogle = async (): Promise<AuthResult> => {
+    if (googleSignInMethod() === 'native') return signInWithGoogleNative();
     try {
       const redirectTo = getAuthRedirectUrl('oauth');
       const isWeb = Platform.OS === 'web';
