@@ -137,6 +137,7 @@ export const en: Translations = {
       link_invalid:
         'The link has expired or has already been used. Open it on the same device where you requested it, or request a new one.',
       oauth_failed: "We couldn't sign you in with Google. Please try again.",
+      google_play_services: 'To sign in with Google, this phone needs up-to-date Google Play services. You can also sign in with your email.',
       rate_limited: 'Too many attempts. Wait a few minutes and try again.',
       signup_disabled: 'Sign-up is not available right now.',
       network: 'No connection. Check your network and try again.',

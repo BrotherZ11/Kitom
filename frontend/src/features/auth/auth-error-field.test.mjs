@@ -29,6 +29,7 @@ describe('authErrorField', () => {
       'email_not_confirmed',
       'link_invalid',
       'oauth_failed',
+      'google_play_services',
       'rate_limited',
       'signup_disabled',
       'network',

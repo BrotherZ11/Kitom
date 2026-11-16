@@ -143,6 +143,7 @@ export const es = {
       link_invalid:
         'El enlace ha caducado o ya se ha usado. Ábrelo en el mismo dispositivo donde lo pediste o solicita uno nuevo.',
       oauth_failed: 'No se ha podido iniciar sesión con Google. Inténtalo de nuevo.',
+      google_play_services: 'Para entrar con Google, este móvil necesita los servicios de Google Play actualizados. También puedes entrar con tu email.',
       rate_limited: 'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.',
       signup_disabled: 'El registro no está disponible en este momento.',
       network: 'No hay conexión. Comprueba tu red e inténtalo de nuevo.',
