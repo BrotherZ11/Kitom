@@ -19,8 +19,9 @@ export function formatWeight(value: number | null, unit: 'kg' | 'g' = 'kg'): str
   return `${new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 3 }).format(value)} kg`;
 }
 
-export function formatSterilized(value: boolean | null): string {
-  if (value == null) return t('common.unknown');
+/** `null` = no indicado («Sin indicar», como el resto de la ficha; antes «No lo sé», QA-10). */
+export function formatSterilized(value: boolean | null): string | null {
+  if (value == null) return null;
   return value ? t('common.yes') : t('common.no');
 }
 

@@ -56,7 +56,7 @@ export function usePetContentLines() {
       { label: t('pets.fields.sex'), value: formatSex(content) },
       { label: t('pets.fields.birthDate'), value: value(formatBirthDate(content.birth_date)) },
       { label: t('pets.fields.weightKg'), value: value(formatWeight(content.weight_kg)) },
-      { label: t('pets.fields.sterilized'), value: formatSterilized(content.sterilized) },
+      { label: t('pets.fields.sterilized'), value: value(formatSterilized(content.sterilized)) },
       { label: t('pets.fields.knownConditions'), value: value(formatList(content.known_conditions)) },
       { label: t('pets.fields.allergies'), value: value(formatList(content.allergies)) },
       { label: t('pets.fields.temperamentNotes'), value: value(content.temperament_notes) },
