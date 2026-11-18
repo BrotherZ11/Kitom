@@ -104,6 +104,7 @@ export type CoOwnerErrorCode =
   | 'not_member'
   | 'changed'
   | 'rate_limited'
+  | 'premium_required'
   | 'network'
   | 'unknown';
 
@@ -124,6 +125,7 @@ export function toCoOwnerErrorCode(error: unknown): CoOwnerErrorCode {
   if (hint === 'not_pet_owner' || NOT_OWNER.test(text)) return 'not_owner';
   if (hint === 'not_pet_member') return 'not_member';
   if (hint === 'invite_rate_limited') return 'rate_limited';
+  if (hint === 'premium_required') return 'premium_required';
   if (CHANGED.test(text)) return 'changed';
   return 'unknown';
 }

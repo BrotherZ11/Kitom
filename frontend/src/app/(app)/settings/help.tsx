@@ -16,7 +16,7 @@ import { SUPPORT_EMAIL } from '@/lib/legal-links';
 import { openSupportEmail } from '@/lib/open-link';
 import { borderWidth, size, spacing } from '@/theme/tokens';
 
-const FAQ = ['vet', 'streak', 'offline', 'photos', 'reminders', 'pets', 'data'] as const;
+const FAQ = ['vet', 'streak', 'offline', 'photos', 'reminders', 'pets', 'premium', 'data'] as const;
 type Faq = (typeof FAQ)[number];
 
 /** Ayuda (tablero 10.7): preguntas frecuentes desplegables, una abierta a la vez, y email de soporte. */

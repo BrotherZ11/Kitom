@@ -99,6 +99,11 @@ export function classifySyncError(error: unknown, httpStatus?: number | null): S
   if (code === 'P0001' && (hint === 'log_date_future' || hint === 'log_date_too_old')) {
     return info('validation', 'give_up', hint);
   }
+  // Alta de mascota por encima del límite del plan gratuito (*_premium_plans): no se reintenta sola;
+  // el usuario se hace Premium (y reintenta) o descarta la mascota.
+  if (code === 'P0001' && hint === 'pet_limit_reached') {
+    return info('validation', 'give_up', hint);
+  }
   // Datos no válidos (22: tipos y rangos, incluido 22023 = dos precondiciones a la vez) o que
   // violan una restricción (23: CHECKs de `daily_logs`).
   if (/^(22|23)/.test(code)) return info('validation', 'give_up', code);

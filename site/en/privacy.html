@@ -35,7 +35,8 @@
 
   <main id="content" class="wrap">
     <h1>Privacy policy</h1>
-    <p class="meta">Effective from 15 November 2026</p>
+    <!-- CONFIRM: effective date when this version (Kitom Premium) is published. -->
+    <p class="meta">Effective from 16 November 2026</p>
 
     <p class="lead">Kitom is an app that keeps you company in your pet's wellbeing. Here we explain, with no
       small print, what data we process, why, who we share it with, how long we keep it and how you stay in
@@ -115,6 +116,12 @@
             <td><strong>Agenda:</strong> reminders (title, type, description, which may include medication, dates and
               repetition).</td>
             <td>Show your agenda and schedule notifications on your phone.</td>
+            <td>Performance of the contract.</td>
+          </tr>
+          <tr>
+            <td><strong>Subscription (Kitom Premium):</strong> plan and status, start, renewal or end dates, whether it
+              is a free trial, the store and the purchase identifier. We never receive your card or payment details.</td>
+            <td>Give you access to Premium and handle renewals, cancellations and billing problems.</td>
             <td>Performance of the contract.</td>
           </tr>
           <tr>
@@ -224,6 +231,12 @@
             <td>Your email address and the content of those emails.</td>
           </tr>
           <tr>
+            <td>RevenueCat, Inc.</td>
+            <td>Manage Kitom Premium subscriptions.</td>
+            <td>An identifier of your Kitom account (not your email or name), the purchase data the store gives it
+              (product, price, currency, country, dates and purchase identifier) and technical data about the phone.</td>
+          </tr>
+          <tr>
             <!-- CONFIRM: entity and region shown in the Zoho account (the MX records are zoho.eu). -->
             <td>Zoho (Zoho Mail)</td>
             <td>Receive and answer what you write to support.</td>
@@ -232,12 +245,14 @@
         </tbody>
       </table>
     </div>
+    <p><strong>Payments.</strong> If you subscribe to Kitom Premium, Google Play processes the payment as an
+      independent controller, under its own privacy policy. We never see your card details.</p>
     <p><strong>People you share a pet with.</strong> If you invite someone as a co-owner, they will see that pet's
       profile, logs, agenda and checks, and your name. You decide who to invite and can remove access at any time.</p>
     <p>We will only disclose data to authorities when the law requires us to.</p>
 
     <h2 id="transfers">5. Transfers outside the EU</h2>
-    <p>Some providers (Google, Sentry, Expo, GitHub and Resend) are US companies or may process data there. Those transfers
+    <p>Some providers (Google, Sentry, Expo, GitHub, Resend and RevenueCat) are US companies or may process data there. Those transfers
       rely on the EU-US Data Privacy Framework, which they have joined, or on the standard contractual clauses
       approved by the European Commission. You can ask us for more information at
       <a href="mailto:soporte@kitom.app">soporte@kitom.app</a>.</p>
@@ -256,6 +271,8 @@
           <tr><td>AI checks (photo, signs, guidance and the provider's technical response)</td><td>With the check, until you delete the pet or your account.</td></tr>
           <tr><td>AI usage record (date and status of each check, no content)</td><td>While you have the account, to apply the monthly limit.</td></tr>
           <tr><td>Content sent to Google for guidance</td><td>The limited time Google sets to detect abuse; not used to train models.</td></tr>
+          <!-- CONFIRM: also delete the RevenueCat customer when the account is deleted (technical follow-up, docs/QA_2026-11-16.md). -->
+          <tr><td>Subscription and its history (purchase, renewals, cancellation)</td><td>While you have the account; erased when you delete it. Google Play keeps its own payment records.</td></tr>
           <tr><td>Communication preference</td><td>Until you change it or delete your account.</td></tr>
           <tr><td>Error reports</td><td>90 days.</td></tr>
           <tr><td>Server technical logs</td><td>90 days at most.</td></tr>

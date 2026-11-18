@@ -227,6 +227,32 @@ export function groupSigns<T extends { category: string | null }>(signs: readonl
     .filter((group) => group.signs.length > 0);
 }
 
+/** Clave del título de una categoría: boca y piel se nombran según la especie (QA-09). */
+export type SignCategoryLabel =
+  | SignCategory
+  | 'oralTeeth'
+  | 'oralBeak'
+  | 'oralReptile'
+  | 'skinFur'
+  | 'skinFeathers'
+  | 'skinScales';
+
+const FURRED = new Set(['dog', 'cat', 'rabbit', 'guinea_pig', 'hamster', 'horse']);
+
+export function signCategoryLabel(category: SignCategory, speciesCode: string | null): SignCategoryLabel {
+  if (category === 'oral') {
+    if (speciesCode === 'bird_other') return 'oralBeak';
+    if (speciesCode === 'reptile_other') return 'oralReptile';
+    if (speciesCode && FURRED.has(speciesCode)) return 'oralTeeth';
+  }
+  if (category === 'skin') {
+    if (speciesCode === 'bird_other') return 'skinFeathers';
+    if (speciesCode === 'reptile_other') return 'skinScales';
+    if (speciesCode && FURRED.has(speciesCode)) return 'skinFur';
+  }
+  return category;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Compartir el resumen
 // ---------------------------------------------------------------------------------------------

@@ -24,7 +24,7 @@ del lanzamiento.
 | Consultas con IA | foto, síntomas, texto libre del tutor (`user_context`, ≤ 1000), desde cuándo y evolución, contexto de la mascota, de los últimos registros, recordatorios de salud y consultas anteriores, resultado (resumen, causas, recomendaciones, señales de alerta, preguntas para el veterinario, observaciones de la foto), `response_raw`, valoración, coste estimado. Lo ven los co-tutores de la mascota | `ai_analysis_requests`, `ai_analysis_symptoms`, `pet-photos` | usuario + proveedor de IA | orientación (no diagnóstico) | contrato; casilla de confirmación antes de enviar la foto |
 | Uso de la IA | `analysis_id`, `user_id`, fecha, si cuenta (sin contenido) | `private.ai_analysis_usage` | servidor | cupo mensual (sobrevive al borrado de la mascota) | contrato |
 | Co-tutores | email del invitado (no se guarda; se busca su cuenta), relación y rol | `pet_co_owners` | dueño | compartir la mascota | contrato |
-| Plan | plan y estado (siempre `free` hoy; no se muestra en la app) | `subscriptions` | servidor | cupo de IA | contrato |
+| Plan y suscripción (Kitom Premium, 2026-11-16) | plan y estado, fechas de periodo y prueba, cancelación, tienda, identificador de la compra y su historial de eventos (sin datos de pago; sin atributos del cliente de RevenueCat) | `subscriptions`, `subscription_events` | Google Play vía RevenueCat (webhook y `subscription-sync`) | dar acceso a Premium y aplicar los límites del plan gratuito | contrato |
 | Técnicos | tokens de sesión (SecureStore), copia local de mascotas, registros y catálogo (AsyncStorage, **sin cifrar**), avisos programados | dispositivo | app | modo offline | contrato |
 | Errores | informes de fallos sin email, nombre ni contenido (Sentry; ver la nota sobre IP e identificador de instalación) y logs del servidor (IP, hora, petición) | Sentry, Supabase | app / servidor | seguridad y corrección de errores | interés legítimo |
 | Sin uso todavía | teléfono (login por teléfono retirado del alcance, decisión 2026-10-29), avatar propio, tokens push, eventos de analítica, referidos de clínicas, informes compartidos | tablas existentes sin cliente | — | — | — |
@@ -40,13 +40,15 @@ Datos de terceros: las fotos pueden incluir personas (la app pide repetirlas si 
 | OpenAI (alternativo, desactivado por defecto) | lo mismo que Gemini | solo si `AI_PROVIDER=openai`; **no figura en la política**: añadirlo antes de activarlo |
 | Google (OAuth) | inicio de sesión con Google | si el usuario lo elige |
 | Sentry | informes de errores sin email, nombre ni contenido | en la política (retención 90 días). Comprobado el 2026-11-04: la IP llega a Sentry, que deducía de ella la ubicación aproximada, y los cierres nativos llevan un identificador de instalación que `beforeSend` no puede quitar. Las reglas del panel los eliminan al llegar y no se guardan (`DEPLOYMENT.md` §8, paso 10), pero salen del dispositivo: revisar si la política y la ficha de Play deben mencionarlo |
+| RevenueCat | id de la cuenta de Kitom (UUID de Supabase, sin email ni nombre), datos de la compra que le da Google Play (producto, precio, moneda, país, fechas, id de transacción) y datos técnicos del SDK | en la política desde el 2026-11-16 (pendiente de revisión legal). **Al eliminar la cuenta no se borra su cliente en RevenueCat** (`QA_2026-11-16.md` QA-06) |
+| Google Play (facturación) | el pago y los datos de la tarjeta | responsable independiente; Kitom nunca ve la tarjeta. En la política desde el 2026-11-16 |
 | Expo / EAS | ninguno en runtime hoy (no se usan push remotas ni EAS Update) | revisar la política si se adopta EAS Update o push |
 | GitHub Pages | IP de las visitas a `site/` (registro técnico de GitHub) | sin cookies ni analítica; servido en `kitom.app` |
 | Resend | email del usuario y contenido de los correos de Auth (SMTP de Supabase) | en la política desde el 2026-11-07 |
 | Zoho Mail | lo que el usuario escribe a `soporte@kitom.app` | en la política desde el 2026-11-07 (comentario `CONFIRMAR`: entidad y región; los MX son `zoho.eu`) |
 | Cloudflare | nada mientras los registros DNS estén en «DNS only» | si se activa el proxy, ve el tráfico de la web: añadirlo a la política |
 
-Transferencias fuera del EEE (Google, Sentry, Expo, GitHub, Resend): la política se apoya en el Marco de
+Transferencias fuera del EEE (Google, Sentry, Expo, GitHub, Resend, RevenueCat): la política se apoya en el Marco de
 Privacidad de Datos UE-EE. UU. o en cláusulas contractuales tipo.
 
 ## 3. Retención

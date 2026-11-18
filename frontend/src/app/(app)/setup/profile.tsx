@@ -57,8 +57,12 @@ function SetupProfileForm({ initialName, profileTimeZone }: { initialName: strin
       setSubmitError(null);
       const trimmed = name.trim();
       try {
-        // Solo se escribe si cambia; vacío no borra un nombre que ya hubiera.
-        if (trimmed !== '' && trimmed !== initialName.trim()) await update.mutateAsync({ full_name: trimmed });
+        // Solo se escribe si cambia; vacío no borra un nombre que ya hubiera. La zona que se muestra (la del
+        // móvil) se guarda si el perfil aún no tiene ninguna (QA-01: la inicialización automática pudo fallar).
+        const patch: { full_name?: string; timezone?: string } = {};
+        if (trimmed !== '' && trimmed !== initialName.trim()) patch.full_name = trimmed;
+        if (profileTimeZone === null && timeZone) patch.timezone = timeZone;
+        if (Object.keys(patch).length > 0) await update.mutateAsync(patch);
         router.push('/setup/disclaimer');
       } catch {
         setSubmitError(t('setup.errors.save'));

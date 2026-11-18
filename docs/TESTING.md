@@ -28,6 +28,7 @@ No hay tests de componentes React, E2E automatizados, pruebas de accesibilidad n
 | pgTAP | `npx supabase test db` (raíz) | Supabase local |
 | Concurrencia | `bash supabase/tests/concurrency/<suite>_concurrency.sh` | Supabase local; `pet_storage_cleanup` necesita el bucket local |
 | Edge Function IA | `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON supabase/functions/ai-analysis-process/*.test.mjs` | — |
+| Edge Functions de suscripción | `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON supabase/functions/_shared/subscription.test.mjs` y `node supabase/functions/_shared/run-integration.mjs` | la integración, Supabase local (RevenueCat simulado) |
 | Edge Function limpieza | `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON supabase/functions/pet-storage-cleanup/cleanup.test.mjs` y `node supabase/functions/pet-storage-cleanup/run-integration.mjs` | la integración, Supabase local |
 | Salud del proyecto | `cd frontend && npx expo-doctor` | red |
 | Dependencias | `cd frontend && npm audit --omit=dev` | red |
@@ -64,7 +65,7 @@ No hay tests de componentes React, E2E automatizados, pruebas de accesibilidad n
 
 Antes de la migración, `ai_quota.test.sql` falló en local en los casos que reproducen SEC-01 (cupo
 recuperado al recrear la mascota) y SEC-10 (consulta sin aviso aceptado): la prueba demuestra el fallo
-y su corrección. TEST-02 sigue abierto.
+y su corrección. TEST-02, corregido el 2026-11-18 (la prueba pone su trabajo el primero de la cola antes del informe).
 
 ### Registro, emails y APK contra `kitom-dev` (2026-11-04)
 
@@ -88,6 +89,26 @@ APK de release en emulador Android, contra el Supabase local, con una ruta tempo
 - Privacidad: con las reglas del panel activas (`DEPLOYMENT.md` §8, paso 10), ni el error de JS ni el cierre nativo guardan usuario, ubicación ni `device.id`.
 - Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
 - **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
+
+### Pruebas a fondo y Kitom Premium (2026-11-16)
+
+Contra el Supabase local con las 20 migraciones (`migration up --local`, sin `db reset`). Hallazgos y lo no probado:
+[`QA_2026-11-16.md`](QA_2026-11-16.md).
+
+| Comando | Resultado |
+|---|---|
+| `npx supabase test db` | 803/803 (nueva: `premium_plans.test.sql`, 72 casos). Antes, 730/731: `ai_guidance_v2` nº 25 inestable (QA-03, corregido). Las suites que invitan o crean más de 2 mascotas hacen Premium a sus cuentas |
+| Concurrencia | 7 suites correctas; nueva `premium_concurrency.sh` (8 altas a la vez de una cuenta gratuita con 1 mascota: pasa 1; 8 reenvíos de la misma alta: 23505, ninguno `pet_limit_reached`; Premium: pasan las 8) |
+| Edge Functions | 83/83 + 29/29 unitarias de suscripción; integración de suscripción 7/7 (compra, cancelación, duplicado, caducidad, JWT falso, sin privilegios del usuario) |
+| `npm test` | 1029/1029 (nuevas: `plan-model.test.mjs`) |
+| `npm run test:integration` | 85/85 (nueva: `plan.integration.test.mjs`); las demás usan `scripts/integration-premium.mjs` |
+| `tsc`, `expo lint` | correctos |
+| `expo-doctor` | 20/21: 10 parches pendientes (QA-04) |
+| `gradlew assembleDebug` (x86_64) con `react-native-purchases` 11.0.2 | correcta (un primer intento falló en Kotlin por memoria; repetido, compila). Instalada en el emulador: arranca y `/premium` dice que las compras no están disponibles (sin clave de RevenueCat) |
+
+A mano (web y emulador Android, Supabase local): recorrido completo con conexión, sin conexión y arranque en frío sin
+conexión (`QA_2026-11-16.md` §1); Kitom Premium con una cuenta gratuita y con una compra simulada con
+`apply_subscription_state`. **Sin probar:** una compra real (necesita Play Console y RevenueCat), el webhook real e iOS.
 
 ### Acceso nativo con Google en Android (2026-11-16)
 
@@ -274,7 +295,8 @@ Pendiente (por prioridad):
 | Consulta con IA de principio a fin contra `kitom-dev` | no | ejecución real con secreto y veterinario |
 | Invitar co-tutor → aceptar → editar con rol | parcial (pgTAP) | E2E |
 | Cerrar sesión con pendientes / cambiar de cuenta | sí | E2E |
-| Eliminar cuenta | no existe | todo |
+| Eliminar cuenta | sí (integración local) | móvil físico |
+| Comprar, cancelar y restaurar Kitom Premium | parcial (pgTAP, Edge Functions e integración con RevenueCat simulado) | compra real con un tester de licencia |
 
 ## 6. Criterios mínimos de aceptación (por cambio)
 

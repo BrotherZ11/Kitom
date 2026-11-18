@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Alert } from '@/components/ui/alert';
+import { usePlan } from '@/features/subscription/hooks/use-plan';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -47,6 +48,7 @@ const DIALOG_ERRORS: readonly AccountDeletionErrorCode[] = ['network', 'session'
  */
 export default function DeleteAccountScreen() {
   const router = useRouter();
+  const subscription = usePlan();
   const toast = useToast();
   const { canUseServer } = useAuth();
   const online = useIsOnline();
@@ -153,6 +155,8 @@ export default function DeleteAccountScreen() {
       }>
       {header}
       <Text color="inkMuted">{t('settings.deleteAccount.intro')}</Text>
+      {/* Borrar la cuenta no cancela la suscripción de la tienda (la gestiona Google Play). */}
+      {subscription.data?.isPremium ? <Alert tone="warning" message={t('premium.deleteAccountNotice')} /> : null}
 
       <View style={styles.group}>
         <Text variant="overline" color="inkMuted" accessibilityRole="header">

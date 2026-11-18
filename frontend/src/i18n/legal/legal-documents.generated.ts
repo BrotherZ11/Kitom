@@ -5,7 +5,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
   "es": {
     "privacy": {
       "title": "Política de privacidad",
-      "effective": "En vigor desde el 15 de noviembre de 2026",
+      "effective": "En vigor desde el 16 de noviembre de 2026",
       "blocks": [
         {
           "type": "paragraph",
@@ -199,6 +199,27 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               [
                 {
                   "text": "Mostrar tu agenda y programar avisos en tu móvil."
+                }
+              ],
+              [
+                {
+                  "text": "Ejecución del contrato."
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "Suscripción (Kitom Premium):",
+                  "bold": true
+                },
+                {
+                  "text": " plan y estado, fechas de inicio, renovación o fin, si es una prueba gratuita, la tienda y el identificador de la compra. No recibimos los datos de tu tarjeta ni de tu forma de pago."
+                }
+              ],
+              [
+                {
+                  "text": "Darte acceso a Premium y gestionar renovaciones, cancelaciones y problemas de cobro."
                 }
               ],
               [
@@ -560,6 +581,23 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
             [
               [
                 {
+                  "text": "RevenueCat, Inc."
+                }
+              ],
+              [
+                {
+                  "text": "Gestionar las suscripciones de Kitom Premium."
+                }
+              ],
+              [
+                {
+                  "text": "Un identificador de tu cuenta de Kitom (no tu email ni tu nombre), los datos de la compra que le da la tienda (producto, precio, moneda, país, fechas e identificador de la compra) y datos técnicos del móvil."
+                }
+              ]
+            ],
+            [
+              [
+                {
                   "text": "Zoho (Zoho Mail)"
                 }
               ],
@@ -574,6 +612,18 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
                 }
               ]
             ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "runs": [
+            {
+              "text": "Pagos.",
+              "bold": true
+            },
+            {
+              "text": " Si contratas Kitom Premium, el pago lo procesa Google Play como responsable independiente, según su propia política de privacidad. Nosotros no vemos los datos de tu tarjeta."
+            }
           ]
         },
         {
@@ -604,7 +654,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Algunos proveedores (Google, Sentry, Expo, GitHub y Resend) son empresas de Estados Unidos o pueden tratar datos allí. Esas transferencias se amparan en el Marco de Privacidad de Datos UE-EE. UU., en el que están adheridas, o en las cláusulas contractuales tipo aprobadas por la Comisión Europea. Puedes pedirnos más información escribiendo a "
+              "text": "Algunos proveedores (Google, Sentry, Expo, GitHub, Resend y RevenueCat) son empresas de Estados Unidos o pueden tratar datos allí. Esas transferencias se amparan en el Marco de Privacidad de Datos UE-EE. UU., en el que están adheridas, o en las cláusulas contractuales tipo aprobadas por la Comisión Europea. Puedes pedirnos más información escribiendo a "
             },
             {
               "text": "soporte@kitom.app",
@@ -695,6 +745,18 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               [
                 {
                   "text": "El tiempo limitado que fija Google para detectar abusos; no se usa para entrenar modelos."
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "Suscripción y su historial (compra, renovaciones, cancelación)"
+                }
+              ],
+              [
+                {
+                  "text": "Mientras tengas la cuenta; se borran al eliminarla. Google Play conserva sus propios registros de pago."
                 }
               ]
             ],
@@ -999,7 +1061,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
     },
     "terms": {
       "title": "Términos de uso",
-      "effective": "En vigor desde el 15 de noviembre de 2026",
+      "effective": "En vigor desde el 16 de noviembre de 2026",
       "blocks": [
         {
           "type": "paragraph",
@@ -1261,13 +1323,65 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
         },
         {
           "type": "heading",
-          "text": "9. Servicio gratuito y cambios"
+          "text": "9. Plan gratuito, Kitom Premium y cambios"
         },
         {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Kitom es gratuita y no incluye compras. Hacemos lo posible por que funcione bien y sin interrupciones, pero la ofrecemos "
+              "text": "Kitom se puede usar gratis. El plan gratuito incluye hasta 2 mascotas propias, el historial de los últimos 30 días y 3 orientaciones con IA al mes. Las mascotas que otras personas comparten contigo no cuentan, y lo que registraste antes de esos 30 días no se borra."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "runs": [
+            {
+              "text": "Kitom Premium",
+              "bold": true
+            },
+            {
+              "text": " es una suscripción opcional que quita esos límites y permite invitar co-tutores. Se contrata y se paga en Google Play, que cobra con tu cuenta de Google el precio que te muestra antes de confirmar (mensual o anual, impuestos incluidos). Si incluye una prueba gratuita y la cancelas antes de que termine, no se te cobra nada."
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "items": [
+            [
+              {
+                "text": "Se renueva automáticamente al final de cada periodo, al mismo precio, hasta que la canceles. Si el precio cambia, Google Play te avisará antes."
+              }
+            ],
+            [
+              {
+                "text": "Puedes cancelarla cuando quieras en Google Play › Pagos y suscripciones › Suscripciones. Mantienes Premium hasta el final del periodo pagado y después vuelves al plan gratuito sin perder datos."
+              }
+            ],
+            [
+              {
+                "text": "Eliminar tu cuenta de Kitom o desinstalar la app "
+              },
+              {
+                "text": "no",
+                "bold": true
+              },
+              {
+                "text": " cancela la suscripción: cancélala en Google Play."
+              }
+            ],
+            [
+              {
+                "text": "Los reembolsos se gestionan según las políticas de Google Play. Esto no limita tus derechos como consumidor, incluido el de desistimiento cuando proceda."
+              }
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "runs": [
+            {
+              "text": "Hacemos lo posible por que Kitom funcione bien y sin interrupciones, pero la ofrecemos "
             },
             {
               "text": "tal cual",
@@ -1281,7 +1395,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "bold": true
             },
             {
-              "text": ": puede haber fallos, pausas por mantenimiento o cambios en las funciones. Si en el futuro hay funciones de pago, serán opcionales y te las presentaremos con sus condiciones antes de que las contrates."
+              "text": ": puede haber fallos, pausas por mantenimiento o cambios en las funciones."
             }
           ]
         },
@@ -1357,6 +1471,11 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
             ],
             [
               {
+                "text": "Si tienes Kitom Premium, eliminar la cuenta no cancela la suscripción de Google Play: cancélala allí para que no se renueve."
+              }
+            ],
+            [
+              {
                 "text": "Si un día dejamos de prestar el servicio, avisaremos con al menos 30 días de antelación para que puedas descargar tus datos."
               }
             ]
@@ -1404,7 +1523,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
   "en": {
     "privacy": {
       "title": "Privacy policy",
-      "effective": "Effective from 15 November 2026",
+      "effective": "Effective from 16 November 2026",
       "blocks": [
         {
           "type": "paragraph",
@@ -1598,6 +1717,27 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               [
                 {
                   "text": "Show your agenda and schedule notifications on your phone."
+                }
+              ],
+              [
+                {
+                  "text": "Performance of the contract."
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "Subscription (Kitom Premium):",
+                  "bold": true
+                },
+                {
+                  "text": " plan and status, start, renewal or end dates, whether it is a free trial, the store and the purchase identifier. We never receive your card or payment details."
+                }
+              ],
+              [
+                {
+                  "text": "Give you access to Premium and handle renewals, cancellations and billing problems."
                 }
               ],
               [
@@ -1959,6 +2099,23 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
             [
               [
                 {
+                  "text": "RevenueCat, Inc."
+                }
+              ],
+              [
+                {
+                  "text": "Manage Kitom Premium subscriptions."
+                }
+              ],
+              [
+                {
+                  "text": "An identifier of your Kitom account (not your email or name), the purchase data the store gives it (product, price, currency, country, dates and purchase identifier) and technical data about the phone."
+                }
+              ]
+            ],
+            [
+              [
+                {
                   "text": "Zoho (Zoho Mail)"
                 }
               ],
@@ -1973,6 +2130,18 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
                 }
               ]
             ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "runs": [
+            {
+              "text": "Payments.",
+              "bold": true
+            },
+            {
+              "text": " If you subscribe to Kitom Premium, Google Play processes the payment as an independent controller, under its own privacy policy. We never see your card details."
+            }
           ]
         },
         {
@@ -2003,7 +2172,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Some providers (Google, Sentry, Expo, GitHub and Resend) are US companies or may process data there. Those transfers rely on the EU-US Data Privacy Framework, which they have joined, or on the standard contractual clauses approved by the European Commission. You can ask us for more information at "
+              "text": "Some providers (Google, Sentry, Expo, GitHub, Resend and RevenueCat) are US companies or may process data there. Those transfers rely on the EU-US Data Privacy Framework, which they have joined, or on the standard contractual clauses approved by the European Commission. You can ask us for more information at "
             },
             {
               "text": "soporte@kitom.app",
@@ -2094,6 +2263,18 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               [
                 {
                   "text": "The limited time Google sets to detect abuse; not used to train models."
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "Subscription and its history (purchase, renewals, cancellation)"
+                }
+              ],
+              [
+                {
+                  "text": "While you have the account; erased when you delete it. Google Play keeps its own payment records."
                 }
               ]
             ],
@@ -2398,7 +2579,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
     },
     "terms": {
       "title": "Terms of use",
-      "effective": "Effective from 15 November 2026",
+      "effective": "Effective from 16 November 2026",
       "blocks": [
         {
           "type": "paragraph",
@@ -2660,13 +2841,65 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
         },
         {
           "type": "heading",
-          "text": "9. Free service and changes"
+          "text": "9. Free plan, Kitom Premium and changes"
         },
         {
           "type": "paragraph",
           "runs": [
             {
-              "text": "Kitom is free and includes no purchases. We do our best for it to work well and without interruptions, but we provide it "
+              "text": "You can use Kitom for free. The free plan includes up to 2 pets of your own, the history of the last 30 days and 3 AI checks a month. Pets other people share with you don't count, and what you logged before those 30 days is not deleted."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "runs": [
+            {
+              "text": "Kitom Premium",
+              "bold": true
+            },
+            {
+              "text": " is an optional subscription that removes those limits and lets you invite co-owners. You subscribe and pay in Google Play, which charges your Google account the price it shows you before you confirm (monthly or yearly, taxes included). If it includes a free trial and you cancel before it ends, you are not charged."
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "items": [
+            [
+              {
+                "text": "It renews automatically at the end of each period, at the same price, until you cancel it. If the price changes, Google Play will tell you first."
+              }
+            ],
+            [
+              {
+                "text": "You can cancel any time in Google Play › Payments and subscriptions › Subscriptions. You keep Premium until the end of the paid period and then go back to the free plan without losing data."
+              }
+            ],
+            [
+              {
+                "text": "Deleting your Kitom account or uninstalling the app does "
+              },
+              {
+                "text": "not",
+                "bold": true
+              },
+              {
+                "text": " cancel the subscription: cancel it in Google Play."
+              }
+            ],
+            [
+              {
+                "text": "Refunds are handled under Google Play's policies. This does not limit your consumer rights, including the right of withdrawal where it applies."
+              }
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "runs": [
+            {
+              "text": "We do our best for Kitom to work well and without interruptions, but we provide it "
             },
             {
               "text": "as is",
@@ -2680,7 +2913,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               "bold": true
             },
             {
-              "text": ": there may be bugs, maintenance pauses or changes to features. If paid features are offered in the future, they will be optional and we will present their conditions before you sign up."
+              "text": ": there may be bugs, maintenance pauses or changes to features."
             }
           ]
         },
@@ -2752,6 +2985,11 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
             [
               {
                 "text": "We may suspend or close an account that seriously breaches these terms or the law. Unless a risk or a legal obligation prevents it, we will warn you first and you will be able to download your data."
+              }
+            ],
+            [
+              {
+                "text": "If you have Kitom Premium, deleting your account does not cancel your Google Play subscription: cancel it there so it doesn't renew."
               }
             ],
             [

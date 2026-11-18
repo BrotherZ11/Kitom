@@ -7,6 +7,7 @@ import { ReminderSyncProvider } from '@/features/reminders/sync/reminder-sync-pr
 import { ActivePetProvider } from '@/features/pets/active-pet-context';
 import { PetSyncProvider } from '@/features/pets/sync/pet-sync-provider';
 import { useProfileTimeZoneSync } from '@/features/profile/hooks/use-profile-timezone-sync';
+import { usePurchaserIdentity } from '@/features/subscription/hooks/use-plan';
 import { useStackScreenOptions } from '@/theme/theme-provider';
 
 /** Un enlace directo (p. ej. a `/pets/…`) deja las pestañas debajo: «atrás» vuelve a Hoy. */
@@ -19,6 +20,8 @@ export const unstable_settings = { initialRouteName: '(tabs)' };
 export default function AppLayout() {
   // Solo se monta con sesión activa (Stack.Protected en el layout raíz).
   useProfileTimeZoneSync();
+  // Cuenta de Kitom en RevenueCat (Premium): se olvida al salir de la zona con sesión.
+  usePurchaserIdentity();
   const screenOptions = useStackScreenOptions();
 
   return (

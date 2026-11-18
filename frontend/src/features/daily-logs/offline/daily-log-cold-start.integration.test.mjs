@@ -19,6 +19,7 @@ import { createUserTokenFetch, isSessionUnavailableError } from '../../../lib/us
 import { createDailyLogRemote } from './daily-log-remote.ts';
 import { createDailyLogRepository } from './daily-log-repository.ts';
 import { createDailyLogSyncEngine } from './daily-log-sync-engine.ts';
+import { grantPremium } from '../../../../scripts/integration-premium.mjs';
 
 const URL_ = process.env.KITOM_IT_SUPABASE_URL;
 const ANON_KEY = process.env.KITOM_IT_SUPABASE_ANON_KEY;
@@ -113,6 +114,7 @@ describe('arranque en frío contra el Supabase local', { skip }, () => {
     const email = `it-${randomUUID()}@kitom.test`;
     const { data, error } = await setup.auth.signUp({ email, password: `It-${randomUUID()}` });
     if (error || !data.session) throw error ?? new Error('El Auth local exige confirmar el email');
+    await grantPremium(data.user.id);
     user = { supabase: setup, userId: data.user.id };
     session = data.session;
     const species = await setup.from('species').select('id').limit(1).single();

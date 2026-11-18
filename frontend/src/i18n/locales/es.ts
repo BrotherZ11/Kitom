@@ -1,3 +1,4 @@
+import { premiumEs } from './premium-es.ts';
 import { speciesFieldsEs } from './species-fields-es.ts';
 import { wellnessEs } from './wellness-es.ts';
 
@@ -269,6 +270,7 @@ export const es = {
     },
     when: '{day} · {time}',
     overdueWhen: 'Era {day}, {time}',
+    doneWhen: 'hecho {day}, {time}',
     itemSubtitle: '{type} · {when}',
     pausedSubtitle: 'Desactivado · {type} · {when}',
     repeatsShort: 'se repite',
@@ -575,6 +577,7 @@ export const es = {
       not_member: 'Ya no tienes acceso a esta mascota.',
       changed: 'Esto ha cambiado mientras tanto. Ya está actualizado.',
       rate_limited: 'Has enviado muchas invitaciones hoy. Vuelve a intentarlo mañana.',
+      premium_required: 'Invitar co-tutores es parte de Kitom Premium.',
       network: 'Sin conexión. Inténtalo de nuevo.',
       unknown: 'No se ha podido completar. Inténtalo de nuevo.',
     },
@@ -641,6 +644,12 @@ export const es = {
         urinary: 'Orina',
         respiratory: 'Respiración',
         skin: 'Piel, pelo, plumas y escamas',
+        oralTeeth: 'Boca y dientes',
+        oralBeak: 'Boca y pico',
+        oralReptile: 'Boca',
+        skinFur: 'Piel y pelo',
+        skinFeathers: 'Piel y plumas',
+        skinScales: 'Piel y escamas',
         ocular: 'Ojos y oídos',
         motor: 'Movimiento',
         neuro: 'Equilibrio y sistema nervioso',
@@ -1098,7 +1107,10 @@ export const es = {
         'Revisa que los avisos de Kitom estén activados en los ajustes del móvil y en Tu cuenta › Notificaciones. En el navegador no hay avisos.',
       petsQ: '¿Puedo tener varias mascotas?',
       petsA:
-        'Sí. Añádelas desde Perfil o Mis mascotas y cambia de una a otra tocando su nombre en la pantalla Hoy.',
+        'Sí. Con el plan gratuito, hasta 2 mascotas propias; con Kitom Premium, todas las que cuides. Añádelas desde Perfil o Mis mascotas y cambia de una a otra tocando su nombre en la pantalla Hoy. Las que te comparten otras personas no cuentan.',
+      premiumQ: '¿Qué incluye Kitom Premium?',
+      premiumA:
+        'Consultas con IA sin límite al mes, todas tus mascotas, todo su historial (el plan gratuito muestra los últimos 30 días; lo anterior no se borra) e invitar co-tutores. Se contrata y se cancela en Google Play › Suscripciones.',
       dataQ: '¿Cómo descargo o elimino mis datos?',
       dataA:
         'En Tu cuenta puedes descargar una copia de tus datos y eliminar tu cuenta. Si eliminas la cuenta, cada mascota compartida pasa a un co-tutor con permiso de edición; si no lo hay, se elimina con sus datos y fotos.',
@@ -1881,6 +1893,7 @@ export const es = {
   },
   speciesFields: speciesFieldsEs,
   wellness: wellnessEs,
+  premium: premiumEs,
 };
 
 /** Forma que debe cumplir cualquier idioma nuevo (p. ej. `en`). */

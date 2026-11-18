@@ -3,7 +3,34 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-18
+
+- **Kitom Premium en `kitom-dev`:** migración `20261116160000_premium_plans.sql` aplicada (el usuario) y tipos regenerados con
+  `--linked`; ramas `db/premium` y `feat/premium` integradas en `main`.
+- **Corregidos de la revisión del 2026-11-16** (`QA_2026-11-16.md`): zona horaria que no se guardaba tras el registro (QA-01),
+  parches de Expo (QA-04, `expo-doctor` 21/21), borrar el cliente de RevenueCat con la cuenta (QA-06, paso `billing` de
+  `delete-account`), «hecho hoy» en la agenda (QA-08), categorías de señales por especie (QA-09), «Sin indicar» en la
+  esterilización (QA-10) y textos de Premium (QA-12, QA-13).
+
 ## 2026-11-16
+
+Pruebas a fondo antes de la prueba cerrada y **Kitom Premium** (ramas `db/premium` y `feat/premium`; migración
+`20261116160000_premium_plans.sql`, aplicada en `kitom-dev` el 2026-11-18). Hallazgos y pendientes: `QA_2026-11-16.md`.
+
+- **Revisión:** suites automáticas, recorrido con conexión en web y sin conexión en el emulador Android, contra el
+  Supabase local. 13 hallazgos (QA-01…QA-13); corregidos QA-03 (pgTAP inestable) y QA-05 (privilegios sobrantes en
+  `subscriptions`).
+- **Kitom Premium** (`DECISIONS.md` 2026-11-16): 4,99 €/mes o 39,99 €/año con 7 días de prueba en el anual. Gratis:
+  2 mascotas propias, 30 días de historial, 3 consultas al mes; Premium: sin límites e invitar co-tutores.
+  - **BD:** `get_my_plan`, plan efectivo y límites en el servidor (trigger de mascotas, `premium_required` al invitar),
+    `apply_subscription_state` para las Edge Functions.
+  - **Edge Functions nuevas:** `revenuecat-webhook` y `subscription-sync` (sin desplegar).
+  - **App:** pantalla `/premium`, fila en Ajustes, avisos en cada límite, alta sin conexión rechazada por el límite y
+    aviso en «Eliminar cuenta». Paquete nuevo `react-native-purchases` 11.0.2 (aprobado).
+  - **Legal:** términos y política con la suscripción y RevenueCat, pendientes de revisión legal.
+- **Pruebas:** pgTAP 803 (72 nuevas), concurrencia `premium_concurrency.sh`, Edge Functions 29 unitarias + 7 de
+  integración, app 12 unitarias + 4 de integración. Las suites de integración que no tratan del plan hacen Premium a
+  sus cuentas (`frontend/scripts/integration-premium.mjs`).
 
 Acceso con Google nativo en Android (rama `feat/native-google-sign-in`, sin migraciones):
 

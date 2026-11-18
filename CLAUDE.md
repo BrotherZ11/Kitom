@@ -15,7 +15,8 @@ Stack: Expo (React Native) + TypeScript + Supabase. Documentación en español; 
   `CHANGELOG.md` (cambios actuales). Auditoría 2026-10-29 (estado real y camino a producción):
   `PROJECT_STATUS.md`, `ROADMAP.md`, `ARCHITECTURE.md`, `DATABASE.md`, `SECURITY_AUDIT.md`,
   `TESTING.md`, `DEPLOYMENT.md`, `PRIVACY.md` y `STORE_LISTING.md`; mantenerlos al día cuando cambie lo que describen.
-  `SETUP_GUIDE.md`: paneles de Supabase, correo, Google Cloud y Play, paso a paso.
+  `SETUP_GUIDE.md`: paneles de Supabase, correo, Google Cloud, Play y RevenueCat, paso a paso.
+  `QA_2026-11-16.md`: pruebas a fondo antes de la prueba cerrada, hallazgos (QA-xx) y pendientes de Kitom Premium.
 - `docs/design/` — diseño de la app (identidad «Ritmo», tokens, componentes, prototipo de 90 pantallas,
   inventario `PANTALLAS.md` y `PLAN_DESARROLLO.md`). Recursos de marca para la app en `frontend/assets/brand/`.
 
@@ -40,7 +41,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `pet-storage-cleanup` (v1; comprobado en solo lectura el 2026-11-04). El secreto de IA no es consultable:
   pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `delete-account`: `docs/README.md` §12, con su
   pantalla en Ajustes.
-  `generate-pet-report` y `revenuecat-webhook`: **pendientes**; la carpeta `edge-functions/` que citan
+  `revenuecat-webhook` y `subscription-sync` (Kitom Premium): implementadas, **sin desplegar**. `generate-pet-report`:
+  **pendiente**; la carpeta `edge-functions/` que citan
   los docs no está en el repo.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
 - Migraciones `20261007172110_pets_select_policy_owner.sql` (crear mascotas) y
@@ -95,7 +97,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   módulo local `frontend/modules/kitom-exact-alarms`), logros (`pet_achievements`), ajustes completos
   (tema del dispositivo, notificaciones, seguridad, privacidad, ayuda, legal) y «Próximo» en Hoy
   (`docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4 y §7). Sin implementar (backend o decisión pendiente):
-  adjuntos de la agenda, Premium (fuera de la v1), clínica propia y voz de la mascota (`docs/DECISIONS.md`).
+  adjuntos de la agenda, clínica propia y voz de la mascota (`docs/DECISIONS.md`). Premium: ver «Kitom Premium» abajo.
   Marca enlazada en `app.json` (nombre «Kitom», icono iOS/Android, splash y favicon desde
   `frontend/assets/brand/app-icon/`); esquema `kitom` sin cambiar.
   `android.package` = `com.kitom.app` (2026-10-20, no cambiarlo: otra APK no actualizaría la
@@ -152,6 +154,13 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   especie: borrador a validar por el veterinario. La IA usa la **cuota gratuita** de Gemini (decisión 2026-11-15): la política
   es cierta con ella porque el responsable está en el EEE, pero los términos de Google exigen el plan de pago para ofrecer la
   app a usuarios del EEE: activarlo antes de testers o de publicar (`docs/DEPLOYMENT.md` §8, paso 8; `docs/DECISIONS.md`).
+- Pruebas a fondo y **Kitom Premium** (2026-11-16; ramas `db/premium` y `feat/premium`, integradas en `main` el 2026-11-18): hallazgos y pendientes en
+  `docs/QA_2026-11-16.md`. Premium activo desde la prueba cerrada (`docs/DECISIONS.md` 2026-11-16; sustituye a «v1 gratuita»):
+  4,99 €/mes o 39,99 €/año, 7 días de prueba en el anual; gratis 2 mascotas propias, 30 días de historial y 3 consultas al mes;
+  Premium sin límites e invitar co-tutores. Migración `20261116160000_premium_plans.sql` aplicada en `kitom-dev` (`db push` del usuario,
+  2026-11-18; tipos regenerados con `--linked`); Edge Functions `revenuecat-webhook` y `subscription-sync` **sin desplegar**
+  (y `delete-account`, con el paso nuevo de RevenueCat, sin redesplegar); paquete `react-native-purchases` 11.0.2 (aprobado).
+  El servidor decide el plan (`get_my_plan`); la app nunca. Configuración de Play y RevenueCat: `docs/SETUP_GUIDE.md` §7.
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev` (los 4 privados, **sin límite de
   tamaño ni de tipo**, comprobado el 2026-10-28; el remoto no tiene `pg_cron` ni `pg_net`); en local solo `pet-photos`

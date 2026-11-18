@@ -540,7 +540,7 @@ del estetoscopio en Hoy (si puede editar la mascota) y «Consultar con una foto�
   proveedor de IA), que no se usa para entrenar modelos, enlace a la política de privacidad y señales de
   urgencia; foto opcional (`pet-photos/{pet_id}/{uuid}.jpg`, subida solo al enviar) con casilla que
   acepta enviarla a Google, señales de la especie (al menos una) y revisión. Sin cupo: pantalla de
-  límite con la fecha en que vuelve y por qué hay límite (sin Premium ni paywall: lanzamiento gratuito).
+  límite con la fecha en que vuelve, por qué hay límite y el botón de Kitom Premium (`PaywallScreen`).
   Errores de `request_ai_analysis` por `hint`
   (`ai_quota_exceeded`, `ai_disclaimer_required`, `ai_not_allowed`, `ai_pet_unavailable`,
   `ai_invalid_photo`, `ai_invalid_symptoms`; migración `20261029151011`; `ai_rate_limited` y
@@ -612,9 +612,8 @@ e `invitations`. Entrada: «Co-tutores» en el perfil de la mascota.
   invitaciones va a `invitations?setup=1` (puede aceptar y terminar, o añadir su mascota).
 - Errores por `hint` o, en las RPC anteriores sin `hint`, por el mensaje (`co-owners-model.ts ›
   toCoOwnerErrorCode`). Todo necesita conexión y una mascota creada en el servidor (`CoOwnersGate`).
-- Sin límite por plan en la app: el PRD reserva los co-tutores a Premium, pero el servidor no lo exige y
-  el cliente no decide el plan (decisión pendiente en `docs/DECISIONS.md`). Un co-tutor no puede dejar una
-  mascota por sí mismo (no hay RPC).
+- Invitar es de Kitom Premium desde el 2026-11-16 (`premium_required`; `PaywallScreen`); aceptar, no. Un co-tutor
+  no puede dejar una mascota por sí mismo (no hay RPC).
 
 ### OwnershipTransferScreen
 - **READ:** `pets`, `pet_co_owners` (co-tutores aceptados, candidatos a nuevo propietario)
@@ -694,9 +693,31 @@ Tu cuenta › Tus datos (RGPD art. 15 y 20).
   un servidor propio. Necesita conexión.
 
 ### PaywallScreen
-- **READ:** `subscriptions` (columnas públicas)
-- **WRITE:** ninguna — RevenueCat gestiona la compra; `subscriptions` se actualiza vía webhook, nunca desde el cliente
-- **RPC:** ninguno directo (RevenueCat SDK gestiona el checkout nativo)
+**Implementado (2026-11-16)** (`(app)/premium.tsx`, `?reason=ai|pets|history|co_owners|settings`; feature
+`src/features/subscription/`). Decisión y precios: `docs/DECISIONS.md` 2026-11-16; contrato SQL: `docs/README.md` §19.
+- **READ:** RPC `get_my_plan()` (`usePlan`, query `['plan', userId]`, sin `staleTime`: el recuento de mascotas y
+  consultas cambia). Sin conexión no hay plan y nada se bloquea por el plan (el servidor decide al sincronizar).
+- **WRITE:** ninguna. La compra la hace `react-native-purchases` (RevenueCat, Google Play Billing); el
+  `app_user_id` es el id de Supabase (`identifyPurchaser`: `configure` la primera vez y `logIn` al cambiar de cuenta;
+  `logOut` al salir de la zona con sesión, `usePurchaserIdentity` en `(app)/_layout.tsx`). Tras comprar o restaurar,
+  `functions.invoke('subscription-sync')` y se vuelve a leer `get_my_plan` (hasta 4 veces); nunca se usa lo que diga
+  el SDK para decidir el plan.
+- **Dónde se puede comprar:** build nativa de Android/iOS con `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` /
+  `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` (claves públicas de SDK). En web, Expo Go o sin clave, la pantalla explica
+  por qué y no ofrece comprar (`purchasesUnavailableReason`). El SDK se carga con `require` protegido.
+- **Pantalla:** sin Premium, ventajas, opciones mensual y anual (precio de la tienda, `pricePerMonthString` y días de
+  prueba de `defaultOption.freePhase`), «Suscribirme» / «Empezar mis N días gratis», «Restaurar compras» y textos de
+  renovación y cancelación con enlaces a términos y privacidad. Con Premium, estado (`summarizePlan`: se renueva,
+  termina, prueba, problema de cobro) y «Gestionar la suscripción» (`managementURL` de RevenueCat o la página de
+  suscripciones de Play con el paquete). Errores de compra por código de RevenueCat (`purchaseErrorCode`:
+  cancelada sin mensaje, pendiente, red, no permitida, ya comprada, de otra cuenta, no disponible).
+- **Límites en otras pantallas** (`PremiumGate`, solo UX: el servidor ya los aplica): «Nueva mascota» con el máximo
+  alcanzado contando las altas locales pendientes (`canCreateOwnedPet`); historial, mes y detalle de un día
+  anteriores a `history_days` (`historyStartDate`; «Cargar más» se detiene ahí); resumen y evolución sin el periodo de
+  90 días; invitar co-tutores sin `can_invite_co_owners`; botón de Premium en el límite mensual de consultas.
+  Un alta sin conexión que el servidor rechaza (`pet_limit_reached`, `classifySyncError` → `validation`/`give_up`)
+  muestra «Ver Kitom Premium» y «Reintentar» en el aviso de la mascota.
+- Ajustes: fila «Kitom Premium» con el estado. «Eliminar cuenta» avisa de que no cancela la suscripción de Play.
 
 ### DeleteAccountScreen
 **Implementado (2026-10-29)** (`(app)/settings/delete-account.tsx`, tablero 10.9; entrada «Eliminar mi
@@ -1819,7 +1840,9 @@ propuesta aprobada `docs/proposals/2026-10-28-reminders-offline.md`. Mismo patr�
 | `not_pet_editor` | ocultar/deshabilitar la acción de escritura, no solo mostrar error al fallar |
 | `permission_denied` (genérico de Postgres) | mensaje genérico + botón de reportar, no debería ocurrir si la UI ya oculta lo que no se puede hacer |
 | `not_authorized` (Edge Function reautorizándose, ver sección 4) | tratar igual que `permission_denied` — indica que se intentó una acción sobre un recurso ajeno |
-| `subscription_limit_reached` | abrir `Paywall` con el mensaje de `get_ai_analysis_entitlement()` |
+| `ai_quota_exceeded` (`request_ai_analysis`) | pantalla de límite mensual con «Consultas sin límite con Premium» (`/premium?reason=ai`) |
+| `pet_limit_reached` (alta de `pets`, Kitom Premium) | antes de enviar, «Nueva mascota» ya muestra el aviso de Premium; si llega del servidor (alta sin conexión), la operación queda fallida (`validation`, sin reintentos) con «Ver Kitom Premium», «Reintentar» y «Descartar» |
+| `premium_required` (invitar co-tutores) | error `coOwners.errors.premium_required` y se vuelve a leer el plan (la pantalla pasa al aviso de Premium) |
 | `ai_unavailable` (Edge Function caída/timeout) | mostrar estado `failed`, permitir reintentar (no consume cupo) |
 | `already_processing_or_done` (respuesta de `ai-analysis-process`) | no es un error: tratar como éxito silencioso, seguir el poll/Realtime normal sobre la fila |
 | `network_offline` | banner persistente, cola de sincronización visible |

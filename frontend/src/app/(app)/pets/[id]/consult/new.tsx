@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Chip } from '@/components/ui/chip';
-import { Camera, ChartLine, ImageIcon, ListChecks, MessageSquareText } from '@/components/ui/icons';
+import { Camera, ChartLine, Crown, ImageIcon, ListChecks, MessageSquareText } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
 import { OptionGroup } from '@/components/ui/option-group';
 import { ErrorState, LoadingState } from '@/components/ui/query-state';
@@ -21,6 +21,7 @@ import { TopBar, TopBarText } from '@/components/ui/top-bar';
 import {
   contextProblem,
   groupSigns,
+  signCategoryLabel,
   MAX_CONTEXT_LENGTH,
   MIN_CONTEXT_WITHOUT_SIGNS,
   nextMonthStart,
@@ -277,7 +278,7 @@ function NewConsult({ pet }: { pet: Pet }) {
           groupSigns(catalog).map((group) => (
             <View key={group.category} style={styles.group}>
               <Text variant="overline" color="inkMuted" accessibilityRole="header">
-                {t(`consult.signs.categories.${group.category}`)}
+                {t(`consult.signs.categories.${signCategoryLabel(group.category, speciesCode)}`)}
               </Text>
               <View style={styles.chips}>
                 {group.signs.map((symptom) => (
@@ -413,13 +414,25 @@ function PrivacyPolicyLink() {
 }
 
 /**
- * Límite mensual (tablero 7.13): cuándo vuelven las consultas y por qué hay límite. Esta versión es
- * gratuita y no ofrece Premium (el cupo lo decide el servidor).
+ * Límite mensual (tablero 7.13): cuándo vuelven las consultas, por qué hay límite y Kitom Premium,
+ * que no tiene límite mensual (el cupo lo decide el servidor: get_ai_analysis_entitlement).
  */
 function LimitView({ quota, onClose }: { quota: Entitlement; onClose: () => void }) {
+  const router = useRouter();
   const limit = quota.monthlyLimit ?? quota.usedThisMonth;
   return (
-    <Screen align="top" footer={<Button label={t('consult.limit.back')} variant="secondary" onPress={onClose} />}>
+    <Screen
+      align="top"
+      footer={
+        <View style={styles.limitFooter}>
+          <Button
+            label={t('premium.gate.aiCta')}
+            icon={Crown}
+            onPress={() => router.push({ pathname: '/premium', params: { reason: 'ai' } })}
+          />
+          <Button label={t('consult.limit.back')} variant="secondary" onPress={onClose} />
+        </View>
+      }>
       <TopBar onBack={onClose} />
       <View style={styles.heading}>
         <Text variant="overline" color="inkMuted">
@@ -441,6 +454,9 @@ function LimitView({ quota, onClose }: { quota: Entitlement; onClose: () => void
 }
 
 const styles = StyleSheet.create({
+  limitFooter: {
+    gap: spacing['2'],
+  },
   heading: {
     gap: spacing['2'],
   },

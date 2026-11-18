@@ -3,6 +3,45 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-16 — Kitom Premium desde la prueba cerrada (sustituye a «v1 gratuita, sin Premium»)
+
+**Contexto.** El 2026-10-29 la v1 iba a salir gratuita y sin Premium. Al preparar la prueba cerrada de Google Play
+(cuenta personal) el responsable decidió implementarlo y activarlo ya: los testers lo verán y podrán comprarlo con
+tarjetas de prueba.
+
+**Decisiones del responsable.**
+
+- Precio: 4,99 €/mes y 39,99 €/año, con 7 días de prueba gratuita en el anual (se configuran en Play Console; la app
+  muestra el precio que da la tienda).
+- Reservado a Premium: IA sin límite mensual (gratis: 3), mascotas propias ilimitadas (gratis: 2; quien ya tenga más las
+  conserva pero no crea otras), todo el historial (gratis: 30 días) e invitar co-tutores (aceptar invitaciones, libre).
+- RevenueCat (`react-native-purchases`) con Google Play Billing; iOS después.
+
+**Decisiones técnicas.**
+
+- El servidor decide el plan (`private.is_premium`): plan `premium` con estado `active`, `trialing` o `past_due` y
+  periodo sin vencer. Un webhook de caducidad perdido no deja Premium para siempre.
+- Los límites viven en una sola función (`private.free_plan_limits()`); la app los lee con `get_my_plan()` y nunca los
+  calcula.
+- Mascotas: trigger `BEFORE INSERT` con bloqueo por usuario; solo altas con sesión de usuario (transferencias y
+  `delete-account` no cuentan). El reenvío de un alta ya creada sigue dando 23505 para que el motor offline la reconozca.
+- Historial: **no** se oculta en la base de datos. Los datos son del usuario, se exportan (RGPD art. 20), los usan las
+  copias sin conexión y vuelven a verse al hacerse Premium; ocultarlos con RLS habría roto la exportación y la
+  sincronización. La app limita la vista con `history_days`. Saltárselo solo enseña lo que el propio usuario registró.
+- Co-tutores: la comprobación de Premium va justo después de la de propiedad y antes de mirar el email, para no revelar
+  si una dirección tiene cuenta.
+- Suscripción: las Edge Functions no aplican el evento de RevenueCat, sino el estado que devuelve
+  `GET /v1/subscribers/{id}` en ese momento; `apply_subscription_state()` no sustituye un estado por otro leído antes
+  (`provider_state_at`). Así dan igual los webhooks repetidos o desordenados y las transferencias entre cuentas. La app,
+  tras comprar o restaurar, llama a `subscription-sync` para no esperar al webhook, y vuelve a leer `get_my_plan`.
+- Se aceptan las compras de sandbox (solo pueden hacerlas los testers de licencia que configura el responsable).
+- `process_revenuecat_event` (esquema inicial) se queda sin uso.
+
+**Consecuencias.** La app necesita `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` en EAS, y las funciones
+`REVENUECAT_WEBHOOK_AUTH` y `REVENUECAT_SECRET_API_KEY`. Sin clave o en Expo Go y web, la pantalla de Premium no ofrece
+comprar. Textos legales nuevos pendientes de revisión legal. Pendientes: `QA_2026-11-16.md` §4. Contrato:
+`README.md` §10 y §19, `FRONTEND_ARCHITECTURE.md` «PaywallScreen».
+
 ## 2026-11-16 — Acceso con Google nativo en Android
 
 **Contexto.** El acceso por navegador obliga a tener `https://<project-ref>.supabase.co/auth/v1/callback` como URI del

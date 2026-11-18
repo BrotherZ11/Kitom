@@ -20,7 +20,8 @@ Auth no está versionada y es donde se aplican primero las migraciones.
 | Dónde | Nombre | Notas |
 |---|---|---|
 | `frontend/.env` (ignorado por git; plantilla `frontend/.env.example`) | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` | públicas: acaban en el bundle. Nunca otra clave aquí |
-| Secretos de Edge Functions (`supabase secrets set`, los pone el usuario) | `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL` (opcional, respaldo ante `429`/`503`), `AI_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_INPUT_USD_PER_MTOK`, `AI_OUTPUT_USD_PER_MTOK`, `PET_STORAGE_CLEANUP_SECRET`, `PET_STORAGE_CLEANUP_MODE` | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` los da la plataforma |
+| Secretos de Edge Functions (`supabase secrets set`, los pone el usuario) | `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL` (opcional, respaldo ante `429`/`503`), `AI_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_INPUT_USD_PER_MTOK`, `AI_OUTPUT_USD_PER_MTOK`, `PET_STORAGE_CLEANUP_SECRET`, `PET_STORAGE_CLEANUP_MODE`, `REVENUECAT_SECRET_API_KEY` (v1, `sk_…`), `REVENUECAT_WEBHOOK_AUTH` (≥ 32 caracteres), `REVENUECAT_ENTITLEMENT_ID` (opcional, `premium`) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` los da la plataforma |
+| App (EAS por entorno, o `frontend/.env` en local) | `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` (`goog_…`), `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` (después) | claves **públicas** de SDK de RevenueCat; sin ellas no se puede comprar Premium (`SETUP_GUIDE.md` §7) |
 | `supabase/config.toml` (solo local) | `env(...)` | sin valores literales |
 | Raíz `.env` (opcional) | `OPENAI_API_KEY` | solo para Studio local |
 
@@ -221,3 +222,12 @@ Las cuentas y los paneles (GitHub Pages, dominio, SMTP, Supabase Auth, Google Cl
 13. Prueba manual en móvil: emails reales, recuperación, Google, fotos, avisos, IA, dos cuentas con co-tutores.
 14. Build `production`, Play App Signing, copia del keystore, fichas y Data Safety (borrador en `STORE_LISTING.md`), justificación de
     `SCHEDULE_EXACT_ALARM` y prueba cerrada.
+
+**F. Kitom Premium (decisión 2026-11-16: activo desde la prueba cerrada)**
+15. ✅ `db push` de `20261116160000_premium_plans.sql` (el usuario, 2026-11-18) y tipos regenerados con `--linked`. Falta
+    redesplegar `delete-account` (borra también el cliente de RevenueCat si tiene `REVENUECAT_SECRET_API_KEY`).
+16. Play Console (perfil de comerciante, suscripción `kitom_premium` con planes `monthly`/`annual` y prueba de 7 días,
+    testers de licencia), RevenueCat (app, cuenta de servicio, entitlement `premium`, oferta `default`), secretos,
+    `functions deploy revenuecat-webhook` y `subscription-sync`, webhook y `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` en EAS:
+    `SETUP_GUIDE.md` §7.
+17. Prueba de compras con un tester de licencia y revisión legal de la cláusula de suscripción: `QA_2026-11-16.md` §4.

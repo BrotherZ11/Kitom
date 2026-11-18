@@ -15,16 +15,19 @@ import { PetForm } from '@/features/pets/components/pet-form';
 import { PetPhoto } from '@/features/pets/components/pet-photo';
 import { PetPhotoSheet } from '@/features/pets/components/pet-photo-sheet';
 import { useUploadNewPetPhoto } from '@/features/pets/hooks/use-pet-photo';
-import { useSaveNewPet } from '@/features/pets/hooks/use-pet-writes';
+import { usePetOperations, useSaveNewPet } from '@/features/pets/hooks/use-pet-writes';
 import { useSpecies } from '@/features/pets/hooks/use-species';
 import { resolveNewPetForm } from '@/features/pets/offline/pet-form-gate';
 import { isPetOfflineError, petErrorMessage } from '@/features/pets/pet-errors';
 import { toPetFormValues } from '@/features/pets/pet-form';
 import type { PreparedPetPhoto } from '@/features/pets/pet-photo';
 import type { PetFields } from '@/features/pets/types';
+import { PremiumGate } from '@/features/subscription/components/premium-gate';
+import { usePlan } from '@/features/subscription/hooks/use-plan';
+import { canCreateOwnedPet } from '@/features/subscription/plan-model';
 import { useIsOnline } from '@/hooks/use-is-online';
 import { useTheme } from '@/hooks/use-theme';
-import { t } from '@/i18n';
+import { t, tf } from '@/i18n';
 import { createSubmitGuard } from '@/lib/submit-guard';
 import { borderWidth, fontFamily, radius, spacing } from '@/theme/tokens';
 
@@ -37,6 +40,10 @@ import { borderWidth, fontFamily, radius, spacing } from '@/theme/tokens';
  * sincronización; con conexión se espera brevemente al servidor. Si no confirma a tiempo (o no hay
  * conexión), la mascota queda como borrador con id local, sin foto (la foto necesita el id del
  * servidor) y sin pasar a ser la activa (las pestañas usan registros diarios).
+ *
+ * Kitom Premium: si el plan (del servidor) ya no deja crear otra mascota propia, contando las altas
+ * aún en el dispositivo, se muestra el aviso de Premium en lugar del formulario. Sin plan conocido
+ * (sin conexión) no se bloquea: el servidor responde `pet_limit_reached` al sincronizar.
  */
 export default function NewPetScreen() {
   const router = useRouter();
@@ -59,6 +66,10 @@ export default function NewPetScreen() {
   const online = useIsOnline();
   const writable = canUseServer && online;
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const plan = usePlan();
+  const operations = usePetOperations();
+  const pendingCreates = (operations.data ?? []).filter((op) => op.kind === 'create' && op.status !== 'synced').length;
+  const overLimit = !inSetup && !saved && !canCreateOwnedPet(plan.data, pendingCreates);
 
   const handleSubmit = (fields: PetFields) => {
     void guard.run(async () => {
@@ -116,6 +127,27 @@ export default function NewPetScreen() {
       </View>
     </>
   );
+
+  if (overLimit && plan.data) {
+    return (
+      <Screen align="top">
+        {header}
+        <PremiumGate
+          reason="pets"
+          title={
+            plan.data.ownedPets > (plan.data.maxOwnedPets ?? 0)
+              ? tf('premium.gate.petsOverTitle', { count: plan.data.ownedPets })
+              : tf('premium.gate.petsTitle', { max: plan.data.maxOwnedPets ?? 0 })
+          }
+          text={
+            plan.data.ownedPets > (plan.data.maxOwnedPets ?? 0)
+              ? tf('premium.gate.petsOverText', { max: plan.data.maxOwnedPets ?? 0 })
+              : tf('premium.gate.petsText', { max: plan.data.maxOwnedPets ?? 0 })
+          }
+        />
+      </Screen>
+    );
+  }
 
   const gate = resolveNewPetForm({ species, writable, isOfflineError: isPetOfflineError });
 

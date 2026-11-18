@@ -8,11 +8,14 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-stat
 import { Screen } from '@/components/ui/screen';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
+import { TextLink } from '@/components/ui/text-link';
 import { TopBar } from '@/components/ui/top-bar';
 import { WeekRing } from '@/components/ui/week-ring';
 import { toDailyLogError } from '@/features/daily-logs/daily-log-errors';
 import { usePet } from '@/features/pets/hooks/use-pets';
 import { usePetSpecies } from '@/features/species/hooks/use-pet-species';
+import { usePlan } from '@/features/subscription/hooks/use-plan';
+import { allowedRangeDays } from '@/features/subscription/plan-model';
 import { WellnessEvolution } from '@/features/wellness/components/wellness-evolution';
 import { WellnessPatterns } from '@/features/wellness/components/wellness-patterns';
 import { WellnessSummaryView } from '@/features/wellness/components/wellness-summary';
@@ -39,12 +42,18 @@ export function parsePeriod(value: unknown): WellnessPeriod {
  * Pantallas del resumen de bienestar de una mascota (`(app)/pets/[id]/wellness/*`): cabecera, periodo
  * (7 · 30 · 90, en la ruta), avisos (sin conexión, datos parciales, cambios sin sincronizar) y los
  * estados comunes. Una mascota sin acceso se dice («no disponible»), nunca «0 registros».
+ * Kitom Premium: con el plan gratuito solo los periodos dentro de `history_days` (7 y 30); 90 lleva a
+ * la pantalla de Premium.
  * Diseño: `docs/proposals/2026-11-10-wellness-reports.md` §3.
  */
 export function WellnessScreen({ petId, variant }: { petId: string; variant: WellnessVariant }) {
   const router = useRouter();
   const params = useLocalSearchParams<{ period?: string }>();
-  const period = parsePeriod(params.period);
+  const plan = usePlan();
+  const allowedPeriods = allowedRangeDays(plan.data, WELLNESS_PERIODS);
+  const requested = parsePeriod(params.period);
+  const period = allowedPeriods.includes(requested) ? requested : allowedPeriods[allowedPeriods.length - 1];
+  const lockedPeriods = WELLNESS_PERIODS.filter((value) => !allowedPeriods.includes(value));
   const pet = usePet(petId);
   const { code: speciesCode } = usePetSpecies(petId);
   const data = useWellnessData(petId);
@@ -135,10 +144,17 @@ export function WellnessScreen({ petId, variant }: { petId: string; variant: Wel
       {header}
       <SegmentedControl
         accessibilityLabel={t('wellness.period')}
-        options={WELLNESS_PERIODS.map((value) => ({ value: String(value) as `${WellnessPeriod}`, label: t(`wellness.periods.p${value}`) }))}
+        options={allowedPeriods.map((value) => ({ value: String(value) as `${WellnessPeriod}`, label: t(`wellness.periods.p${value}`) }))}
         value={String(period) as `${WellnessPeriod}`}
         onChange={(value) => setPeriod(Number(value) as WellnessPeriod)}
       />
+      {lockedPeriods.map((days) => (
+        <TextLink
+          key={days}
+          label={tf('premium.gate.rangeLocked', { days })}
+          onPress={() => router.push({ pathname: '/premium', params: { reason: 'history' } })}
+        />
+      ))}
       {notices}
       {variant === 'summary' ? (
         <WellnessSummaryView

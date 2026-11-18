@@ -34,7 +34,13 @@ const result = spawnSync(
   {
     cwd: resolve(import.meta.dirname, '..'),
     stdio: 'inherit',
-    env: { ...process.env, KITOM_IT_SUPABASE_URL: status.API_URL, KITOM_IT_SUPABASE_ANON_KEY: status.ANON_KEY },
+    // La clave de servicio local solo la usa scripts/integration-premium.mjs (Premium para las cuentas de prueba).
+    env: {
+      ...process.env,
+      KITOM_IT_SUPABASE_URL: status.API_URL,
+      KITOM_IT_SUPABASE_ANON_KEY: status.ANON_KEY,
+      KITOM_IT_SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
+    },
   }
 );
 process.exit(result.status ?? 1);

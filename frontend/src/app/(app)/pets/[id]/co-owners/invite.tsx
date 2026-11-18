@@ -21,10 +21,15 @@ import {
 import { CoOwnersGate } from '@/features/co-owners/components/co-owners-gate';
 import { useInviteMember } from '@/features/co-owners/hooks/use-co-owners';
 import type { Pet } from '@/features/pets/types';
+import { PremiumGate } from '@/features/subscription/components/premium-gate';
+import { usePlan } from '@/features/subscription/hooks/use-plan';
 import { t, tf } from '@/i18n';
 import { createSubmitGuard } from '@/lib/submit-guard';
 
-/** Invitar a un co-tutor por email (`invite_pet_member_by_email`). Solo para quien es titular. */
+/**
+ * Invitar a un co-tutor por email (`invite_pet_member_by_email`). Solo para quien es titular y, desde
+ * Kitom Premium, con Premium (el servidor responde `premium_required`; aquí se avisa antes).
+ */
 export default function InviteCoOwnerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   return <CoOwnersGate petId={id}>{(pet, isHolder) => <InviteForm pet={pet} isHolder={isHolder} />}</CoOwnersGate>;
@@ -40,12 +45,25 @@ function InviteForm({ pet, isHolder }: { pet: Pet; isHolder: boolean }) {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const close = () => (router.canGoBack() ? router.back() : router.replace({ pathname: '/pets/[id]/co-owners', params: { id: pet.id } }));
+  const plan = usePlan();
 
   if (!isHolder) {
     return (
       <Screen align="top">
         <TopBar onBack={close} backIcon={X} />
         <EmptyState title={t('coOwners.errors.not_owner')} actionLabel={t('common.back')} onAction={close} />
+      </Screen>
+    );
+  }
+
+  if (plan.data && !plan.data.canInviteCoOwners) {
+    return (
+      <Screen align="top">
+        <TopBar onBack={close} backIcon={X} />
+        <Text variant="title1" accessibilityRole="header">
+          {tf('coOwners.inviteScreen.title', { name: pet.name })}
+        </Text>
+        <PremiumGate reason="co_owners" title={t('premium.gate.coOwnersTitle')} text={t('premium.gate.coOwnersText')} />
       </Screen>
     );
   }
@@ -65,7 +83,10 @@ function InviteForm({ pet, isHolder }: { pet: Pet; isHolder: boolean }) {
       } catch (cause) {
         const code = toCoOwnerErrorCode(cause);
         if (code === 'invalid_email') setEmailError(t('coOwners.errors.invalid_email'));
-        else setError(t(`coOwners.errors.${code}`));
+        else {
+          setError(t(`coOwners.errors.${code}`));
+          if (code === 'premium_required') void plan.refetch();
+        }
       }
     });
   };

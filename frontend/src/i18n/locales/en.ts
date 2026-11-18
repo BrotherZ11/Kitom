@@ -1,5 +1,6 @@
 import type { Translations } from '@/i18n/locales/es';
 
+import { premiumEn } from './premium-en.ts';
 import { speciesFieldsEn } from './species-fields-en.ts';
 import { wellnessEn } from './wellness-en.ts';
 
@@ -260,6 +261,7 @@ export const en: Translations = {
     },
     when: '{day} · {time}',
     overdueWhen: 'Was {day}, {time}',
+    doneWhen: 'done {day}, {time}',
     itemSubtitle: '{type} · {when}',
     pausedSubtitle: 'Turned off · {type} · {when}',
     repeatsShort: 'repeats',
@@ -566,6 +568,7 @@ export const en: Translations = {
       not_member: 'You no longer have access to this pet.',
       changed: 'This changed in the meantime. It\'s up to date now.',
       rate_limited: 'You\'ve sent a lot of invitations today. Try again tomorrow.',
+      premium_required: 'Inviting co-carers is part of Kitom Premium.',
       network: 'You\'re offline. Try again.',
       unknown: 'That didn\'t work. Try again.',
     },
@@ -631,6 +634,12 @@ export const en: Translations = {
         urinary: 'Urine',
         respiratory: 'Breathing',
         skin: 'Skin, fur, feathers and scales',
+        oralTeeth: 'Mouth and teeth',
+        oralBeak: 'Mouth and beak',
+        oralReptile: 'Mouth',
+        skinFur: 'Skin and fur',
+        skinFeathers: 'Skin and feathers',
+        skinScales: 'Skin and scales',
         ocular: 'Eyes and ears',
         motor: 'Movement',
         neuro: 'Balance and nervous system',
@@ -1078,7 +1087,11 @@ export const en: Translations = {
       remindersA:
         "Check that Kitom's notifications are on in the phone settings and in Your account › Notifications. There are no notifications in the browser.",
       petsQ: 'Can I have several pets?',
-      petsA: 'Yes. Add them from Profile or My pets and switch between them by tapping their name on the Today screen.',
+      petsA:
+        'Yes. On the free plan, up to 2 pets of your own; with Kitom Premium, all the pets you care for. Add them from Profile or My pets and switch between them by tapping their name on the Today screen. Pets others share with you don\'t count.',
+      premiumQ: 'What does Kitom Premium include?',
+      premiumA:
+        'Unlimited AI consultations, all your pets, their whole history (the free plan shows the last 30 days; nothing older is deleted) and inviting co-carers. You subscribe and cancel in Google Play › Subscriptions.',
       dataQ: 'How do I download or delete my data?',
       dataA:
         'In Your account you can download a copy of your data and delete your account. If you delete the account, each shared pet passes to a co-owner with edit permission; if there is none, it is deleted with its data and photos.',
@@ -1842,4 +1855,5 @@ export const en: Translations = {
   },
   speciesFields: speciesFieldsEn,
   wellness: wellnessEn,
+  premium: premiumEn,
 };
