@@ -15,6 +15,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import { toAuthErrorCode } from './auth-error-code.ts';
 import { changePassword, verifyCurrentPassword } from './change-password.ts';
+import { grantPremium } from '../../../scripts/integration-premium.mjs';
 
 const URL_ = process.env.KITOM_IT_SUPABASE_URL;
 const ANON_KEY = process.env.KITOM_IT_SUPABASE_ANON_KEY;
@@ -38,6 +39,7 @@ async function appWithUser() {
   const password = `It-${randomUUID()}`;
   const { data, error } = await client.auth.signUp({ email, password });
   if (error || !data.session) throw error ?? new Error('El Auth local exige confirmar el email');
+  await grantPremium(data.user.id);
   const events = [];
   client.auth.onAuthStateChange((event) => events.push(event));
   await new Promise((resolve) => setTimeout(resolve, 50)); // INITIAL_SESSION

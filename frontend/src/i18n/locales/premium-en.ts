@@ -1,0 +1,112 @@
+import type { premiumEs } from './premium-es.ts';
+
+/** Kitom Premium (screen, limits and settings). Same keys as `premium-es.ts`. */
+export const premiumEn: typeof premiumEs = {
+  title: 'Kitom Premium',
+  overline: 'Kitom Premium',
+  headline: 'All their care, no limits',
+  text: 'Follow all your pets closely, with their whole history and with the people who care for them with you.',
+  reasons: {
+    ai: "You've used this month's consultations. With Premium there's no limit.",
+    pets: "You've reached the free plan's pet limit.",
+    history: 'The free plan shows the last 30 days of their history.',
+    co_owners: 'Inviting someone else to care for your pet is part of Premium.',
+    settings: '',
+  },
+  benefits: {
+    title: "What's included",
+    ai: 'Unlimited AI consultations',
+    aiText: 'With their full history as context. Free: 3 a month.',
+    pets: 'All your pets',
+    petsText: 'Free: 2 pets of your own.',
+    history: 'Their whole history',
+    historyText: 'History, trends and summary with no date limit. Free: last 30 days.',
+    coOwners: 'Co-carers',
+    coOwnersText: 'Invite whoever cares for them with you and choose whether they can edit.',
+  },
+  options: {
+    title: 'Choose your plan',
+    month: 'Monthly',
+    year: 'Yearly',
+    perMonth: '{price} a month',
+    perYear: '{price} a year',
+    yearPerMonth: 'Works out at {price} a month',
+    trial: '{days}-day free trial',
+    recommended: 'Recommended',
+    selected: 'Selected',
+  },
+  subscribe: 'Subscribe',
+  subscribeTrial: 'Start my {days} free days',
+  subscribing: 'Opening Google Play…',
+  restore: 'Restore purchases',
+  restoring: 'Looking for your purchases…',
+  legal:
+    'The subscription renews automatically at the same price until you cancel it. You can cancel any time in Google Play › Subscriptions, at least 24 hours before it renews. If you start a free trial and cancel before it ends, you are not charged.',
+  terms: 'Terms',
+  privacy: 'Privacy policy',
+  loadingOptions: 'Loading prices…',
+  optionsError: "We couldn't load the prices. Check your connection and try again.",
+  noOptions: "Kitom Premium isn't available on your Google Play account right now. Please try again later.",
+  offline: "You're offline. Connect to see prices or subscribe.",
+  unavailable: {
+    web: "Kitom Premium is purchased in the Android app. If you already have it, you'll see it active here too.",
+    unsupported_build: "Purchases aren't available in this version of the app. Install it from Google Play.",
+    not_configured: "Purchases aren't available in this version of the app. Install it from Google Play.",
+  },
+  errors: {
+    pending: "Your payment is pending. You'll get Premium as soon as Google Play confirms it.",
+    network: "Can't reach the store. Check your connection and try again.",
+    not_allowed: 'Purchases are turned off on this phone or on your Google Play account.',
+    already_owned: 'You already have this subscription. Tap “Restore purchases”.',
+    other_account:
+      'This Google Play subscription is already linked to another Kitom account. Sign in with that account to use it.',
+    unavailable: "Purchases aren't available right now. Please try again later.",
+    unknown: "The purchase wasn't completed and you haven't been charged. Please try again.",
+  },
+  activated: 'You now have Kitom Premium. Thank you for caring with Kitom!',
+  notYetActive:
+    "We've received your purchase, but Premium isn't showing yet. It can take a minute: open this screen again.",
+  restored: "We've restored your Kitom Premium.",
+  restoredNone: 'There is no active subscription on this Google Play account.',
+  current: {
+    title: 'You have Kitom Premium',
+    renews: 'Renews on {date}.',
+    ends: "Ends on {date}. It won't renew.",
+    trial: 'Free trial until {date}. It renews automatically afterwards.',
+    trialEnds: "Free trial until {date}. It won't renew.",
+    billingIssue:
+      "Google Play couldn't charge the renewal. Update your payment method before {date} to keep Premium.",
+    noDate: 'Active.',
+    manage: 'Manage subscription',
+    manageText: 'Change plan or cancel in Google Play.',
+  },
+  gate: {
+    cta: 'See Kitom Premium',
+    petsTitle: "You've reached {max} pets",
+    petsText: 'On the free plan you can have {max} pets of your own. With Premium, all the pets you care for.',
+    petsOverTitle: 'You already have {count} pets',
+    petsOverText:
+      'The free plan allows {max} pets of your own. You keep all the ones you have; to add more, go Premium.',
+    historyTitle: 'See their whole history',
+    historyText:
+      'The free plan shows the last {days} days. Everything before is still saved: with Premium you see it all.',
+    historyDay: "This day is outside the free plan's last {days} days.",
+    coOwnersTitle: 'Care for them with someone else',
+    coOwnersText:
+      'Inviting co-carers is part of Kitom Premium. If someone invites you, you can accept without Premium.',
+    aiCta: 'Unlimited consultations with Premium',
+    rangeLocked: '{days} days · Premium',
+  },
+  settings: {
+    row: 'Kitom Premium',
+    free: 'Free plan · see benefits',
+    active: 'Active',
+    trial: 'Free trial',
+    billingIssue: 'Billing problem',
+    ends: 'Ends on {date}',
+  },
+  deleteAccountNotice:
+    "If you have Kitom Premium, deleting your account doesn't cancel your Google Play subscription. Cancel it in Google Play › Subscriptions so it doesn't renew.",
+  petLimitRejected:
+    "Couldn't be created: the free plan allows {max} pets of your own. Go Premium or discard this pet.",
+};

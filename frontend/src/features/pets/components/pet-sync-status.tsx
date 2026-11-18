@@ -16,7 +16,8 @@ import { canDiscardPetOperation, type LocalPetOperation, type PetSyncDisplay } f
 import { formatBirthDate, formatBreed, formatList, formatSex, formatSterilized, formatWeight } from '@/features/pets/pet-format';
 import type { PetFields } from '@/features/pets/types';
 import { describeSpeciesData } from '@/features/species/species-labels';
-import { t, type TranslationKey } from '@/i18n';
+import { FREE_MAX_OWNED_PETS } from '@/features/subscription/plan-model';
+import { t, tf, type TranslationKey } from '@/i18n';
 import { spacing } from '@/theme/tokens';
 
 /** Texto, icono y tono de cada estado: nunca solo color. */
@@ -90,10 +91,13 @@ export function PetSyncNotice({ op, display, onDiscarded }: PetSyncNoticeProps) 
   const [confirming, setConfirming] = useState(false);
   if (!op || !display) return null;
 
+  // Alta rechazada por el límite del plan gratuito: Premium (y reintentar) o descartarla.
+  const limitReached = display === 'failed' && op.lastError?.reason === 'pet_limit_reached';
   const failedOnServer = display === 'failed' && op.lastError?.kind !== 'validation';
   const detailKey = failedOnServer ? 'failedServer' : display;
-  const action =
-    display === 'conflict'
+  const action = limitReached
+    ? { label: t('premium.gate.cta'), onPress: () => router.push({ pathname: '/premium', params: { reason: 'pets' } }) }
+    : display === 'conflict'
       ? { label: t('pets.sync.resolve'), onPress: () => router.push({ pathname: '/pets/[id]/resolve', params: { id: op.localId } }) }
       : display === 'failed' && !failedOnServer
         ? { label: t('pets.sync.fix'), onPress: () => router.push({ pathname: '/pets/[id]/edit', params: { id: op.localId } }) }
@@ -108,9 +112,22 @@ export function PetSyncNotice({ op, display, onDiscarded }: PetSyncNoticeProps) 
         tone={danger ? 'warning' : 'info'}
         icon={STATUS[display].icon}
         title={petSyncLabel(display)}
-        message={t(`pets.sync.detail.${detailKey}` as TranslationKey)}
+        message={
+          limitReached
+            ? tf('premium.petLimitRejected', { max: FREE_MAX_OWNED_PETS })
+            : t(`pets.sync.detail.${detailKey}` as TranslationKey)
+        }
         action={action}
       />
+      {limitReached ? (
+        <Button
+          variant="ghost"
+          size="md"
+          icon={RefreshCw}
+          label={t('pets.sync.retry')}
+          onPress={() => void actions.retry(op.localId)}
+        />
+      ) : null}
       {display === 'forbidden' ? (
         <Card style={styles.data}>
           <Text variant="caption" color="inkMuted">

@@ -41,6 +41,9 @@ import { scaleValueLabel } from '@/features/daily-logs/scale-labels';
 import { TREND_THRESHOLD } from '@/features/daily-logs/week-overview';
 import { PetPhoto } from '@/features/pets/components/pet-photo';
 import type { Pet } from '@/features/pets/types';
+import { PremiumGate } from '@/features/subscription/components/premium-gate';
+import { usePlan } from '@/features/subscription/hooks/use-plan';
+import { historyStartDate, isBeyondHistory } from '@/features/subscription/plan-model';
 import { useTheme } from '@/hooks/use-theme';
 import { getLocale, t, tf } from '@/i18n';
 import { size, spacing } from '@/theme/tokens';
@@ -64,6 +67,9 @@ const WEEKDAY_DATES = ['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '
  * con calendario y una línea por categoría, y «Día a día» con los registros cargados por páginas y
  * los cambios pendientes del dispositivo encima. Sin conexión muestra lo guardado en el dispositivo.
  * No hay interpretaciones: se muestra lo registrado, con los huecos en blanco.
+ *
+ * Kitom Premium: con el plan gratuito solo se ven los últimos `history_days` días (`get_my_plan`); lo
+ * anterior sigue guardado (y en «Descargar mis datos») y se ve al hacerse Premium.
  */
 export function PetHistory({ pet, mode, canEdit, onPressAvatar }: PetHistoryProps) {
   const router = useRouter();
@@ -71,6 +77,7 @@ export function PetHistory({ pet, mode, canEdit, onPressAvatar }: PetHistoryProp
   const week = useWeekOverview(pet.id);
   const [period, setPeriod] = useState<'week' | 'month'>('week');
   const locale = getLocale();
+  const plan = usePlan();
 
   const header =
     mode === 'tab' ? (
@@ -125,7 +132,24 @@ export function PetHistory({ pet, mode, canEdit, onPressAvatar }: PetHistoryProp
   }
 
   const { overview, today } = week;
-  const items = view.items;
+  const historyStart = historyStartDate(plan.data, today);
+  const items = view.items.filter((item) => !isBeyondHistory(item.log.log_date, historyStart));
+  const oldestLoaded = view.items.length > 0 ? view.items[view.items.length - 1].log.log_date : null;
+  // Hay historia fuera del plan: ya cargada o en páginas que empiezan antes del primer día visible.
+  const hiddenByPlan =
+    historyStart !== null &&
+    (view.items.some((item) => isBeyondHistory(item.log.log_date, historyStart)) ||
+      (history.hasNextPage && oldestLoaded !== null && isBeyondHistory(oldestLoaded, historyStart)));
+  const canLoadMore = history.hasNextPage && !hiddenByPlan;
+  const historyGate =
+    hiddenByPlan && plan.data?.historyDays ? (
+      <PremiumGate
+        reason="history"
+        compact
+        title={t('premium.gate.historyTitle')}
+        text={tf('premium.gate.historyText', { days: plan.data.historyDays })}
+      />
+    ) : null;
   const todayLogged = overview.today !== null;
   const offlineBanner = view.offline ? <Banner icon={WifiOff} message={t('dailyLogs.sync.offline')} /> : null;
   // Resumen de bienestar (fase 15): reparto de los días, evolución y observaciones de esta mascota.
@@ -204,7 +228,14 @@ export function PetHistory({ pet, mode, canEdit, onPressAvatar }: PetHistoryProp
       {period === 'week' ? (
         <WeekPanel pet={pet} items={items} dates={overview.dates} weekCount={overview.weekCount} locale={locale} />
       ) : (
-        <MonthPanel history={history} items={items} today={today} locale={locale} onOpenDay={openDay} />
+        <MonthPanel
+          history={history}
+          items={items}
+          today={today}
+          locale={locale}
+          historyStart={historyStart}
+          onOpenDay={openDay}
+        />
       )}
 
       <View style={styles.section}>
@@ -237,7 +268,8 @@ export function PetHistory({ pet, mode, canEdit, onPressAvatar }: PetHistoryProp
         <FormMessage
           message={history.isFetchNextPageError ? t(`dailyLogs.errors.${toDailyLogError(history.error).code}`) : null}
         />
-        {view.offline ? null : history.hasNextPage ? (
+        {historyGate}
+        {view.offline ? null : canLoadMore ? (
           <Button
             variant="secondary"
             size="md"
@@ -247,7 +279,7 @@ export function PetHistory({ pet, mode, canEdit, onPressAvatar }: PetHistoryProp
               if (!history.isFetchingNextPage) void history.fetchNextPage();
             }}
           />
-        ) : (
+        ) : hiddenByPlan ? null : (
           <Text variant="caption" color="inkMuted" style={styles.center}>
             {t('dailyLogs.history.end')}
           </Text>
@@ -359,12 +391,15 @@ function MonthPanel({
   items,
   today,
   locale,
+  historyStart,
   onOpenDay,
 }: {
   history: ReturnType<typeof useDailyLogHistory>;
   items: readonly HistoryItemView[];
   today: string;
   locale: string;
+  /** Primer día que deja ver el plan (`null` = todos). */
+  historyStart: string | null;
   onOpenDay: (date: string) => void;
 }) {
   const theme = useTheme();
@@ -375,7 +410,9 @@ function MonthPanel({
   const loggedDates = new Set(logs.map((log) => log.log_date));
   const loggedInMonth = dates.filter((date) => loggedDates.has(date)).length;
   const isCurrentMonth = today.startsWith(monthStart.slice(0, 7));
-  const loadingOlder = needsOlderPages(logs, monthStart, history.hasNextPage);
+  // Plan gratuito: no se retrocede a un mes que empieza antes del primer día visible.
+  const isFirstAllowedMonth = historyStart !== null && monthStart <= historyStart;
+  const loadingOlder = needsOlderPages(logs, historyStart !== null && historyStart > monthStart ? historyStart : monthStart, history.hasNextPage);
 
   // Para ver el mes completo se cargan las páginas que falten (sin conexión, solo lo del dispositivo).
   const { fetchNextPage, isFetchingNextPage, isFetchNextPageError } = history;
@@ -399,7 +436,12 @@ function MonthPanel({
     <>
       <Card>
         <View style={styles.monthHeader}>
-          <IconButton icon={ChevronLeft} accessibilityLabel={t('dailyLogs.history.prevMonth')} onPress={() => shift(-1)} />
+          <IconButton
+            icon={ChevronLeft}
+            accessibilityLabel={t('dailyLogs.history.prevMonth')}
+            disabled={isFirstAllowedMonth}
+            onPress={() => shift(-1)}
+          />
           <Text variant="bodyStrong" accessibilityRole="header">
             {monthTitle}
           </Text>
@@ -422,6 +464,7 @@ function MonthPanel({
             })
           }
           onPressDay={onOpenDay}
+          isDayPressable={historyStart === null ? undefined : (date, state) => (state.logged || state.today) && !isBeyondHistory(date, historyStart)}
         />
         <View style={styles.legend}>
           <View style={styles.legendItem}>

@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import { contentToSaveArgs } from '../daily-logs/offline/daily-log-content.ts';
 import { CORE_SCALES, SPECIES_CODES, SPECIES_DEFINITIONS } from './species-fields.ts';
+import { grantPremium } from '../../../scripts/integration-premium.mjs';
 
 const URL_ = process.env.KITOM_IT_SUPABASE_URL;
 const ANON_KEY = process.env.KITOM_IT_SUPABASE_ANON_KEY;
@@ -33,6 +34,7 @@ describe('campos por especie: app ↔ base de datos', { skip }, () => {
     const email = `it-species-${randomUUID()}@kitom.test`;
     const { data, error } = await supabase.auth.signUp({ email, password: `pw-${randomUUID()}` });
     if (error || !data.session) throw error ?? new Error('El Auth local exige confirmar el email');
+    await grantPremium(data.user.id);
     const { data: rows, error: speciesError } = await supabase.from('species').select('id, code, is_active, ai_guidance_enabled');
     if (speciesError) throw speciesError;
     for (const row of rows) species[row.code] = row;

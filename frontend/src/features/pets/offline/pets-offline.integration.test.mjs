@@ -18,6 +18,7 @@ import { SessionUnavailableError } from '../../../lib/user-token-fetch.ts';
 import { createPetReads } from '../api/pets-remote.ts';
 import { createPetCacheRepository } from './pet-cache-repository.ts';
 import { fetchPetListThroughCache, fetchPetThroughCache } from './pet-queries.ts';
+import { grantPremium } from '../../../../scripts/integration-premium.mjs';
 
 const URL_ = process.env.KITOM_IT_SUPABASE_URL;
 const ANON_KEY = process.env.KITOM_IT_SUPABASE_ANON_KEY;
@@ -32,6 +33,7 @@ async function signUp() {
   const password = `It-${randomUUID()}`;
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error || !data.session) throw error ?? new Error('El Auth local exige confirmar el email');
+  await grantPremium(data.user.id);
   return { supabase, userId: data.user.id, email, password };
 }
 

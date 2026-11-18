@@ -15,6 +15,7 @@ import { createAuthRefreshFetch } from '../../lib/auth-refresh-fetch.ts';
 import { createAutoRefreshGate } from '../../lib/auto-refresh-gate.ts';
 import { createUserTokenFetch, isSessionUnavailableError } from '../../lib/user-token-fetch.ts';
 import { createAuthSessionController } from './auth-session-controller.ts';
+import { grantPremium } from '../../../scripts/integration-premium.mjs';
 
 const URL_ = process.env.KITOM_IT_SUPABASE_URL;
 const ANON_KEY = process.env.KITOM_IT_SUPABASE_ANON_KEY;
@@ -37,6 +38,7 @@ async function newUser() {
   const password = `It-${randomUUID()}`;
   const { data, error } = await setup.auth.signUp({ email, password });
   if (error || !data.session) throw error ?? new Error('El Auth local exige confirmar el email');
+  await grantPremium(data.user.id);
   return { email, password, userId: data.user.id, session: data.session };
 }
 

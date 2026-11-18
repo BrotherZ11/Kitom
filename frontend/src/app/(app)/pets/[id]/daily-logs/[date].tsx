@@ -21,7 +21,10 @@ import { capitalizeFirst, formatLogDateLabel, formatWeekdayDay } from '@/feature
 import { useCanEditPet, usePet } from '@/features/pets/hooks/use-pets';
 import { petErrorMessage, toPetError } from '@/features/pets/pet-errors';
 import { usePetSpecies } from '@/features/species/hooks/use-pet-species';
-import { getLocale, t } from '@/i18n';
+import { PremiumGate } from '@/features/subscription/components/premium-gate';
+import { usePlan } from '@/features/subscription/hooks/use-plan';
+import { historyStartDate, isBeyondHistory } from '@/features/subscription/plan-model';
+import { getLocale, t, tf } from '@/i18n';
 import { withServerPetId } from '@/features/pets/components/local-pet-logs-unavailable';
 
 /**
@@ -45,6 +48,7 @@ function DailyLogEntryScreen() {
   const petContext = resolveDailyLogPetContext(pet, canEdit, (error) => toPetError(error).code === 'network');
   const { view, refetch } = useDailyLog(id, logDate, { waitForRemote: true });
   const editing = edit === '1';
+  const plan = usePlan();
 
   const back = () => (router.canGoBack() ? router.back() : router.replace({ pathname: '/pets/[id]/daily-logs', params: { id } }));
   const frame = (content: ReactNode, title?: string) => (
@@ -61,6 +65,18 @@ function DailyLogEntryScreen() {
   if (logDate === null) return frame(missing);
   const dateTitle = formatLogDateLabel(logDate, getLocale(), { withYear: today !== null && !logDate.startsWith(today.slice(0, 4)) });
   const title = capitalizeFirst(dateTitle, getLocale());
+
+  // Plan gratuito: un día anterior a los últimos `history_days` (p. ej. por un enlace) no se muestra.
+  if (today !== null && plan.data?.historyDays && isBeyondHistory(logDate, historyStartDate(plan.data, today))) {
+    return frame(
+      <PremiumGate
+        reason="history"
+        title={t('premium.gate.historyTitle')}
+        text={tf('premium.gate.historyDay', { days: plan.data.historyDays })}
+      />,
+      title
+    );
+  }
 
   // Con datos ya cargados (p. ej. al quedarse sin conexión), un error al refrescar no tapa la pantalla.
   if (petContext.state === 'error') {

@@ -29,6 +29,7 @@ import { createPetPhotoJournal } from './pets/offline/pet-photo-journal.ts';
 import { createPetSyncEngine } from './pets/offline/pet-sync-engine.ts';
 import { dailyLogsAccess } from './pets/offline/pet-write-view.ts';
 import { processPhotoJournal } from './pets/pet-photo-ops.ts';
+import { grantPremium } from '../../scripts/integration-premium.mjs';
 
 const URL_ = process.env.KITOM_IT_SUPABASE_URL;
 const ANON_KEY = process.env.KITOM_IT_SUPABASE_ANON_KEY;
@@ -60,6 +61,7 @@ async function signUp() {
   const password = `It-${randomUUID()}`;
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error || !data.session) throw error ?? new Error('El Auth local exige confirmar el email');
+  await grantPremium(data.user.id);
   return { supabase, userId: data.user.id, email, password };
 }
 

@@ -22,6 +22,7 @@ export { default as ChevronRight } from 'lucide-react-native/icons/chevron-right
 export { default as CircleAlert } from 'lucide-react-native/icons/circle-alert';
 export { default as CircleHelp } from 'lucide-react-native/icons/circle-question-mark';
 export { default as Clock } from 'lucide-react-native/icons/clock';
+export { default as Crown } from 'lucide-react-native/icons/crown';
 export { default as CloudCheck } from 'lucide-react-native/icons/cloud-check';
 export { default as CloudUpload } from 'lucide-react-native/icons/cloud-upload';
 export { default as Download } from 'lucide-react-native/icons/download';
@@ -36,6 +37,7 @@ export { default as Globe } from 'lucide-react-native/icons/globe';
 export { default as Heart } from 'lucide-react-native/icons/heart';
 export { default as House } from 'lucide-react-native/icons/house';
 export { default as ImageIcon } from 'lucide-react-native/icons/image';
+export { default as InfinityIcon } from 'lucide-react-native/icons/infinity';
 export { default as Info } from 'lucide-react-native/icons/info';
 export { default as KeyRound } from 'lucide-react-native/icons/key-round';
 export { default as List } from 'lucide-react-native/icons/list';

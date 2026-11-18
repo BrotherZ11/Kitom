@@ -18,6 +18,7 @@ import { buildResolvedContent } from './daily-log-merge.ts';
 import { createDailyLogRemote } from './daily-log-remote.ts';
 import { createDailyLogRepository } from './daily-log-repository.ts';
 import { createDailyLogSyncEngine } from './daily-log-sync-engine.ts';
+import { grantPremium } from '../../../../scripts/integration-premium.mjs';
 
 const URL_ = process.env.KITOM_IT_SUPABASE_URL;
 const ANON_KEY = process.env.KITOM_IT_SUPABASE_ANON_KEY;
@@ -51,6 +52,7 @@ async function signUp() {
     password: `It-${randomUUID()}`,
   });
   if (error || !data.session) throw error ?? new Error('El Auth local exige confirmar el email');
+  await grantPremium(data.user.id);
   return { supabase, userId: data.user.id };
 }
 

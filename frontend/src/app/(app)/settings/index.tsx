@@ -15,6 +15,7 @@ import {
   CircleHelp,
   Clock,
   CloudUpload,
+  Crown,
   Download,
   FileText,
   Globe,
@@ -27,6 +28,9 @@ import {
   Trash,
 } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
+import { formatFullDate } from '@/features/reminders/reminder-format';
+import { usePlan } from '@/features/subscription/hooks/use-plan';
+import { summarizePlan, type Plan } from '@/features/subscription/plan-model';
 import { Screen } from '@/components/ui/screen';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
@@ -50,7 +54,7 @@ import { PROFILE_NAME_MAX_LENGTH, validateProfileName } from '@/features/profile
 import { getDeviceTimeZone, normalizeTimeZone } from '@/features/profile/timezone';
 import { useIsOnline } from '@/hooks/use-is-online';
 import { useTheme } from '@/hooks/use-theme';
-import { t, tf } from '@/i18n';
+import { getLocale, t, tf } from '@/i18n';
 import { createSubmitGuard } from '@/lib/submit-guard';
 import { useAppTheme, type ThemePreference } from '@/theme/theme-provider';
 import { borderWidth, radius, size, spacing } from '@/theme/tokens';
@@ -75,6 +79,7 @@ export default function SettingsScreen() {
   const [error, setError] = useState<AuthErrorCode | null>(null);
   const [sheet, setSheet] = useState<'name' | 'timezone' | null>(null);
   const serverUsable = canUseServer && online;
+  const plan = usePlan();
 
   const handleSignOut = async () => {
     setError(null);
@@ -132,6 +137,16 @@ export default function SettingsScreen() {
           </Card>
         )}
       </Pressable>
+
+      <Card flush>
+        <ListItem
+          plain
+          icon={Crown}
+          title={t('premium.settings.row')}
+          subtitle={plan.data ? planSubtitle(plan.data) : undefined}
+          onPress={() => router.push({ pathname: '/premium', params: { reason: 'settings' } })}
+        />
+      </Card>
 
       <Group title={t('settings.preferences')}>
         <ListItem plain icon={Globe} title={t('settings.language')} value={t('settings.languageValue')} divider />
@@ -217,6 +232,25 @@ export default function SettingsScreen() {
       <TimeZoneSheet visible={sheet === 'timezone'} current={timeZone.data ?? null} onClose={() => setSheet(null)} />
     </Screen>
   );
+}
+
+/** Estado de Kitom Premium en una línea (lo dice el servidor: `get_my_plan`). */
+function planSubtitle(plan: Plan): string {
+  const summary = summarizePlan(plan);
+  switch (summary.kind) {
+    case 'free':
+      return t('premium.settings.free');
+    case 'trial':
+      return t('premium.settings.trial');
+    case 'billing_issue':
+      return t('premium.settings.billingIssue');
+    case 'ends':
+      return summary.on
+        ? tf('premium.settings.ends', { date: formatFullDate(new Date(summary.on), getLocale()) })
+        : t('premium.settings.active');
+    default:
+      return t('premium.settings.active');
+  }
 }
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
