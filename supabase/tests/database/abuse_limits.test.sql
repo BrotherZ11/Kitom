@@ -90,6 +90,10 @@ insert into auth.users (id, email, aud, role, raw_user_meta_data, email_confirme
 update public.profiles set disclaimer_accepted_at = now(), disclaimer_version = '1.0'
 where id in ('a7000000-0000-4000-8000-000000000001', 'a7000000-0000-4000-8000-000000000002');
 update public.subscriptions set plan = 'premium' where user_id = 'a7000000-0000-4000-8000-000000000001';
+-- Desde *_premium_plans (2026-11-16) invitar co-tutores y tener más de 2 mascotas propias
+-- exige Premium. Estas pruebas no tratan del plan: sus cuentas son Premium (el plan
+-- gratuito se prueba en premium_plans.test.sql).
+update public.subscriptions set plan = 'premium' where user_id = 'a7000000-0000-4000-8000-000000000011';
 
 insert into public.pets (id, owner_id, name, species_id)
 select v.id, v.owner_id, v.name, s.id

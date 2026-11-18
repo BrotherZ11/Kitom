@@ -50,6 +50,12 @@ insert into auth.users (id, email, aud, role, raw_user_meta_data, email_confirme
   ('f0000000-0000-4000-8000-000000000004', 'unconfirmed-inv@example.test', 'authenticated', 'authenticated', '{"full_name":"Uma"}', null, null),
   ('f0000000-0000-4000-8000-000000000005', 'banned-inv@example.test', 'authenticated', 'authenticated', '{"full_name":"Bea"}', now(), now() + interval '1 day');
 
+-- Desde *_premium_plans (2026-11-16) invitar co-tutores y tener más de 2 mascotas propias
+-- exige Premium. Estas pruebas no tratan del plan: sus cuentas son Premium (el plan
+-- gratuito se prueba en premium_plans.test.sql).
+update public.subscriptions set plan = 'premium'
+where user_id in ('f0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000003', 'f0000000-0000-4000-8000-000000000004', 'f0000000-0000-4000-8000-000000000005');
+
 insert into public.pets (id, owner_id, name, species_id)
 select 'f1000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', 'Kika', s.id
 from public.species s where s.code = 'dog';

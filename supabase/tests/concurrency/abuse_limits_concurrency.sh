@@ -115,7 +115,8 @@ setup="$(query "
     ('$OTHER',   'al-other@example.test', 'authenticated', 'authenticated', now());
   update public.profiles set disclaimer_accepted_at = now(), disclaimer_version = '1.0'
     where id in ('$AI_USER', '$OTHER');
-  update public.subscriptions set plan = 'premium' where user_id in ('$AI_USER', '$OTHER');
+  -- $OWNER invita: desde *_premium_plans, invitar exige Premium.
+  update public.subscriptions set plan = 'premium' where user_id in ('$AI_USER', '$OWNER', '$OTHER');
   insert into public.pets (id, owner_id, name, species_id)
     select v.id, v.owner_id, 'al', s.id
     from (values ('$AI_PET'::uuid, '$AI_USER'::uuid), ('$OWNER_PET'::uuid, '$OWNER'::uuid), ('$OTHER_PET'::uuid, '$OTHER'::uuid)) as v (id, owner_id)
