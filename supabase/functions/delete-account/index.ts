@@ -17,9 +17,10 @@
 // rest.ts y sus *.test.mjs; contra el Supabase local: run-integration.mjs.
 // =====================================================================
 import { handleDeleteAccountRequest, type Log } from './deletion.ts';
-import { createRestAdmin, createRestAuth, createRestUserGateway } from './rest.ts';
+import { createRestAdmin, createRestAuth, createRestBilling, createRestUserGateway } from './rest.ts';
 
 const log: Log = (event, fields) => console.log(JSON.stringify({ event, ...fields }));
+const revenueCatKey = Deno.env.get('REVENUECAT_SECRET_API_KEY') ?? '';
 
 Deno.serve((request) =>
   handleDeleteAccountRequest(
@@ -33,6 +34,8 @@ Deno.serve((request) =>
       auth: createRestAuth({ url, apiKey: anonKey }),
       user: createRestUserGateway({ url, apiKey: anonKey, token }),
       admin: createRestAdmin({ url, apiKey: serviceKey }),
+      // Kitom Premium: solo si el proyecto tiene RevenueCat configurado.
+      billing: revenueCatKey ? createRestBilling({ url: 'https://api.revenuecat.com', apiKey: revenueCatKey }) : undefined,
       log,
     }),
     log,

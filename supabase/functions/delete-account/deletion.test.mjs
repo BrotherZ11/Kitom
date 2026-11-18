@@ -16,7 +16,7 @@ import {
   parseRequestBody,
   planMatches,
 } from './deletion.ts';
-import { createRestAdmin, createRestAuth, createRestUserGateway } from './rest.ts';
+import { createRestAdmin, createRestAuth, createRestBilling, createRestUserGateway } from './rest.ts';
 
 const ME = '11111111-1111-4111-8111-111111111111';
 const ANA = '22222222-2222-4222-8222-222222222222';
@@ -369,6 +369,24 @@ describe('executePlan', () => {
     assert.ok(!world.state.calls.includes('deleteUser'));
   });
 
+  it('Kitom Premium: borra el cliente de RevenueCat antes que el usuario; si falla, no borra el usuario', async () => {
+    const order = [];
+    const world = standardWorld();
+    const billing = { deleteCustomer: async (id) => { order.push(`billing:${id === ME}`); return 'deleted'; } };
+    const admin = { deleteUser: async (id) => { order.push('deleteUser'); return world.admin.deleteUser(id); } };
+    const done = await executePlan({ ...world, admin, billing }, ME, await buildPlan(world.user, ME));
+    assert.equal(done.status, 'deleted');
+    assert.deepEqual(order, ['billing:true', 'deleteUser']);
+
+    const other = standardWorld();
+    const failing = { deleteCustomer: async () => { throw new GatewayError('revenuecat_http_500'); } };
+    const outcome = await executePlan({ ...other, billing: failing }, ME, await buildPlan(other.user, ME));
+    assert.equal(outcome.status, 'failed');
+    assert.equal(outcome.step, 'billing');
+    assert.equal(outcome.code, 'revenuecat_http_500');
+    assert.ok(other.state.users.has(ME), 'el usuario sigue: el reintento lo repetirá');
+  });
+
   it('un fallo al listar avatares no borra el usuario', async () => {
     const world = standardWorld({ failOn: { listAvatars: 1 } });
     const outcome = await executePlan(world, ME, await buildPlan(world.user, ME));
@@ -431,6 +449,19 @@ describe('rest', () => {
     const { doFetch } = fakeFetch(async () => jsonResponse(400, { statusCode: '404', error: 'Bucket not found', message: 'Bucket not found' }));
     const user = createRestUserGateway({ url: 'http://127.0.0.1:54321', apiKey: 'anon', token: 't', fetch: doFetch });
     assert.deepEqual(await user.listAvatars(ME), []);
+  });
+
+  it('billing: DELETE del cliente en RevenueCat con la clave secreta; 404 = ya no existe', async () => {
+    const { requests, doFetch } = fakeFetch(async (url) => (url.endsWith(ME) ? new Response('{}', { status: 200 }) : new Response('{}', { status: 404 })));
+    const billing = createRestBilling({ url: 'https://api.revenuecat.com/', apiKey: 'sk_x', fetch: doFetch });
+    assert.equal(await billing.deleteCustomer(ME), 'deleted');
+    assert.equal(requests[0].url, `https://api.revenuecat.com/v1/subscribers/${ME}`);
+    assert.equal(requests[0].method, 'DELETE');
+    assert.equal(requests[0].headers.Authorization, 'Bearer sk_x');
+    assert.equal(await billing.deleteCustomer('22222222-2222-4222-8222-222222222222'), 'not_found');
+    const down = createRestBilling({ url: 'https://api.revenuecat.com', apiKey: 'k', fetch: async () => new Response('{}', { status: 503 }) });
+    await assert.rejects(() => down.deleteCustomer(ME), /revenuecat_http_503/);
+    await assert.rejects(() => billing.deleteCustomer('no-uuid'), /invalid_user_id/);
   });
 
   it('admin: borra con la clave de servicio; 404 = ya no existe; la red, un código', async () => {

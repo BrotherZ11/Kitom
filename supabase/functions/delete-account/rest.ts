@@ -14,6 +14,7 @@ import {
   GatewayError,
   isUuid,
   type AdminGateway,
+  type BillingGateway,
   type AuthGateway,
   type OwnedPet,
   type PetMember,
@@ -208,6 +209,33 @@ export function createRestAdmin(config: RestConfig): AdminGateway {
       if (response.ok) return 'deleted';
       if (response.status === 404) return 'not_found';
       throw new GatewayError(`auth_admin_http_${response.status}`);
+    },
+  };
+}
+
+/**
+ * Cliente de RevenueCat (Kitom Premium): `DELETE /v1/subscribers/{id}` con la clave secreta v1
+ * (`REVENUECAT_SECRET_API_KEY`). `url` es la base de la API (`https://api.revenuecat.com`).
+ */
+export function createRestBilling(config: RestConfig): BillingGateway {
+  return {
+    async deleteCustomer(userId) {
+      if (!isUuid(userId)) throw new GatewayError('invalid_user_id');
+      const doFetch = config.fetch ?? fetch;
+      let response: Response;
+      try {
+        response = await doFetch(`${base(config.url)}/v1/subscribers/${encodeURIComponent(userId)}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${config.apiKey}`, Accept: 'application/json' },
+          signal: AbortSignal.timeout(config.timeoutMs ?? REQUEST_TIMEOUT_MS),
+        });
+      } catch {
+        throw new GatewayError('network');
+      }
+      await response.body?.cancel();
+      if (response.ok) return 'deleted';
+      if (response.status === 404) return 'not_found';
+      throw new GatewayError(`revenuecat_http_${response.status}`);
     },
   };
 }

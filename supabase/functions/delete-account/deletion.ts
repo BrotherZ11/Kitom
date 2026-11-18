@@ -15,7 +15,10 @@
 //  3. Cuerpo validado de forma estricta.
 //  4. Plan leído con el JWT del usuario: RLS y las RPC deciden qué es suyo.
 //     Transferir, borrar mascotas y quitar avatares también van con su JWT.
-//  5. Solo al final, la clave de servicio: auth.admin.deleteUser.
+//  5. Solo al final, la clave de servicio: auth.admin.deleteUser. Justo antes,
+//     si la función tiene REVENUECAT_SECRET_API_KEY, se borra su cliente de
+//     RevenueCat (Kitom Premium; 404 = ya no existe). Si falla, no se borra el
+//     usuario y el reintento lo repite (QA-06, 2026-11-18).
 //
 // Reintentos: cada llamada vuelve a planificar desde el estado actual de la
 // BD, así que tras un fallo a medias la siguiente converge (lo transferido ya
@@ -83,6 +86,11 @@ export interface AdminGateway {
   deleteUser(userId: string): Promise<'deleted' | 'not_found'>;
 }
 
+/** Cliente de RevenueCat del usuario (Kitom Premium): datos de compras que también se borran. */
+export interface BillingGateway {
+  deleteCustomer(userId: string): Promise<'deleted' | 'not_found'>;
+}
+
 export type TokenCheck = { status: 'ok'; userId: string } | { status: 'not_found' } | { status: 'invalid' };
 
 export interface AuthGateway {
@@ -92,7 +100,7 @@ export interface AuthGateway {
 
 export type Log = (event: string, fields: Record<string, string | number | boolean | null>) => void;
 
-export type DeletionDeps = { auth: AuthGateway; user: UserGateway; admin: AdminGateway; log: Log };
+export type DeletionDeps = { auth: AuthGateway; user: UserGateway; admin: AdminGateway; billing?: BillingGateway; log: Log };
 
 /** Error de una llamada con un código seguro para registrar (nunca el mensaje del servidor). */
 export class GatewayError extends Error {
@@ -233,7 +241,7 @@ export function expectedFromPlan(plan: DeletionPlan): ExpectedAction[] {
   ];
 }
 
-export type DeletionStep = 'transfer' | 'delete_pet' | 'avatars' | 'delete_user';
+export type DeletionStep = 'transfer' | 'delete_pet' | 'avatars' | 'billing' | 'delete_user';
 export type DeletionProgress = { transferred: number; deleted: number; avatars_removed: number };
 
 export type DeletionOutcome =
@@ -247,7 +255,7 @@ export type DeletionOutcome =
  * fallo (lo hecho no se deshace: el siguiente intento vuelve a planificar).
  */
 export async function executePlan(
-  deps: Pick<DeletionDeps, 'user' | 'admin'>,
+  deps: Pick<DeletionDeps, 'user' | 'admin' | 'billing'>,
   userId: string,
   plan: DeletionPlan
 ): Promise<DeletionOutcome> {
@@ -288,6 +296,14 @@ export async function executePlan(
       return { status: 'plan_changed', plan: await buildPlan(deps.user, userId) };
     } catch (error) {
       return failed('delete_pet', error);
+    }
+  }
+
+  if (deps.billing) {
+    try {
+      await deps.billing.deleteCustomer(userId);
+    } catch (error) {
+      return failed('billing', error);
     }
   }
 
