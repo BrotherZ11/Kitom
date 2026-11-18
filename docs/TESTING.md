@@ -95,6 +95,29 @@ APK de release en emulador Android, contra el Supabase local, con una ruta tempo
 - Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
 - **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
 
+### Integración en main, arreglos y APK release (2026-11-18)
+
+Con la migración `20261116160000` ya aplicada en `kitom-dev` y los tipos regenerados con `--linked`:
+
+| Comando | Resultado |
+|---|---|
+| `tsc`, `expo lint`, `expo-doctor` | correctos (21/21 tras los parches de Expo) |
+| `npm test` | 1031/1031 |
+| `npm run test:integration` | 85/85 |
+| `npx supabase test db` | 803/803 |
+| Concurrencia (8 suites) | todas correctas |
+| Edge Functions, unitarias | 114/114 (nuevas: paso `billing` de `delete-account`) |
+| Integración `delete-account` | 9/9 (sus cuentas de prueba, Premium: invitan co-tutores) |
+| Integración `pet-storage-cleanup` | 2/2 (TEST-02 corregido) |
+| Integración de suscripciones | 7/7 |
+| `gradlew assembleRelease` (arm64-v8a y x86_64) | correcta con `-Dorg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1536m` (sin ellos, `OutOfMemoryError: Metaspace` con el emulador abierto). El bundle contiene `supabase.co` y el DSN de Sentry, y no `127.0.0.1`; **sin** `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (Google por el navegador) ni clave de RevenueCat (Premium no vende) |
+
+**QA-02, arranque en frío sin conexión** (APK release contra `kitom-dev`, modo avión, emulador): antes ~20–23 s con «Cargando…» en Hoy.
+Con registros temporales se vio que cada lectura fallaba en ~100 ms («Unable to resolve host») pero postgrest-js la repetía tres
+veces (1, 2 y 4 s) y TanStack Query una más. Tras `db: { retry: false }` y no reintentar `SessionUnavailableError`: ~11–14 s
+desde el lanzamiento en este emulador (unos 5 s son el arranque del JS). Lo que queda es la espera prevista de
+`AUTH_STARTUP_TIMEOUT_MS` (4 s) cuando la sesión guardada está caducada; con la sesión vigente no hay espera. Falta medirlo en un móvil físico.
+
 ### Pruebas a fondo y Kitom Premium (2026-11-16)
 
 Contra el Supabase local con las 20 migraciones (`migration up --local`, sin `db reset`). Hallazgos y lo no probado:
