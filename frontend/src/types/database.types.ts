@@ -1024,6 +1024,7 @@ export type Database = {
           id: string
           plan: Database["public"]["Enums"]["subscription_plan"]
           provider: string | null
+          provider_state_at: string | null
           provider_subscription_id: string | null
           raw_provider_payload: Json | null
           status: Database["public"]["Enums"]["subscription_status"]
@@ -1039,6 +1040,7 @@ export type Database = {
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
           provider?: string | null
+          provider_state_at?: string | null
           provider_subscription_id?: string | null
           raw_provider_payload?: Json | null
           status?: Database["public"]["Enums"]["subscription_status"]
@@ -1054,6 +1056,7 @@ export type Database = {
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
           provider?: string | null
+          provider_state_at?: string | null
           provider_subscription_id?: string | null
           raw_provider_payload?: Json | null
           status?: Database["public"]["Enums"]["subscription_status"]
@@ -1164,6 +1167,24 @@ export type Database = {
         Args: { invitation_id: string }
         Returns: undefined
       }
+      apply_subscription_state: {
+        Args: {
+          p_cancel_at_period_end: boolean
+          p_current_period_end: string
+          p_current_period_start: string
+          p_event_type: string
+          p_is_premium: boolean
+          p_provider: string
+          p_provider_subscription_id: string
+          p_raw_payload: Json
+          p_source_event_id: string
+          p_state_at: string
+          p_status: Database["public"]["Enums"]["subscription_status"]
+          p_trial_end: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       award_pet_achievement: {
         Args: { achievement_code: string; target_pet_id: string }
         Returns: undefined
@@ -1210,6 +1231,23 @@ export type Database = {
           pet_id: string
           pet_name: string
           role: Database["public"]["Enums"]["co_owner_role"]
+        }[]
+      }
+      get_my_plan: {
+        Args: never
+        Returns: {
+          ai_monthly_limit: number
+          ai_monthly_used: number
+          can_invite_co_owners: boolean
+          cancel_at_period_end: boolean
+          current_period_end: string
+          history_days: number
+          is_premium: boolean
+          max_owned_pets: number
+          owned_pets: number
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_end: string
         }[]
       }
       get_pet_members: {
