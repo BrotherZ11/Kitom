@@ -82,11 +82,13 @@ Antes de instalar una APK local, comprobar a qué servidor apunta: compilar sin 
 `submit.production.android`: pista `internal`, borrador. Pasos (los ejecuta el responsable con su cuenta):
 
 1. Cuenta Expo; desde `frontend/`: `npx eas-cli@latest login` y `npx eas-cli@latest init` (añade
-   `extra.eas.projectId` a `app.json`: commitearlo).
-2. Variables por entorno en EAS (Project › Environment variables), nunca en el repo:
+   `extra.eas.projectId` y `owner` a `app.json`: commitearlo). El perfil `development` usa `expo-dev-client`
+   (instalado el 2026-11-18).
+2. Variables por entorno en EAS (Project › Environment variables), nunca en el repo. Plantilla con todos los
+   `eas env:create`: `frontend/scripts/eas-env-template.sh` (copiarla fuera del repo, rellenarla y ejecutarla). Variables:
    `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` (del proyecto de ese entorno) y
-   `EXPO_PUBLIC_SENTRY_DSN` (Sentry › proyecto `kitom-app` › Client Keys) y `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (Client ID del
-   cliente Web de Google Cloud; público). En `preview` y `production`, además, el
+   `EXPO_PUBLIC_SENTRY_DSN` (Sentry › proyecto `kitom-app` › Client Keys), `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (Client ID del
+   cliente Web de Google Cloud; público) y `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` (Kitom Premium; pública). En `preview` y `production`, además, el
    secreto `SENTRY_AUTH_TOKEN` (token de organización, visibilidad *sensitive*): la organización y el proyecto ya están en `app.json`.
 3. `npx eas-cli@latest build -p android --profile preview` → instalar en móviles reales.
 4. Firma: EAS genera y custodia el keystore (`eas credentials`); descargar una copia de seguridad.
@@ -224,6 +226,9 @@ Las cuentas y los paneles (GitHub Pages, dominio, SMTP, Supabase Auth, Google Cl
     `SCHEDULE_EXACT_ALARM` y prueba cerrada.
 
 **F. Kitom Premium (decisión 2026-11-16: activo desde la prueba cerrada)**
+
+Secretos y despliegue de las funciones: plantilla `supabase/functions/deploy-template.sh` (copiarla fuera del repo, rellenarla y
+ejecutarla).
 15. ✅ `db push` de `20261116160000_premium_plans.sql` (el usuario, 2026-11-18) y tipos regenerados con `--linked`. Falta
     redesplegar `delete-account` (borra también el cliente de RevenueCat si tiene `REVENUECAT_SECRET_API_KEY`).
 16. Play Console (perfil de comerciante, suscripción `kitom_premium` con planes `monthly`/`annual` y prueba de 7 días,

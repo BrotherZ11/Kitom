@@ -19,6 +19,11 @@ No hay tests de componentes React, E2E automatizados, pruebas de accesibilidad n
 
 ## 2. Comandos
 
+En GitHub, `.github/workflows/ci.yml` (2026-11-18) ejecuta en cada PR y en `main`: tipos, lint y unitarias de la app y de las
+Edge Functions; y, con un Supabase local en Docker (CLI fijada en el `package.json` de la raíz), pgTAP, concurrencia e
+integración. Ojo: una pasada de integración da de alta unos 29 usuarios, al borde del límite local de Auth
+(`sign_in_sign_ups = 30` cada 5 min); si la CI falla por eso, separar los pasos o subir el límite en `config.toml`.
+
 | Suite | Comando | Requisitos |
 |---|---|---|
 | Tipos | `cd frontend && npx tsc --noEmit` | — |

@@ -290,6 +290,10 @@ error y «sin mascotas».
   local, `adb reverse tcp:54321 tcp:54321` (y `adb reverse tcp:8081 tcp:8081` para Metro). Un móvil
   físico no puede usar `start:local` (necesitaría la IP de la red local, que el script rechaza).
 - Cuentas de prueba: crearlas desde la propia app (el Supabase local no pide confirmar el email).
+- Desde el 2026-11-18 la app incluye `expo-dev-client` (perfil `development` de EAS): una build de **depuración** abre el
+  lanzador del cliente de desarrollo en vez de cargar Metro directamente. Abrirla con
+  `adb shell am start -a android.intent.action.VIEW -d "kitom://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"`
+  (con `adb reverse tcp:8081 tcp:8081`). Las builds de release no cambian.
 - Avisos locales: no funcionan en Expo Go 57.0.9 (falta un módulo nativo; la app lo dice). Para
   probarlos, build de depuración local: `npx expo prebuild --platform android --no-install` (revierte
   después los `scripts` que cambia en `package.json`), `cd android` y `./gradlew assembleDebug` con

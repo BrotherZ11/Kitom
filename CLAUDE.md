@@ -189,7 +189,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   · `npm run start:local` (app contra el Supabase local sin tocar `.env`; ver `frontend/CLAUDE.md`)
 - Pruebas de BD (solo local): `supabase/tests/database/*.test.sql` (pgTAP) y
   `supabase/tests/concurrency/*.sh` (sesiones simultáneas); ver `supabase/CLAUDE.md`.
-- Desde la raíz: Supabase CLI siempre como `npx supabase ...` (no hay instalación global).
+- Desde la raíz: Supabase CLI siempre como `npx supabase ...`, fijada en el `package.json` de la raíz (3.2.0; `npm ci` en
+  la raíz). CI: `.github/workflows/ci.yml`.
 - Entorno Windows: hay herramientas Bash y PowerShell; las restricciones de `.claude/settings.json` cubren ambas.
 
 ## Definición de "terminado"

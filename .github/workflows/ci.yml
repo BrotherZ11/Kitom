@@ -1,0 +1,101 @@
+# Comprobaciones de cada cambio (ROADMAP P2-13): la app (tipos, lint y pruebas unitarias), las Edge Functions
+# (pruebas sin Deno) y la base de datos (pgTAP, concurrencia e integración contra un Supabase LOCAL levantado en
+# el runner con Docker). Nunca toca kitom-dev: no usa secretos ni el proyecto enlazado.
+# Versiones fijadas con tag exacto: actualizarlas a propósito, nunca con un @vN flotante.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App y Edge Functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
+      - name: Node
+        uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 24.12.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Dependencias
+        run: npm ci
+      - name: Tipos
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npx expo lint
+      - name: Pruebas unitarias de la app
+        run: npm test
+      - name: Pruebas unitarias de las Edge Functions
+        working-directory: .
+        run: >-
+          node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON
+          supabase/functions/ai-analysis-process/*.test.mjs
+          supabase/functions/pet-storage-cleanup/cleanup.test.mjs
+          supabase/functions/delete-account/deletion.test.mjs
+          supabase/functions/_shared/subscription.test.mjs
+
+  database:
+    name: Base de datos e integración (Supabase local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
+      - name: Node
+        uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 24.12.0
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - name: Supabase CLI (versión fijada en package.json)
+        run: npm ci
+      - name: Dependencias de la app
+        working-directory: frontend
+        run: npm ci
+      - name: Arrancar Supabase local (migraciones y seed)
+        run: npx supabase start
+      - name: Bucket local de fotos
+        run: npx supabase seed buckets --local
+      - name: pgTAP
+        run: npx supabase test db
+      - name: Concurrencia
+        run: |
+          for suite in supabase/tests/concurrency/*_concurrency.sh; do
+            echo "::group::$suite"
+            bash "$suite"
+            echo "::endgroup::"
+          done
+      - name: Integración de la app
+        working-directory: frontend
+        run: npm run test:integration
+      - name: Integración de las Edge Functions
+        run: |
+          node supabase/functions/delete-account/run-integration.mjs
+          node supabase/functions/pet-storage-cleanup/run-integration.mjs
+          node supabase/functions/_shared/run-integration.mjs
+      - name: Parar Supabase
+        if: always()
+        run: npx supabase stop --no-backup
