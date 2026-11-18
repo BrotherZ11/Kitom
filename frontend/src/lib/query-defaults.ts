@@ -24,12 +24,27 @@ import type { DefaultOptions } from '@tanstack/react-query';
  * Solo Daily Logs fija su propio `networkMode` (`daily-log-cache.ts`). Decisiones: `docs/DECISIONS.md`
  * (2026-10-13 y 2026-10-20).
  */
+/**
+ * Un reintento, salvo si la petición ni salió por no haber sesión utilizable (`SessionUnavailableError` de
+ * `serverCall`/`user-token-fetch.ts`): repetirla daría lo mismo y solo retrasaba un segundo la copia del dispositivo al
+ * arrancar sin conexión (QA-02). Por nombre o mensaje: este módulo no importa nada en ejecución.
+ */
+export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
+  if (failureCount >= 1) return false;
+  if (typeof error === 'object' && error !== null) {
+    const { name, message } = error as { name?: unknown; message?: unknown };
+    if (name === 'SessionUnavailableError') return false;
+    if (typeof message === 'string' && message.includes('session_unavailable')) return false;
+  }
+  return true;
+}
+
 export function queryDefaultOptions(platform: 'web' | 'native'): DefaultOptions {
   const networkMode = platform === 'web' ? undefined : 'always';
   return {
     queries: {
       staleTime: 30_000,
-      retry: 1,
+      retry: shouldRetryQuery,
       networkMode,
       ...(platform === 'native' ? { refetchOnReconnect: true } : {}),
     },
