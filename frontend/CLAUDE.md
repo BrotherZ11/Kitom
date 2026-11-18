@@ -55,7 +55,8 @@ error y «sin mascotas».
 - `src/lib/supabase.ts` — cliente único (sesión en SecureStore troceado, `src/lib/secure-session-storage.ts`
   sobre `chunked-storage.ts`, clave `AUTH_STORAGE_KEY` = la de supabase-js por defecto: no cambiarla). Su
   `fetch` es `src/lib/user-token-fetch.ts` (ninguna petición de datos sale como `anon`) sobre
-  `auth-refresh-fetch.ts` (una respuesta no JSON a la renovación nunca cierra la sesión). En móvil, el
+  `auth-refresh-fetch.ts` (una respuesta no JSON a la renovación nunca cierra la sesión). Con `db: { retry: false }`
+  (también `createOwnerScopedClient`): reintentan TanStack Query y los motores, no postgrest-js (QA-02, 2026-11-18). En móvil, el
   temporizador de renovación de auth-js solo corre en primer plano y con conexión
   (`auto-refresh-gate.ts`); no llamar a `startAutoRefresh`/`stopAutoRefresh` en otro sitio.
 - `src/lib/query-client.ts` — QueryClient único; AuthProvider lo vacía al cerrar sesión o cambiar de usuario.

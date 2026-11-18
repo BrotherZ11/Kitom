@@ -14,6 +14,8 @@ import type { Database } from '@/types/database.types';
  */
 export function createOwnerScopedClient(ownerUserId: string): SupabaseClient<Database> {
   return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    // Como el cliente compartido (`lib/supabase.ts`): reintenta quien llama, no postgrest-js.
+    db: { retry: false },
     accessToken: ownerTokenOrThrow(createOwnerAccessToken(supabase.auth, ownerUserId), () => new SessionUnavailableError()),
   });
 }
