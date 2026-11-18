@@ -55,6 +55,12 @@ async function signUp(fullName) {
     const updated = await api(`/rest/v1/profiles?id=eq.${user.id}`, { method: 'PATCH', token: user.token, body: { full_name: fullName } });
     assert.equal(updated.status, 204);
   }
+  // Desde *_premium_plans (2026-11-16), invitar co-tutores exige Premium: estas pruebas no tratan del plan.
+  const premium = await admin(`/rest/v1/subscriptions?user_id=eq.${user.id}`, {
+    method: 'PATCH',
+    body: { plan: 'premium', status: 'active', current_period_end: null },
+  });
+  assert.ok([200, 204].includes(premium.status), `Premium para la cuenta de prueba (${premium.status})`);
   return user;
 }
 

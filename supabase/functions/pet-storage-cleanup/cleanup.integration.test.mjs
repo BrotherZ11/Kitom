@@ -157,7 +157,9 @@ describe('pet-storage-cleanup contra el Supabase local', { skip }, () => {
     assert.equal(jobOf(gone), 'pending|0||0', 'encolado al borrar, sin tocar Storage');
     assert.equal(objectsOf(gone).split(',').length, 4, 'los objetos siguen ahí hasta que pasa la limpieza');
 
-    // Modo informe: lo ve, no toca nada.
+    // Modo informe: lo ve, no toca nada. Su trabajo, el primero de la cola: el informe con lote de 1 toma el
+    // más antiguo, y la cola local puede tener trabajos vencidos de otras suites (TEST-02).
+    makeDue(gone);
     const preview = await runCleanup(cleanupDeps(), { mode: 'report', task: 'process', batch: 1 });
     assert.ok(preview.objects >= 4);
     assert.equal(jobOf(gone), 'pending|0||0');

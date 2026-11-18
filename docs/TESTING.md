@@ -65,7 +65,7 @@ No hay tests de componentes React, E2E automatizados, pruebas de accesibilidad n
 
 Antes de la migración, `ai_quota.test.sql` falló en local en los casos que reproducen SEC-01 (cupo
 recuperado al recrear la mascota) y SEC-10 (consulta sin aviso aceptado): la prueba demuestra el fallo
-y su corrección. TEST-02 sigue abierto.
+y su corrección. TEST-02, corregido el 2026-11-18 (la prueba pone su trabajo el primero de la cola antes del informe).
 
 ### Registro, emails y APK contra `kitom-dev` (2026-11-04)
 

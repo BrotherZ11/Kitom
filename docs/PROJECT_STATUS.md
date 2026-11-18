@@ -110,7 +110,7 @@ Defectos demostrables por código (no reproducidos en dispositivo salvo que se i
 | BUG-09 | Recordatorios en la zona del dispositivo y «hoy» en la del perfil: pueden no coincidir cerca de medianoche si difieren (decisión documentada) | `features/reminders/` |
 | BUG-10 | Comentarios obsoletos que dicen que consultas y co-tutores no existen | `pet-profile.tsx:69`, `settings/privacy.tsx:26` |
 | TEST-01 | pgTAP `daily_logs` caso 121 falla según los OID del entorno: el escenario «cascada desfavorable» no se reproduce en el local actual | `supabase/tests/database/daily_logs.test.sql:702-711` |
-| TEST-02 | Integración de `pet-storage-cleanup` falla si la cola local tiene trabajos vencidos de otras pruebas (392 en el local actual) | `cleanup.integration.test.mjs:161-162` |
+| TEST-02 | Integración de `pet-storage-cleanup` falla si la cola local tiene trabajos vencidos de otras pruebas (392 en el local actual) | `cleanup.integration.test.mjs:161-162` (✅ corregido el 2026-11-18: su trabajo pasa a ser el primero de la cola antes del informe) |
 
 Limitaciones de diseño: sin coordinación entre pestañas en web; copia
 local sin cifrar y sin limpieza de cuentas que no vuelven; listas renderizadas con `ScrollView` + `map`
@@ -124,7 +124,7 @@ local sin cifrar y sin limpieza de cuentas que no vuelven; listas renderizadas c
 | `db/ai-quota-and-invitations` | BUG-01 (SEC-01), SEC-05, SEC-07 (`pet-photos`), SEC-10, SEC-11, SEC-12 (`search_path`), TEST-01 | pgTAP 406/406, concurrencia, integración 63/63, `db diff --local` | PR, `db push` del usuario en `kitom-dev` |
 | `fix/audit-hardening` | BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-08, BUG-10 | `tsc`, lint, 752/752 unitarias, 63/63 integración | PR; validación manual (consulta con foto rechazada, enlace de Auth sin respuesta) |
 
-Siguen abiertos: BUG-07, BUG-09, TEST-02 y todo lo demás de este documento. El inventario del §3
+Siguen abiertos: BUG-07, BUG-09 y todo lo demás de este documento. El inventario del §3
 describe `main`: la funcionalidad nº 30 (consulta con IA) seguirá **CON ERRORES** en `kitom-dev`
 hasta aplicar la migración.
 

@@ -52,7 +52,7 @@ para el lanzamiento · **P2** estabilidad y calidad · **P3** posterior. Esfuerz
 
 | ID | Tarea | Esfuerzo |
 |---|---|---|
-| P2-01 | Arreglar pruebas frágiles TEST-01 (orden de FK; ✅ en la rama `db/…`) y TEST-02 (cola de limpieza compartida) | 0,5 |
+| P2-01 | Arreglar pruebas frágiles TEST-01 (orden de FK; ✅ en la rama `db/…`) y TEST-02 (cola de limpieza compartida; ✅ 2026-11-18) | 0,5 |
 | P2-02 | pgTAP de las superficies sin probar (`DATABASE.md` §3) | 2–3 |
 | P2-03 | Integración de `ai-analysis-process` con `AI_PROVIDER=mock`; estado condicionado a `processing` (SEC-16) | 1 |
 | P2-04 ✅ local | Rendimiento de BD: `(select auth.uid())` en 22 políticas, `STABLE` en `is_pet_member`/`can_edit_pet`, índices de FK | 1 |
