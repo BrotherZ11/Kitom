@@ -5,6 +5,8 @@ decisión permanece en su documento de referencia.
 
 ## 2026-11-18
 
+- **Arranque sin conexión** (QA-02, rama `fix/offline-cold-start`): «Hoy» tardaba ~20 s en enseñar la copia del dispositivo en
+  modo avión porque postgrest-js reintentaba cada lectura; el cliente se crea sin esos reintentos (`DECISIONS.md` 2026-11-18).
 - **Configuración del proyecto** (rama `chore/project-setup`): CI en GitHub Actions (`.github/workflows/ci.yml`: app, Edge
   Functions, pgTAP, concurrencia e integración con Supabase local), `expo-dev-client` para el perfil `development` de EAS,
   CLI de Supabase fijada en el `package.json` de la raíz, `.env.example` con las claves de RevenueCat y plantillas para lo

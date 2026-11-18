@@ -3,6 +3,18 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-18 — Sin reintentos automáticos de postgrest-js
+
+**Contexto.** postgrest-js 2.117 reintenta por su cuenta las lecturas que fallan por la red (hasta 3 veces, con 1, 2 y 4 s).
+Sin conexión, cada lectura tardaba ~8 s en fallar y, con el reintento de TanStack Query, la app tardaba ~20 s en enseñar la
+copia del dispositivo al arrancar (QA-02, medido en la APK release en modo avión).
+
+**Decisión.** Los clientes de la app (`lib/supabase.ts` y `createOwnerScopedClient`) se crean con `db: { retry: false }`.
+Reintentan TanStack Query (`query-defaults.ts`, 1 reintento) y los motores de sincronización (con su espera creciente).
+
+**Consecuencias.** Un 503/520 pasajero de PostgREST ya no se repite dentro de la misma llamada: lo repite la capa de
+arriba. Las Edge Functions no usan supabase-js para PostgREST (fetch propio) y no cambian.
+
 ## 2026-11-16 — Kitom Premium desde la prueba cerrada (sustituye a «v1 gratuita, sin Premium»)
 
 **Contexto.** El 2026-10-29 la v1 iba a salir gratuita y sin Premium. Al preparar la prueba cerrada de Google Play

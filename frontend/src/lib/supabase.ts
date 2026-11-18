@@ -39,6 +39,11 @@ export const AUTH_STORAGE_KEY = `sb-${new URL(supabaseUrl).hostname.split('.')[0
 
 /** Cliente único de Supabase para toda la app. */
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  // Sin los reintentos automáticos de postgrest-js (2.117: hasta 3, con 1, 2 y 4 s, en lecturas que fallan por la
+  // red). Sin conexión, cada lectura tardaba ~8 s en fallar y, con el reintento de TanStack Query, «Hoy» se quedaba
+  // ~20 s cargando antes de enseñar la copia del dispositivo (QA-02). Reintentan TanStack Query (`query-defaults.ts`)
+  // y los motores de sincronización, con sus esperas.
+  db: { retry: false },
   global: {
     // Ninguna petición de datos sale sin el token de un usuario (`user-token-fetch.ts`) y una respuesta
     // que no es del servidor de Auth nunca cierra la sesión (`auth-refresh-fetch.ts`).
