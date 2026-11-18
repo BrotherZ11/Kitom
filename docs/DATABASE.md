@@ -92,7 +92,7 @@ concurrencia en `supabase/tests/concurrency/`):
 | `private.pet_storage_cleanup_jobs` + RPC | ninguna (servicio) | sí (pgTAP + concurrencia + integración) |
 | Storage `pet-photos` | S/I/D | parcial (subida durante el borrado; SELECT/DELETE entre usuarios, no) |
 | `ai_analysis_requests`, `ai_analysis_symptoms`, `request_ai_analysis`, `get_ai_analysis_entitlement`, `submit_ai_feedback` | S + RPC | **no** |
-| `subscriptions`, `subscription_events`, `process_revenuecat_event` | S | **no** |
+| `subscriptions`, `subscription_events`, `get_my_plan`, `apply_subscription_state`, `get_ai_analysis_entitlement` con el plan efectivo, límite de mascotas, `premium_required` (migración `20261116160000`) | S + RPC | sí (`premium_plans.test.sql`, `premium_concurrency.sh`, integración de Edge Functions y de la app); `process_revenuecat_event` sin uso |
 | `push_tokens`, `notification_preferences`, `analytics_events`, `clinic_referrals`, `vet_clinics`, `pet_shared_reports`, catálogos | varias | **no** |
 | `transfer_pet_ownership` | RPC | parcial (transferir y borrar después la cuenta anterior: `account_deletion_audit`) |
 | Borrar una cuenta: FK a `profiles`, triggers de auditoría y rachas | — | sí (`account_deletion_audit.test.sql`, concurrencia `account_deletion_concurrency.sh`, integración con Auth real en `delete-account`) |

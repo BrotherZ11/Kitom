@@ -145,10 +145,13 @@ select test_helpers.age_ai_usage();
 select lives_ok(
   $$ select public.request_ai_analysis('b9000000-0000-4000-8000-000000000001', null, '{}', E'  \n  ', null, null) $$,
   'un contexto en blanco se acepta');
+-- Sin order by: en la transacción now() no avanza y todas tienen el mismo
+-- created_at (el desempate por id era aleatorio). Tras tres solicitudes, solo
+-- la del contexto con texto lo tiene.
 select is(
-  (select user_context from public.ai_analysis_requests
-   where requested_by = 'a9000000-0000-4000-8000-000000000001' order by created_at desc, id limit 1),
-  null, 'contexto en blanco = NULL');
+  (select count(*)::int from public.ai_analysis_requests
+   where requested_by = 'a9000000-0000-4000-8000-000000000001' and user_context is not null),
+  1, 'contexto en blanco = NULL');
 select test_helpers.age_ai_usage();
 
 select lives_ok(

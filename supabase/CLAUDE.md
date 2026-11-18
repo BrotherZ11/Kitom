@@ -117,6 +117,18 @@
   especies. Señales por especie en `seed.sql` (72, con categoría). Validada en local con `migration up --local`, pgTAP
   (`ai_guidance_v2`, 731 en total), `abuse_limits_concurrency.sh` y `db diff --local`. Aplicada en `kitom-dev` con el seed reejecutado
   y `ai-analysis-process` desplegada (el usuario, 2026-11-15); tipos regenerados con `--linked`. Contrato: `docs/README.md` §11.
+- Migración `20261116160000_premium_plans.sql` (rama `db/premium`, 2026-11-16, Kitom Premium): `private.free_plan_limits()`,
+  `private.is_premium()` (plan efectivo), `get_ai_analysis_entitlement` con él, `get_my_plan()`, trigger
+  `trg_enforce_pet_plan_limit` (`pet_limit_reached`; respeta el 23505 de `client_request_id`), `premium_required` en las dos
+  RPC de invitar (antes de mirar el email), `subscriptions.provider_state_at` + `apply_subscription_state()` (solo
+  `service_role`) y retirada de los privilegios de escritura de tabla sobre `subscriptions`/`subscription_events`. Validada en
+  local con `migration up --local`, pgTAP (`premium_plans`, 803 en total), `premium_concurrency.sh` y las demás suites.
+  Aplicada en `kitom-dev` (`db push` del usuario, 2026-11-18) y tipos regenerados con `--linked`. Desde ella, las pruebas que invitan o crean más de 2 mascotas por cuenta hacen Premium a sus
+  usuarios (pgTAP: `update public.subscriptions set plan = 'premium'`; integración: `frontend/scripts/integration-premium.mjs`).
+  Edge Functions `revenuecat-webhook` (`verify_jwt = false`, secreto `REVENUECAT_WEBHOOK_AUTH`) y `subscription-sync`
+  (`verify_jwt = true`), con la lógica común en `functions/_shared/subscription-*.ts` (sin Deno; `subscription.test.mjs` y
+  `run-integration.mjs`). Las despliega el usuario. Contrato: `docs/README.md` §19. `delete-account` borra también el cliente de
+  RevenueCat si tiene `REVENUECAT_SECRET_API_KEY` (paso `billing`, 2026-11-18; hay que redesplegarla).
 - Lección pgTAP y seeds: `npx supabase test db` solo monta `supabase/tests`, así que un `\ir` a `seeds/` no funciona.
   Para probar un seed, una copia temporal dentro de `supabase/tests/database/` (y borrarla después).
 - Lección triggers genéricos: una función de trigger usada en dos tablas no puede leer `new.<columna>` de solo una en
@@ -134,7 +146,8 @@
   caídas, informes duplicados, subida durante el borrado; necesita el bucket local),
   `abuse_limits_concurrency.sh` (solicitudes de IA e invitaciones simultáneas en el límite),
   `reminders_concurrency.sh` (alta con la misma clave; edición y borrado con la misma versión base) y
-  `account_deletion_concurrency.sh` (borrar una cuenta, conectado como `supabase_auth_admin`, mientras otros escriben) (solo local, vía
+  `account_deletion_concurrency.sh` (borrar una cuenta, conectado como `supabase_auth_admin`, mientras otros escriben) y
+  `premium_concurrency.sh` (altas simultáneas en el límite de mascotas del plan gratuito) (solo local, vía
   `docker exec`; varias sesiones de psql a la vez; crea datos con ids fijos y los borra al terminar).
   `.gitattributes` fuerza LF en `*.sh` (con `core.autocrlf=true` saldrían con CRLF y bash fallaría).
   pgTAP corre en una transacción y no puede probar carreras: toda lógica que dependa de bloqueos o

@@ -424,6 +424,15 @@ verify_jwt = false
 [functions.delete-account]
 verify_jwt = true
 
+# Kitom Premium: RevenueCat no tiene JWT de Supabase. Sin verificación en la pasarela; la función exige
+# su propio secreto, REVENUECAT_WEBHOOK_AUTH, que nunca va en este archivo (ver supabase/functions/revenuecat-webhook).
+[functions.revenuecat-webhook]
+verify_jwt = false
+
+# Kitom Premium: la app la llama tras comprar o restaurar, con el JWT del usuario (el usuario sale de él).
+[functions.subscription-sync]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

@@ -120,6 +120,12 @@ insert into auth.users (id, email, aud, role) values
   ('a0000000-0000-4000-8000-000000000004', 'dl-outsider@example.test', 'authenticated', 'authenticated'),
   ('a0000000-0000-4000-8000-000000000005', 'dl-streaks@example.test',  'authenticated', 'authenticated');
 
+-- Desde *_premium_plans (2026-11-16) invitar co-tutores y tener más de 2 mascotas propias
+-- exige Premium. Estas pruebas no tratan del plan: sus cuentas son Premium (el plan
+-- gratuito se prueba en premium_plans.test.sql).
+update public.subscriptions set plan = 'premium'
+where user_id in ('a0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000005');
+
 -- Mascotas: P y P2 de A; S1..S4, M, C, C2 de S
 insert into public.pets (id, owner_id, name, species_id)
 select v.id::uuid, v.owner::uuid, v.name, s.id

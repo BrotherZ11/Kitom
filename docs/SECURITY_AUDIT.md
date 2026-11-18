@@ -140,6 +140,10 @@ prueba de verificación · estado.
 - **BAJA · CONFIRMADO** · `anon` conserva DML completo y `TRUNCATE` en casi todas las tablas; `authenticated`, `TRUNCATE`/`TRIGGER`/`REFERENCES` (`remote_schema.sql:2267-2807`). RLS bloquea el DML; `TRUNCATE` no pasa por RLS aunque PostgREST no lo expone.
 - **Solución**: revocar `TRUNCATE, TRIGGER, REFERENCES` a ambos roles (defensa en profundidad). **Esfuerzo**: 1 h. **Prueba**: pgTAP de privilegios.
 - **Estado**: corregido en la rama `db/ai-quota-and-invitations` (migración `20261029151011`, pgTAP en verde en local); aplicado en `kitom-dev`.
+- **2026-11-16 (QA-05)**: `subscriptions` y `subscription_events` aún daban a `anon` todos los privilegios de tabla y a
+  `authenticated` INSERT/UPDATE/DELETE (RLS los bloqueaba: sin políticas de escritura). Como el plan ya decide funciones de
+  pago, la migración `20261116160000_premium_plans` los retira; `authenticated` conserva su SELECT por columna
+  (`premium_plans.test.sql`). Aplicada en `kitom-dev` el 2026-11-18.
 
 ### SEC-12 — Avisos del linter de Supabase
 - **BAJA · CONFIRMADO (remoto)** · `public.trigger_set_timestamp` sin `search_path` fijo; extensión `pg_trgm` en `public`.

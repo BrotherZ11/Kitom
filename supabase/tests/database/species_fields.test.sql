@@ -63,6 +63,12 @@ insert into auth.users (id, email, aud, role) values
   ('a1000000-0000-4000-8000-000000000003', 'sf-viewer@example.test',   'authenticated', 'authenticated'),
   ('a1000000-0000-4000-8000-000000000004', 'sf-outsider@example.test', 'authenticated', 'authenticated');
 
+-- Desde *_premium_plans (2026-11-16) invitar co-tutores y tener más de 2 mascotas propias
+-- exige Premium. Estas pruebas no tratan del plan: sus cuentas son Premium (el plan
+-- gratuito se prueba en premium_plans.test.sql).
+update public.subscriptions set plan = 'premium'
+where user_id in ('a1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000003', 'a1000000-0000-4000-8000-000000000004');
+
 update public.profiles set disclaimer_accepted_at = now()
 where id = 'a1000000-0000-4000-8000-000000000001';
 

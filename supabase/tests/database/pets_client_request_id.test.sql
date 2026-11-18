@@ -59,6 +59,12 @@ insert into auth.users (id, email, aud, role) values
   ('e0000000-0000-4000-8000-000000000001', 'crid-a@example.test', 'authenticated', 'authenticated'),
   ('e0000000-0000-4000-8000-000000000002', 'crid-b@example.test', 'authenticated', 'authenticated');
 
+-- Desde *_premium_plans (2026-11-16) invitar co-tutores y tener más de 2 mascotas propias
+-- exige Premium. Estas pruebas no tratan del plan: sus cuentas son Premium (el plan
+-- gratuito se prueba en premium_plans.test.sql).
+update public.subscriptions set plan = 'premium'
+where user_id in ('e0000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000002');
+
 -- =====================================================================
 -- 1. Esquema, índice, grants y RLS
 -- =====================================================================
