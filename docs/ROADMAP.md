@@ -44,6 +44,8 @@ para el lanzamiento · **P2** estabilidad y calidad · **P3** posterior. Esfuerz
 | P1-10 ✅ | Idioma fijo y permisos solo en español | detección del idioma del dispositivo (`expo-localization`, requiere permiso para instalar), `locales` de permisos en `app.json` | decisión de mercados | 1 | app en inglés con el dispositivo en inglés | Local |
 | P1-11 | Fichas de tienda y declaraciones | capturas, textos, Data Safety, App Privacy, justificación de alarmas exactas | P0-03 ◐ | 1–2 | fichas aprobadas | Externo |
 | P1-12 | Fotos nunca probadas contra un bucket real | prueba manual en `kitom-dev` (subir, ver, cambiar, borrar, consulta) | P0-01 | 0,5 | registrado en `CHANGELOG.md` | Externo (manual) |
+| P1-14 | Kitom Premium en Play (decisión 2026-11-16): ✅ `db push` de `20261116160000` (2026-11-18); falta Play Console y RevenueCat, secretos, despliegue de `revenuecat-webhook`/`subscription-sync` y compra de prueba | `SETUP_GUIDE.md` §7 | código hecho | 1 + cuentas | compra, cancelación, caducidad y restaurar con un tester de licencia; `QA_2026-11-16.md` §4 | Externo |
+| P1-15 ◐ | Hallazgos de las pruebas del 2026-11-16: QA-02 (arranque sin conexión lento) pendiente; ✅ QA-04 y QA-06 (2026-11-18) | `QA_2026-11-16.md` §2 | — | 1–2 | ver cada hallazgo | Local |
 | P1-13 | `delete-account` no es atómica: un fallo a medias deja hechas transferencias y borrados, y con un error `server` o `network` la app no lo dice (propuesto, pendiente de decisión; `docs/README.md` §12) | comprobar la clave de servicio y Auth antes de la primera escritura; en la app, tratar esos errores como posible resultado parcial: texto honesto y refrescar vista previa y mascotas | — | 0,5–1 | con una clave inválida no cambia nada; tras un error `server` la pantalla muestra el plan real | Local |
 
 ## P2 — Estabilidad y calidad
@@ -67,7 +69,7 @@ para el lanzamiento · **P2** estabilidad y calidad · **P3** posterior. Esfuerz
 
 ## P3 — Posterior
 
-Premium con RevenueCat y webhook (decisión de precio/límites) · informes PDF para el veterinario ·
+Premium en iOS (App Store Connect y RevenueCat) · informes PDF para el veterinario ·
 notificaciones push remotas · adjuntos de recordatorios · desafíos semanales ·
 clínicas y referidos (tras SEC-13) · analítica de producto · coordinación entre pestañas en web ·
 organizaciones B2B.

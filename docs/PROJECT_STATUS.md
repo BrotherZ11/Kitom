@@ -1,13 +1,14 @@
 # Kitom — Estado del proyecto
 
-Revisión: **2026-11-15** · app `1.1.0` · 19 migraciones en el repo, todas aplicadas en `kitom-dev` (la última,
-`20261113134252_ai_guidance_v2`, por el usuario el 2026-11-15; ver §8). Auditoría inicial del 2026-10-29 y estado tras las correcciones. Detalle por área:
+Revisión: **2026-11-18** · app `1.1.0` · 20 migraciones en el repo, todas aplicadas en `kitom-dev` (la última,
+`20261116160000_premium_plans`, Kitom Premium, por el usuario el 2026-11-18; ver §9). Pruebas a fondo y pendientes de esta revisión:
+[`QA_2026-11-16.md`](QA_2026-11-16.md). Auditoría inicial del 2026-10-29 y estado tras las correcciones. Detalle por área:
 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md), [`DATABASE.md`](DATABASE.md), [`TESTING.md`](TESTING.md),
 [`DEPLOYMENT.md`](DEPLOYMENT.md), [`PRIVACY.md`](PRIVACY.md); plan: [`ROADMAP.md`](ROADMAP.md).
 
 ## 1. Estado global
 
-El código de la primera versión (Android, gratuita) está prácticamente terminado: registro diario y
+El código de la primera versión (Android, con Kitom Premium desde el 2026-11-16) está prácticamente terminado: registro diario y
 mascotas con modo offline, agenda con avisos, consultas con IA, co-tutores, logros, eliminar la cuenta,
 descargar los datos, textos legales y selector de idioma automático. Todo el backend aplica RLS y el
 cliente nunca decide plan, propietario ni estado de IA.
@@ -79,7 +80,7 @@ avance: no hay un método reproducible que los respalde.
 | 33 | Cambiar contraseña | IMPLEMENTADA, NO VERIFICADA | pide la actual con un cliente de Auth aparte (integración local), código de reautenticación, «Crear contraseña» para cuentas de Google | prueba manual; reautenticación con el Dashboard configurado | P1 |
 | 34 | Eliminar cuenta | COMPLETA Y VERIFICADA (local) | `delete-account` + pantalla; integración local (9/9) y de punta a punta en emulador contra el Supabase local | producción | P0 |
 | 35 | Exportar mis datos | COMPLETA Y VERIFICADA (Android) | `settings/export`, menú de compartir y JSON revisado en emulador; lógica con pruebas | — | — |
-| 36 | Premium / suscripción | PENDIENTE (fuera de la v1, decisión 2026-10-29) | retirado de la interfaz; `process_revenuecat_event` en BD sin webhook | decisión de precio y límites; webhook; productos en tiendas | P3 |
+| 36 | Kitom Premium (suscripción) | IMPLEMENTADA, NO VERIFICADA | decisión 2026-11-16; migración `20261116160000` (pgTAP 72, concurrencia), `revenuecat-webhook` y `subscription-sync` (unitarias e integración local), `features/subscription/` y `/premium`; límites comprobados en web con una compra simulada | `db push`; Play Console, RevenueCat, secretos y despliegue (`SETUP_GUIDE.md` §7); compra real con un tester de licencia; revisión legal (`QA_2026-11-16.md` §4) | P0 |
 | 37 | Informes PDF para el veterinario | PENDIENTE | `request_generate_report` es un esbozo; sin Edge Function | — | P3 |
 | 38 | Idiomas | COMPLETA Y VERIFICADA | idioma del dispositivo (`i18n/locale.ts`): inglés en emulador, español en web | textos de permisos de iOS (al publicar en iOS) | P3 |
 | 39 | Política de privacidad y términos | PARCIAL | `site/` (es/en), copia dentro de la app (`/legal/[doc]`), aviso único en el registro, consentimiento de IA exacto | publicar `site/` con un `push` (Pages ya activado); revisión legal | P0 |
@@ -90,7 +91,7 @@ avance: no hay un método reproducible que los respalde.
 | 44 | Campos por especie (9 especies) en la ficha y el registro diario | IMPLEMENTADA, NO VERIFICADA (Android; ficha y registro de una gata recorridos en el emulador el 2026-11-13) | migración `20261111120000_species_fields` (pgTAP; aplicada en `kitom-dev` el 2026-11-12), `features/species/`, paridad app/BD en integración; recorrido en web contra el Supabase local | revisión veterinaria de los campos; redesplegar `ai-analysis-process`; validación en Android | P1 |
 | 45 | Resumen de bienestar (resumen, evolución, observaciones) | IMPLEMENTADA, NO VERIFICADA (Android) | `features/wellness/` (pruebas unitarias), lectura por rango con cobertura local; recorrido en web | revisión veterinaria del texto de las observaciones; prueba sin conexión en Android | P1 |
 
-Totales: 17 COMPLETA Y VERIFICADA · 14 IMPLEMENTADA, NO VERIFICADA · 1 PARCIAL · 0 INCOMPLETA · 11 PENDIENTE · 2 BLOQUEADA · 0 CON ERRORES (45 funcionalidades; «verificada» con la matización de cada fila, nada en iOS ni en un móvil físico).
+Totales: 17 COMPLETA Y VERIFICADA · 15 IMPLEMENTADA, NO VERIFICADA · 1 PARCIAL · 0 INCOMPLETA · 10 PENDIENTE · 2 BLOQUEADA · 0 CON ERRORES (45 funcionalidades; «verificada» con la matización de cada fila, nada en iOS ni en un móvil físico).
 
 ## 4. Bugs y limitaciones conocidas
 
@@ -137,7 +138,7 @@ hasta aplicar la migración.
 | Google Cloud OAuth (login con Google) | cliente web creado; faltan los clientes Android (SHA-1 de depuración, de EAS y de Play), el ID web en Supabase y la prueba en un móvil; la URI de supabase.co se retira tras esa prueba. Pasos: `SETUP_GUIDE.md` |
 | Correo (SMTP propio) | Resend configurado en `kitom-dev` (el usuario, 2026-11-15); falta en producción y comprobar cada plantilla. Pasos: `SETUP_GUIDE.md` §2 |
 | Google Play Console / Expo (EAS) | `eas.json` preparado; faltan las cuentas. Apple, tras la v1 (Android primero) |
-| RevenueCat | no integrado |
+| RevenueCat | integrado en el código (2026-11-16); falta el proyecto, la app de Play, los secretos y desplegar las funciones (`SETUP_GUIDE.md` §7) |
 | Asesoría legal y veterinario asesor | necesarios: textos legales y validación del prompt |
 
 ## 6. Riesgos pendientes
@@ -157,6 +158,19 @@ hasta aplicar la migración.
 `DEPLOYMENT.md` §8. Con ellos hechos, el objetivo es **CANDIDATA A BETA** cerrada en la prueba cerrada de
 Google Play, y producción tras esa beta en móviles reales. Esta decisión se basa en pruebas automáticas y
 en un emulador Android: no hay validación en dispositivos físicos ni del pipeline de IA en el remoto.
+
+## 9. Revisión del 2026-11-16: pruebas a fondo y Kitom Premium
+
+Detalle en [`QA_2026-11-16.md`](QA_2026-11-16.md). Todas las suites automáticas en verde (pgTAP 803, integración 85,
+unitarias 1029, Edge Functions 112); recorrido con conexión en web y sin conexión en el emulador Android contra el
+Supabase local, sin fallos bloqueantes. Hallazgos: QA-01…QA-13 (P1: QA-02 por verificar en un móvil, QA-04 parches de
+Expo). Kitom Premium pasa a formar parte de la prueba cerrada (decisión 2026-11-16): **bloqueantes nuevos** para ella
+son el `db push` de `20261116160000`, la configuración de Play y RevenueCat (`SETUP_GUIDE.md` §7) y la prueba de
+compra con un tester de licencia.
+
+**Actualización 2026-11-18:** migración aplicada en `kitom-dev` y tipos regenerados; corregidos QA-01, QA-04, QA-06, QA-08,
+QA-09, QA-10, QA-12 y QA-13 (`QA_2026-11-16.md` §2); ramas integradas en `main`. Siguen: el despliegue de las funciones y la
+configuración de Play, RevenueCat y EAS (cuentas del responsable).
 
 ## 8. Revisión del 2026-11-13 (actualizada el 2026-11-15): camino a Google Play
 

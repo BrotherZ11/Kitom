@@ -180,6 +180,14 @@ error y «sin mascotas».
   `hooks/use-wellness.ts`: rango de 180 días + copia local + cobertura `offline/daily-log-coverage.ts`) y rutas
   `(app)/pets/[id]/wellness/*`. Sin medias ni índices de las escalas (reparto de días con su `n`). Componentes
   `DistributionBar` y `WeekColumns`. Contrato: «WellnessScreen».
+- Kitom Premium (2026-11-16): `src/features/subscription/` (`plan-model.ts` puro y probado: plan de `get_my_plan`, límites,
+  `historyStartDate`, errores de RevenueCat y paquetes; `purchases.ts` envuelve `react-native-purchases` con `require`
+  protegido —nunca importarlo directamente— y solo compra en una build nativa con `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`/
+  `_IOS_`; `hooks/use-plan.ts`: `usePlan`, compra y restaurar con `subscription-sync` y relectura del plan,
+  `usePurchaserIdentity` en `(app)/_layout.tsx`; `components/premium-gate.tsx`) y ruta `(app)/premium.tsx`. Nunca decidir el
+  plan con lo que diga el SDK. Límites en pantallas: nueva mascota, historial y detalle de un día, periodos del resumen,
+  invitar co-tutores y límite de consultas; `pet_limit_reached` es `validation`/`give_up` en `sync-errors.ts`. Contrato:
+  `docs/FRONTEND_ARCHITECTURE.md` «PaywallScreen».
 - `src/features/profile/` — zona horaria del perfil (lectura: `useProfileTimeZone`, `['profile','timezone']`): `timezone.ts` (detección con `Intl`, validación
   IANA e inicialización; módulo puro, sin imports), `api/profile-api.ts`,
   `hooks/use-profile-timezone-sync.ts` (montado en `(app)/_layout.tsx`). Inicializa `profiles.timezone`
@@ -196,7 +204,10 @@ error y «sin mascotas».
   relativa con extensión (`./otro.ts`).
   Esquema de deep links: `kitom` (`app.json`). Cambiarlo rompe los redirects de Auth (Redirect URLs de
   Supabase) y exige un nuevo development build. `slug`: `kitom`.
-  Login por teléfono (OTP): retirado del alcance (decisión 2026-10-29). Pendiente en Pets: archivar (`is_active`) y límite de mascotas del plan free.
+  Login por teléfono (OTP): retirado del alcance (decisión 2026-10-29). Pendiente en Pets: archivar (`is_active`). El límite de
+  mascotas del plan gratuito lo aplica el servidor (Kitom Premium, 2026-11-16).
+  Pruebas de integración: si una suite invita co-tutores o crea más de 2 mascotas por cuenta, `grantPremium(userId)` de
+  `scripts/integration-premium.mjs` tras el `signUp` (usa la clave de servicio local que pasa `scripts/test-integration.mjs`).
   Peso y fecha de nacimiento: el formato en `pet-form.ts` y lo posible por especie en `pet-plausibility.ts` (solo cliente).
 
 ## Tema y diseño (diseño v2, `docs/design/`)

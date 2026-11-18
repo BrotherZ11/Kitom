@@ -26,10 +26,13 @@ NO OLVIDES SUS CUIDADOS
 Vacunas, medicación, citas, baños y desparasitación, con recordatorios a su hora, repetición y posponer.
 
 CONSULTA CON UNA FOTO
-Si algo te preocupa, describe las señales y añade una foto: recibirás una orientación con posibles causas, señales de alerta y cuándo acudir al veterinario. Incluye 3 consultas al mes.
+Si algo te preocupa, describe las señales y añade una foto: recibirás una orientación con posibles causas, señales de alerta y cuándo acudir al veterinario. Incluye 3 consultas al mes; sin límite con Kitom Premium.
 
 CUÍDALA EN EQUIPO
-Invita a tu familia o a quien te ayude, con permisos de edición o solo de lectura.
+Con Kitom Premium, invita a tu familia o a quien te ayude, con permisos de edición o solo de lectura. Aceptar una invitación es gratis.
+
+KITOM PREMIUM
+Gratis: 2 mascotas, los últimos 30 días de historial y 3 consultas al mes. Premium (suscripción mensual o anual, con prueba gratuita en el anual): todas tus mascotas, toda su historia, consultas sin límite y co-tutores. Se cancela cuando quieras en Google Play.
 
 MANTÉN LA RUTINA
 Rachas y logros para que el hábito se quede.
@@ -62,10 +65,13 @@ DON'T FORGET THEIR CARE
 Vaccines, medication, appointments, baths and deworming, with on-time reminders, repeats and snooze.
 
 ASK WITH A PHOTO
-If something worries you, describe the signs and add a photo: you'll get guidance with possible causes, warning signs and when to see a vet. Includes 3 checks a month.
+If something worries you, describe the signs and add a photo: you'll get guidance with possible causes, warning signs and when to see a vet. Includes 3 checks a month; unlimited with Kitom Premium.
 
 CARE AS A TEAM
-Invite family or helpers, with edit or read-only access.
+With Kitom Premium, invite family or helpers, with edit or read-only access. Accepting an invitation is free.
+
+KITOM PREMIUM
+Free: 2 pets, the last 30 days of history and 3 checks a month. Premium (monthly or yearly subscription, with a free trial on the yearly plan): all your pets, their whole history, unlimited checks and co-owners. Cancel any time in Google Play.
 
 KEEP THE ROUTINE
 Streaks and achievements so the habit sticks.
@@ -87,7 +93,7 @@ Kitom offers general guidance about your pet's wellbeing. It isn't a medical ass
 | Email de contacto | `soporte@kitom.app` (`SUPPORT_EMAIL` en `frontend/src/lib/legal-links.ts`) |
 | Público objetivo | mayores de 16 años (como dicen los términos); no dirigida a menores |
 | Anuncios | no contiene |
-| Precio | gratis, sin compras en la app |
+| Precio | descarga gratuita, con compras en la app (Kitom Premium, desde el 2026-11-16) |
 | Acceso para la revisión | crear una cuenta de prueba con una mascota y varios registros, e indicarla en «Acceso a la app» (hay inicio de sesión obligatorio) |
 | Capturas (mín. 2, recomendado 4–8) | Hoy, registro del día, historial, agenda, consulta con resultado, tarjeta de señales; con datos de ejemplo, sin datos reales |
 
@@ -101,7 +107,11 @@ Recogidos, cifrados en tránsito y con eliminación a petición del usuario. Nin
 | Fotos | funcionamiento (ficha y consultas) | opcional |
 | Otro contenido del usuario: registros, notas, agenda, datos de la mascota | funcionamiento | sí, lo aporta el usuario |
 | Información de la app y rendimiento: registros de fallos y diagnósticos técnicos | analítica de estabilidad (Sentry), solo si se activa el DSN | no |
+| Información financiera: historial de compras (Kitom Premium: producto, fechas y estado; nunca la tarjeta) | funcionamiento (dar acceso a Premium) | sí, solo si se suscribe |
 
+- **Pagos y suscripciones** (2026-11-16): el pago lo procesa Google Play; RevenueCat recibe un identificador de la cuenta de
+  Kitom y los datos de la compra como proveedor de servicio. **A validar** en el formulario: «Historial de compras» recogido,
+  y si RevenueCat cuenta como «compartir».
 - **Compartidos:** Supabase, Google (Gemini) y Sentry actúan como proveedores de servicio por cuenta de Kitom; según la
   definición de Play eso no suele contar como «compartir». **A validar:** la foto y los datos de la mascota salen hacia Google
   para preparar la orientación, y debe quedar reflejado como corresponda.
@@ -130,7 +140,10 @@ permiso de almacenamiento.
 
 ## Otras declaraciones
 
-- **Clasificación de contenido:** cuestionario IARC; sin violencia, sexo, drogas ni compras. Interacción entre usuarios limitada
+- **Compras en la app** (2026-11-16): sí, suscripción Kitom Premium (4,99 €/mes o 39,99 €/año, 7 días de prueba en el
+  anual). Marcar «Contiene compras en la app» en la ficha; en las descripciones, decir qué es gratis y qué es Premium
+  (2 mascotas, 30 días de historial y 3 consultas al mes gratis; Premium sin límites e invitar co-tutores).
+- **Clasificación de contenido:** cuestionario IARC; sin violencia, sexo ni drogas; con compras digitales (Kitom Premium). Interacción entre usuarios limitada
   (compartir una mascota con invitados por email; sin chat ni contenido público).
 - **IA generativa:** si la consola pregunta por contenido generado por IA, indicar que la orientación se genera con un modelo; el
   resultado no es público, siempre lleva el aviso y se puede valorar dentro de la app.

@@ -4,7 +4,7 @@ Pasos, en orden, de lo que solo puede hacer el responsable en los paneles de Sup
 proveedor de correo. Por qué funciona así: [`AUTH.md`](AUTH.md). Publicación y builds:
 [`DEPLOYMENT.md`](DEPLOYMENT.md) §8.
 
-Comprobado el 2026-11-04; dominio y correo, el 2026-11-07; acceso nativo con Google, el 2026-11-16. Lo marcado **[confirmar]** no se ha podido verificar en una fuente oficial, o
+Comprobado el 2026-11-04; dominio y correo, el 2026-11-07; acceso nativo con Google y Kitom Premium, el 2026-11-16. Lo marcado **[confirmar]** no se ha podido verificar en una fuente oficial, o
 depende de lo que muestre tu consola: compruébalo allí antes de actuar. Esto no es asesoramiento legal.
 
 ## Resumen de decisiones
@@ -26,6 +26,7 @@ depende de lo que muestre tu consola: compruébalo allí antes de actuar. Esto n
 4. [Google Cloud](#4-google-cloud-continuar-con-google).
 5. [Comprobar con la APK](#5-comprobar-con-la-apk).
 6. [Google Play](#6-cuenta-de-google-play).
+7. [Kitom Premium](#7-kitom-premium-google-play-y-revenuecat): tras la primera build en prueba interna.
 
 Los pasos 3 y 4 se repiten en el proyecto de producción de Supabase cuando exista; `kitom-dev` sirve para
 probar, no para usuarios reales.
@@ -288,7 +289,7 @@ Al cambiar de responsable hay que actualizar también la política, los término
 4. Añade el email de desarrollador (público) y un teléfono de contacto, y verifica los dos.
 5. Paga la tarifa y sube el documento de identidad que te pidan.
 6. Si la consola pregunta si eres comerciante («trader», normativa europea), contesta según tu caso **[confirmar]**.
-7. Crea la app `Kitom` (app, gratuita) y sigue `DEPLOYMENT.md` §8 E y `STORE_LISTING.md`.
+7. Crea la app `Kitom` (app, **gratuita con compras en la app**) y sigue `DEPLOYMENT.md` §8 E y `STORE_LISTING.md`.
 8. **Pruebas › Prueba cerrada:** sube la build `production` de EAS e invita a 12 personas o más. Deben
    permanecer apuntadas 14 días seguidos: invita a unas cuantas de más por si alguien se va.
 9. **Solicita acceso a producción** en el panel, cuando se cumpla el plazo, y responde al cuestionario.
@@ -311,3 +312,55 @@ Al cambiar de responsable hay que actualizar también la política, los término
     cambia `SUPPORT_EMAIL` y actualiza `docs/PRIVACY.md`.
 11. Crea la app y sigue `DEPLOYMENT.md` §8 E y `STORE_LISTING.md`.
 12. Usa la misma organización en Google Cloud (paso 4) para que el proyecto no dependa de una persona.
+
+## 7. Kitom Premium (Google Play y RevenueCat)
+
+Decisión, precios y qué incluye: `DECISIONS.md` (2026-11-16). Lo que hace el código: `README.md` §19. Lo marcado
+**[confirmar]** depende de lo que muestren las consolas, que cambian a menudo.
+
+**Antes:** `db push` de `20261116160000_premium_plans.sql` en el proyecto y la app con la rama `feat/premium`.
+
+1. **Cuenta de comerciante.** Play Console › Configuración › Perfil de pagos: completa el perfil de comerciante y los
+   datos fiscales (IVA). Con una cuenta personal se puede vender; Google te pedirá tus datos como vendedor **[confirmar]**.
+2. **Primera build en Play.** Play solo deja crear suscripciones cuando hay una build con el permiso de facturación
+   (`com.android.vending.BILLING`, lo añade `react-native-purchases`): sube una AAB de EAS a **Prueba interna**.
+3. **Suscripción.** Play Console › Monetizar con Play › Productos › Suscripciones › Crear suscripción:
+   - ID del producto `kitom_premium`, nombre «Kitom Premium».
+   - Plan base `monthly`: renovación automática, 1 mes, 4,99 € (Play calcula los demás países; revísalos).
+   - Plan base `annual`: renovación automática, 1 año, 39,99 €.
+   - En `annual`, oferta `free-trial`: fase gratuita de 7 días, para nuevos clientes. Activa los planes y la oferta.
+4. **Testers de licencia.** Play Console › Configuración › Pruebas de licencias: añade tu Gmail y el de los testers que
+   vayan a probar compras (no se les cobra; las renovaciones de prueba son de minutos).
+5. **Cuenta de servicio para RevenueCat.** En Google Cloud (el mismo proyecto que el inicio de sesión con Google):
+   activa *Google Play Android Developer API* y *Cloud Pub/Sub API*; crea una cuenta de servicio y una clave JSON.
+   En Play Console › Usuarios y permisos, invita el email de esa cuenta con *Ver información de la app*, *Ver datos
+   financieros* y *Gestionar pedidos y suscripciones*. Los permisos pueden tardar hasta 36 h en funcionar **[confirmar]**.
+   Guía de RevenueCat: «Google Play Store › Service credentials».
+6. **RevenueCat.** Crea el proyecto «Kitom» y:
+   - App de Play Store: paquete `com.kitom.app` y la clave JSON del paso 5. Activa las notificaciones de Google en
+     tiempo real (RevenueCat crea el tema de Pub/Sub; pega su nombre en Play Console › Monetizar › Configuración).
+   - Productos: importa `kitom_premium:monthly` y `kitom_premium:annual`.
+   - Entitlement `premium` con los dos productos.
+   - Oferta `default` (actual) con los paquetes *Monthly* (`$rc_monthly`) y *Annual* (`$rc_annual`).
+   - API keys: la **pública de Android** (`goog_…`) va a la app; crea una **secret key v1** (`sk_…`): la usa el servidor
+     (`GET /v1/subscribers`). Nunca la secreta en la app ni en el repo.
+7. **Secretos y funciones (Supabase).**
+   ```bash
+   npx supabase secrets set REVENUECAT_SECRET_API_KEY=sk_... REVENUECAT_WEBHOOK_AUTH=<valor aleatorio de 40+ caracteres>
+   npx supabase functions deploy revenuecat-webhook
+   npx supabase functions deploy subscription-sync
+   ```
+   (`REVENUECAT_ENTITLEMENT_ID` solo si el entitlement no se llama `premium`.)
+8. **Webhook.** RevenueCat › Project settings › Integrations › Webhooks: URL
+   `https://<ref>.supabase.co/functions/v1/revenuecat-webhook`, *Authorization header value* = el mismo
+   `REVENUECAT_WEBHOOK_AUTH`, entornos sandbox y producción. «Send test event» debe responder `200` (`ignored`).
+9. **App.** En EAS, variable `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` = la clave `goog_…` en `preview` y
+   `production` (en local, en `frontend/.env`). Sin ella, la pantalla de Premium dice que las compras no están
+   disponibles. Nueva build.
+10. **Probar** con un tester de licencia en la build de prueba interna: prueba gratuita del anual, mensual, cancelar
+    (sigue Premium hasta el fin), dejar caducar, «Restaurar compras» tras reinstalar y comprar con otra cuenta de
+    Kitom. En cada paso, Ajustes › Kitom Premium y los logs de `revenuecat-webhook`.
+11. **Ficha de Play:** «Contiene compras en la app» y Data Safety (`STORE_LISTING.md`).
+
+**iOS (después):** productos en App Store Connect, la app de App Store en RevenueCat (clave de In-App Purchase),
+`EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` y las App Store Server Notifications apuntando a RevenueCat.

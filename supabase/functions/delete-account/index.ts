@@ -13,7 +13,7 @@
 //
 // La pasarela verifica el JWT (config.toml: verify_jwt por defecto, true).
 // SUPABASE_URL, SUPABASE_ANON_KEY y SUPABASE_SERVICE_ROLE_KEY las da la
-// plataforma; no necesita secretos propios. Lógica y pruebas: deletion.ts,
+// plataforma; REVENUECAT_SECRET_API_KEY es opcional (borra el cliente de RevenueCat). Lógica y pruebas: deletion.ts,
 // rest.ts y sus *.test.mjs; contra el Supabase local: run-integration.mjs.
 // =====================================================================
 import { handleDeleteAccountRequest, type Log } from './deletion.ts';
