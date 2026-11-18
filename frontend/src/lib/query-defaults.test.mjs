@@ -8,7 +8,8 @@ import { MutationObserver, QueryClient, QueryObserver, focusManager, onlineManag
 import { createAuthSessionController } from '../features/auth/auth-session-controller.ts';
 import { createFakeSupabaseAuth, makeSession } from '../features/auth/fake-supabase-auth.mjs';
 import { localQueryOptions } from '../features/daily-logs/offline/daily-log-cache.ts';
-import { queryDefaultOptions } from './query-defaults.ts';
+import { queryDefaultOptions, shouldRetryQuery } from './query-defaults.ts';
+import { SessionUnavailableError } from './user-token-fetch.ts';
 
 const settle = (ms = 20) => new Promise((resolve) => setTimeout(resolve, ms));
 const networkError = () => Promise.reject(new TypeError('Network request failed'));
@@ -48,9 +49,17 @@ describe('queryDefaultOptions', () => {
     for (const platform of ['web', 'native']) {
       const { queries, mutations } = queryDefaultOptions(platform);
       assert.equal(queries.staleTime, 30_000);
-      assert.equal(queries.retry, 1);
+      assert.equal(queries.retry, shouldRetryQuery);
       assert.equal(mutations.retry, 0);
     }
+  });
+
+  it('un reintento, salvo sin sesión utilizable (la petición ni salió)', () => {
+    assert.equal(shouldRetryQuery(0, new TypeError('Network request failed')), true);
+    assert.equal(shouldRetryQuery(1, new TypeError('Network request failed')), false);
+    assert.equal(shouldRetryQuery(0, new SessionUnavailableError()), false);
+    assert.equal(shouldRetryQuery(0, { message: 'session_unavailable: request not sent' }), false);
+    assert.equal(shouldRetryQuery(0, null), true);
   });
 
   it('móvil: `always` en queries y mutaciones; web: el modo por defecto de TanStack Query', () => {
@@ -67,9 +76,9 @@ describe('queryDefaultOptions', () => {
     assert.equal(client('web').defaultQueryOptions({ queryKey: ['x'] }).refetchOnReconnect, true);
   });
 
-  it('web: las opciones son exactamente las de antes', () => {
+  it('web: las opciones son las de antes, con el reintento sin sesión', () => {
     assert.deepEqual(queryDefaultOptions('web'), {
-      queries: { staleTime: 30_000, retry: 1, networkMode: undefined },
+      queries: { staleTime: 30_000, retry: shouldRetryQuery, networkMode: undefined },
       mutations: { retry: 0, networkMode: undefined },
     });
   });
