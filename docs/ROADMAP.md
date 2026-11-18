@@ -64,7 +64,7 @@ para el lanzamiento · **P2** estabilidad y calidad · **P3** posterior. Esfuerz
 | P2-10 | Borrar registros diarios; co-tutor que abandona; transferir propiedad en la UI | 2–3 |
 | P2-11 | Selector de fecha nativo para el nacimiento; límites de longitud en BD (SEC-18) | 1 |
 | P2-12 | DELETE de Storage solo del autor o del dueño (SEC-15); `pg_trgm` fuera de `public` (SEC-12) | 1 |
-| P2-13 | CI (GitHub Actions): tsc, lint, unitarias; pgTAP con Supabase en Docker | 1–2 |
+| P2-13 ✅ | CI (GitHub Actions, `.github/workflows/ci.yml`, 2026-11-18): tsc, lint, unitarias de la app y de las Edge Functions; pgTAP, concurrencia e integración con Supabase local en Docker | 1–2 |
 | P2-14 | Quitar `dev-components` de producción, licencia, `reset-project` y versión de `package.json` | 0,5 |
 
 ## P3 — Posterior

@@ -207,6 +207,6 @@ seed y desplegó la función (2026-11-15); SMTP con Resend configurado.
 7. **Prueba en móviles físicos** con la build `preview`: emails reales, Google, fotos contra el bucket real (nunca
    probadas), avisos, IA, co-tutores con dos cuentas, sin conexión.
 
-**Recomendado antes de producción (no bloquea la beta):** CI con `tsc`/lint/unitarias (P2-13), listas virtualizadas
+**Recomendado antes de producción (no bloquea la beta):** listas virtualizadas
 (P2-05), coordinación del arranque en frío (al abrir con el token caducado salen 3 peticiones `401` antes de renovarlo;
 se repiten bien, pero ensucian Sentry), retirar `dev-components` del bundle (P2-14), borrar registros diarios (P2-10).

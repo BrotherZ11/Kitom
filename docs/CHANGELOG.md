@@ -5,6 +5,11 @@ decisión permanece en su documento de referencia.
 
 ## 2026-11-18
 
+- **Configuración del proyecto** (rama `chore/project-setup`): CI en GitHub Actions (`.github/workflows/ci.yml`: app, Edge
+  Functions, pgTAP, concurrencia e integración con Supabase local), `expo-dev-client` para el perfil `development` de EAS,
+  CLI de Supabase fijada en el `package.json` de la raíz, `.env.example` con las claves de RevenueCat y plantillas para lo
+  que ejecuta el responsable (`frontend/scripts/eas-env-template.sh`, `supabase/functions/deploy-template.sh`). Pendiente
+  del responsable: `eas login`/`eas init` (sin sesión de Expo en esta máquina).
 - **Kitom Premium en `kitom-dev`:** migración `20261116160000_premium_plans.sql` aplicada (el usuario) y tipos regenerados con
   `--linked`; ramas `db/premium` y `feat/premium` integradas en `main`.
 - **Corregidos de la revisión del 2026-11-16** (`QA_2026-11-16.md`): zona horaria que no se guardaba tras el registro (QA-01),
