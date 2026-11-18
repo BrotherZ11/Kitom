@@ -9,6 +9,9 @@ import { getDeviceTimeZone, syncProfileTimeZone } from '@/features/profile/timez
 /** Usuarios ya inicializados en esta ejecución de la app (evita repetir la llamada al remontar). */
 const attemptedUserIds = new Set<string>();
 
+/** Esperas entre reintentos si falla (red o servidor); después, al volver a montar la zona con sesión. */
+const RETRY_DELAYS_MS = [2_000, 5_000, 15_000, 30_000];
+
 /**
  * Inicializa `profiles.timezone` con la zona del dispositivo una vez por usuario y arranque, si el
  * perfil no tiene. No sobrescribe un valor existente y nunca bloquea ni rompe la app. Montar una
@@ -23,19 +26,40 @@ export function useProfileTimeZoneSync() {
   useEffect(() => {
     if (!userId || attemptedUserIds.has(userId)) return;
     attemptedUserIds.add(userId);
+    let cancelled = false;
+    let done = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
-    void syncProfileTimeZone(userId, {
-      detectTimeZone: getDeviceTimeZone,
-      saveIfMissing: setProfileTimeZoneIfMissing,
-    }).then((result) => {
-      if (result === 'saved') {
-        void queryClient.invalidateQueries({ queryKey: profileKeys.timeZone() });
-      }
-      if (result === 'failed') {
-        // Red o servidor: se reintentará la próxima vez que se monte la zona autenticada.
-        attemptedUserIds.delete(userId);
-        if (__DEV__) console.warn('[profile] no se pudo guardar la zona horaria');
-      }
-    });
+    const attempt = (retry: number) => {
+      void syncProfileTimeZone(userId, {
+        detectTimeZone: getDeviceTimeZone,
+        saveIfMissing: setProfileTimeZoneIfMissing,
+      }).then((result) => {
+        if (cancelled) return;
+        if (result !== 'failed') done = true;
+        if (result === 'saved') {
+          void queryClient.invalidateQueries({ queryKey: profileKeys.timeZone() });
+        }
+        if (result === 'failed') {
+          if (__DEV__) console.warn('[profile] no se pudo guardar la zona horaria');
+          // Red o servidor (p. ej. un 401 justo tras el registro): se reintenta con espera creciente.
+          const delay = RETRY_DELAYS_MS[retry];
+          if (delay === undefined) {
+            // Agotados: se reintentará la próxima vez que se monte la zona autenticada.
+            attemptedUserIds.delete(userId);
+            return;
+          }
+          timer = setTimeout(() => attempt(retry + 1), delay);
+        }
+      });
+    };
+    attempt(0);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      // Sin terminar: que el próximo montaje lo intente de nuevo.
+      if (!done) attemptedUserIds.delete(userId);
+    };
   }, [queryClient, userId]);
 }
