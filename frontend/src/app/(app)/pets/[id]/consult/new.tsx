@@ -21,6 +21,7 @@ import { TopBar, TopBarText } from '@/components/ui/top-bar';
 import {
   contextProblem,
   groupSigns,
+  signCategoryLabel,
   MAX_CONTEXT_LENGTH,
   MIN_CONTEXT_WITHOUT_SIGNS,
   nextMonthStart,
@@ -277,7 +278,7 @@ function NewConsult({ pet }: { pet: Pet }) {
           groupSigns(catalog).map((group) => (
             <View key={group.category} style={styles.group}>
               <Text variant="overline" color="inkMuted" accessibilityRole="header">
-                {t(`consult.signs.categories.${group.category}`)}
+                {t(`consult.signs.categories.${signCategoryLabel(group.category, speciesCode)}`)}
               </Text>
               <View style={styles.chips}>
                 {group.signs.map((symptom) => (
@@ -417,8 +418,8 @@ function PrivacyPolicyLink() {
  * que no tiene límite mensual (el cupo lo decide el servidor: get_ai_analysis_entitlement).
  */
 function LimitView({ quota, onClose }: { quota: Entitlement; onClose: () => void }) {
-  const limit = quota.monthlyLimit ?? quota.usedThisMonth;
   const router = useRouter();
+  const limit = quota.monthlyLimit ?? quota.usedThisMonth;
   return (
     <Screen
       align="top"
@@ -453,10 +454,10 @@ function LimitView({ quota, onClose }: { quota: Entitlement; onClose: () => void
 }
 
 const styles = StyleSheet.create({
-  heading: {
   limitFooter: {
     gap: spacing['2'],
   },
+  heading: {
     gap: spacing['2'],
   },
   headingRow: {

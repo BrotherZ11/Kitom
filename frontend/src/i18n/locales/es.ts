@@ -644,6 +644,12 @@ export const es = {
         urinary: 'Orina',
         respiratory: 'Respiración',
         skin: 'Piel, pelo, plumas y escamas',
+        oralTeeth: 'Boca y dientes',
+        oralBeak: 'Boca y pico',
+        oralReptile: 'Boca',
+        skinFur: 'Piel y pelo',
+        skinFeathers: 'Piel y plumas',
+        skinScales: 'Piel y escamas',
         ocular: 'Ojos y oídos',
         motor: 'Movimiento',
         neuro: 'Equilibrio y sistema nervioso',
@@ -1887,8 +1893,8 @@ export const es = {
   },
   speciesFields: speciesFieldsEs,
   wellness: wellnessEs,
+  premium: premiumEs,
 };
 
 /** Forma que debe cumplir cualquier idioma nuevo (p. ej. `en`). */
 export type Translations = typeof es;
-  premium: premiumEs,

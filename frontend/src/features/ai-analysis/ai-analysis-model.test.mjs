@@ -18,6 +18,7 @@ import {
   toEntitlement,
   toggleSymptom,
   toRequestErrorCode,
+  signCategoryLabel,
 } from './ai-analysis-model.ts';
 import { hasUrgentSign, urgentSignsFor } from './urgent-signs.ts';
 
@@ -210,5 +211,19 @@ describe('compartir el resumen', () => {
         'Informativo.',
       ].join('\n')
     );
+  });
+});
+
+describe('signCategoryLabel', () => {
+  it('boca y piel según la especie; el resto, igual', () => {
+    assert.equal(signCategoryLabel('oral', 'dog'), 'oralTeeth');
+    assert.equal(signCategoryLabel('skin', 'cat'), 'skinFur');
+    assert.equal(signCategoryLabel('oral', 'bird_other'), 'oralBeak');
+    assert.equal(signCategoryLabel('skin', 'bird_other'), 'skinFeathers');
+    assert.equal(signCategoryLabel('oral', 'reptile_other'), 'oralReptile');
+    assert.equal(signCategoryLabel('skin', 'reptile_other'), 'skinScales');
+    assert.equal(signCategoryLabel('skin', 'other'), 'skin');
+    assert.equal(signCategoryLabel('oral', null), 'oral');
+    assert.equal(signCategoryLabel('digestive', 'dog'), 'digestive');
   });
 });
