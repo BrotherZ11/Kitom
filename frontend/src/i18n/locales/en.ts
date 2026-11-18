@@ -261,6 +261,7 @@ export const en: Translations = {
     },
     when: '{day} · {time}',
     overdueWhen: 'Was {day}, {time}',
+    doneWhen: 'done {day}, {time}',
     itemSubtitle: '{type} · {when}',
     pausedSubtitle: 'Turned off · {type} · {when}',
     repeatsShort: 'repeats',
@@ -567,8 +568,8 @@ export const en: Translations = {
       not_member: 'You no longer have access to this pet.',
       changed: 'This changed in the meantime. It\'s up to date now.',
       rate_limited: 'You\'ve sent a lot of invitations today. Try again tomorrow.',
-      network: 'You\'re offline. Try again.',
       premium_required: 'Inviting co-carers is part of Kitom Premium.',
+      network: 'You\'re offline. Try again.',
       unknown: 'That didn\'t work. Try again.',
     },
   },
@@ -1848,5 +1849,5 @@ export const en: Translations = {
   },
   speciesFields: speciesFieldsEn,
   wellness: wellnessEn,
-};
   premium: premiumEn,
+};
