@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { CalendarDays } from '@/components/ui/icons';
+import { CalendarDays, UserPlus } from '@/components/ui/icons';
 import { ListItem } from '@/components/ui/list-item';
 import { ErrorState, LoadingState } from '@/components/ui/query-state';
 import { Screen } from '@/components/ui/screen';
@@ -29,7 +29,8 @@ const DEFAULT_TIME = { hour: 20, minute: 0 };
 /**
  * Notificaciones (tablero 8.7): permiso del sistema (con «abrir ajustes» si se denegó) y el
  * recordatorio diario (`notification_preferences.daily_reminder_*`). Los avisos de la agenda van con
- * cada recordatorio (no hay preferencia por tipo: falta columna, `PANTALLAS.md` §6.6).
+ * cada recordatorio (no hay preferencia por tipo: falta columna, `PANTALLAS.md` §6.6). «Invitaciones»
+ * (`alert_notifications_enabled`) apaga el email y el push de `invitation-notify` (2026-11-20).
  */
 export default function NotificationSettingsScreen() {
   const router = useRouter();
@@ -123,6 +124,23 @@ export default function NotificationSettingsScreen() {
           </Card>
           <Card flush>
             <ListItem icon={CalendarDays} title={t('notifications.agendaTitle')} subtitle={t('notifications.agendaText')} />
+          </Card>
+          <Card flush>
+            <ListItem
+              icon={UserPlus}
+              title={t('notifications.invitationsTitle')}
+              subtitle={t('notifications.invitationsText')}
+              trailing={
+                <View style={styles.switch}>
+                  <Switch
+                    value={prefs?.alert_notifications_enabled ?? true}
+                    disabled={!writable || save.isPending}
+                    onValueChange={(value) => persist({ alert_notifications_enabled: value })}
+                    accessibilityLabel={t('notifications.invitationsTitle')}
+                  />
+                </View>
+              }
+            />
           </Card>
           <Text variant="caption" color="inkMuted">
             {t('notifications.footer')}

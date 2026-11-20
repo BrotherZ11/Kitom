@@ -50,3 +50,7 @@ example
 
 # visual:compare (capturas y perfil de Chrome de desarrollo)
 /.visual
+
+# Firebase (push en Android): fuera del repo; en EAS, variable de archivo GOOGLE_SERVICES_JSON (app.config.js)
+google-services.json
+GoogleService-Info.plist

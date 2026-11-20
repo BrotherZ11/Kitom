@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { SignOutFlowProvider } from '@/features/auth/sign-out-provider';
 import { DailyLogSyncProvider } from '@/features/daily-logs/sync/daily-log-sync-provider';
 import { NotificationSync } from '@/features/notifications/notification-sync';
+import { PushRegistration } from '@/features/notifications/push-registration';
 import { ReminderSyncProvider } from '@/features/reminders/sync/reminder-sync-provider';
 import { ActivePetProvider } from '@/features/pets/active-pet-context';
 import { PetSyncProvider } from '@/features/pets/sync/pet-sync-provider';
@@ -32,6 +33,8 @@ export default function AppLayout() {
             <ActivePetProvider>
               {/* Avisos locales del dispositivo (recordatorio diario y agenda). */}
               <NotificationSync />
+              {/* Push remotos: token del dispositivo para los avisos de invitación. */}
+              <PushRegistration />
               <Stack screenOptions={{ ...screenOptions, headerShown: false }}>
                 <Stack.Screen name="(tabs)" />
                 {/* «Registrar» abre el registro a pantalla completa, desde abajo (PANTALLAS.md §1). */}

@@ -11,6 +11,7 @@ import {
   revokeMember,
 } from '@/features/co-owners/api/co-owners-api';
 import type { CoOwnerRole } from '@/features/co-owners/co-owners-model';
+import { requestInvitationNotices } from '@/features/notifications/api/push-tokens-api';
 import { isLocalPetId } from '@/features/pets/offline/pet-operation';
 import { petKeys } from '@/features/pets/query-keys';
 
@@ -60,6 +61,13 @@ export function useInviteMember(petId: string) {
   return useMutation({
     mutationFn: ({ email, role }: { email: string; role: CoOwnerRole }) =>
       auth.serverCall(() => inviteByEmail(petId, email, role)),
+    // Aviso por email y push a la persona invitada (`invitation-notify`): en segundo plano y sin afectar a la
+    // invitación, que ya está hecha. Si falla, el siguiente envío de este usuario lo vuelve a intentar.
+    onSuccess: () => {
+      void auth.serverCall(() => requestInvitationNotices()).catch((error: unknown) => {
+        if (__DEV__) console.warn('[co-owners] invitation notices', error);
+      });
+    },
     onSettled: changed,
   });
 }

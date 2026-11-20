@@ -11,6 +11,7 @@ import {
   type PlannedNotification,
   type ScheduleScope,
 } from '@/features/notifications/notification-plan';
+import { t } from '@/i18n';
 
 /**
  * Avisos locales del dispositivo (expo-notifications). Solo iOS y Android: en web no hay avisos
@@ -58,6 +59,7 @@ export const notificationsUnavailableReason: 'web' | 'unavailable' | null = noti
     : 'unavailable';
 
 const CHANNEL_ID = 'reminders';
+const INVITATIONS_CHANNEL_ID = 'invitations';
 
 export type NotificationPermission = 'granted' | 'denied' | 'undetermined' | 'unavailable';
 
@@ -83,6 +85,11 @@ export async function configureNotifications(): Promise<void> {
   if (Platform.OS === 'android') {
     await N.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Kitom',
+      importance: N.AndroidImportance.HIGH,
+    });
+    // Push de invitaciones de co-tutor (Edge Function `invitation-notify`, `channelId: 'invitations'`).
+    await N.setNotificationChannelAsync(INVITATIONS_CHANNEL_ID, {
+      name: t('notifications.invitationsChannel'),
       importance: N.AndroidImportance.HIGH,
     });
   }
@@ -223,4 +230,33 @@ export function takeInitialNotificationUrl(): string | null {
   const url = notificationUrl(N.getLastNotificationResponse());
   if (url) N.clearLastNotificationResponse();
   return url;
+}
+
+/**
+ * Token de Expo para los push (invitaciones de co-tutor). `null` si no se puede: web, Expo Go en Android,
+ * sin el proyecto de EAS, sin Firebase en la build (`google-services.json`, `app.config.ts`) o sin red.
+ * Pedirlo no muestra ningún diálogo: el permiso lo pide la app en otro momento.
+ */
+export async function getExpoPushToken(projectId: string | null): Promise<string | null> {
+  const N = load();
+  if (!N || !projectId) return null;
+  try {
+    await configureNotifications();
+    const token = await N.getExpoPushTokenAsync({ projectId });
+    return typeof token.data === 'string' && token.data.length > 0 ? token.data : null;
+  } catch (error) {
+    if (__DEV__) console.warn('[notifications] push token', error);
+    return null;
+  }
+}
+
+/** Un push recibido con la app abierta (su ruta, si la trae). Devuelve cómo dejar de escuchar. */
+export function onPushReceived(listener: (url: string | null) => void): () => void {
+  const N = load();
+  if (!N) return () => undefined;
+  const subscription = N.addNotificationReceivedListener((notification) => {
+    const url = notification.request.content.data?.url;
+    listener(typeof url === 'string' ? url : null);
+  });
+  return () => subscription.remove();
 }
