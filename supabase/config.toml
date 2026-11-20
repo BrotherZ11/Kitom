@@ -433,6 +433,11 @@ verify_jwt = false
 [functions.subscription-sync]
 verify_jwt = true
 
+# Avisos de invitación (email + push): la app la llama tras invitar, con el JWT de quien invita (el usuario sale
+# de él). Secretos RESEND_API_KEY e INVITATION_EMAIL_FROM, nunca en este archivo (ver supabase/functions/invitation-notify).
+[functions.invitation-notify]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

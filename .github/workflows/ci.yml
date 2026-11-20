@@ -52,6 +52,7 @@ jobs:
           supabase/functions/pet-storage-cleanup/cleanup.test.mjs
           supabase/functions/delete-account/deletion.test.mjs
           supabase/functions/_shared/subscription.test.mjs
+          supabase/functions/invitation-notify/notify.test.mjs
 
   database:
     name: Base de datos e integración (Supabase local)
@@ -96,6 +97,7 @@ jobs:
           node supabase/functions/delete-account/run-integration.mjs
           node supabase/functions/pet-storage-cleanup/run-integration.mjs
           node supabase/functions/_shared/run-integration.mjs
+          node supabase/functions/invitation-notify/run-integration.mjs
       - name: Parar Supabase
         if: always()
         run: npx supabase stop --no-backup
