@@ -134,7 +134,8 @@
           <tr>
             <td><strong>Co-owners:</strong> the email of the person you invite (only to find their account; we don't
               store it), their role and relationship to the pet.</td>
-            <td>Share a pet with other people.</td>
+            <td>Share a pet with other people and let the person you invite know, by email and on their phone, if they
+              already have an account.</td>
             <td>Performance of the contract.</td>
           </tr>
           <tr>
@@ -217,8 +218,10 @@
           </tr>
           <tr>
             <td>650 Industries, Inc. (Expo)</td>
-            <td>Build and distribute the app.</td>
-            <td>None of your data while you use the app.</td>
+            <td>Build and distribute the app and send push notifications (on Android, through Google's Firebase Cloud
+              Messaging; on iOS, through Apple's service).</td>
+            <td>Your phone's notification identifier and the text of each notice (for example, who invited you and the
+              pet's name).</td>
           </tr>
           <tr>
             <td>GitHub, Inc. (GitHub Pages)</td>
@@ -227,7 +230,8 @@
           </tr>
           <tr>
             <td>Resend, Inc.</td>
-            <td>Send your account emails (confirm your email, change your password or email).</td>
+            <td>Send your account emails (confirm your email, change your password or email) and co-owner invitation
+              notices.</td>
             <td>Your email address and the content of those emails.</td>
           </tr>
           <tr>
@@ -313,8 +317,10 @@
       <li><strong>Offline mode:</strong> the app keeps a copy of your pets, your logs and the breed catalogue on the
         phone so you can use it without a connection. When you sign out, anything not uploaded yet stays on the phone
         so it isn't lost; if everything is uploaded, the copy is deleted from the phone. Everything is deleted when you uninstall the app or clear its data in the system settings.</li>
-      <li><strong>Notifications:</strong> reminders are scheduled on your own phone; we don't use notifications sent
-        from a server.</li>
+      <li><strong>Notifications:</strong> reminders are scheduled on your own phone. The server only notifies you when
+        someone invites you to look after their pet: an email and, if you allowed notifications, a push. For the push we
+        store your phone's notification identifier with your account and delete it when you sign out. You can turn these
+        notices off in Settings › Notifications.</li>
       <li><strong>Permissions:</strong> camera and photos (only when you choose a photo), notifications and, on
         Android, exact alarms (so notifications arrive on time). You can revoke them in your phone settings.</li>
     </ul>

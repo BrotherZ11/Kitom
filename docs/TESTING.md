@@ -95,6 +95,21 @@ APK de release en emulador Android, contra el Supabase local, con una ruta tempo
 - Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
 - **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
 
+### Avisos de invitación (2026-11-20)
+
+Migración `20261120154210` aplicada en local con `migration up --local`:
+
+| Comando | Resultado |
+|---|---|
+| `tsc`, `expo lint`, `expo-doctor` | correctos (21/21) |
+| `npm test` | 1031/1031 |
+| `npx supabase test db` | 833/833 (nuevo `invitation_notifications.test.sql`, 30) |
+| Concurrencia (8 suites) | todas correctas |
+| `invitation-notify`, unitarias | 19/19 (`notify.test.mjs`) |
+| `invitation-notify`, integración local | 3/3 (`node supabase/functions/invitation-notify/run-integration.mjs`; Resend y Expo simulados) |
+
+Sin probar: un email real (Resend) y un push real (necesita Firebase y la clave FCM en EAS; `SETUP_GUIDE.md` §8, paso 6).
+
 ### Integración en main, arreglos y APK release (2026-11-18)
 
 Con la migración `20261116160000` ya aplicada en `kitom-dev` y los tipos regenerados con `--linked`:

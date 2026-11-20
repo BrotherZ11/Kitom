@@ -149,7 +149,10 @@ error y «sin mascotas».
   Android con el módulo nativo local `modules/kitom-exact-alarms`, autoenlazado desde `modules/`: su
   `android/build` está ignorado; cambiarlo exige una build nativa nueva),
   `src/features/achievements/` y `(app)/settings/*`. Contratos: `docs/FRONTEND_ARCHITECTURE.md` §1, §2, §4
-  y §7. Errores genéricos de servidor: `src/lib/server-errors.ts`.
+  y §7. Push remotos (2026-11-20, solo avisos de invitación): `features/notifications/push-registration.tsx`
+  (`PushRegistration` en `(app)/_layout.tsx`; `forgetPushToken` en el cierre de sesión) y `api/push-tokens-api.ts`
+  (`register_push_token`, borrar el propio, `invitation-notify`). En Android el token necesita Firebase en la build:
+  `app.config.js` añade `google-services.json` (local, ignorado por git) o la variable de archivo de EAS `GOOGLE_SERVICES_JSON`. Errores genéricos de servidor: `src/lib/server-errors.ts`.
 - Orientación con IA (2026-10-23): `src/features/ai-analysis/` (modelo puro `ai-analysis-model.ts`,
   `api/`, `hooks/`, `components/` con `ConsultGate` y las piezas del resultado) y rutas
   `(app)/pets/[id]/consult/*`. La app nunca llama al proveedor: solo `request_ai_analysis` y

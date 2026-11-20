@@ -135,7 +135,8 @@
           <tr>
             <td><strong>Co-tutores:</strong> el email de la persona que invitas (solo para buscar su cuenta; no lo
               guardamos), su papel y relación con la mascota.</td>
-            <td>Compartir una mascota con otras personas.</td>
+            <td>Compartir una mascota con otras personas y avisar a quien invitas, por email y en su móvil, si ya tiene
+              cuenta.</td>
             <td>Ejecución del contrato.</td>
           </tr>
           <tr>
@@ -221,8 +222,10 @@
           </tr>
           <tr>
             <td>650 Industries, Inc. (Expo)</td>
-            <td>Compilar y distribuir la app.</td>
-            <td>Ningún dato tuyo mientras usas la app.</td>
+            <td>Compilar y distribuir la app y enviar las notificaciones push (en Android, a través de Firebase Cloud
+              Messaging de Google; en iOS, del servicio de Apple).</td>
+            <td>El identificador de notificaciones de tu móvil y el texto de cada aviso (por ejemplo, quién te invita y el
+              nombre de la mascota).</td>
           </tr>
           <tr>
             <td>GitHub, Inc. (GitHub Pages)</td>
@@ -231,7 +234,8 @@
           </tr>
           <tr>
             <td>Resend, Inc.</td>
-            <td>Enviar los correos de tu cuenta (confirmar el email, cambiar la contraseña o el email).</td>
+            <td>Enviar los correos de tu cuenta (confirmar el email, cambiar la contraseña o el email) y los avisos de
+              invitación de co-tutor.</td>
             <td>Tu email y el contenido de esos correos.</td>
           </tr>
           <tr>
@@ -318,8 +322,10 @@
         catálogo de razas, para que puedas usarla sin red. Al cerrar sesión, lo que no se haya subido se queda en el
         móvil para no perderlo; si está todo subido, la copia se borra del móvil. Se borra todo al desinstalar la app o borrar sus datos desde los ajustes del
         sistema.</li>
-      <li><strong>Avisos:</strong> los recordatorios se programan en tu propio móvil; no usamos notificaciones
-        enviadas desde un servidor.</li>
+      <li><strong>Avisos:</strong> los recordatorios se programan en tu propio móvil. Desde el servidor solo te
+        enviamos un aviso cuando alguien te invita a cuidar de su mascota: un email y, si has permitido las
+        notificaciones, un push. Para el push guardamos el identificador de notificaciones del móvil con tu cuenta y lo
+        borramos al cerrar sesión. Puedes apagar estos avisos en Ajustes › Notificaciones.</li>
       <li><strong>Permisos:</strong> cámara y fotos (solo cuando eliges una foto), notificaciones y, en Android,
         alarmas exactas (para que los avisos lleguen a su hora). Puedes retirarlos en los ajustes del móvil.</li>
     </ul>

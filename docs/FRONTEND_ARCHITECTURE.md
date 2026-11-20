@@ -1886,7 +1886,17 @@ push remoto ni `push_tokens`. `NotificationSync` (montado en `(app)/_layout.tsx`
   al conceder el permiso y volver a la app, todo se reprograma como exacto. En iOS, web y Expo Go el
   módulo no existe (`null`) y no se muestra nada.
 
-**Push tokens:** no implementado (los avisos actuales son locales). Cuando haya push remoto:
+**Push remotos (2026-11-20): solo los avisos de invitación de co-tutor** (Edge Function `invitation-notify`,
+`docs/README.md` §13.1). `PushRegistration` (`features/notifications/push-registration.tsx`, montado en `(app)/_layout.tsx`):
+con sesión, conexión y el permiso de avisos concedido pide el token de Expo (`getExpoPushToken` de `device-notifications.ts`,
+con el `projectId` de EAS de `app.json`; `null` en web, Expo Go en Android o una build sin `google-services.json`) y lo
+registra con `register_push_token` una vez por ejecución y cuenta (`features/notifications/api/push-tokens-api.ts`). Con la
+app abierta, un push con `data.url = '/invitations'` refresca las invitaciones; al tocarlo, `NotificationSync` abre la ruta
+(como los avisos locales). Canal de Android `invitations` (lo crea `configureNotifications`). El cierre de sesión
+(`SignOutFlowProvider`) llama antes a `forgetPushToken` (borra la fila, como mucho 3 s; nunca impide cerrar). Tras invitar,
+`useInviteMember` llama a `invitation-notify` en segundo plano (`requestInvitationNotices`); si falla, la invitación ya está
+hecha. Ajustes › Notificaciones › «Invitaciones» = `notification_preferences.alert_notifications_enabled` (apaga email y push).
+El rotado del token por el sistema no se escucha: se vuelve a registrar en el siguiente arranque. Disciplina de tokens:
 
 `push_tokens.token` es único a nivel global (es un identificador del dispositivo/instalación emitido por el sistema operativo, no algo exclusivo de una cuenta). El mismo teléfono puede tener sesiones de distintos usuarios a lo largo del tiempo, así que el frontend debe seguir esta disciplina exacta:
 

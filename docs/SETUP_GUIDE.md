@@ -364,3 +364,36 @@ Decisión, precios y qué incluye: `DECISIONS.md` (2026-11-16). Lo que hace el c
 
 **iOS (después):** productos en App Store Connect, la app de App Store en RevenueCat (clave de In-App Purchase),
 `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` y las App Store Server Notifications apuntando a RevenueCat.
+
+## 8. Avisos de invitación (email y push)
+
+Qué hace el código: `README.md` §13.1 (decisión del 2026-11-20 en `DECISIONS.md`). La persona invitada recibe un email
+(Resend) y un push (Expo); los dos se apagan en Ajustes › Notificaciones › Invitaciones. Lo marcado **[confirmar]** depende
+de lo que muestren las consolas.
+
+1. **Migración.** `npx supabase db push` de `20261120154210_invitation_notifications.sql` y regenerar los tipos (o pídemelo).
+2. **Resend.** El dominio `kitom.app` ya está verificado (SMTP de Auth, §2). Resend › API Keys › Create API key con permiso
+   *Sending access* solo para `kitom.app`. Elige el remitente, por ejemplo `Kitom <avisos@kitom.app>` (no hace falta que el
+   buzón exista; si quieres que las respuestas lleguen a alguien, usa el de soporte).
+3. **Firebase (push en Android).** Expo entrega los push de Android por Firebase Cloud Messaging:
+   - [console.firebase.google.com](https://console.firebase.google.com) › Añadir proyecto › elige el proyecto de Google Cloud
+     que ya usas para Kitom (así queda todo junto). Sin Google Analytics.
+   - Añadir app › Android › paquete `com.kitom.app` › descarga `google-services.json`. Cópialo a `frontend/google-services.json`
+     (lo ignora git; `app.config.js` lo usa en las builds locales).
+   - EAS: `npx eas-cli@latest env:create --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json
+     --environment preview --environment production --visibility secret` desde `frontend/` **[confirmar opciones con
+     `eas env:create --help`]**.
+   - Clave de FCM para Expo: Firebase › Configuración del proyecto › Cuentas de servicio › Generar nueva clave privada (JSON).
+     Súbela con `npx eas-cli@latest credentials` › Android › `production` › *Google Service Account* › *Manage your Google
+     Service Account Key for Push Notifications (FCM V1)* (o en expo.dev › proyecto › Credentials › Android). Guarda el JSON
+     fuera del repo.
+4. **Secretos y función.** En la plantilla `supabase/functions/deploy-template.sh` (copia fuera del repo) rellena
+   `RESEND_API_KEY` e `INVITATION_EMAIL_FROM`, deja vacíos los de RevenueCat si ya están y ejecútala: despliega también
+   `invitation-notify`. `EXPO_ACCESS_TOKEN` solo si activas *Enhanced Security for Push Notifications* en expo.dev.
+5. **Build nueva** (el push necesita el `google-services.json` dentro de la build): APK local o `eas build`.
+6. **Probar** con dos cuentas Premium/gratuita: B instala la build, entra y acepta los avisos; A (Premium) invita a B por
+   email. B recibe el email y el push; tocar el push abre Invitaciones. Logs de `invitation-notify` en Supabase (estados
+   `sent`, `not_configured`, `no_devices`…; nunca emails ni tokens). Con los avisos apagados en B, no llega nada.
+
+**iOS (después):** clave APNs en EAS (`eas credentials`) y `GoogleService-Info.plist` solo si se usa Firebase en iOS (no hace
+falta para Expo push).

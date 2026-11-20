@@ -120,6 +120,9 @@ Recogidos, cifrados en tránsito y con eliminación a petición del usuario. Nin
   encargado porque el responsable está en el EEE (`DECISIONS.md`), así que Data Safety no cambia; pero sus términos exigen el
   plan de pago para ofrecer la app a usuarios del EEE: activarlo antes de la prueba cerrada.
 - **Datos de salud:** son de la mascota, no del usuario. Comprobar si el formulario pide declararlos igualmente.
+- **Push** (2026-11-20, avisos de invitación): el token de notificaciones del dispositivo se guarda con la cuenta y se envía
+  al servicio de push de Expo (FCM en Android). **A validar:** si Play lo considera «ID de dispositivo u otros ID» (finalidad:
+  funcionamiento de la app; no publicidad). El email y el nombre de quien invita ya están declarados.
 - **Sin** ubicación, contactos, identificadores publicitarios ni seguimiento entre apps. **A validar:** los informes de Sentry
   salen del dispositivo con la IP y, en los cierres nativos, con un identificador de instalación; las reglas del panel los
   quitan al llegar, no antes de enviarlos. Comprobar si hay que declarar «ID de dispositivo u otros ID» (`PRIVACY.md`).

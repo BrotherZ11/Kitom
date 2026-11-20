@@ -41,7 +41,8 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `pet-storage-cleanup` (v1; comprobado en solo lectura el 2026-11-04). El secreto de IA no es consultable:
   pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `delete-account`: `docs/README.md` §12, con su
   pantalla en Ajustes.
-  `revenuecat-webhook` y `subscription-sync` (Kitom Premium): implementadas, **sin desplegar**. `generate-pet-report`:
+  `revenuecat-webhook` y `subscription-sync` (Kitom Premium): implementadas, **sin desplegar**. `invitation-notify` (avisos de
+  invitación por email y push, 2026-11-20): implementada, **sin desplegar**. `generate-pet-report`:
   **pendiente**; la carpeta `edge-functions/` que citan
   los docs no está en el repo.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
@@ -161,6 +162,12 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   2026-11-18; tipos regenerados con `--linked`); Edge Functions `revenuecat-webhook` y `subscription-sync` **sin desplegar**
   (y `delete-account`, con el paso nuevo de RevenueCat, sin redesplegar); paquete `react-native-purchases` 11.0.2 (aprobado).
   El servidor decide el plan (`get_my_plan`); la app nunca. Configuración de Play y RevenueCat: `docs/SETUP_GUIDE.md` §7.
+- Avisos de invitación de co-tutor por **email y push** (QA-07, decisión del usuario 2026-11-20; ramas
+  `db/invitation-notifications` y `feat/invitation-notifications`, **sin integrar en `main`**): migración
+  `20261120154210_invitation_notifications.sql` (cola + RPC de servicio) probada en local, **sin `db push`**; Edge Function
+  `invitation-notify` (Resend + Expo) sin desplegar; app: `PushRegistration`, interruptor «Invitaciones» y
+  `frontend/app.config.js` (añade `google-services.json` de Firebase si existe; ignorado por git). Contrato: `docs/README.md`
+  §13.1; configuración: `docs/SETUP_GUIDE.md` §8. Proyecto EAS enlazado (`extra.eas.projectId`, owner `brotherz`; 2026-11-19).
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
   (ver `docs/SEED.md`). Buckets de Storage: existen en `kitom-dev` (los 4 privados, **sin límite de
   tamaño ni de tipo**, comprobado el 2026-10-28; el remoto no tiene `pg_cron` ni `pg_net`); en local solo `pet-photos`
