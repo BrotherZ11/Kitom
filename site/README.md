@@ -24,8 +24,9 @@ dominio, se cambia allí, en las fichas de las tiendas, en Google Cloud y en las
 ## Publicar con GitHub Pages
 
 GitHub Pages solo sirve desde la raíz o `/docs` de una rama; `site/` se publica con el workflow
-[`.github/workflows/pages.yml`](../.github/workflows/pages.yml) (`upload-pages-artifact` +
-`deploy-pages`, versiones fijadas). Pasos, una sola vez:
+[`.github/workflows/pages.yml`](../.github/workflows/pages.yml) (job `build` con `upload-pages-artifact` y
+job `deploy` con `deploy-pages`, separados para evitar que el despliegue no encuentre el artefacto; versiones
+fijadas). Pasos, una sola vez:
 
 1. Integrar en `main` la rama que trae `site/` y el workflow.
 2. En GitHub: **Settings › Pages › Build and deployment › Source = «GitHub Actions»**.

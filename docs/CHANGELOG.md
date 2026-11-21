@@ -5,6 +5,8 @@ decisión permanece en su documento de referencia.
 
 ## 2026-11-21
 
+- **GitHub Pages:** `.github/workflows/pages.yml` separa la subida (`build`) y el despliegue (`deploy`, con `needs: build`).
+  En un solo job, `deploy-pages` a veces no encontraba el artefacto `github-pages` («Found 0 artifact(s)»).
 - **Primera build de producción para Google Play** (EAS, perfil `production`): AAB 1.1.0 (versionCode 3), firmada con un
   keystore generado y custodiado por EAS; comprobado que apunta a `kitom-dev`, sin la URL local, con Firebase, Google y
   RevenueCat. APK local de prueba recompilada con Firebase.

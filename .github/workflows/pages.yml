@@ -20,12 +20,13 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+# Subida y despliegue en jobs separados: en el mismo job, deploy-pages a veces busca el artefacto
+# «github-pages» antes de que aparezca en la lista de la ejecución y falla con «No artifacts named
+# "github-pages" were found» (actions/deploy-pages#451). Con `needs`, el job deploy solo empieza cuando
+# build ha terminado y el artefacto ya está listado.
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -37,6 +38,14 @@ jobs:
         uses: actions/upload-pages-artifact@v3.0.1
         with:
           path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4.0.5
