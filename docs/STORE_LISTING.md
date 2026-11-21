@@ -14,13 +14,13 @@ producto: nunca «diagnóstico» ni «diagnostica»; se habla de «orientación�
 **Descripción completa** (máx. 4000):
 
 ```text
-El buen cuidado es una suma de días. Kitom te ayuda a registrar en menos de un minuto cómo está tu mascota (perro, gato, conejo, cobaya, hámster, caballo, ave o reptil), a entender sus cambios y a saber cuándo conviene ir al veterinario.
+El buen cuidado es una suma de días. Kitom te ayuda a registrar en menos de un minuto cómo está tu mascota (perro, gato, conejo, cobaya, hámster, caballo, ave, reptil y otras), a entender sus cambios y a saber cuándo conviene ir al veterinario.
 
 REGISTRA SU DÍA
 Energía, apetito, ánimo y actividad en unos segundos. Funciona también sin conexión: lo guardamos en tu móvil y lo subimos cuando vuelvas a tener red.
 
 ENTIENDE SUS CAMBIOS
-Gráficos por semana y por mes, y un aviso cuando los últimos días se apartan de lo normal en tu mascota.
+Gráficos por semana y por mes, y un resumen de bienestar que señala cuándo varios días seguidos se salen de lo habitual en tu mascota.
 
 NO OLVIDES SUS CUIDADOS
 Vacunas, medicación, citas, baños y desparasitación, con recordatorios a su hora, repetición y posponer.
@@ -53,13 +53,13 @@ Kitom ofrece orientación general sobre el bienestar de tu mascota. No es una va
 **Full description** (max 4000):
 
 ```text
-Good care is a sum of days. Kitom helps you log how your pet (dog, cat, rabbit, guinea pig, hamster, horse, bird or reptile) is doing in under a minute, understand their changes and know when it's worth seeing a vet.
+Good care is a sum of days. Kitom helps you log how your pet (dog, cat, rabbit, guinea pig, hamster, horse, bird, reptile and more) is doing in under a minute, understand their changes and know when it's worth seeing a vet.
 
 LOG THEIR DAY
 Energy, appetite, mood and activity in seconds. It also works offline: we keep it on your phone and upload it when you're back online.
 
 UNDERSTAND THEIR CHANGES
-Weekly and monthly charts, and a notice when recent days differ from what's normal for your pet.
+Weekly and monthly charts, and a wellbeing summary that points out when several days in a row are out of the ordinary for your pet.
 
 DON'T FORGET THEIR CARE
 Vaccines, medication, appointments, baths and deworming, with on-time reminders, repeats and snooze.
@@ -95,6 +95,7 @@ Kitom offers general guidance about your pet's wellbeing. It isn't a medical ass
 | Anuncios | no contiene |
 | Precio | descarga gratuita, con compras en la app (Kitom Premium, desde el 2026-11-16) |
 | Acceso para la revisión | crear una cuenta de prueba con una mascota y varios registros, e indicarla en «Acceso a la app» (hay inicio de sesión obligatorio) |
+| Icono (512 × 512) y gráfico de funciones (1024 × 500) | `frontend/assets/brand/store/play-icon-512.png`, `play-feature-graphic-es.png` y `-en.png` (2026-11-19, a partir del icono de la app y Hanken Grotesk) |
 | Capturas (mín. 2, recomendado 4–8) | Hoy, registro del día, historial, agenda, consulta con resultado, tarjeta de señales; con datos de ejemplo, sin datos reales |
 
 ## Seguridad de los datos (Data Safety)
