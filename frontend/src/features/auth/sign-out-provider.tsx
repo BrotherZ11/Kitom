@@ -16,6 +16,7 @@ import { useReminderOperations } from '@/features/reminders/hooks/use-reminders'
 import { summarizeReminderOperations } from '@/features/reminders/offline/reminder-operation';
 import { reminderKeys } from '@/features/reminders/query-keys';
 import { useReminderSync } from '@/features/reminders/sync/reminder-sync-provider';
+import { forgetPushToken } from '@/features/notifications/push-registration';
 import { deviceStorage } from '@/lib/local-store/device-storage';
 import { clearLocalUserData } from '@/lib/local-store/local-store';
 
@@ -51,7 +52,11 @@ export function SignOutFlowProvider({ children }: PropsWithChildren) {
       dailyLogs: daily,
       pets,
       reminders,
-      signOut: (): Promise<AuthResult> => signOut(),
+      // Antes de cerrar, este móvil deja de recibir los push de la cuenta (nunca bloquea el cierre).
+      signOut: async (): Promise<AuthResult> => {
+        await forgetPushToken();
+        return signOut();
+      },
       clearLocalData: () => clearLocalUserData(deviceStorage, daily.userId),
       timeoutMs: SIGN_OUT_SYNC_TIMEOUT_MS,
     })

@@ -20,8 +20,9 @@ Auth no está versionada y es donde se aplican primero las migraciones.
 | Dónde | Nombre | Notas |
 |---|---|---|
 | `frontend/.env` (ignorado por git; plantilla `frontend/.env.example`) | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` | públicas: acaban en el bundle. Nunca otra clave aquí |
-| Secretos de Edge Functions (`supabase secrets set`, los pone el usuario) | `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL` (opcional, respaldo ante `429`/`503`), `AI_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_INPUT_USD_PER_MTOK`, `AI_OUTPUT_USD_PER_MTOK`, `PET_STORAGE_CLEANUP_SECRET`, `PET_STORAGE_CLEANUP_MODE`, `REVENUECAT_SECRET_API_KEY` (v1, `sk_…`), `REVENUECAT_WEBHOOK_AUTH` (≥ 32 caracteres), `REVENUECAT_ENTITLEMENT_ID` (opcional, `premium`) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` los da la plataforma |
+| Secretos de Edge Functions (`supabase secrets set`, los pone el usuario) | `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL` (opcional, respaldo ante `429`/`503`), `AI_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_INPUT_USD_PER_MTOK`, `AI_OUTPUT_USD_PER_MTOK`, `PET_STORAGE_CLEANUP_SECRET`, `PET_STORAGE_CLEANUP_MODE`, `REVENUECAT_SECRET_API_KEY` (v1, `sk_…`), `REVENUECAT_WEBHOOK_AUTH` (≥ 32 caracteres), `REVENUECAT_ENTITLEMENT_ID` (opcional, `premium`), `RESEND_API_KEY` y `INVITATION_EMAIL_FROM` (avisos de invitación por email), `EXPO_ACCESS_TOKEN` (opcional, push con seguridad reforzada) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` los da la plataforma |
 | App (EAS por entorno, o `frontend/.env` en local) | `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` (`goog_…`), `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` (después) | claves **públicas** de SDK de RevenueCat; sin ellas no se puede comprar Premium (`SETUP_GUIDE.md` §7) |
+| EAS, variable de tipo archivo (o `frontend/google-services.json` en local, ignorado por git) | `GOOGLE_SERVICES_JSON` | Firebase para el push en Android; lo lee `frontend/app.config.js`. Sin él, la build no recibe push (`SETUP_GUIDE.md` §8). La clave FCM V1 va en las credenciales de EAS, no aquí |
 | `supabase/config.toml` (solo local) | `env(...)` | sin valores literales |
 | Raíz `.env` (opcional) | `OPENAI_API_KEY` | solo para Studio local |
 
@@ -236,3 +237,9 @@ ejecutarla).
     `functions deploy revenuecat-webhook` y `subscription-sync`, webhook y `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` en EAS:
     `SETUP_GUIDE.md` §7.
 17. Prueba de compras con un tester de licencia y revisión legal de la cláusula de suscripción: `QA_2026-11-16.md` §4.
+
+**G. Avisos de invitación (2026-11-20, QA-07)**
+18. `db push` de `20261120154210_invitation_notifications.sql` y tipos regenerados; Resend (API key y remitente), Firebase
+    (`google-services.json` en EAS y clave FCM V1 en las credenciales), secretos y `functions deploy invitation-notify` con la
+    plantilla, y una build nueva: `SETUP_GUIDE.md` §8. Orden: migración → función → build (una build con este cambio contra un
+    servidor sin la función solo pierde los avisos: la invitación se crea igual).

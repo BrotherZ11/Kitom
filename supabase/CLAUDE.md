@@ -129,13 +129,21 @@
   (`verify_jwt = true`), con la lógica común en `functions/_shared/subscription-*.ts` (sin Deno; `subscription.test.mjs` y
   `run-integration.mjs`). Las despliega el usuario. Contrato: `docs/README.md` §19. `delete-account` borra también el cliente de
   RevenueCat si tiene `REVENUECAT_SECRET_API_KEY` (paso `billing`, 2026-11-18; hay que redesplegarla).
+- Migración `20261120154210_invitation_notifications.sql` (rama `db/invitation-notifications`, QA-07): cola
+  `private.pet_invitation_notifications` (RLS, sin grants; `ON DELETE CASCADE` desde `pet_co_owners`), trigger
+  `trg_enqueue_pet_invitation_notification` (`AFTER INSERT OR UPDATE OF status, invited_at`: encola al pasar a `pending` o
+  renovarse) y RPC `pet_invitation_notifications_claim`/`_complete` (`SECURITY DEFINER`, `search_path` vacío, solo
+  `service_role`). Sin cambios de RLS ni de tablas existentes; `push_tokens`/`register_push_token` son los del esquema base.
+  Validada en local con `migration up --local`, pgTAP (`invitation_notifications`, 833 en total) y las 8 suites de
+  concurrencia. **Sin `db push`**. Edge Function `invitation-notify` (`verify_jwt = true`; secretos `RESEND_API_KEY`,
+  `INVITATION_EMAIL_FROM`, opcional `EXPO_ACCESS_TOKEN`). Contrato: `docs/README.md` §13.1.
 - Lección pgTAP y seeds: `npx supabase test db` solo monta `supabase/tests`, así que un `\ir` a `seeds/` no funciona.
   Para probar un seed, una copia temporal dentro de `supabase/tests/database/` (y borrarla después).
 - Lección triggers genéricos: una función de trigger usada en dos tablas no puede leer `new.<columna>` de solo una en
   una expresión con `or`/`and`: PL/pgSQL no garantiza el cortocircuito. Usar `if` anidados.
 - Pruebas de BD: `supabase/tests/database/*.test.sql` (`daily_logs`, `profile_timezone`,
   `pets_client_request_id`, `pet_invitations`, `pets_photo_path`, `pet_storage_cleanup`, `ai_quota`,
-  `abuse_limits`, `db_hardening`, `account_deletion_audit`, `ai_guidance_v2`, `reminders`
+  `abuse_limits`, `db_hardening`, `account_deletion_audit`, `ai_guidance_v2`, `premium_plans`, `invitation_notifications`, `reminders`
   (permisos de la tabla con el esquema base), `reminders_is_active`, `reminders_client_request_id`, `species_fields`,
   `daily_logs_read_access`; pgTAP, en
   transacción con `ROLLBACK`; solo local). Ejecutar con `npx supabase test db` o con `docker exec -i supabase_db_Kitom psql -U postgres
@@ -237,7 +245,9 @@ solo en local (`supabase start`/`db reset` local); en `kitom-dev` lo ejecuta el 
 7. Actualizar `docs/README.md` / `docs/FRONTEND_ARCHITECTURE.md` si cambia el contrato. PR propio.
 
 ## Edge Functions (`supabase/functions/<nombre>/index.ts`)
-Hechas: `ai-analysis-process`, `pet-storage-cleanup`, `delete-account`, `revenuecat-webhook` y `subscription-sync`.
+Hechas: `ai-analysis-process`, `pet-storage-cleanup`, `delete-account`, `revenuecat-webhook`, `subscription-sync` e
+`invitation-notify` (lógica en `notify.ts`/`rest.ts`, sin Deno: `node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON
+supabase/functions/invitation-notify/notify.test.mjs`; contra el local: `node supabase/functions/invitation-notify/run-integration.mjs`).
 Pendiente: `generate-pet-report`.
 - `delete-account` (contrato en `docs/README.md` §12): la llama la app con el JWT del usuario
   (`verify_jwt = true` en `config.toml`). Vista previa y borrado; transfiere o borra las mascotas propias,

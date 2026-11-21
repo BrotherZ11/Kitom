@@ -3,6 +3,31 @@
 Registro breve de decisiones técnicas relevantes: contexto, decisión y consecuencias. Las más
 recientes, arriba. El detalle de cada contrato vive en su documento de referencia.
 
+## 2026-11-20 — Avisos de invitación de co-tutor por email y push (QA-07)
+
+**Contexto.** La persona invitada solo veía la invitación si abría la app. El usuario decidió avisar por los dos canales.
+El remoto no tiene `pg_net` (la base no puede llamar a nadie) e `invite_pet_member_by_email` no debe revelar si un email
+tiene cuenta.
+
+**Decisión.**
+- Cola en la base (`private.pet_invitation_notifications`, migración `20261120154210`) escrita por un trigger de
+  `pet_co_owners` en la misma transacción que la invitación; solo hay aviso si existe la cuenta, y la respuesta de invitar no
+  cambia.
+- Edge Function `invitation-notify` que la app llama tras invitar con el JWT de quien invita: solo procesa los avisos de sus
+  propias invitaciones (RPC de reserva y resultado solo para `service_role`), responde igual con avisos o sin ellos, envía el
+  email con Resend (el proveedor que ya usa el SMTP de Auth; clave de idempotencia) y el push con el servicio de Expo (FCM en
+  Android; sin SDK de Firebase en la app más allá del `google-services.json`). Cada canal, una vez por invitación; un canal que
+  falla se reintenta en la siguiente llamada (hasta 3).
+- Tokens con la tabla y la RPC del esquema original (`push_tokens`, `register_push_token`), sin migración: la app los registra
+  con el permiso de avisos concedido y los borra al cerrar sesión. La preferencia es la columna existente
+  `notification_preferences.alert_notifications_enabled` («Invitaciones» en Ajustes › Notificaciones), que apaga los dos canales.
+
+**Consecuencias.** Si la app no llega a llamar a la función (sin red justo después de invitar), el aviso espera a la siguiente
+invitación de esa persona; sin tarea programada (no hay `pg_cron`) no hay barrido, y los avisos de más de 7 días se abandonan.
+Un móvil que cierra sesión sin red puede seguir recibiendo push de la cuenta anterior hasta que otra cuenta entre en él. Nuevos
+encargados en la política: Expo (push, con FCM) y Resend para estos emails. Contrato: `README.md` §13.1; configuración:
+`SETUP_GUIDE.md` §8.
+
 ## 2026-11-18 — Sin reintentos automáticos de postgrest-js
 
 **Contexto.** postgrest-js 2.117 reintenta por su cuenta las lecturas que fallan por la red (hasta 3 veces, con 1, 2 y 4 s).

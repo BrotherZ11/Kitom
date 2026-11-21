@@ -118,7 +118,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 
 ## 7. Funciones exclusivamente backend (sin `EXECUTE` para `authenticated`/`anon`)
 
-`trigger_set_timestamp`, `safe_pet_id_from_path`, `protect_pet_structural_fields`, `validate_pet_birth_date`, `set_last_edited_by`, `validate_daily_log_date`, `protect_daily_log_audit_fields`, `validate_symptom_species_compat`, `sync_reminder_completion`, `protect_reminder_audit_fields`, `validate_reminder_attachment_path`, `recompute_pet_streak`, `trg_recompute_pet_streak_fn`, `award_pet_achievement`, `handle_new_user`, `validate_ai_request_photo_path`, `process_revenuecat_event` (sin uso desde `20261116160000`), `apply_subscription_state` (`20261116160000`, solo `service_role`: Edge Functions de suscripción, §19), `private.enforce_pet_plan_limit` (trigger de `pets`, §19), `validate_profile_timezone` (nueva, v2.2.1), `claim_ai_analysis_for_processing` (nueva, v2.2.1 — exclusiva de la Edge Function `ai-analysis-process` vía `service_role`).
+`trigger_set_timestamp`, `safe_pet_id_from_path`, `protect_pet_structural_fields`, `validate_pet_birth_date`, `set_last_edited_by`, `validate_daily_log_date`, `protect_daily_log_audit_fields`, `validate_symptom_species_compat`, `sync_reminder_completion`, `protect_reminder_audit_fields`, `validate_reminder_attachment_path`, `recompute_pet_streak`, `trg_recompute_pet_streak_fn`, `award_pet_achievement`, `handle_new_user`, `validate_ai_request_photo_path`, `process_revenuecat_event` (sin uso desde `20261116160000`), `apply_subscription_state` (`20261116160000`, solo `service_role`: Edge Functions de suscripción, §19), `private.enforce_pet_plan_limit` (trigger de `pets`, §19), `validate_profile_timezone` (nueva, v2.2.1), `claim_ai_analysis_for_processing` (nueva, v2.2.1 — exclusiva de la Edge Function `ai-analysis-process` vía `service_role`), `pet_invitation_notifications_claim`/`_complete` (`20261120154210`, solo `service_role`: Edge Function `invitation-notify`, §13.1) y `private.enqueue_pet_invitation_notification` (trigger de `pet_co_owners`, §13.1).
 
 ## 8. Edge Functions (fuera del SQL, pero parte del contrato)
 
@@ -129,6 +129,7 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 | `delete-account` | Vista previa y borrado de la cuenta: transfiere o borra las mascotas propias (con el JWT del usuario), quita sus avatares y borra el usuario de Auth (`service_role`, último paso). Ver §12 | Mobile, desde Ajustes › Eliminar mi cuenta |
 | `revenuecat-webhook` | Recibe el webhook de RevenueCat (secreto propio, `verify_jwt = false`), lee en la API de RevenueCat el estado de cada cuenta afectada y lo guarda con `apply_subscription_state()` (`service_role`). Ver §19 | RevenueCat |
 | `subscription-sync` | Lo mismo para el usuario del JWT, tras comprar o restaurar (no espera al webhook). Ver §19 | Mobile, desde la pantalla de Premium |
+| `invitation-notify` | Envía por email (Resend) y push (Expo) los avisos de las invitaciones de co-tutor que ha hecho el usuario del JWT (`service_role` solo para la cola). Ver §13.1 | Mobile, justo después de `invite_pet_member_by_email()` |
 
 **Contrato de seguridad obligatorio (v2.2.1), aplicado a las tres primeras funciones de la tabla:**
 
@@ -247,6 +248,35 @@ Borrado de cuenta: `pets.owner_id` usa `ON DELETE RESTRICT` — Postgres rechaza
 
 **Desde la migración `20261030090318` (SEC-04, sin rediseñar el esquema):** `invite_pet_member_by_email` admite **20 intentos por propietario en 24 h** (ventana móvil; `hint` `invite_rate_limited`, mensaje «Has enviado demasiadas invitaciones…»), contados en `private.pet_invitation_attempts` (solo quién y cuándo, nunca el email; cuentan también los emails sin cuenta, el propio y los ya invitados; no cuentan un email mal formado ni una mascota ajena; sin FK a `pets`; se purgan los de más de 2 días). `get_pet_members` devuelve `user_id` y `full_name` **NULL en las invitaciones pendientes** (salvo a la propia persona invitada); `invitation_id`, rol, estado y fechas siguen, así que la app puede anularlas. La política SELECT de `pet_co_owners` deja de mostrar a los miembros las filas no aceptadas de otros (sección 5). **Riesgo residual:** la fila pendiente solo aparece si el email tiene una cuenta confirmada, así que el propietario puede seguir deduciendo si un email está registrado (no quién es); el límite lo reduce a 20 emails al día por cuenta. Eliminarlo del todo exige invitaciones por email en una tabla propia, sin crear la fila hasta aceptar (SEC-04, P1-07). `invite_pet_member` (por id) no tiene el límite, pero exige conocer el `user_id`, que la app ya no puede ver.
 
+## 13.1 Avisos de invitación: email y push (migración `20261120154210_invitation_notifications.sql`)
+
+Problema (QA-07): la persona invitada solo veía la invitación si abría la app. Ahora recibe un **email** (Resend) y un
+**push** (servicio de push de Expo; en Android, por FCM) en su idioma (`profiles.locale`: `en…` → inglés; si no, español).
+
+- **Cola** `private.pet_invitation_notifications` (RLS, sin grants; una fila por invitación, `ON DELETE CASCADE` desde
+  `pet_co_owners`). La escribe el trigger `trg_enqueue_pet_invitation_notification` (`AFTER INSERT OR UPDATE OF status,
+  invited_at`) cuando una invitación pasa a `pending` o se renueva, en la misma transacción. Sin cuenta no hay fila ni aviso,
+  así que `invite_pet_member_by_email` sigue respondiendo igual exista o no el email.
+- **Edge Function `invitation-notify`** (`verify_jwt = true`): la app la llama tras invitar (POST sin cuerpo, JWT de quien
+  invita). Comprueba el JWT con Auth y, con la clave de servicio, reserva **solo los avisos de las invitaciones de ese usuario**
+  (`pet_invitation_notifications_claim(p_inviter_id, p_limit)`: pendientes, mascota activa, menos de 7 días, menos de 3 reservas,
+  reserva de 5 min con `FOR UPDATE SKIP LOCKED`). Devuelve el email (solo de una cuenta confirmada y vigente), el idioma, los
+  nombres, el rol, si la persona invitada tiene los avisos activos (`notification_preferences.alert_notifications_enabled`, por
+  defecto `true`), qué canales faltan y hasta 5 tokens activos. Anota cada canal con
+  `pet_invitation_notifications_complete(…, p_invalid_tokens)` (códigos `[a-z_]`; desactiva los tokens que Expo da por no
+  registrados, solo de la persona invitada). Cada canal se envía como mucho una vez; uno que falla se reintenta en la siguiente
+  llamada de ese usuario (hasta 3 reservas). El email lleva una clave de idempotencia de Resend.
+- **Respuestas:** `200 { status: 'ok' }` haya avisos o no (no revela nada), `401 not_authenticated`, `405`, `500
+  server_misconfigured | server_error`. La app la llama en segundo plano: la invitación ya está hecha aunque falle.
+- **Estados por canal:** `sent`, `rejected` (Resend no acepta el mensaje), `not_configured` (sin `RESEND_API_KEY`/
+  `INVITATION_EMAIL_FROM`), `no_email`, `no_devices`, `opted_out` (avisos apagados en Ajustes › Notificaciones);
+  reintentables: `network`, `resend_http`, `expo_http`, `expo_error`.
+- **Secretos** (los pone el usuario: `supabase/functions/deploy-template.sh`): `RESEND_API_KEY`, `INVITATION_EMAIL_FROM`
+  (dominio verificado en Resend) y, opcional, `EXPO_ACCESS_TOKEN`. El push en Android necesita además la clave FCM V1 en EAS y
+  el `google-services.json` en la build (`docs/SETUP_GUIDE.md` §8).
+- **Contenido:** nombre de quien invita (o «Alguien»), nombre de la mascota y el permiso; el push abre `/invitations`. Ningún
+  registro de la función lleva emails, nombres ni tokens.
+
 ## 14. Timezone
 
 `daily_logs.log_date` representa el día **local según la zona horaria del propietario principal** de la mascota (`pets.owner_id → profiles.timezone`), nunca la del dispositivo que registra ni la del servidor. Con mascotas compartidas entre tutores de distintos husos horarios, hay un único calendario por mascota, no uno por persona. El cliente calcula y envía `log_date`; el servidor solo valida que no sea futuro respecto al "hoy" del propietario.
@@ -344,6 +374,8 @@ Solo preparación (`organizations`, `organization_members`), sin recursión de R
 - **cambio de usuario en el mismo dispositivo:** no requiere lógica especial más allá de repetir el paso de login — `register_push_token` ya reasigna correctamente.
 
 No se creó ninguna tabla nueva ni se cambió la restricción `UNIQUE(token)`.
+
+**En la app (2026-11-20):** `PushRegistration` registra el token de Expo con sesión, conexión y el permiso de avisos concedido (una vez por ejecución y cuenta) y el cierre de sesión borra la fila propia (como mucho 3 s). Los usa `invitation-notify` (§13.1), que desactiva (`is_active = false`) los tokens que Expo da por no registrados.
 
 ## 20.2 Storage — semántica de paths por campo (aclarado en v2.2.1)
 

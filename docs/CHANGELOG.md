@@ -3,6 +3,18 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-20
+
+- **Avisos de invitación por email y push** (QA-07; ramas `db/invitation-notifications` y `feat/invitation-notifications`,
+  `DECISIONS.md` 2026-11-20): migración `20261120154210_invitation_notifications.sql` (cola y RPC de servicio; pgTAP 30),
+  Edge Function `invitation-notify` (Resend y Expo; unitarias 19 e integración local 3) y, en la app, registro del token de
+  push (`PushRegistration`), borrado al cerrar sesión, llamada tras invitar, canal de Android «Invitaciones» e interruptor en
+  Ajustes › Notificaciones. `frontend/app.config.js` añade el `google-services.json` (Firebase) si existe. Política de
+  privacidad (es/en) actualizada. Pendiente del responsable: `db push`, Resend, Firebase/FCM, secretos y despliegue
+  (`SETUP_GUIDE.md` §8).
+- **Play Store:** proyecto de EAS enlazado (`eas init` del usuario), icono de 512 px y gráficos de funciones (es/en) en
+  `frontend/assets/brand/store/`.
+
 ## 2026-11-18
 
 - **Arranque sin conexión** (QA-02, rama `fix/offline-cold-start`): «Hoy» tardaba ~20 s en enseñar la copia del dispositivo en

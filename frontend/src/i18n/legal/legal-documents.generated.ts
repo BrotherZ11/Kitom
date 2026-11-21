@@ -261,7 +261,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               ],
               [
                 {
-                  "text": "Compartir una mascota con otras personas."
+                  "text": "Compartir una mascota con otras personas y avisar a quien invitas, por email y en su móvil, si ya tiene cuenta."
                 }
               ],
               [
@@ -535,12 +535,12 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               ],
               [
                 {
-                  "text": "Compilar y distribuir la app."
+                  "text": "Compilar y distribuir la app y enviar las notificaciones push (en Android, a través de Firebase Cloud Messaging de Google; en iOS, del servicio de Apple)."
                 }
               ],
               [
                 {
-                  "text": "Ningún dato tuyo mientras usas la app."
+                  "text": "El identificador de notificaciones de tu móvil y el texto de cada aviso (por ejemplo, quién te invita y el nombre de la mascota)."
                 }
               ]
             ],
@@ -569,7 +569,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               ],
               [
                 {
-                  "text": "Enviar los correos de tu cuenta (confirmar el email, cambiar la contraseña o el email)."
+                  "text": "Enviar los correos de tu cuenta (confirmar el email, cambiar la contraseña o el email) y los avisos de invitación de co-tutor."
                 }
               ],
               [
@@ -972,7 +972,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
                 "bold": true
               },
               {
-                "text": " los recordatorios se programan en tu propio móvil; no usamos notificaciones enviadas desde un servidor."
+                "text": " los recordatorios se programan en tu propio móvil. Desde el servidor solo te enviamos un aviso cuando alguien te invita a cuidar de su mascota: un email y, si has permitido las notificaciones, un push. Para el push guardamos el identificador de notificaciones del móvil con tu cuenta y lo borramos al cerrar sesión. Puedes apagar estos avisos en Ajustes › Notificaciones."
               }
             ],
             [
@@ -1779,7 +1779,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               ],
               [
                 {
-                  "text": "Share a pet with other people."
+                  "text": "Share a pet with other people and let the person you invite know, by email and on their phone, if they already have an account."
                 }
               ],
               [
@@ -2053,12 +2053,12 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               ],
               [
                 {
-                  "text": "Build and distribute the app."
+                  "text": "Build and distribute the app and send push notifications (on Android, through Google's Firebase Cloud Messaging; on iOS, through Apple's service)."
                 }
               ],
               [
                 {
-                  "text": "None of your data while you use the app."
+                  "text": "Your phone's notification identifier and the text of each notice (for example, who invited you and the pet's name)."
                 }
               ]
             ],
@@ -2087,7 +2087,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
               ],
               [
                 {
-                  "text": "Send your account emails (confirm your email, change your password or email)."
+                  "text": "Send your account emails (confirm your email, change your password or email) and co-owner invitation notices."
                 }
               ],
               [
@@ -2490,7 +2490,7 @@ export const LEGAL_DOCUMENTS: LegalDocuments = {
                 "bold": true
               },
               {
-                "text": " reminders are scheduled on your own phone; we don't use notifications sent from a server."
+                "text": " reminders are scheduled on your own phone. The server only notifies you when someone invites you to look after their pet: an email and, if you allowed notifications, a push. For the push we store your phone's notification identifier with your account and delete it when you sign out. You can turn these notices off in Settings › Notifications."
               }
             ],
             [
