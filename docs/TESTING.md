@@ -93,7 +93,18 @@ APK de release en emulador Android, contra el Supabase local, con una ruta tempo
 - Error de JS y cierre nativo recibidos en `kitom-app`, con entorno y release correctos. Hay que reabrir la app para que lleguen algunos eventos.
 - Privacidad: con las reglas del panel activas (`DEPLOYMENT.md` §8, paso 10), ni el error de JS ni el cierre nativo guardan usuario, ubicación ni `device.id`.
 - Stack trace: con los source maps subidos desde Gradle, el de JS muestra archivo, línea y código; el de Java también se lee.
-- **Sin probar:** la subida desde EAS (aún sin proyecto) y un fallo en código nativo C/C++.
+- **Sin probar:** la subida de source maps desde EAS (primera build `production` el 2026-11-21: comprobar en Sentry que el
+  release aparece con sus artefactos) y un fallo en código nativo C/C++.
+
+### Builds de la prueba cerrada (2026-11-21)
+
+| Build | Comprobado en el bundle |
+|---|---|
+| EAS `production` (AAB 1.1.0 · 3) | `supabase.co` presente, `127.0.0.1:54321` ausente, clave `goog_` de RevenueCat, client ID web de Google, `invitation-notify`; `google_app_id` de Firebase en los recursos |
+| APK local release (`gradlew assembleRelease`, clave de depuración) | lo mismo; solo para instalar a mano |
+
+Sin probar todavía en un móvil: push real, email de invitación real, compra con un tester de licencia y Google nativo (falta
+el cliente OAuth Android con las SHA-1 de Play).
 
 ### Avisos de invitación (2026-11-20)
 

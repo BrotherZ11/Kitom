@@ -82,6 +82,11 @@ Antes de instalar una APK local, comprobar a qué servidor apunta: compilar sin 
 
 `submit.production.android`: pista `internal`, borrador. Pasos (los ejecuta el responsable con su cuenta):
 
+Estado (2026-11-21): ✅ pasos 1 y 2 (proyecto `brotherz/kitom`; variables de `production`, también `GOOGLE_SERVICES_JSON` y
+`SENTRY_AUTH_TOKEN`); primera build `production` lanzada el 2026-11-21 (keystore generado en la nube por EAS; versionCode 3,
+gestionado por EAS: `appVersionSource: remote`). El archivo subido a EAS pesa ~517 MB (todo el repo menos lo ignorado por git):
+un `.easignore` lo reduciría, pero sustituye a los `.gitignore` y debe repetir sus reglas.
+
 1. Cuenta Expo; desde `frontend/`: `npx eas-cli@latest login` y `npx eas-cli@latest init` (añade
    `extra.eas.projectId` y `owner` a `app.json`: commitearlo). El perfil `development` usa `expo-dev-client`
    (instalado el 2026-11-18).
@@ -230,8 +235,8 @@ Las cuentas y los paneles (GitHub Pages, dominio, SMTP, Supabase Auth, Google Cl
 
 Secretos y despliegue de las funciones: plantilla `supabase/functions/deploy-template.sh` (copiarla fuera del repo, rellenarla y
 ejecutarla).
-15. ✅ `db push` de `20261116160000_premium_plans.sql` (el usuario, 2026-11-18) y tipos regenerados con `--linked`. Falta
-    redesplegar `delete-account` (borra también el cliente de RevenueCat si tiene `REVENUECAT_SECRET_API_KEY`).
+15. ✅ `db push` de `20261116160000_premium_plans.sql` (el usuario, 2026-11-18) y tipos regenerados con `--linked`.
+    ✅ `delete-account` redesplegada (el usuario, 2026-11-20).
 16. Play Console (perfil de comerciante, suscripción `kitom_premium` con planes `monthly`/`annual` y prueba de 7 días,
     testers de licencia), RevenueCat (app, cuenta de servicio, entitlement `premium`, oferta `default`), secretos,
     `functions deploy revenuecat-webhook` y `subscription-sync`, webhook y `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` en EAS:
@@ -239,7 +244,7 @@ ejecutarla).
 17. Prueba de compras con un tester de licencia y revisión legal de la cláusula de suscripción: `QA_2026-11-16.md` §4.
 
 **G. Avisos de invitación (2026-11-20, QA-07)**
-18. `db push` de `20261120154210_invitation_notifications.sql` y tipos regenerados; Resend (API key y remitente), Firebase
+18. ✅ (el usuario, 2026-11-20; tipos regenerados el 2026-11-21) `db push` de `20261120154210_invitation_notifications.sql` y tipos regenerados; Resend (API key y remitente), Firebase
     (`google-services.json` en EAS y clave FCM V1 en las credenciales), secretos y `functions deploy invitation-notify` con la
     plantilla, y una build nueva: `SETUP_GUIDE.md` §8. Orden: migración → función → build (una build con este cambio contra un
     servidor sin la función solo pierde los avisos: la invitación se crea igual).

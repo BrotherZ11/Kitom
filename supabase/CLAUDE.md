@@ -128,15 +128,16 @@
   Edge Functions `revenuecat-webhook` (`verify_jwt = false`, secreto `REVENUECAT_WEBHOOK_AUTH`) y `subscription-sync`
   (`verify_jwt = true`), con la lógica común en `functions/_shared/subscription-*.ts` (sin Deno; `subscription.test.mjs` y
   `run-integration.mjs`). Las despliega el usuario. Contrato: `docs/README.md` §19. `delete-account` borra también el cliente de
-  RevenueCat si tiene `REVENUECAT_SECRET_API_KEY` (paso `billing`, 2026-11-18; hay que redesplegarla).
+  RevenueCat si tiene `REVENUECAT_SECRET_API_KEY` (paso `billing`, 2026-11-18). Las tres, desplegadas por el usuario el 2026-11-20.
 - Migración `20261120154210_invitation_notifications.sql` (rama `db/invitation-notifications`, QA-07): cola
   `private.pet_invitation_notifications` (RLS, sin grants; `ON DELETE CASCADE` desde `pet_co_owners`), trigger
   `trg_enqueue_pet_invitation_notification` (`AFTER INSERT OR UPDATE OF status, invited_at`: encola al pasar a `pending` o
   renovarse) y RPC `pet_invitation_notifications_claim`/`_complete` (`SECURITY DEFINER`, `search_path` vacío, solo
   `service_role`). Sin cambios de RLS ni de tablas existentes; `push_tokens`/`register_push_token` son los del esquema base.
   Validada en local con `migration up --local`, pgTAP (`invitation_notifications`, 833 en total) y las 8 suites de
-  concurrencia. **Sin `db push`**. Edge Function `invitation-notify` (`verify_jwt = true`; secretos `RESEND_API_KEY`,
-  `INVITATION_EMAIL_FROM`, opcional `EXPO_ACCESS_TOKEN`). Contrato: `docs/README.md` §13.1.
+  concurrencia. Aplicada en `kitom-dev` (`db push` del usuario, 2026-11-20) y tipos regenerados con `--linked` (2026-11-21).
+  Edge Function `invitation-notify` (`verify_jwt = true`; secretos `RESEND_API_KEY`, `INVITATION_EMAIL_FROM`, opcional
+  `EXPO_ACCESS_TOKEN`), desplegada por el usuario con sus secretos. Contrato: `docs/README.md` §13.1.
 - Lección pgTAP y seeds: `npx supabase test db` solo monta `supabase/tests`, así que un `\ir` a `seeds/` no funciona.
   Para probar un seed, una copia temporal dentro de `supabase/tests/database/` (y borrarla después).
 - Lección triggers genéricos: una función de trigger usada en dos tablas no puede leer `new.<columna>` de solo una en

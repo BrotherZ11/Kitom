@@ -3,6 +3,15 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-21
+
+- **Primera build de producción para Google Play** (EAS, perfil `production`): AAB 1.1.0 (versionCode 3), firmada con un
+  keystore generado y custodiado por EAS; comprobado que apunta a `kitom-dev`, sin la URL local, con Firebase, Google y
+  RevenueCat. APK local de prueba recompilada con Firebase.
+- **Avisos de invitación en `kitom-dev`:** migración `20261120154210` aplicada, `invitation-notify`, `revenuecat-webhook`,
+  `subscription-sync` y `delete-account` desplegadas y Resend y Firebase configurados (el usuario, 2026-11-20); tipos
+  regenerados con `--linked` y ramas integradas en `main`.
+
 ## 2026-11-20
 
 - **Avisos de invitación por email y push** (QA-07; ramas `db/invitation-notifications` y `feat/invitation-notifications`,

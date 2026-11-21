@@ -41,8 +41,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `pet-storage-cleanup` (v1; comprobado en solo lectura el 2026-11-04). El secreto de IA no es consultable:
   pipeline remoto sin verificar (`docs/ROADMAP.md` P0-05). `delete-account`: `docs/README.md` §12, con su
   pantalla en Ajustes.
-  `revenuecat-webhook` y `subscription-sync` (Kitom Premium): implementadas, **sin desplegar**. `invitation-notify` (avisos de
-  invitación por email y push, 2026-11-20): implementada, **sin desplegar**. `generate-pet-report`:
+  `revenuecat-webhook` y `subscription-sync` (Kitom Premium), `invitation-notify` (avisos de invitación por email y push) y
+  `delete-account` con el paso de RevenueCat: desplegadas por el usuario con `deploy-template.sh` (2026-11-20; sin comprobar
+  desde aquí). `generate-pet-report`:
   **pendiente**; la carpeta `edge-functions/` que citan
   los docs no está en el repo.
 - Migración de razas `20261007152630_breeds.sql`: aplicada en `kitom-dev`.
@@ -105,8 +106,9 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   instalada); `ios.bundleIdentifier` sin definir. APK de prueba compilada en local
   (`npx expo prebuild --platform android` + `gradlew assembleRelease`; `/android` está ignorado por git
   y la release va firmada con la clave de depuración: no vale para Google Play). EAS preparado
-  (`frontend/eas.json`, `slug` `kitom`, `ios.bundleIdentifier` `com.kitom.app`; 2026-10-30) pero sin
-  proyecto EAS creado: `eas init`/`build`/`submit` los ejecuta el usuario (`docs/DEPLOYMENT.md` §4).
+  (`frontend/eas.json`, `slug` `kitom`, `ios.bundleIdentifier` `com.kitom.app`; 2026-10-30); proyecto EAS
+  creado el 2026-11-19 (`brotherz/kitom`, variables de `production` puestas por el usuario). Primera build
+  `production` (AAB, versionCode 3 en EAS, keystore generado y custodiado por EAS) el 2026-11-21 (`docs/DEPLOYMENT.md` §4).
 - Migración `20261020135440_pets_client_request_id.sql` (alta idempotente de mascotas para Pets offline,
   fase 8): aplicada en `kitom-dev` (`db push` del usuario) y tipos regenerados.
 - Migración `20261023082848_pet_invitations_by_email.sql` (co-tutores por email, 3 RPC): aplicada en
@@ -134,7 +136,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
 - Borrar una cuenta, D-11 (2026-11-05): corregido por la migración `20261105122353_account_deletion_audit_triggers.sql`, aplicada
   en `kitom-dev` (`db push` del usuario, 2026-11-06; `docs/DATABASE.md`).
 - Sentry (2026-11-04): organización `kitom`, proyecto `kitom-app` (región UE). Errores, source maps y reglas de privacidad comprobados
-  en APK locales; falta el DSN y el token en EAS, aún sin proyecto (`docs/DEPLOYMENT.md` §8, paso 10).
+  en APK locales; DSN y `SENTRY_AUTH_TOKEN` en las variables de `production` de EAS (2026-11-21).
 - Registro (2026-11-04, sin migraciones): aviso legal único, textos legales en la app (`/legal/[doc]`, generados
   desde `site/`), peso y fecha plausibles por especie, y enlaces de email por la página puente
   `site/auth/callback.html`, que exige configurar Redirect URLs y SMTP propio (`docs/SETUP_GUIDE.md`; Resend configurado en `kitom-dev` el 2026-11-15).
@@ -159,13 +161,14 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   `docs/QA_2026-11-16.md`. Premium activo desde la prueba cerrada (`docs/DECISIONS.md` 2026-11-16; sustituye a «v1 gratuita»):
   4,99 €/mes o 39,99 €/año, 7 días de prueba en el anual; gratis 2 mascotas propias, 30 días de historial y 3 consultas al mes;
   Premium sin límites e invitar co-tutores. Migración `20261116160000_premium_plans.sql` aplicada en `kitom-dev` (`db push` del usuario,
-  2026-11-18; tipos regenerados con `--linked`); Edge Functions `revenuecat-webhook` y `subscription-sync` **sin desplegar**
-  (y `delete-account`, con el paso nuevo de RevenueCat, sin redesplegar); paquete `react-native-purchases` 11.0.2 (aprobado).
+  2026-11-18; tipos regenerados con `--linked`); Edge Functions `revenuecat-webhook` y `subscription-sync` desplegadas por el
+  usuario (2026-11-20, con `delete-account` y su paso de RevenueCat); paquete `react-native-purchases` 11.0.2 (aprobado).
   El servidor decide el plan (`get_my_plan`); la app nunca. Configuración de Play y RevenueCat: `docs/SETUP_GUIDE.md` §7.
 - Avisos de invitación de co-tutor por **email y push** (QA-07, decisión del usuario 2026-11-20; ramas
-  `db/invitation-notifications` y `feat/invitation-notifications`, **sin integrar en `main`**): migración
-  `20261120154210_invitation_notifications.sql` (cola + RPC de servicio) probada en local, **sin `db push`**; Edge Function
-  `invitation-notify` (Resend + Expo) sin desplegar; app: `PushRegistration`, interruptor «Invitaciones» y
+  `db/invitation-notifications` y `feat/invitation-notifications`, integradas en `main` el 2026-11-21): migración
+  `20261120154210_invitation_notifications.sql` (cola + RPC de servicio) aplicada en `kitom-dev` (`db push` del usuario) y tipos
+  regenerados con `--linked`; Edge Function `invitation-notify` (Resend + Expo) desplegada por el usuario, con Firebase
+  (`google-services.json` en EAS) y Resend configurados; sin probar con un email y un push reales; app: `PushRegistration`, interruptor «Invitaciones» y
   `frontend/app.config.js` (añade `google-services.json` de Firebase si existe; ignorado por git). Contrato: `docs/README.md`
   §13.1; configuración: `docs/SETUP_GUIDE.md` §8. Proyecto EAS enlazado (`extra.eas.projectId`, owner `brotherz`; 2026-11-19).
 - `supabase/seed.sql` y `supabase/seeds/breeds.sql` (catálogos): ejecutados en `kitom-dev` por el usuario
