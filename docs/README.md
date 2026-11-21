@@ -144,8 +144,9 @@ Todas las tablas tienen `ENABLE ROW LEVEL SECURITY`. Ninguna tabla de negocio qu
 
 **Estado (2026-10-23):** `ai-analysis-process` está implementada en `supabase/functions/ai-analysis-process/`
 (`index.ts` manejador, `guidance.ts` prompt y validación puros, `providers.ts` Gemini, OpenAI o simulador).
-`delete-account` está implementada desde el 2026-10-29 (§12; sin desplegar: lo hace el usuario).
-`revenuecat-webhook` y `subscription-sync` están implementadas desde el 2026-11-16 (§19; sin desplegar: lo hace el usuario). `generate-pet-report` sigue pendiente y la carpeta `edge-functions/` no está en el repo. Secretos de `ai-analysis-process`
+`delete-account` está implementada desde el 2026-10-29 (§12). `revenuecat-webhook` y `subscription-sync` (§19) desde el
+2026-11-16 e `invitation-notify` (§13.1) desde el 2026-11-20. Las despliega el usuario: en `kitom-dev`, todas desplegadas el
+2026-11-20 (`supabase/functions/deploy-template.sh`). `generate-pet-report` sigue pendiente y la carpeta `edge-functions/` no está en el repo. Secretos de `ai-analysis-process`
 (los define el usuario con `supabase secrets set`): `GEMINI_API_KEY` obligatoria; opcionales
 `GEMINI_MODEL` (por defecto `gemini-3.5-flash-lite`), `AI_PROVIDER` (`gemini` por defecto, `openai` con
 `OPENAI_API_KEY` y `OPENAI_MODEL`, o `mock`, que solo vale contra un Supabase local) y
