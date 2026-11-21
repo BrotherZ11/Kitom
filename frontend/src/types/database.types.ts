@@ -1280,6 +1280,35 @@ export type Database = {
       }
       is_pet_member: { Args: { target_pet_id: string }; Returns: boolean }
       owner_has_pets: { Args: never; Returns: boolean }
+      pet_invitation_notifications_claim: {
+        Args: { p_inviter_id: string; p_limit?: number }
+        Returns: {
+          alerts_enabled: boolean
+          invitation_id: string
+          invited_at: string
+          invitee_email: string
+          invitee_id: string
+          invitee_locale: string
+          inviter_name: string
+          pet_name: string
+          push_tokens: string[]
+          role: Database["public"]["Enums"]["co_owner_role"]
+          send_email: boolean
+          send_push: boolean
+        }[]
+      }
+      pet_invitation_notifications_complete: {
+        Args: {
+          p_email_done: boolean
+          p_email_status: string
+          p_invalid_tokens?: string[]
+          p_invitation_id: string
+          p_invited_at: string
+          p_push_done: boolean
+          p_push_status: string
+        }
+        Returns: boolean
+      }
       pet_storage_cleanup_audit: {
         Args: { p_limit: number }
         Returns: {
