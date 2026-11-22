@@ -75,6 +75,7 @@
         }
       ],
       "expo-sharing",
+      "./plugins/with-optional-hardware-features",
       "@react-native-community/datetimepicker",
       [
         "@sentry/react-native",
