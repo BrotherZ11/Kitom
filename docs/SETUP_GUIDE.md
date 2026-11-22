@@ -326,9 +326,11 @@ Decisión, precios y qué incluye: `DECISIONS.md` (2026-11-16). Lo que hace el c
    (`com.android.vending.BILLING`, lo añade `react-native-purchases`): sube una AAB de EAS a **Prueba interna**.
 3. **Suscripción.** Play Console › Monetizar con Play › Productos › Suscripciones › Crear suscripción:
    - ID del producto `kitom_premium`, nombre «Kitom Premium».
-   - Plan base `monthly`: renovación automática, 1 mes, 4,99 € (Play calcula los demás países; revísalos).
-   - Plan base `annual`: renovación automática, 1 año, 39,99 €.
-   - En `annual`, oferta `free-trial`: fase gratuita de 7 días, para nuevos clientes. Activa los planes y la oferta.
+   - Plan base `monthly`: renovación automática, 1 mes, periodo de gracia de 7 días. «Definir precio» toma el importe
+     **sin impuestos** y suma el IVA de cada país: para que en España cueste 4,99 € escribe 4,12 EUR y ajusta a mano
+     España (y, si quieres el mismo precio, el resto de la zona euro). Play calcula los demás países; revísalos.
+   - Plan base `annual`: igual, 1 año; 33,05 EUR sin impuestos para 39,99 € en España.
+   - En `annual`, oferta `free-trial`: fase gratuita de **1 mes**, para nuevos clientes. Activa los planes y la oferta.
 4. **Testers de licencia.** Play Console › Configuración › Pruebas de licencias: añade tu Gmail y el de los testers que
    vayan a probar compras (no se les cobra; las renovaciones de prueba son de minutos).
 5. **Cuenta de servicio para RevenueCat.** En Google Cloud (el mismo proyecto que el inicio de sesión con Google):

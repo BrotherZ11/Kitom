@@ -108,15 +108,26 @@ describe('compras', () => {
       {
         identifier: '$rc_annual', packageType: 'ANNUAL',
         product: { priceString: '39,99 €', pricePerMonthString: '3,33 €', subscriptionPeriod: 'P1Y',
-          defaultOption: { freePhase: { billingPeriod: { unit: 'DAY', value: 7 } } } },
+          defaultOption: { freePhase: { billingPeriod: { unit: 'MONTH', value: 1 } } } },
       },
       { identifier: '$rc_monthly', packageType: 'MONTHLY', product: { priceString: '4,99 €', subscriptionPeriod: 'P1M' } },
       { identifier: 'lifetime', packageType: 'LIFETIME', product: { priceString: '99 €' } },
     ]);
     assert.deepEqual(options, [
-      { id: '$rc_monthly', period: 'month', priceString: '4,99 €', pricePerMonthString: null, trialDays: null },
-      { id: '$rc_annual', period: 'year', priceString: '39,99 €', pricePerMonthString: '3,33 €', trialDays: 7 },
+      { id: '$rc_monthly', period: 'month', priceString: '4,99 €', pricePerMonthString: null, trial: null },
+      { id: '$rc_annual', period: 'year', priceString: '39,99 €', pricePerMonthString: '3,33 €', trial: { unit: 'month', count: 1 } },
     ]);
+  });
+
+  test('prueba gratuita en días (Play) y sin periodo válido', () => {
+    const [monthly, annual] = toPlanOptions([
+      { identifier: '$rc_annual', packageType: 'ANNUAL',
+        product: { priceString: '39,99 €', defaultOption: { freePhase: { billingPeriod: { unit: 'DAY', value: 7 } } } } },
+      { identifier: '$rc_monthly', packageType: 'MONTHLY',
+        product: { priceString: '4,99 €', defaultOption: { freePhase: { billingPeriod: { unit: 'YEAR', value: 1 } } } } },
+    ]);
+    assert.equal(monthly.trial, null, 'un periodo YEAR no es una prueba reconocida');
+    assert.deepEqual(annual.trial, { unit: 'day', count: 7 });
   });
 
   test('paquete personalizado reconocido por el periodo; prueba por precio introductorio 0 (iOS)', () => {
@@ -126,7 +137,7 @@ describe('compras', () => {
       { identifier: 'anual2', packageType: 'ANNUAL', product: { priceString: '$1', subscriptionPeriod: 'P1Y' } },
     ]);
     assert.equal(options.length, 1, 'un solo anual');
-    assert.equal(options[0].trialDays, 7);
+    assert.deepEqual(options[0].trial, { unit: 'day', count: 7 }, 'una semana se muestra en días');
   });
 
   test('motivo de la pantalla y hint de error', () => {

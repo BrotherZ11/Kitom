@@ -41,7 +41,8 @@ Para varios entornos con EAS: perfiles en `eas.json` con `env` o variables de EA
 | `android.allowBackup` | `false` | la copia de Android incluiría la copia local de registros y mascotas (sin cifrar) |
 | `android.permissions` | `SCHEDULE_EXACT_ALARM` | justificarlo en Play (recordatorios de medicación a su hora) |
 | `android.blockedPermissions` | `SYSTEM_ALERT_WINDOW`, `USE_BIOMETRIC`, `USE_FINGERPRINT`, `WRITE_EXTERNAL_STORAGE`, `RECORD_AUDIO` | los añadían dependencias sin uso en Kitom |
-| plugins | router, splash, secure-store (sin Face ID, copia excluida), notifications, image-picker, sharing, datetimepicker, Sentry | textos de permisos de iOS solo en español (pendiente al publicar en iOS) |
+| plugins | router, splash, secure-store (sin Face ID, copia excluida), notifications, image-picker, sharing, `./plugins/with-optional-hardware-features`, datetimepicker, Sentry | textos de permisos de iOS solo en español (pendiente al publicar en iOS) |
+| `uses-feature` opcionales | `android.hardware.wifi`, `android.hardware.screen.portrait` (`required="false"`) | Android las deduce de `ACCESS_WIFI_STATE` (`expo-network`) y de `orientation: portrait`; obligatorias, Play deja fuera tabletas, Chromebooks y Android XR y no admite la versión a revisión (2026-11-22) |
 | `runtimeVersion` / `updates` | ausentes | solo hacen falta si se adopta EAS Update |
 
 Permisos efectivos en Android (manifiesto combinado): Internet y estado de red, cámara, notificaciones
@@ -135,7 +136,7 @@ Una migración que rompa versiones antiguas de la app necesita una ventana en la
 | Eliminación de cuenta desde la app (y URL web en Play) | obligatorio | En la app: P0-02. URL web lista: `site/delete-account.html` (base: `LEGAL_SITE_URL` de `frontend/src/lib/legal-links.ts`); Pages activado, falta el `push` |
 | Política de privacidad pública y enlazada | obligatorio | LISTA: `site/privacy.html` y `site/terms.html` (es/en), enlazadas en Ajustes › Legal, Privacidad y la consulta con IA; falta activar GitHub Pages y la revisión legal recomendada |
 | Formulario Data Safety (Play) y etiquetas de privacidad (App Store) | obligatorio | PENDIENTE; borrador en `PRIVACY.md` |
-| Justificación de `SCHEDULE_EXACT_ALARM` en Play | condicional (si se mantiene el permiso) | PENDIENTE |
+| Justificación de `SCHEDULE_EXACT_ALARM` en Play | condicional (si se mantiene el permiso) | PENDIENTE: Play Console › Contenido de la aplicación; texto en `STORE_LISTING.md` |
 | Nivel de API objetivo exigido por Play | obligatorio | por verificar en la build de EAS |
 | Prueba cerrada antes de producción en cuentas personales nuevas de Play | condicional | por verificar |
 | «Iniciar sesión con Apple» si se ofrece Google en iOS (directriz 4.8) | condicional | PENDIENTE (decisión) |
@@ -237,7 +238,7 @@ Secretos y despliegue de las funciones: plantilla `supabase/functions/deploy-tem
 ejecutarla).
 15. ✅ `db push` de `20261116160000_premium_plans.sql` (el usuario, 2026-11-18) y tipos regenerados con `--linked`.
     ✅ `delete-account` redesplegada (el usuario, 2026-11-20).
-16. Play Console (perfil de comerciante, suscripción `kitom_premium` con planes `monthly`/`annual` y prueba de 7 días,
+16. Play Console (perfil de comerciante, suscripción `kitom_premium` con planes `monthly`/`annual` y prueba de 1 mes,
     testers de licencia), RevenueCat (app, cuenta de servicio, entitlement `premium`, oferta `default`), secretos,
     `functions deploy revenuecat-webhook` y `subscription-sync`, webhook y `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` en EAS:
     `SETUP_GUIDE.md` §7.

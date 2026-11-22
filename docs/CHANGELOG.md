@@ -3,6 +3,16 @@
 Cambios relevantes del proyecto, en orden cronológico inverso. El detalle de cada contrato o
 decisión permanece en su documento de referencia.
 
+## 2026-11-22
+
+- **Play Console, funciones de hardware** (rama `fix/optional-hardware-features`): Play no admitía la 1.1.0 (3) a revisión
+  porque el manifiesto exigía `android.hardware.wifi` (deducida de `ACCESS_WIFI_STATE`, de `expo-network`) y
+  `android.hardware.screen.portrait` (de `orientation: portrait`). El plugin `frontend/plugins/with-optional-hardware-features.js`
+  las declara opcionales. Hace falta una build nueva de EAS.
+- **Kitom Premium, prueba de 1 mes** (decisión del responsable; antes 7 días): la oferta `free-trial` del plan anual dura
+  un mes. La pantalla de Premium muestra la prueba en meses («1 mes gratis», «Empezar mi mes gratis») en lugar de
+  convertirla en 30 días (`PlanOption.trial`). Guía de Play (`SETUP_GUIDE.md` §7): los precios se escriben sin IVA.
+
 ## 2026-11-21
 
 - **GitHub Pages:** `.github/workflows/pages.yml` separa la subida (`build`) y el despliegue (`deploy`, con `needs: build`).

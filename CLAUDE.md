@@ -159,7 +159,7 @@ Ante cualquier otra contradicción: detente y pregunta, no elijas tú.
   app a usuarios del EEE: activarlo antes de testers o de publicar (`docs/DEPLOYMENT.md` §8, paso 8; `docs/DECISIONS.md`).
 - Pruebas a fondo y **Kitom Premium** (2026-11-16; ramas `db/premium` y `feat/premium`, integradas en `main` el 2026-11-18): hallazgos y pendientes en
   `docs/QA_2026-11-16.md`. Premium activo desde la prueba cerrada (`docs/DECISIONS.md` 2026-11-16; sustituye a «v1 gratuita»):
-  4,99 €/mes o 39,99 €/año, 7 días de prueba en el anual; gratis 2 mascotas propias, 30 días de historial y 3 consultas al mes;
+  4,99 €/mes o 39,99 €/año, 1 mes de prueba en el anual (antes 7 días; 2026-11-22); gratis 2 mascotas propias, 30 días de historial y 3 consultas al mes;
   Premium sin límites e invitar co-tutores. Migración `20261116160000_premium_plans.sql` aplicada en `kitom-dev` (`db push` del usuario,
   2026-11-18; tipos regenerados con `--linked`); Edge Functions `revenuecat-webhook` y `subscription-sync` desplegadas por el
   usuario (2026-11-20, con `delete-account` y su paso de RevenueCat); paquete `react-native-purchases` 11.0.2 (aprobado).

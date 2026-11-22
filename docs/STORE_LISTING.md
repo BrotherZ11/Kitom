@@ -144,7 +144,7 @@ permiso de almacenamiento.
 
 ## Otras declaraciones
 
-- **Compras en la app** (2026-11-16): sí, suscripción Kitom Premium (4,99 €/mes o 39,99 €/año, 7 días de prueba en el
+- **Compras en la app** (2026-11-16): sí, suscripción Kitom Premium (4,99 €/mes o 39,99 €/año, 1 mes de prueba en el
   anual). Marcar «Contiene compras en la app» en la ficha; en las descripciones, decir qué es gratis y qué es Premium
   (2 mascotas, 30 días de historial y 3 consultas al mes gratis; Premium sin límites e invitar co-tutores).
 - **Clasificación de contenido:** cuestionario IARC; sin violencia, sexo ni drogas; con compras digitales (Kitom Premium). Interacción entre usuarios limitada

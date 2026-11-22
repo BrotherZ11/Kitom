@@ -25,6 +25,7 @@ import {
   type Plan,
   type PlanOption,
   type PurchaseErrorCode,
+  type TrialPeriod,
 } from '@/features/subscription/plan-model';
 import { managementUrl, purchasesUnavailableReason } from '@/features/subscription/purchases';
 import { useTheme } from '@/hooks/use-theme';
@@ -139,7 +140,7 @@ function OptionCard({ option, selected, onPress }: { option: PlanOption; selecte
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
-      accessibilityLabel={[title, price, option.trialDays ? tf('premium.options.trial', { days: option.trialDays }) : '']
+      accessibilityLabel={[title, price, option.trial ? trialLabel(option.trial) : '']
         .filter(Boolean)
         .join('. ')}
       onPress={onPress}
@@ -162,9 +163,20 @@ function OptionCard({ option, selected, onPress }: { option: PlanOption; selecte
           {tf('premium.options.yearPerMonth', { price: option.pricePerMonthString })}
         </Text>
       ) : null}
-      {option.trialDays ? <Tag label={tf('premium.options.trial', { days: option.trialDays })} tone="success" /> : null}
+      {option.trial ? <Tag label={trialLabel(option.trial)} tone="success" /> : null}
     </Pressable>
   );
+}
+
+/** «1 mes gratis», «2 meses gratis» o «7 días gratis» (un mes de la tienda nunca se cuenta en días). */
+function trialLabel(trial: TrialPeriod): string {
+  if (trial.unit === 'day') return tf('premium.options.trialDays', { count: trial.count });
+  return trial.count === 1 ? t('premium.options.trialMonth') : tf('premium.options.trialMonths', { count: trial.count });
+}
+
+function subscribeTrialLabel(trial: TrialPeriod): string {
+  if (trial.unit === 'day') return tf('premium.subscribeTrialDays', { count: trial.count });
+  return trial.count === 1 ? t('premium.subscribeTrialMonth') : tf('premium.subscribeTrialMonths', { count: trial.count });
 }
 
 function purchaseMessage(code: PurchaseErrorCode): string | null {
@@ -227,7 +239,7 @@ function Paywall({ reasonText, offline, onClose }: { reasonText: string; offline
     <View style={styles.footer}>
       {message ? <Alert tone={message.tone} message={message.text} /> : null}
       <Button
-        label={selected?.trialDays ? tf('premium.subscribeTrial', { days: selected.trialDays }) : t('premium.subscribe')}
+        label={selected?.trial ? subscribeTrialLabel(selected.trial) : t('premium.subscribe')}
         loading={purchase.isPending}
         loadingLabel={t('premium.subscribing')}
         disabled={!selected || restore.isPending}
