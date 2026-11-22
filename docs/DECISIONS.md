@@ -48,8 +48,9 @@ tarjetas de prueba.
 
 **Decisiones del responsable.**
 
-- Precio: 4,99 €/mes y 39,99 €/año, con 7 días de prueba gratuita en el anual (se configuran en Play Console; la app
-  muestra el precio que da la tienda).
+- Precio: 4,99 €/mes y 39,99 €/año, con **1 mes** de prueba gratuita en el anual (eran 7 días; cambio del responsable,
+  2026-11-22). Se configuran en Play Console, con los precios con IVA incluido (en España 4,99 € y 39,99 €); la app
+  muestra el precio y la duración de la prueba que da la tienda.
 - Reservado a Premium: IA sin límite mensual (gratis: 3), mascotas propias ilimitadas (gratis: 2; quien ya tenga más las
   conserva pero no crea otras), todo el historial (gratis: 30 días) e invitar co-tutores (aceptar invitaciones, libre).
 - RevenueCat (`react-native-purchases`) con Google Play Billing; iOS después.

@@ -181,9 +181,11 @@ export type PlanOption = {
   priceString: string;
   /** Precio por mes en la moneda de la tienda, para el anual. */
   pricePerMonthString: string | null;
-  /** Días de prueba gratuita, si la tienda la ofrece a esta cuenta. */
-  trialDays: number | null;
+  /** Prueba gratuita, si la tienda la ofrece a esta cuenta (meses tal cual: un mes no son 30 días). */
+  trial: TrialPeriod | null;
 };
+
+export type TrialPeriod = { unit: 'day' | 'month'; count: number };
 
 type PeriodLike = { unit?: unknown; value?: unknown } | null | undefined;
 
@@ -200,15 +202,15 @@ export type PackageLike = {
   };
 };
 
-function periodDays(period: PeriodLike): number | null {
-  if (!period || typeof period.value !== 'number') return null;
+function trialPeriod(period: PeriodLike): TrialPeriod | null {
+  if (!period || typeof period.value !== 'number' || period.value <= 0) return null;
   switch (period.unit) {
     case 'DAY':
-      return period.value;
+      return { unit: 'day', count: period.value };
     case 'WEEK':
-      return period.value * 7;
+      return { unit: 'day', count: period.value * 7 };
     case 'MONTH':
-      return period.value * 30;
+      return { unit: 'month', count: period.value };
     default:
       return null;
   }
@@ -230,18 +232,18 @@ export function toPlanOptions(packages: readonly PackageLike[]): PlanOption[] {
   for (const pkg of packages) {
     const period = periodOf(pkg);
     if (!period || options.some((o) => o.period === period)) continue;
-    const freeDays = periodDays(pkg.product.defaultOption?.freePhase?.billingPeriod);
+    const freePhase = trialPeriod(pkg.product.defaultOption?.freePhase?.billingPeriod);
     const intro = pkg.product.introPrice;
-    const introDays =
+    const introTrial =
       intro && intro.price === 0
-        ? periodDays({ unit: intro.periodUnit, value: intro.periodNumberOfUnits })
+        ? trialPeriod({ unit: intro.periodUnit, value: intro.periodNumberOfUnits })
         : null;
     options.push({
       id: pkg.identifier,
       period,
       priceString: pkg.product.priceString,
       pricePerMonthString: period === 'year' ? (pkg.product.pricePerMonthString ?? null) : null,
-      trialDays: freeDays ?? introDays,
+      trial: freePhase ?? introTrial,
     });
   }
   return options.sort((a, b) => (a.period === b.period ? 0 : a.period === 'month' ? -1 : 1));

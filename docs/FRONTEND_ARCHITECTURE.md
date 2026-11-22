@@ -705,8 +705,9 @@ Tu cuenta › Tus datos (RGPD art. 15 y 20).
 - **Dónde se puede comprar:** build nativa de Android/iOS con `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` /
   `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` (claves públicas de SDK). En web, Expo Go o sin clave, la pantalla explica
   por qué y no ofrece comprar (`purchasesUnavailableReason`). El SDK se carga con `require` protegido.
-- **Pantalla:** sin Premium, ventajas, opciones mensual y anual (precio de la tienda, `pricePerMonthString` y días de
-  prueba de `defaultOption.freePhase`), «Suscribirme» / «Empezar mis N días gratis», «Restaurar compras» y textos de
+- **Pantalla:** sin Premium, ventajas, opciones mensual y anual (precio de la tienda, `pricePerMonthString` y la prueba
+  de `defaultOption.freePhase`, en días o en meses: un mes nunca se cuenta como 30 días), «Suscribirme» / «Empezar mi mes gratis»
+  (o «mis N días gratis»), «Restaurar compras» y textos de
   renovación y cancelación con enlaces a términos y privacidad. Con Premium, estado (`summarizePlan`: se renueva,
   termina, prueba, problema de cobro) y «Gestionar la suscripción» (`managementURL` de RevenueCat o la página de
   suscripciones de Play con el paquete). Errores de compra por código de RevenueCat (`purchaseErrorCode`:
